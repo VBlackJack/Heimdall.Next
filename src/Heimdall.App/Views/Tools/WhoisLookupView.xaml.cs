@@ -15,43 +15,38 @@
  */
 
 using System.Collections;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Sockets;
-using System.Text;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
-
-using Heimdall.App.Services;
 
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>
-/// WHOIS lookup tool that queries WHOIS servers over raw TCP (port 43)
-/// for domain and IP registration information.
+/// WPF shell for the WHOIS lookup tool. Business logic lives in
+/// <see cref="IWhoisLookupService"/> and <see cref="WhoisLookupViewModel"/>.
 /// </summary>
 public partial class WhoisLookupView : UserControl, IToolView
 {
-    private static readonly TimeSpan QueryTimeout = TimeSpan.FromSeconds(10);
-    private const int WhoisPort = 43;
-
+    private readonly WhoisLookupViewModel _vm;
     private LocalizationManager? _localizer;
-    private CancellationTokenSource? _cts;
     private bool _disposed;
-    private bool _isQuerying;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
-    private readonly ToolAsyncStateController _viewState;
 
     public WhoisLookupView()
     {
+        _vm = new WhoisLookupViewModel();
         InitializeComponent();
+        DataContext = _vm;
+
         _viewState = new ToolAsyncStateController(
             isBusy => _setBusy?.Invoke(isBusy),
             LoadingBar,
@@ -62,28 +57,42 @@ public partial class WhoisLookupView : UserControl, IToolView
             BtnLookup,
             TxtDomain,
             CmbRouteVia);
-        TxtDomain.KeyDown += OnDomainKeyDown;
+
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        RefreshUiFromVm();
     }
 
-    /// <summary>
-    /// Initializes the tool with optional context and localizer.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+        }
+
         _localizer = localizer;
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged += OnLocaleChanged;
+        }
+
         _setBusy = context?.SetBusyAction;
+        _vm.Initialize(localizer);
         ApplyLocalization();
+
+        _vm.Domain = string.Empty;
+        if (!string.IsNullOrWhiteSpace(context?.TargetHost))
+        {
+            _vm.SearchWith(context.TargetHost!);
+        }
 
         if (context?.SshGateways is IList gateways)
         {
             _gateways = gateways.Cast<SshGatewayDto>().ToList();
         }
-        PopulateRouteSelector();
 
-        if (!string.IsNullOrWhiteSpace(context?.TargetHost))
-        {
-            TxtDomain.Text = context.TargetHost;
-        }
+        PopulateRouteSelector();
+        _vm.SetGateway(_selectedGateway);
+        RefreshUiFromVm();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -92,240 +101,152 @@ public partial class WhoisLookupView : UserControl, IToolView
         });
     }
 
+    public bool CanClose() => !_vm.IsBusy;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+            _localizer = null;
+        }
+
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     private void ApplyLocalization()
     {
-        HeaderTitle.Text = L("ToolWhoisTitle");
-        LblDomain.Text = L("ToolWhoisDomainLabel");
-        BtnLookup.Content = L("ToolWhoisBtnLookup");
-        TxtStatus.Text = string.Empty;
-        BtnCopyResults.Content = L("ToolWhoisBtnCopy");
-        BtnCopyResults.ToolTip = L("ToolBtnCopyToClipboard");
-
-        System.Windows.Automation.AutomationProperties.SetName(TxtDomain, L("ToolWhoisDomainLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnLookup, L("ToolWhoisBtnLookup"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolWhoisBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtResults, L("ToolWhoisResults"));
-        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolWhoisStatusQuerying"));
-
-        LblRouteVia.Text = L("ToolTunnelRouteVia");
-        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-
-        TxtDomain.Tag = L("ToolWatermarkExampleDomainOrIp");
-        TxtEmptyState.Text = L("ToolWhoisEmptyState");
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-    }
-
-    private void OnDomainKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            _ = PerformWhoisAsync();
-            e.Handled = true;
-        }
-    }
-
-    private void OnLookupClick(object sender, RoutedEventArgs e)
-    {
-        _ = PerformWhoisAsync();
-    }
-
-    private async Task PerformWhoisAsync()
-    {
-        if (_isQuerying)
-        {
-            return;
-        }
-
-        var domain = TxtDomain.Text.Trim();
-        _viewState.Reset();
-
-        if (string.IsNullOrWhiteSpace(domain))
-        {
-            _viewState.ShowError(L("ToolWhoisErrorDomainRequired"), string.Empty);
-            return;
-        }
-
-        if (!InputValidator.ValidateDomain(domain) &&
-            !System.Net.IPAddress.TryParse(domain, out _))
-        {
-            _viewState.ShowError(L("ToolWhoisErrorInvalidDomain"), string.Empty);
-            return;
-        }
-
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        _cts.CancelAfter(QueryTimeout);
-
-        _isQuerying = true;
-        _viewState.Begin(L("ToolWhoisStatusQuerying"));
-
-        var stopwatch = Stopwatch.StartNew();
-
-        try
-        {
-            var result = _selectedGateway is not null
-                ? await WhoisViaTunnelAsync(domain, _cts.Token)
-                : await WhoisQueryAsync(domain, _cts.Token);
-            stopwatch.Stop();
-
-            if (_cts.IsCancellationRequested) return;
-
-            TxtResultHeader.Text = string.Format(L("ToolWhoisResultHeader"), domain);
-            TxtResults.Text = result;
-            _viewState.ShowResults(string.Format(L("ToolWhoisStatusComplete"), stopwatch.ElapsedMilliseconds));
-        }
-        catch (OperationCanceledException)
-        {
-            _viewState.ShowError(L("ToolWhoisErrorTimeout"), string.Empty);
-        }
-        catch (SocketException ex)
-        {
-            _viewState.ShowError(string.Format(L("ToolWhoisErrorFailed"), ex.Message), string.Empty);
-        }
-        catch (Exception ex)
-        {
-            _viewState.ShowError(string.Format(L("ToolWhoisErrorFailed"), ex.Message), string.Empty);
-        }
-        finally
-        {
-            _isQuerying = false;
-            _viewState.End();
-        }
-    }
-
-    /// <summary>
-    /// Performs a WHOIS query over raw TCP to the appropriate WHOIS server.
-    /// </summary>
-    internal static async Task<string> WhoisQueryAsync(string domain, CancellationToken ct)
-    {
-        var server = domain.Contains('.') ? GetWhoisServer(domain) : "whois.iana.org";
-        using var client = new TcpClient();
-        await client.ConnectAsync(server, WhoisPort, ct);
-        using var stream = client.GetStream();
-        var query = Encoding.ASCII.GetBytes(domain + "\r\n");
-        await stream.WriteAsync(query, ct);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        return await reader.ReadToEndAsync(ct);
-    }
-
-    /// <summary>
-    /// Resolves the appropriate WHOIS server for a given domain based on its TLD.
-    /// </summary>
-    internal static string GetWhoisServer(string domain)
-    {
-        var tld = domain.Split('.')[^1].ToLowerInvariant();
-        return tld switch
-        {
-            "com" or "net" => "whois.verisign-grs.com",
-            "org" => "whois.pir.org",
-            "io" => "whois.nic.io",
-            "dev" => "whois.nic.google",
-            "fr" => "whois.nic.fr",
-            "de" => "whois.denic.de",
-            "uk" => "whois.nic.uk",
-            "eu" => "whois.eu",
-            "nl" => "whois.domain-registry.nl",
-            "be" => "whois.dns.be",
-            "ch" => "whois.nic.ch",
-            "au" => "whois.auda.org.au",
-            "ca" => "whois.cira.ca",
-            "jp" => "whois.jprs.jp",
-            _ => "whois.iana.org"
-        };
-    }
-
-    /// <summary>
-    /// Performs a WHOIS lookup remotely via an SSH gateway.
-    /// </summary>
-    private async Task<string> WhoisViaTunnelAsync(string domain, CancellationToken ct)
-    {
-        return await Task.Run(() =>
-        {
-            using var client = ToolGatewayConnector.Connect(_selectedGateway!);
-            var safeDomain = InputValidator.EscapeShellArg(domain);
-            using var cmd = client.CreateCommand($"whois {safeDomain} 2>&1");
-            cmd.CommandTimeout = QueryTimeout;
-            return cmd.Execute()?.Trim() ?? string.Empty;
-        }, ct);
+        PopulateRouteSelector();
+        ApplyBusyButtonState();
+        AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
+        AutomationProperties.SetName(LoadingBar, L("ToolWhoisStatusQuerying"));
     }
 
     private void PopulateRouteSelector()
     {
+        var selectedGateway = _selectedGateway;
+
         CmbRouteVia.Items.Clear();
         CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
 
+        var selectedIndex = 0;
         if (_gateways is not null)
         {
-            foreach (var gw in _gateways)
+            for (var i = 0; i < _gateways.Count; i++)
             {
-                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
-                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+                var gateway = _gateways[i];
+                var label = $"{gateway.Name} ({gateway.Host}:{gateway.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gateway });
+                if (ReferenceEquals(selectedGateway, gateway))
+                {
+                    selectedIndex = i + 1;
+                }
             }
         }
 
-        CmbRouteVia.SelectedIndex = 0;
+        CmbRouteVia.SelectedIndex = selectedIndex;
     }
 
     private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gateway)
         {
-            _selectedGateway = gw;
+            _selectedGateway = gateway;
         }
         else
         {
             _selectedGateway = null;
         }
+
+        _vm.SetGateway(_selectedGateway);
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(WhoisLookupViewModel.IsBusy):
+            case nameof(WhoisLookupViewModel.ShowError):
+            case nameof(WhoisLookupViewModel.ErrorText):
+            case nameof(WhoisLookupViewModel.HasResults):
+            case nameof(WhoisLookupViewModel.StatusText):
+                RefreshUiFromVm();
+                break;
+        }
+    }
+
+    private void RefreshUiFromVm()
+    {
+        ApplyBusyButtonState();
+
+        if (_vm.IsBusy)
+        {
+            _viewState.Begin(_vm.StatusText);
+            return;
+        }
+
+        _viewState.End();
+
+        if (_vm.ShowError)
+        {
+            _viewState.ShowError(
+                _vm.ErrorText,
+                _vm.StatusText,
+                showEmptyState: !_vm.HasResults,
+                keepResultsVisible: _vm.HasResults);
+            return;
+        }
+
+        if (_vm.HasResults)
+        {
+            _viewState.ShowResults(_vm.StatusText);
+            return;
+        }
+
+        _viewState.Reset();
+    }
+
+    private void ApplyBusyButtonState()
+    {
+        if (_vm.IsBusy)
+        {
+            BtnLookup.Content = L("BtnCancel");
+            BtnLookup.Style = (Style)FindResource("SecondaryButtonStyle");
+            BtnLookup.Command = _vm.CancelCommand;
+            AutomationProperties.SetName(BtnLookup, L("BtnCancel"));
+            return;
+        }
+
+        BtnLookup.Content = L("ToolWhoisBtnLookup");
+        BtnLookup.Style = (Style)FindResource("PrimaryButtonStyle");
+        BtnLookup.Command = _vm.LookupCommand;
+        AutomationProperties.SetName(BtnLookup, L("ToolWhoisBtnLookup"));
     }
 
     private void OnCopyResultsClick(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(TxtResults.Text))
+        if (!_vm.CopyResultsCommand.CanExecute(null))
         {
-            try
-            {
-                Clipboard.SetText(TxtResults.Text);
-                CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"WhoisLookup clipboard copy failed: {ex.Message}");
-            }
-        }
-    }
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
-    {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        TxtHelpContent.Text = L("ToolHelpWHOIS").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+
+        _vm.CopyResultsCommand.Execute(null);
+        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
     }
 
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    private void OnLocaleChanged(string _)
     {
-        HelpPanel.Visibility = Visibility.Collapsed;
+        ApplyLocalization();
     }
-
-    public bool CanClose() => !_isQuerying;
 
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _setBusy?.Invoke(false);
-        GC.SuppressFinalize(this);
-    }
 }

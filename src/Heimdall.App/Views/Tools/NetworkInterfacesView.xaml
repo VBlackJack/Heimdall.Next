@@ -16,6 +16,7 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.NetworkInterfacesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
@@ -25,41 +26,58 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"/>
-                <Button x:Name="BtnRefresh" DockPanel.Dock="Right"
-                        Content="" Click="OnRefreshClick"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"/>
+                <Button x:Name="BtnRefresh"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolNetIfBtnRefresh}"
+                        Command="{Binding RefreshCommand}"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="1"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        Margin="{StaticResource MarginInlineControl}"/>
+                <TextBlock Text="{loc:Translate ToolNetIfTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"/>
-                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                        VerticalAlignment="Top"
+                        Width="24"
+                        Height="24"/>
+                <ScrollViewer MaxHeight="200"
+                              VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding HelpText}"
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -67,12 +85,17 @@
             </DockPanel>
         </Border>
 
-        <!-- DataGrid -->
-        <DataGrid x:Name="InterfacesGrid" Grid.Row="2"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  CanUserSortColumns="True" CanUserReorderColumns="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  SelectionMode="Extended" SelectionUnit="FullRow"
+        <DataGrid x:Name="InterfacesGrid"
+                  Grid.Row="2"
+                  ItemsSource="{Binding Interfaces}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserSortColumns="True"
+                  CanUserReorderColumns="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  SelectionMode="Extended"
+                  SelectionUnit="FullRow"
                   Background="{DynamicResource BackgroundBrush}"
                   Foreground="{DynamicResource TextPrimaryBrush}"
                   RowBackground="{DynamicResource BackgroundBrush}"
@@ -81,36 +104,70 @@
                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                   FontSize="{StaticResource FontSizeBody}">
             <DataGrid.Columns>
-                <DataGridTextColumn x:Name="ColName" Binding="{Binding Name}" Width="180">
+                <DataGridTextColumn x:Name="ColName"
+                                    Binding="{Binding Name}"
+                                    Header="{loc:Translate ToolNetIfColName}"
+                                    Width="180">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn x:Name="ColType" Binding="{Binding InterfaceType}" Width="100"/>
-                <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="80"/>
-                <DataGridTextColumn x:Name="ColSpeed" Binding="{Binding Speed}" Width="100"/>
-                <DataGridTextColumn x:Name="ColMac" Binding="{Binding Mac}" Width="140" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColIpv4" Binding="{Binding Ipv4}" Width="130" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColSubnet" Binding="{Binding Subnet}" Width="130" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColGateway" Binding="{Binding Gateway}" Width="130" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColDhcp" Binding="{Binding Dhcp}" Width="60"/>
+                <DataGridTextColumn x:Name="ColType"
+                                    Binding="{Binding InterfaceType}"
+                                    Header="{loc:Translate ToolNetIfColType}"
+                                    Width="100"/>
+                <DataGridTextColumn x:Name="ColStatus"
+                                    Binding="{Binding Status}"
+                                    Header="{loc:Translate ToolNetIfColStatus}"
+                                    Width="80"/>
+                <DataGridTextColumn x:Name="ColSpeed"
+                                    Binding="{Binding Speed}"
+                                    Header="{loc:Translate ToolNetIfColSpeed}"
+                                    Width="100"/>
+                <DataGridTextColumn x:Name="ColMac"
+                                    Binding="{Binding Mac}"
+                                    Header="{loc:Translate ToolNetIfColMac}"
+                                    Width="140"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColIpv4"
+                                    Binding="{Binding Ipv4}"
+                                    Header="{loc:Translate ToolNetIfColIpv4}"
+                                    Width="130"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColSubnet"
+                                    Binding="{Binding Subnet}"
+                                    Header="{loc:Translate ToolNetIfColSubnet}"
+                                    Width="130"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColGateway"
+                                    Binding="{Binding Gateway}"
+                                    Header="{loc:Translate ToolNetIfColGateway}"
+                                    Width="130"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColDhcp"
+                                    Binding="{Binding Dhcp}"
+                                    Header="{loc:Translate ToolNetIfColDhcp}"
+                                    Width="60"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Footer -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <Button x:Name="BtnCopy" DockPanel.Dock="Right"
-                        Content="" Click="OnCopyClick"
+                <Button x:Name="BtnCopy"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolBtnCopyToClipboard}"
+                        Command="{Binding CopyResultsCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="5"/>
-                <TextBlock x:Name="TxtStatus" Text=""
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        Margin="{StaticResource MarginInlineControl}"/>
+                <TextBlock x:Name="TxtStatus"
+                           Text="{Binding StatusText}"
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>

@@ -14,40 +14,36 @@
  * limitations under the License.
  */
 
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-
-using Heimdall.App.Services;
 
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>
-/// Batch DNS resolver tool that resolves multiple hostnames concurrently
-/// and displays IPv4, IPv6, resolve time, and status for each entry.
+/// Thin WPF shell for the DNS batch resolver tool.
 /// </summary>
 public partial class DnsBatchResolverView : UserControl, IToolView
 {
-    private static readonly TimeSpan ResolveTimeout = TimeSpan.FromSeconds(30);
-
-    private LocalizationManager? _localizer;
-    private CancellationTokenSource? _cts;
-    private bool _disposed;
-    private bool _isResolving;
-    private Action<bool>? _setBusy;
+    private readonly DnsBatchResolverViewModel _vm;
     private readonly ToolAsyncStateController _viewState;
-    private readonly ObservableCollection<DnsResult> _results = [];
+    private Action<bool>? _setBusy;
+    private LocalizationManager? _localizer;
+    private bool _disposed;
 
     public DnsBatchResolverView()
     {
+        _vm = new DnsBatchResolverViewModel();
         InitializeComponent();
-        ResultsGrid.ItemsSource = _results;
+        DataContext = _vm;
+
         _viewState = new ToolAsyncStateController(
             isBusy => _setBusy?.Invoke(isBusy),
             LoadingBar,
@@ -57,253 +53,39 @@ public partial class DnsBatchResolverView : UserControl, IToolView
             TxtStatus,
             BtnResolve,
             TxtHostnames);
+
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        RefreshUiFromVm();
     }
 
-    /// <summary>
-    /// Initializes the tool with optional context and localizer.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
-        _localizer = localizer;
-        _setBusy = context?.SetBusyAction;
-        ApplyLocalization();
-        TxtHostnames.Clear();
-
-        if (!string.IsNullOrWhiteSpace(context?.TargetHost))
+        if (_localizer is not null)
         {
-            TxtHostnames.Text = context.TargetHost;
+            _localizer.LocaleChanged -= OnLocaleChanged;
         }
+
+        _localizer = localizer;
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged += OnLocaleChanged;
+        }
+
+        _setBusy = context?.SetBusyAction;
+        _vm.Initialize(localizer);
+        _vm.HostnamesInput = context?.TargetHost ?? string.Empty;
+
+        ApplyLocalization();
+        RefreshUiFromVm();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtHostnames.Focus();
+            TxtHostnames.SelectAll();
         });
     }
 
-    private void ApplyLocalization()
-    {
-        HeaderTitle.Text = L("ToolDnsBatchTitle");
-        BtnResolve.Content = L("ToolDnsBatchBtnResolve");
-        TxtStatus.Text = string.Empty;
-
-        ColHostname.Header = L("ToolDnsBatchColHostname");
-        ColIpv4.Header = L("ToolDnsBatchColIpv4");
-        ColIpv6.Header = L("ToolDnsBatchColIpv6");
-        ColTime.Header = L("ToolDnsBatchColTime");
-        ColStatus.Header = L("ToolDnsBatchColStatus");
-
-        BtnCopy.Content = L("ToolBtnCopyToClipboard");
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
-        TxtHostnames.Tag = L("ToolDnsBatchInputPlaceholder");
-        TxtEmptyState.Text = L("ToolDnsBatchInputPlaceholder");
-
-        System.Windows.Automation.AutomationProperties.SetName(BtnResolve, L("ToolDnsBatchBtnResolve"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtHostnames, L("ToolDnsBatchInputPlaceholder"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolBtnCopyToClipboard"));
-        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolDnsBatchTitle"));
-        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolDnsBatchTitle"));
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-    }
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
-    {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        TxtHelpContent.Text = L("ToolHelpDNSBATCH").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
-    }
-
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-    {
-        HelpPanel.Visibility = Visibility.Collapsed;
-    }
-
-    private void OnResolveClick(object sender, RoutedEventArgs e)
-    {
-        if (_isResolving)
-        {
-            StopResolve();
-        }
-        else
-        {
-            _ = PerformBatchResolveAsync();
-        }
-    }
-
-    private async Task PerformBatchResolveAsync()
-    {
-        if (_disposed || _isResolving)
-        {
-            return;
-        }
-
-        var rawText = TxtHostnames.Text.Trim();
-        _viewState.Reset(showEmptyState: false);
-        _results.Clear();
-
-        if (string.IsNullOrWhiteSpace(rawText))
-        {
-            _viewState.ShowError(L("ToolValidationHostRequired"), string.Empty, showEmptyState: true);
-            return;
-        }
-
-        var hostnames = rawText
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(h => !string.IsNullOrWhiteSpace(h))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (hostnames.Count == 0)
-        {
-            _viewState.ShowError(L("ToolValidationHostRequired"), string.Empty, showEmptyState: true);
-            return;
-        }
-
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        _cts.CancelAfter(ResolveTimeout);
-
-        _isResolving = true;
-        BtnResolve.Content = L("ToolDnsBatchBtnStop");
-        BtnResolve.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-        BtnResolve.Style = (Style)FindResource("SecondaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnResolve, L("ToolDnsBatchBtnStop"));
-        _viewState.Begin(L("ToolDnsBatchBtnResolve"));
-
-        var ct = _cts.Token;
-
-        try
-        {
-            var tasks = hostnames.Select(hostname => ResolveHostAsync(hostname, ct));
-            var results = await Task.WhenAll(tasks);
-
-            if (ct.IsCancellationRequested)
-            {
-                return;
-            }
-
-            foreach (var result in results)
-            {
-                _results.Add(result);
-            }
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            _viewState.ShowResults(string.Format(L("ToolDnsBatchStatus"), _results.Count, timestamp));
-        }
-        catch (OperationCanceledException)
-        {
-            // Resolve was cancelled — partial results may already be present
-        }
-        catch (Exception ex)
-        {
-            _viewState.ShowError(ex.Message, string.Empty, keepResultsVisible: _results.Count > 0);
-        }
-        finally
-        {
-            StopResolve();
-        }
-    }
-
-    private static async Task<DnsResult> ResolveHostAsync(string hostname, CancellationToken ct)
-    {
-        var sw = Stopwatch.StartNew();
-
-        try
-        {
-            var addresses = await Dns.GetHostAddressesAsync(hostname, ct);
-            sw.Stop();
-
-            var ipv4 = addresses
-                .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
-                .Select(a => a.ToString())
-                .FirstOrDefault() ?? "\u2014";
-
-            var ipv6 = addresses
-                .Where(a => a.AddressFamily == AddressFamily.InterNetworkV6)
-                .Select(a => a.ToString())
-                .FirstOrDefault() ?? "\u2014";
-
-            return new DnsResult(hostname, ipv4, ipv6, (int)sw.ElapsedMilliseconds, "OK");
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (SocketException ex)
-        {
-            sw.Stop();
-            return new DnsResult(hostname, "\u2014", "\u2014", (int)sw.ElapsedMilliseconds, ex.SocketErrorCode.ToString());
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            return new DnsResult(hostname, "\u2014", "\u2014", (int)sw.ElapsedMilliseconds, ex.Message);
-        }
-    }
-
-    private void StopResolve()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _isResolving = false;
-        _setBusy?.Invoke(false);
-
-        BtnResolve.Content = L("ToolDnsBatchBtnResolve");
-        BtnResolve.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
-        BtnResolve.Style = (Style)FindResource("PrimaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnResolve, L("ToolDnsBatchBtnResolve"));
-        BtnResolve.IsEnabled = true;
-        TxtHostnames.IsReadOnly = false;
-
-        UpdateResultsSurface();
-    }
-
-    private void UpdateResultsSurface()
-    {
-        var hasResults = _results.Count > 0;
-        ResultsPanel.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
-        EmptyStatePanel.Visibility = hasResults || _isResolving
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-    }
-
-    private void OnCopyClick(object sender, RoutedEventArgs e)
-    {
-        if (_results.Count == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{L("ToolDnsBatchColHostname")}\t{L("ToolDnsBatchColIpv4")}\t{L("ToolDnsBatchColIpv6")}\t{L("ToolDnsBatchColTime")}\t{L("ToolDnsBatchColStatus")}");
-
-            foreach (var r in _results)
-            {
-                sb.AppendLine($"{r.Hostname}\t{r.Ipv4}\t{r.Ipv6}\t{r.ResolveTimeMs}\t{r.Status}");
-            }
-
-            Clipboard.SetText(sb.ToString());
-            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-        }
-        catch (System.Runtime.InteropServices.ExternalException)
-        {
-            // Clipboard locked by another process
-        }
-    }
-
-    private string L(string key) => _localizer?[key] ?? key;
-
-    public bool CanClose() => !_isResolving;
+    public bool CanClose() => !_vm.IsBusy;
 
     public void Dispose()
     {
@@ -313,15 +95,112 @@ public partial class DnsBatchResolverView : UserControl, IToolView
         }
 
         _disposed = true;
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _setBusy?.Invoke(false);
+
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+            _localizer = null;
+        }
+
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Represents a single DNS batch resolution result for DataGrid binding.
-    /// </summary>
-    public sealed record DnsResult(string Hostname, string Ipv4, string Ipv6, int ResolveTimeMs, string Status);
+    private void ApplyLocalization()
+    {
+        ApplyBusyButtonState();
+        AutomationProperties.SetName(BtnResolve, _vm.IsBusy ? L("ToolDnsBatchBtnStop") : L("ToolDnsBatchBtnResolve"));
+        AutomationProperties.SetName(LoadingBar, L("ToolDnsBatchTitle"));
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(DnsBatchResolverViewModel.IsBusy):
+            case nameof(DnsBatchResolverViewModel.ShowError):
+            case nameof(DnsBatchResolverViewModel.ErrorText):
+            case nameof(DnsBatchResolverViewModel.HasResults):
+            case nameof(DnsBatchResolverViewModel.StatusText):
+                RefreshUiFromVm();
+                break;
+        }
+    }
+
+    private void RefreshUiFromVm()
+    {
+        ApplyBusyButtonState();
+
+        if (_vm.IsBusy)
+        {
+            _viewState.Begin(_vm.StatusText);
+            return;
+        }
+
+        _viewState.End();
+
+        if (_vm.ShowError)
+        {
+            _viewState.ShowError(_vm.ErrorText, _vm.StatusText, showEmptyState: !_vm.HasResults, keepResultsVisible: _vm.HasResults);
+            return;
+        }
+
+        if (_vm.HasResults)
+        {
+            _viewState.ShowResults(_vm.StatusText);
+            return;
+        }
+
+        _viewState.Reset();
+    }
+
+    private void ApplyBusyButtonState()
+    {
+        if (_vm.IsBusy)
+        {
+            BtnResolve.Content = L("ToolDnsBatchBtnStop");
+            BtnResolve.Style = (Style)FindResource("SecondaryButtonStyle");
+            BtnResolve.Command = _vm.CancelCommand;
+            AutomationProperties.SetName(BtnResolve, L("ToolDnsBatchBtnStop"));
+            return;
+        }
+
+        BtnResolve.Content = L("ToolDnsBatchBtnResolve");
+        BtnResolve.Style = (Style)FindResource("PrimaryButtonStyle");
+        BtnResolve.Command = _vm.ResolveCommand;
+        AutomationProperties.SetName(BtnResolve, L("ToolDnsBatchBtnResolve"));
+    }
+
+    private void OnCopyClick(object sender, RoutedEventArgs e)
+    {
+        if (!_vm.HasResults)
+        {
+            return;
+        }
+
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"{ColHostname.Header}\t{ColIpv4.Header}\t{ColIpv6.Header}\t{ColTime.Header}\t{ColStatus.Header}");
+            foreach (var row in _vm.Results)
+            {
+                sb.AppendLine($"{row.Hostname}\t{row.Ipv4}\t{row.Ipv6}\t{row.ResolveTimeMs}\t{row.Status}");
+            }
+
+            Clipboard.SetText(sb.ToString());
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+        catch (ExternalException)
+        {
+            // Clipboard locked by another process.
+        }
+    }
+
+    private void OnLocaleChanged(string _)
+    {
+        ApplyLocalization();
+    }
+
+    private string L(string key) => _localizer?[key] ?? key;
 }

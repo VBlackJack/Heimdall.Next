@@ -16,6 +16,7 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.RouteTableView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
@@ -25,41 +26,58 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"/>
-                <Button x:Name="BtnRefresh" DockPanel.Dock="Right"
-                        Content="" Click="OnRefreshClick"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"/>
+                <Button x:Name="BtnRefresh"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolRouteTableBtnRefresh}"
+                        Command="{Binding RefreshCommand}"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="1"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        Margin="{StaticResource MarginInlineControl}"/>
+                <TextBlock Text="{loc:Translate ToolRouteTableTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"/>
-                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                        VerticalAlignment="Top"
+                        Width="24"
+                        Height="24"/>
+                <ScrollViewer MaxHeight="200"
+                              VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding HelpText}"
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -67,12 +85,17 @@
             </DockPanel>
         </Border>
 
-        <!-- DataGrid -->
-        <DataGrid x:Name="RoutesGrid" Grid.Row="2"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  CanUserSortColumns="True" CanUserReorderColumns="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  SelectionMode="Extended" SelectionUnit="FullRow"
+        <DataGrid x:Name="RoutesGrid"
+                  Grid.Row="2"
+                  ItemsSource="{Binding Routes}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserSortColumns="True"
+                  CanUserReorderColumns="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  SelectionMode="Extended"
+                  SelectionUnit="FullRow"
                   Background="{DynamicResource BackgroundBrush}"
                   Foreground="{DynamicResource TextPrimaryBrush}"
                   RowBackground="{DynamicResource BackgroundBrush}"
@@ -81,32 +104,54 @@
                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                   FontSize="{StaticResource FontSizeBody}">
             <DataGrid.Columns>
-                <DataGridTextColumn x:Name="ColDest" Binding="{Binding Destination}" Width="150" FontFamily="Consolas">
+                <DataGridTextColumn x:Name="ColDest"
+                                    Binding="{Binding Destination}"
+                                    Header="{loc:Translate ToolRouteTableColDest}"
+                                    Width="150"
+                                    FontFamily="Consolas">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn x:Name="ColMask" Binding="{Binding Mask}" Width="150" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColGateway" Binding="{Binding Gateway}" Width="150" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColInterface" Binding="{Binding Interface}" Width="150" FontFamily="Consolas"/>
-                <DataGridTextColumn x:Name="ColMetric" Binding="{Binding Metric}" Width="*"/>
+                <DataGridTextColumn x:Name="ColMask"
+                                    Binding="{Binding Mask}"
+                                    Header="{loc:Translate ToolRouteTableColMask}"
+                                    Width="150"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColGateway"
+                                    Binding="{Binding Gateway}"
+                                    Header="{loc:Translate ToolRouteTableColGateway}"
+                                    Width="150"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColInterface"
+                                    Binding="{Binding Interface}"
+                                    Header="{loc:Translate ToolRouteTableColInterface}"
+                                    Width="150"
+                                    FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColMetric"
+                                    Binding="{Binding Metric}"
+                                    Header="{loc:Translate ToolRouteTableColMetric}"
+                                    Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Footer -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <Button x:Name="BtnCopy" DockPanel.Dock="Right"
-                        Content="" Click="OnCopyClick"
+                <Button x:Name="BtnCopy"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolBtnCopyToClipboard}"
+                        Command="{Binding CopyResultsCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="5"/>
-                <TextBlock x:Name="TxtStatus" Text=""
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        Margin="{StaticResource MarginInlineControl}"/>
+                <TextBlock x:Name="TxtStatus"
+                           Text="{Binding StatusText}"
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>

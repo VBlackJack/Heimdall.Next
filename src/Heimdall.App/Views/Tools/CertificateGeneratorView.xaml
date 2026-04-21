@@ -16,6 +16,7 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.CertificateGeneratorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
@@ -24,35 +25,53 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
                         TabIndex="9"
-                        Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle"
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.AutomationId="CertificateGenerator.HelpButton"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"/>
+                <TextBlock Text="{loc:Translate ToolCertGenTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button DockPanel.Dock="Right"
+                        Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        VerticalAlignment="Top"
+                        Width="24"
+                        Height="24"
+                        AutomationProperties.AutomationId="CertificateGenerator.CloseHelpButton"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock Text="{Binding HelpContentText}"
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -60,323 +79,387 @@
             </DockPanel>
         </Border>
 
-    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <!-- Subject section -->
-            <Border Grid.Row="0" Padding="{StaticResource SpacingMd}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}">
-                <StackPanel>
-                    <TextBlock x:Name="SubjectSectionLabel"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
-                    <!-- Common Name -->
-                    <DockPanel Margin="{StaticResource MarginStackItem}">
-                        <TextBlock x:Name="CnLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <TextBox x:Name="CnInput"
-                                 TabIndex="0"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Background="{DynamicResource CardBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"/>
-                    </DockPanel>
-                    <!-- Organization -->
-                    <DockPanel Margin="{StaticResource MarginStackItem}">
-                        <TextBlock x:Name="OrgLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <TextBox x:Name="OrgInput"
-                                 TabIndex="1"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Background="{DynamicResource CardBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"/>
-                    </DockPanel>
-                    <!-- Country -->
-                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
-                        <TextBlock x:Name="CountryLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <TextBox x:Name="CountryInput"
-                                 TabIndex="2"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Background="{DynamicResource CardBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" MaxLength="2"/>
-                    </DockPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Options section -->
-            <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}">
-                <StackPanel>
-                    <TextBlock x:Name="OptionsSectionLabel"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
-                    <!-- Key Size -->
-                    <DockPanel Margin="{StaticResource MarginStackItem}">
-                        <TextBlock x:Name="KeySizeLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <ComboBox x:Name="KeySizeCombo"
-                                  TabIndex="3"
-                                  SelectedIndex="0"
-                                  MinWidth="200">
-                            <ComboBoxItem x:Name="CertRsa2048Item" Content="" Tag="RSA2048"/>
-                            <ComboBoxItem x:Name="CertRsa4096Item" Content="" Tag="RSA4096"/>
-                        </ComboBox>
-                    </DockPanel>
-                    <!-- Validity Days -->
-                    <DockPanel Margin="{StaticResource MarginStackItem}">
-                        <TextBlock x:Name="ValidityLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <TextBox x:Name="ValidityInput"
-                                 TabIndex="4"
-                                 Text=""
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Background="{DynamicResource CardBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" Width="100"
-                                 HorizontalAlignment="Left"/>
-                    </DockPanel>
-                    <!-- SANs -->
-                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
-                        <TextBlock x:Name="SanLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" Width="160"/>
-                        <TextBox x:Name="SanInput"
-                                 TabIndex="5"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Background="{DynamicResource CardBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"/>
-                    </DockPanel>
-                    <TextBlock x:Name="SanHint"
-                               FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               Margin="160,0,0,0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Type selector -->
-            <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}">
-                <StackPanel>
-                    <TextBlock x:Name="TypeSectionLabel"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="RadioSelfSigned"
-                                     TabIndex="6"
-                                     IsChecked="True"
-                                     Foreground="{DynamicResource TextPrimaryBrush}"
-                                     Margin="0,0,20,0"/>
-                        <RadioButton x:Name="RadioCaLeaf"
-                                     TabIndex="7"
-                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Generate button -->
-            <Button x:Name="BtnGenerate" Grid.Row="3"
-                    TabIndex="8"
-                    Click="OnGenerateClick"
-                    Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"
-                    HorizontalAlignment="Left"/>
-
-            <TextBlock x:Name="ValidationText" Grid.Row="4"
-                       Style="{StaticResource ToolInlineErrorTextStyle}"/>
-
-            <!-- Fingerprint -->
-            <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}"
-                    Visibility="Collapsed" x:Name="FingerprintPanel">
-                <DockPanel>
-                    <TextBlock x:Name="FingerprintLabel"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center" Width="100"
-                               FontWeight="SemiBold"/>
-                    <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
-                            Click="OnCopyFingerprintClick"
-                            Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"/>
-                    <TextBox x:Name="FingerprintOutput"
-                             IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             VerticalAlignment="Center"/>
-                </DockPanel>
-            </Border>
-
-            <!-- Certificate PEM (self-signed) / CA Certificate (CA+Leaf) -->
-            <Border Grid.Row="6" Padding="{StaticResource SpacingSm}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}"
-                    Visibility="Collapsed" x:Name="CertPanel">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
-                        <TextBlock x:Name="CertLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyCert"
-                                Click="OnCopyCertClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBox x:Name="CertOutput"
-                             IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                             TextWrapping="Wrap"
-                             MaxHeight="200"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"/>
-                </DockPanel>
-            </Border>
-
-            <!-- Private Key -->
-            <Border Grid.Row="7" Padding="{StaticResource SpacingSm}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}"
-                    Visibility="Collapsed" x:Name="KeyPanel">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
-                        <TextBlock x:Name="KeyLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyKey"
-                                Click="OnCopyKeyClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"/>
-                        <Button x:Name="BtnShowKey"
-                                Click="OnToggleKeyClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
-                                VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBox x:Name="KeyOutput"
-                             IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                             TextWrapping="Wrap"
-                             MaxHeight="200"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"/>
-                </DockPanel>
-            </Border>
-
-            <!-- Leaf Certificate (CA+Leaf mode only) -->
-            <Border Grid.Row="8" Padding="{StaticResource SpacingSm}"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="{StaticResource MarginSectionBottom}"
-                    Visibility="Collapsed" x:Name="LeafPanel">
-                <StackPanel>
-                    <!-- Leaf Cert -->
-                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
-                        <TextBlock x:Name="LeafCertLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyLeafCert"
-                                Click="OnCopyLeafCertClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBox x:Name="LeafCertOutput"
-                             IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                             TextWrapping="Wrap"
-                             MaxHeight="160"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             Margin="{StaticResource MarginSectionBottom}"/>
-                    <!-- Leaf Key -->
-                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
-                        <TextBlock x:Name="LeafKeyLabel"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyLeafKey"
-                                Click="OnCopyLeafKeyClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"/>
-                        <Button x:Name="BtnShowLeafKey"
-                                Click="OnToggleLeafKeyClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
-                                VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBox x:Name="LeafKeyOutput"
-                             IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                             TextWrapping="Wrap"
-                             MaxHeight="160"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Export buttons -->
-            <StackPanel Grid.Row="9" Orientation="Horizontal"
-                        Visibility="Collapsed" x:Name="ExportPanel"
+                <Border Grid.Row="0"
+                        Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
                         Margin="{StaticResource MarginSectionBottom}">
-                <Button x:Name="BtnSavePem"
-                        Click="OnSavePemClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}"/>
-                <Button x:Name="BtnSavePfx"
-                        Click="OnSavePfxClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}"/>
-            </StackPanel>
-        </Grid>
-    </ScrollViewer>
+                    <StackPanel>
+                        <TextBlock Text="{loc:Translate ToolCertGenSubjectSection}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold"
+                                   Margin="{StaticResource MarginStackItem}"/>
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
+                            <TextBlock Text="{loc:Translate ToolCertGenCn}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <TextBox x:Name="CnInput"
+                                     Text="{Binding Cn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="0"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Background="{DynamicResource CardBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     AutomationProperties.AutomationId="CertificateGenerator.CnInput"
+                                     AutomationProperties.Name="{loc:Translate ToolCertGenCn}"/>
+                        </DockPanel>
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
+                            <TextBlock Text="{loc:Translate ToolCertGenOrg}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <TextBox Text="{Binding Org, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="1"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Background="{DynamicResource CardBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     AutomationProperties.Name="{loc:Translate ToolCertGenOrg}"/>
+                        </DockPanel>
+                        <DockPanel Margin="{StaticResource MarginLabelBottom}">
+                            <TextBlock Text="{loc:Translate ToolCertGenCountry}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <TextBox Text="{Binding Country, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="2"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Background="{DynamicResource CardBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     MaxLength="2"
+                                     AutomationProperties.Name="{loc:Translate ToolCertGenCountry}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <StackPanel>
+                        <TextBlock Text="{loc:Translate ToolCertGenOptionsSection}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold"
+                                   Margin="{StaticResource MarginStackItem}"/>
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
+                            <TextBlock Text="{loc:Translate ToolCertGenKeySize}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <ComboBox SelectedIndex="{Binding KeySizeIndex, Mode=TwoWay}"
+                                      TabIndex="3"
+                                      MinWidth="200"
+                                      AutomationProperties.Name="{loc:Translate ToolCertGenKeySize}">
+                                <ComboBoxItem Content="{loc:Translate ToolCertGenRsa2048}" Tag="RSA2048"/>
+                                <ComboBoxItem Content="{loc:Translate ToolCertGenRsa4096}" Tag="RSA4096"/>
+                            </ComboBox>
+                        </DockPanel>
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
+                            <TextBlock Text="{loc:Translate ToolCertGenValidity}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <TextBox x:Name="ValidityInput"
+                                     Text="{Binding ValidityDaysText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="4"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Background="{DynamicResource CardBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     Width="100"
+                                     HorizontalAlignment="Left"
+                                     AutomationProperties.Name="{loc:Translate ToolCertGenValidity}"/>
+                        </DockPanel>
+                        <DockPanel Margin="{StaticResource MarginLabelBottom}">
+                            <TextBlock Text="{loc:Translate ToolCertGenSan}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Width="160"/>
+                            <TextBox Text="{Binding SanRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="5"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Background="{DynamicResource CardBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     AutomationProperties.Name="{loc:Translate ToolCertGenSan}"/>
+                        </DockPanel>
+                        <TextBlock Text="{loc:Translate ToolCertGenSanHint}"
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="160,0,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2"
+                        Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <StackPanel>
+                        <TextBlock Text="{loc:Translate ToolCertGenTypeSection}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold"
+                                   Margin="{StaticResource MarginStackItem}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton IsChecked="{Binding IsSelfSigned, Mode=TwoWay}"
+                                         Content="{loc:Translate ToolCertGenTypeSelfSigned}"
+                                         TabIndex="6"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         Margin="0,0,20,0"
+                                         AutomationProperties.Name="{loc:Translate ToolCertGenTypeSelfSigned}"/>
+                            <RadioButton IsChecked="{Binding IsCaLeafMode, Mode=TwoWay}"
+                                         Content="{loc:Translate ToolCertGenTypeCaLeaf}"
+                                         TabIndex="7"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         AutomationProperties.Name="{loc:Translate ToolCertGenTypeCaLeaf}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Button x:Name="BtnGenerate"
+                        Grid.Row="3"
+                        Content="{loc:Translate ToolCertGenBtnGenerate}"
+                        Command="{Binding GenerateCommand}"
+                        TabIndex="8"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        Margin="{StaticResource MarginSectionSeparator}"
+                        HorizontalAlignment="Left"
+                        AutomationProperties.AutomationId="CertificateGenerator.GenerateButton"
+                        AutomationProperties.Name="{loc:Translate ToolCertGenBtnGenerate}"/>
+
+                <TextBlock x:Name="ValidationText"
+                           Grid.Row="4"
+                           Text="{Binding ValidationMessage}"
+                           Visibility="{Binding ValidationMessage, Converter={StaticResource NullToVisibilityConverter}}"
+                           AutomationProperties.AutomationId="CertificateGenerator.ValidationText"
+                           Style="{StaticResource ToolInlineErrorTextStyle}"/>
+
+                <Border Grid.Row="5"
+                        Padding="{StaticResource SpacingSm}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        Visibility="{Binding IsFingerprintPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <DockPanel>
+                        <TextBlock Text="{loc:Translate ToolCertGenFingerprint}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Width="100"
+                                   FontWeight="SemiBold"/>
+                        <Button Content="{loc:Translate ToolCertGenBtnCopy}"
+                                Command="{Binding CopyFingerprintCommand}"
+                                DockPanel.Dock="Right"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonCopy}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="{loc:Translate ToolCertGenBtnCopy}"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"/>
+                        <TextBox Text="{Binding FingerprintText, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderThickness="0"
+                                 VerticalAlignment="Center"
+                                 AutomationProperties.Name="{loc:Translate ToolCertGenFingerprint}"/>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="6"
+                        Padding="{StaticResource SpacingSm}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        Visibility="{Binding IsCertPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
+                            <TextBlock Text="{Binding CertLabelText}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="{loc:Translate ToolCertGenBtnCopy}"
+                                    Command="{Binding CopyCertCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.AutomationId="CertificateGenerator.CopyCertButton"
+                                    AutomationProperties.Name="{loc:Translate ToolCertGenBtnCopy}"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding CurrentCertPem, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="200"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderThickness="0"
+                                 AutomationProperties.AutomationId="CertificateGenerator.CertOutput"/>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="7"
+                        Padding="{StaticResource SpacingSm}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        Visibility="{Binding IsKeyPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
+                            <TextBlock Text="{Binding KeyLabelText}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="{loc:Translate ToolCertGenBtnCopy}"
+                                    Command="{Binding CopyKeyCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{loc:Translate ToolCertGenBtnCopy}"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"/>
+                            <Button Content="{Binding BtnShowKeyText}"
+                                    Command="{Binding ToggleKeyCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineStart}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{Binding BtnShowKeyText}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding DisplayedKeyText, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="200"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderThickness="0"/>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="8"
+                        Padding="{StaticResource SpacingSm}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        Visibility="{Binding IsLeafPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
+                            <TextBlock Text="{loc:Translate ToolCertGenLeafCertPem}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="{loc:Translate ToolCertGenBtnCopy}"
+                                    Command="{Binding CopyLeafCertCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{loc:Translate ToolCertGenBtnCopy}"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding LeafCertPem, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="160"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderThickness="0"
+                                 Margin="{StaticResource MarginSectionBottom}"/>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
+                            <TextBlock Text="{loc:Translate ToolCertGenLeafKeyPem}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="{loc:Translate ToolCertGenBtnCopy}"
+                                    Command="{Binding CopyLeafKeyCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{loc:Translate ToolCertGenBtnCopy}"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"/>
+                            <Button Content="{Binding BtnShowLeafKeyText}"
+                                    Command="{Binding ToggleLeafKeyCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Margin="{StaticResource MarginInlineStart}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{Binding BtnShowLeafKeyText}"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding DisplayedLeafKeyText, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="160"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderThickness="0"/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Row="9"
+                            Orientation="Horizontal"
+                            Visibility="{Binding IsExportPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Margin="{StaticResource MarginSectionBottom}">
+                    <Button Content="{loc:Translate ToolCertGenBtnSavePem}"
+                            Command="{Binding SavePemCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginInlineSm}"
+                            AutomationProperties.Name="{loc:Translate ToolCertGenBtnSavePem}"/>
+                    <Button Content="{loc:Translate ToolCertGenBtnSavePfx}"
+                            Command="{Binding SavePfxCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            AutomationProperties.Name="{loc:Translate ToolCertGenBtnSavePfx}"/>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>

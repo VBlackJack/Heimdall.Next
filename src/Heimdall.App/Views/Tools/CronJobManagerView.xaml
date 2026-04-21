@@ -16,7 +16,13 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.CronJobManagerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,70 +31,90 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        TabIndex="10"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.AutomationId="CronJob.HelpButton"/>
+                <TextBlock x:Name="HeaderTitle"
+                           VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           Text="{loc:Translate ToolCronJobTitle}"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
+                        Command="{Binding ToggleHelpCommand}"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"/>
+                        VerticalAlignment="Top"
+                        TabIndex="11"
+                        AutomationProperties.AutomationId="CronJob.CloseHelpButton"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20"
+                               Text="{Binding HelpText}"
+                               TextWrapping="Wrap"/>
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Empty state hint (hidden once content is loaded) -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="2"
-                Style="{StaticResource ToolEmptyStateStyle}"
-               >
+        <Border x:Name="EmptyStatePanel"
+                Grid.Row="2"
+                Style="{StaticResource ToolEmptyStateStyle}">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE787;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
-                <TextBlock x:Name="TxtEmptyState" Text=""
+                <TextBlock x:Name="TxtEmptyState"
+                           Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
-        <!-- Loading indicator -->
-        <ProgressBar x:Name="LoadingBar" Grid.Row="2"
+        <ProgressBar x:Name="LoadingBar"
+                     Grid.Row="2"
                      Style="{StaticResource ToolLoadingBarStyle}"
                      VerticalAlignment="Top"/>
 
-        <!-- Content -->
-        <TabControl x:Name="ModeTabControl" Grid.Row="2"
+        <TabControl x:Name="ModeTabControl"
+                    Grid.Row="2"
                     Background="Transparent"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
                     BorderThickness="0"
-                    Margin="0">
-
-            <!-- Paste Crontab Mode -->
-            <TabItem x:Name="TabPasteCrontab">
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    Margin="0"
+                    SelectedIndex="{Binding ModeIndex, Mode=TwoWay}">
+            <TabItem x:Name="TabPasteCrontab"
+                     Header="{loc:Translate ToolCronJobTabPaste}">
                 <Grid Margin="{StaticResource SpacingMd}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -99,48 +125,61 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Instructions -->
-                    <TextBlock x:Name="LblPasteInstructions" Grid.Row="0" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
+                    <TextBlock x:Name="LblPasteInstructions"
+                               Grid.Row="0"
+                               FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="{StaticResource MarginStackItem}"
+                               Text="{loc:Translate ToolCronJobPasteInstructions}"
                                TextWrapping="Wrap"/>
 
-                    <!-- Paste area -->
-                    <TextBox x:Name="TxtCrontabInput" Grid.Row="1"
-                             AcceptsReturn="True" AcceptsTab="True"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}"
+                    <TextBox x:Name="TxtCrontabInput"
+                             Grid.Row="1"
+                             AcceptsReturn="True"
+                             AcceptsTab="True"
                              Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             TabIndex="0"/>
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             HorizontalScrollBarVisibility="Auto"
+                             Padding="{StaticResource PaddingInput}"
+                             TabIndex="0"
+                             Text="{Binding CrontabInputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.AutomationId="CronJob.CrontabInput"/>
 
-                    <!-- Parse button -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource MarginSubsectionTop}">
-                        <Button x:Name="BtnParse" Content=""
-                                Click="OnParseClick"
-                                Style="{DynamicResource PrimaryButtonStyle}"
+                    <StackPanel Grid.Row="2"
+                                Orientation="Horizontal"
+                                Margin="{StaticResource MarginSubsectionTop}">
+                        <Button x:Name="BtnParse"
+                                Content="{loc:Translate ToolCronJobBtnParse}"
+                                Command="{Binding ParseCommand}"
                                 Padding="{StaticResource PaddingButtonPrimary}"
-                                TabIndex="1"/>
-                        <Button x:Name="BtnClearPaste" Content=""
-                                Click="OnClearPasteClick"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                TabIndex="1"
+                                AutomationProperties.AutomationId="CronJob.ParseButton"/>
+                        <Button x:Name="BtnClearPaste"
+                                Content="{loc:Translate ToolCronJobBtnClear}"
+                                Command="{Binding ClearPasteCommand}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                Padding="{StaticResource PaddingButtonPrimary}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                 TabIndex="2"/>
                     </StackPanel>
 
-                    <!-- Error message -->
-                    <TextBlock x:Name="TxtCronError" Grid.Row="3" Text=""
+                    <TextBlock x:Name="TxtCronError"
+                               Grid.Row="3"
+                               Margin="{StaticResource MarginSubsectionTop}"
                                Style="{StaticResource ToolInlineErrorTextStyle}"
-                               Margin="{StaticResource MarginSubsectionTop}"/>
+                               Text="{Binding CronErrorText}"
+                               Visibility="{Binding HasCronError, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                    <!-- Parsed entries DataGrid -->
-                    <Border x:Name="CronResultsPanel" Grid.Row="4"
-                            Style="{StaticResource ToolResultsCardStyle}"
+                    <Border x:Name="CronResultsPanel"
+                            Grid.Row="4"
                             Margin="{StaticResource MarginSubsectionTop}"
-                            Padding="0">
+                            Padding="0"
+                            Style="{StaticResource ToolResultsCardStyle}">
                         <DataGrid x:Name="CronResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -156,51 +195,76 @@
                                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                                   AutomationProperties.LiveSetting="Polite"
                                   TabIndex="3"
-                                  SelectionChanged="OnCronEntrySelected">
+                                  ItemsSource="{Binding CronEntries}"
+                                  SelectedItem="{Binding SelectedCronEntry, Mode=TwoWay}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn x:Name="ColCronSchedule" Binding="{Binding Schedule}" Width="160"
+                                <DataGridTextColumn x:Name="ColCronSchedule"
+                                                    Binding="{Binding Schedule}"
+                                                    Header="{loc:Translate ToolCronJobColSchedule}"
+                                                    Width="160"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColCronCommand" Binding="{Binding Command}" Width="*"
+                                <DataGridTextColumn x:Name="ColCronCommand"
+                                                    Binding="{Binding Command}"
+                                                    Header="{loc:Translate ToolCronJobColCommand}"
+                                                    Width="*"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColCronNextRun" Binding="{Binding NextRun}" Width="180"
+                                <DataGridTextColumn x:Name="ColCronNextRun"
+                                                    Binding="{Binding NextRun}"
+                                                    Header="{loc:Translate ToolCronJobColNextRun}"
+                                                    Width="180"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColCronDescription" Binding="{Binding Description}" Width="200"
+                                <DataGridTextColumn x:Name="ColCronDescription"
+                                                    Binding="{Binding Description}"
+                                                    Header="{loc:Translate ToolCronJobColDescription}"
+                                                    Width="200"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
 
-                    <!-- Detail panel -->
-                    <Border x:Name="CronDetailPanel" Grid.Row="5" Visibility="Collapsed"
-                            Margin="{StaticResource MarginSubsectionTop}" Padding="{StaticResource PaddingAlertBanner}"
+                    <Border x:Name="CronDetailPanel"
+                            Grid.Row="5"
+                            Margin="{StaticResource MarginSubsectionTop}"
+                            Padding="{StaticResource PaddingAlertBanner}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource AccentBrush}"
-                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource CornerRadiusSm}"
+                            AutomationProperties.AutomationId="CronJob.DetailPanel"
+                            Visibility="{Binding IsCronDetailVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                         <StackPanel>
-                            <TextBlock x:Name="TxtDetailHeader" Text=""
-                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                            <TextBlock x:Name="TxtDetailHeader"
+                                       Margin="{StaticResource MarginLabelBottom}"
+                                       FontSize="{StaticResource FontSizeBodyLarge}"
+                                       FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       Margin="{StaticResource MarginLabelBottom}"/>
-                            <TextBlock x:Name="TxtDetailSchedule" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                       Text="{Binding DetailHeaderText}"/>
+                            <TextBlock x:Name="TxtDetailSchedule"
+                                       Margin="0,0,0,2"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       FontFamily="Consolas"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,2"/>
-                            <TextBlock x:Name="TxtDetailCommand" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                       Text="{Binding DetailScheduleText}"/>
+                            <TextBlock x:Name="TxtDetailCommand"
+                                       Margin="0,0,0,2"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       FontFamily="Consolas"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,0,0,2"/>
-                            <TextBlock x:Name="TxtDetailDescription" Text=""
+                                       Text="{Binding DetailCommandText}"
+                                       AutomationProperties.AutomationId="CronJob.DetailCommand"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock x:Name="TxtDetailDescription"
                                        FontSize="{StaticResource FontSizeBody}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding DetailNextRunsText}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                 </Grid>
             </TabItem>
 
-            <!-- Windows Tasks Mode -->
-            <TabItem x:Name="TabWindowsTasks">
+            <TabItem x:Name="TabWindowsTasks"
+                     Header="{loc:Translate ToolCronJobTabWindows}">
                 <Grid Margin="{StaticResource SpacingMd}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -208,28 +272,35 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Controls row -->
-                    <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
-                        <Button x:Name="BtnRefreshTasks" Content=""
-                                Click="OnRefreshTasksClick"
+                    <DockPanel Grid.Row="0"
+                               Margin="{StaticResource MarginStackItem}">
+                        <Button x:Name="BtnRefreshTasks"
+                                Content="{loc:Translate ToolCronJobBtnRefresh}"
+                                Command="{Binding RefreshTasksCommand}"
+                                DockPanel.Dock="Left"
+                                Padding="{StaticResource PaddingButtonPrimary}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Left"
                                 TabIndex="4"/>
-                        <TextBlock x:Name="TxtTasksLoading" Text="" Visibility="Collapsed"
-                                   FontSize="{StaticResource FontSizeBody}" Margin="12,0,0,0"
+                        <TextBlock x:Name="TxtTasksLoading"
+                                   Margin="12,0,0,0"
+                                   FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"/>
+                                   Text="{Binding TasksLoadingText}"
+                                   VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
                     </DockPanel>
 
-                    <!-- Error message -->
-                    <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text=""
+                    <TextBlock x:Name="TxtTasksError"
+                               Grid.Row="1"
+                               Margin="{StaticResource MarginStackItem}"
                                Style="{StaticResource ToolInlineErrorTextStyle}"
-                               Margin="{StaticResource MarginStackItem}"/>
+                               Text="{Binding TasksErrorText}"
+                               Visibility="{Binding HasTasksError, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                    <!-- Windows Tasks DataGrid -->
-                    <Border x:Name="TasksResultsPanel" Grid.Row="2"
-                            Style="{StaticResource ToolResultsCardStyle}"
-                            Padding="0">
+                    <Border x:Name="TasksResultsPanel"
+                            Grid.Row="2"
+                            Padding="0"
+                            Style="{StaticResource ToolResultsCardStyle}">
                         <DataGrid x:Name="TasksResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -244,17 +315,33 @@
                                   AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                                   AutomationProperties.LiveSetting="Polite"
-                                  TabIndex="5">
+                                  TabIndex="5"
+                                  ItemsSource="{Binding TaskEntries}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn x:Name="ColTaskName" Binding="{Binding Name}" Width="*"
+                                <DataGridTextColumn x:Name="ColTaskName"
+                                                    Binding="{Binding Name}"
+                                                    Header="{loc:Translate ToolCronJobColTaskName}"
+                                                    Width="*"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColTaskStatus" Binding="{Binding Status}" Width="100"
+                                <DataGridTextColumn x:Name="ColTaskStatus"
+                                                    Binding="{Binding Status}"
+                                                    Header="{loc:Translate ToolCronJobColTaskStatus}"
+                                                    Width="100"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColTaskNextRun" Binding="{Binding NextRun}" Width="180"
+                                <DataGridTextColumn x:Name="ColTaskNextRun"
+                                                    Binding="{Binding NextRun}"
+                                                    Header="{loc:Translate ToolCronJobColNextRun}"
+                                                    Width="180"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColTaskLastRun" Binding="{Binding LastRun}" Width="180"
+                                <DataGridTextColumn x:Name="ColTaskLastRun"
+                                                    Binding="{Binding LastRun}"
+                                                    Header="{loc:Translate ToolCronJobColLastRun}"
+                                                    Width="180"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <DataGridTextColumn x:Name="ColTaskLastResult" Binding="{Binding LastResult}" Width="100"
+                                <DataGridTextColumn x:Name="ColTaskLastResult"
+                                                    Binding="{Binding LastResult}"
+                                                    Header="{loc:Translate ToolCronJobColLastResult}"
+                                                    Width="100"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -263,21 +350,28 @@
             </TabItem>
         </TabControl>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <Button x:Name="BtnCopyAll" Content=""
-                        Click="OnCopyAllClick"
+                <Button x:Name="BtnCopyAll"
+                        Content="{loc:Translate ToolCronJobBtnCopy}"
+                        Command="{Binding CopyAllCommand}"
+                        DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonPrimary}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
                         VerticalAlignment="Center"
-                        TabIndex="6"/>
-                <TextBlock x:Name="TxtStatus" Text=""
-                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                        TabIndex="6"
+                        AutomationProperties.AutomationId="CronJob.CopyAllButton"/>
+                <TextBlock x:Name="TxtStatus"
+                           FontFamily="Consolas"
+                           FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
+                           AutomationProperties.AutomationId="CronJob.StatusText"
+                           Text="{Binding StatusText}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>

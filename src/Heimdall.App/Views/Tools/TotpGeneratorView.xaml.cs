@@ -14,242 +14,90 @@
  * limitations under the License.
  */
 
-using System.Net;
-using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
-using Heimdall.Core.Localization;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// TOTP (Time-based One-Time Password) generator implementing RFC 6238.
-/// Accepts a Base32-encoded secret and displays the current 6-digit code
-/// with a countdown timer for the 30-second validity window.
-/// </summary>
 public partial class TotpGeneratorView : UserControl, IToolView
 {
-    private const int DefaultTimeStep = 30;
-    private const int CodeDigits = 6;
-    private static readonly int CodeModulus = (int)Math.Pow(10, CodeDigits);
-
-    private LocalizationManager? _localizer;
+    private readonly TotpGeneratorViewModel _vm;
+    private string _helpText = string.Empty;
     private DispatcherTimer? _timer;
-    private byte[]? _secretKey;
     private bool _disposed;
 
     public TotpGeneratorView()
     {
         InitializeComponent();
+        _vm = new TotpGeneratorViewModel((Application.Current as App)?.Services?.GetService<IOtpGeneratorService>());
+        DataContext = _vm;
     }
 
-    /// <summary>
-    /// Initializes the tool with localization and optional context.
-    /// </summary>
-    public void Initialize(ToolContext? context, LocalizationManager? localizer)
+    public void Initialize(ToolContext? context, Heimdall.Core.Localization.LocalizationManager? localizer)
     {
-        _localizer = localizer;
-        ApplyLocalization();
-
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
-        {
-            TxtSecret.Focus();
-        });
+        _helpText = localizer?["ToolHelpTOTP"]?.Replace("\\n", "\n", StringComparison.Ordinal) ?? string.Empty;
+        _vm.Initialize(localizer);
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => TxtSecret.Focus());
     }
 
-    private void ApplyLocalization()
-    {
-        HeaderTitle.Text = L("ToolTotpTitle");
-        LblSecret.Text = L("ToolTotpSecretLabel");
-        BtnGenerate.Content = L("ToolTotpBtnStart");
-        LblCode.Text = L("ToolTotpCodeLabel");
-        BtnCopy.Content = L("ToolTotpBtnCopy");
-        TxtInfo.Text = L("ToolTotpInfo");
-
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
-
-        System.Windows.Automation.AutomationProperties.SetName(TxtSecret, L("ToolTotpSecretLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnGenerate, L("ToolTotpBtnStart"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtCode, L("ToolTotpCodeLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolTotpBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(ProgressTime, L("ToolTotpTimeRemaining"));
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-
-        TxtSecret.Tag = L("ToolWatermarkBase32Secret");
-    }
-
-    private void OnInputKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(sender, e);
-    }
-
-    private void OnGenerateClick(object sender, RoutedEventArgs e)
-    {
-        TxtError.Visibility = Visibility.Collapsed;
-
-        var secret = TxtSecret.Text.Trim().Replace(" ", "").ToUpperInvariant();
-        if (string.IsNullOrEmpty(secret))
-        {
-            TxtError.Text = L("ToolTotpErrorSecretRequired");
-            TxtError.Visibility = Visibility.Visible;
-            return;
-        }
-
-        try
-        {
-            _secretKey = Base32Decode(secret);
-        }
-        catch (FormatException)
-        {
-            TxtError.Text = L("ToolTotpErrorInvalidBase32");
-            TxtError.Visibility = Visibility.Visible;
-            return;
-        }
-
-        CodePanel.Visibility = Visibility.Visible;
-        UpdateCode();
-        StartTimer();
-    }
-
-    private void StartTimer()
-    {
-        _timer?.Stop();
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _timer.Tick += OnTimerTick;
-        _timer.Start();
-    }
-
-    private void OnTimerTick(object? sender, EventArgs e)
-    {
-        if (_disposed) return;
-        UpdateCode();
-    }
-
-    private void UpdateCode()
-    {
-        if (_secretKey is null) return;
-
-        var now = DateTimeOffset.UtcNow;
-        var elapsed = (int)(now.ToUnixTimeSeconds() % DefaultTimeStep);
-        var remaining = DefaultTimeStep - elapsed;
-
-        TxtCode.Text = GenerateTotp(_secretKey, DefaultTimeStep);
-        ProgressTime.Value = remaining;
-        LblTimeRemaining.Text = string.Format(L("ToolTotpTimeRemainingFormat"), remaining);
-    }
-
-    private void OnCopyClick(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrEmpty(TxtCode.Text) && TxtCode.Text != "------")
-        {
-            try
-            {
-                Clipboard.SetText(TxtCode.Text);
-                CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"TotpGenerator clipboard copy failed: {ex.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Generates a 6-digit TOTP code per RFC 6238.
-    /// </summary>
-    internal static string GenerateTotp(byte[] key, long timeStep = DefaultTimeStep)
-    {
-        var counter = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / timeStep;
-        var counterBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(counter));
-
-#pragma warning disable CA5350 // HMAC-SHA1 is required by RFC 6238 TOTP specification
-        using var hmac = new HMACSHA1(key);
-#pragma warning restore CA5350
-        var hash = hmac.ComputeHash(counterBytes);
-
-        var offset = hash[^1] & 0x0F;
-        var code = ((hash[offset] & 0x7F) << 24
-                  | (hash[offset + 1] & 0xFF) << 16
-                  | (hash[offset + 2] & 0xFF) << 8
-                  | (hash[offset + 3] & 0xFF)) % CodeModulus;
-
-        return code.ToString("D6");
-    }
-
-    /// <summary>
-    /// Decodes a Base32-encoded string (RFC 4648) into a byte array.
-    /// Uses the standard alphabet: A-Z and 2-7.
-    /// </summary>
-    internal static byte[] Base32Decode(string base32)
-    {
-        if (string.IsNullOrEmpty(base32))
-            return [];
-
-        // Remove padding
-        base32 = base32.TrimEnd('=');
-
-        var output = new byte[base32.Length * 5 / 8];
-        var bitBuffer = 0;
-        var bitsRemaining = 0;
-        var outputIndex = 0;
-
-        foreach (var c in base32)
-        {
-            var value = CharToBase32Value(c);
-            if (value < 0)
-                throw new FormatException($"Invalid Base32 character: {c}");
-
-            bitBuffer = (bitBuffer << 5) | value;
-            bitsRemaining += 5;
-
-            if (bitsRemaining >= 8)
-            {
-                bitsRemaining -= 8;
-                output[outputIndex++] = (byte)(bitBuffer >> bitsRemaining);
-            }
-        }
-
-        return output;
-    }
-
-    private static int CharToBase32Value(char c) => c switch
-    {
-        >= 'A' and <= 'Z' => c - 'A',
-        >= 'a' and <= 'z' => c - 'a',
-        >= '2' and <= '7' => c - '2' + 26,
-        _ => -1
-    };
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
-    {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        TxtHelpContent.Text = L("ToolHelpTOTP").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
-    }
-
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-    {
-        HelpPanel.Visibility = Visibility.Collapsed;
-    }
-
-    private string L(string key) => _localizer?[key] ?? key;
+    public bool CanClose() => true;
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
         _timer?.Stop();
-        _timer = null;
-        _secretKey = null;
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private void OnInputKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        _vm.StartCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TotpGeneratorViewModel.IsCodePanelVisible) && _vm.IsCodePanelVisible) StartOrRestartTimer();
+    }
+
+    private void StartOrRestartTimer()
+    {
+        _timer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timer.Stop();
+        _timer.Tick -= OnTimerTick;
+        _timer.Tick += OnTimerTick;
+        _timer.Start();
+    }
+
+    private void OnTimerTick(object? sender, EventArgs e)
+    {
+        if (!_disposed) _vm.RefreshCode(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+    }
+
+    private void OnCopyClick(object sender, RoutedEventArgs e)
+    {
+        if (!_vm.CanCopy()) return;
+        try { Clipboard.SetText(_vm.CurrentCode); CopyFeedbackHelper.ShowCopyFeedback(sender as Button); }
+        catch (Exception ex) { FileLogger.Warn($"TotpGenerator clipboard copy failed: {ex.Message}"); }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        TxtHelpContent.Text = _helpText;
+        HelpPanel.Visibility = HelpPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e) => HelpPanel.Visibility = Visibility.Collapsed;
 }

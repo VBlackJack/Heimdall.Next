@@ -16,7 +16,11 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.SshKeyAuditView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -93,6 +97,7 @@
                         </DockPanel>
                         <TextBox x:Name="KeyInput"
                                  AcceptsReturn="True"
+                                 Text="{Binding KeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto"
                                  FontFamily="Consolas"
@@ -109,6 +114,7 @@
 
                 <!-- Empty state -->
                 <TextBlock x:Name="EmptyState" Grid.Row="1"
+                           Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
                            Style="{StaticResource ToolEmptyStateTextStyle}"
                            HorizontalAlignment="Center"
                           />
@@ -118,13 +124,13 @@
                            FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource ErrorBrush}"
                            TextWrapping="Wrap"
-                           Visibility="Collapsed"
+                           Visibility="{Binding ShowParseError, Converter={StaticResource BoolToVisibilityConverter}}"
                            Margin="{StaticResource MarginSubsectionTop}"/>
 
                 <!-- Key type badge -->
                 <StackPanel x:Name="BadgePanel" Grid.Row="2"
                             Orientation="Horizontal"
-                            Visibility="Collapsed"
+                            Visibility="{Binding ShowResults, Converter={StaticResource BoolToVisibilityConverter}}"
                             Margin="{StaticResource MarginSectionBottom}">
                     <Border x:Name="AlgorithmBadge"
                             CornerRadius="{StaticResource CornerRadiusSm}"
@@ -151,7 +157,7 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Visibility="Collapsed"
+                        Visibility="{Binding ShowResults, Converter={StaticResource BoolToVisibilityConverter}}"
                         Margin="{StaticResource MarginSectionBottom}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -173,6 +179,7 @@
                                    FontWeight="SemiBold" VerticalAlignment="Center"
                                    Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailAlgorithmValue" Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding Algorithm}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
                                    Margin="{StaticResource MarginDetailRow}"/>
@@ -201,6 +208,7 @@
                                     TabIndex="2"/>
                             <TextBox x:Name="DetailFingerprintValue"
                                      IsReadOnly="True"
+                                     Text="{Binding Fingerprint, Mode=OneWay}"
                                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Background="Transparent"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
@@ -214,6 +222,7 @@
                                    FontWeight="SemiBold" VerticalAlignment="Center"
                                    Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailFormatValue" Grid.Row="3" Grid.Column="1"
+                                   Text="{Binding Format}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
                                    Margin="{StaticResource MarginDetailRow}"/>
@@ -244,7 +253,7 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Visibility="Collapsed"
+                        Visibility="{Binding ShowResults, Converter={StaticResource BoolToVisibilityConverter}}"
                         Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <TextBlock x:Name="FindingsTitle"

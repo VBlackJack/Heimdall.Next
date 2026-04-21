@@ -16,7 +16,12 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.ServiceStatusView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -32,57 +37,67 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="7"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
+                        TabIndex="7"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.AutomationId="ServiceStatus.HelpButton"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"/>
+                <TextBlock x:Name="HeaderTitle" Text="{loc:Translate ToolServicesTitle}"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBox x:Name="TxtFilter" Text="" MinWidth="200"
+                    <TextBox x:Name="TxtFilter" Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="200"
                              Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             Tag=""
-                             TextChanged="OnFilterChanged"
-                             TabIndex="0"/>
+                             Tag="{Binding FilterWatermark}"
+                             TabIndex="0"
+                             AutomationProperties.AutomationId="ServiceStatus.FilterInput"/>
                     <CheckBox x:Name="ChkRunningOnly"
+                              IsChecked="{Binding RunningOnly, Mode=TwoWay}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
-                              Checked="OnRunningOnlyChanged" Unchecked="OnRunningOnlyChanged"
-                              TabIndex="1"/>
+                              Content="{loc:Translate ToolServicesRunningOnly}"
+                              TabIndex="1"
+                              AutomationProperties.AutomationId="ServiceStatus.RunningOnlyToggle"/>
                     <CheckBox x:Name="ChkAutoRefresh"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
+                              Content="{loc:Translate ToolServicesAutoRefresh}"
                               Checked="OnAutoRefreshChanged" Unchecked="OnAutoRefreshChanged"
                               TabIndex="2"/>
-                    <Button x:Name="BtnRefresh" Content=""
-                            Click="OnRefreshClick"
+                    <Button x:Name="BtnRefresh" Content="{loc:Translate ToolServicesBtnRefresh}"
+                            Command="{Binding RefreshCommand}"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
                             VerticalAlignment="Center"
-                            TabIndex="3"/>
+                            TabIndex="3"
+                            AutomationProperties.AutomationId="ServiceStatus.RefreshButton"
+                            AutomationProperties.Name="{loc:Translate ToolServicesBtnRefresh}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}" Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
                 <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="8"/>
+                        TabIndex="8"
+                        AutomationProperties.AutomationId="ServiceStatus.CloseHelpButton"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent" Text="{Binding HelpText}" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -96,7 +111,7 @@
                      VerticalAlignment="Top"/>
 
         <!-- Error message -->
-        <TextBlock x:Name="TxtError" Grid.Row="2" Text=""
+        <TextBlock x:Name="TxtError" Grid.Row="2" Text="{Binding ErrorText}"
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,8,12,0"
                    VerticalAlignment="Top"/>
@@ -109,7 +124,7 @@
                 <TextBlock Text="&#xE770;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
-                <TextBlock x:Name="TxtEmptyState" Text=""
+                <TextBlock x:Name="TxtEmptyState" Text="{loc:Translate ToolServiceStatusEmptyState}"
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
@@ -133,22 +148,37 @@
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                       TabIndex="4"
+                      ItemsSource="{Binding DisplayedServices}"
+                      AutomationProperties.Name="{loc:Translate ToolServicesTitle}"
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="*"
+                                        Header="{loc:Translate ToolServicesColName}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColDisplayName" Binding="{Binding DisplayName}" Width="2*"
+                                        Header="{loc:Translate ToolServicesColDisplayName}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="100"
+                                        Header="{loc:Translate ToolServicesColStatus}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColStartType" Binding="{Binding StartType}" Width="120"
+                                        Header="{loc:Translate ToolServicesColStartType}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
                 <DataGrid.ContextMenu>
                     <ContextMenu x:Name="ServiceContextMenu">
-                        <MenuItem x:Name="MenuStart" Click="OnStartServiceClick"/>
-                        <MenuItem x:Name="MenuStop" Click="OnStopServiceClick"/>
-                        <MenuItem x:Name="MenuRestart" Click="OnRestartServiceClick"/>
+                        <MenuItem x:Name="MenuStart"
+                                  Header="{loc:Translate ToolServicesMenuStart}"
+                                  Command="{Binding PlacementTarget.DataContext.StartServiceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem x:Name="MenuStop"
+                                  Header="{loc:Translate ToolServicesMenuStop}"
+                                  Command="{Binding PlacementTarget.DataContext.StopServiceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem x:Name="MenuRestart"
+                                  Header="{loc:Translate ToolServicesMenuRestart}"
+                                  Command="{Binding PlacementTarget.DataContext.RestartServiceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                     </ContextMenu>
                 </DataGrid.ContextMenu>
             </DataGrid>
@@ -160,33 +190,38 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <Button x:Name="BtnCopy" Content=""
-                        Click="OnCopyClick"
+                <Button x:Name="BtnCopy" Content="{loc:Translate ToolServicesBtnCopy}"
+                        Command="{Binding CopyResultsCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-                        TabIndex="5"/>
+                        TabIndex="5"
+                        AutomationProperties.AutomationId="ServiceStatus.CopyButton"
+                        AutomationProperties.Name="{loc:Translate ToolServicesBtnCopy}"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="LblTotal" Text="{loc:Translate ToolServicesTotal}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtTotal" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"
+                               AutomationProperties.AutomationId="ServiceStatus.TotalCount"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblRunning" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="LblRunning" Text="{loc:Translate ToolServicesRunningLabel}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtRunning" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"
+                               AutomationProperties.AutomationId="ServiceStatus.RunningCount"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblStopped" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="LblStopped" Text="{loc:Translate ToolServicesStoppedLabel}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtStopped" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"
+                               AutomationProperties.AutomationId="ServiceStatus.StoppedCount"/>
                 </StackPanel>
             </DockPanel>
         </Border>

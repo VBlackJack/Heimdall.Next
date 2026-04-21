@@ -1,0 +1,195 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.UlidGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:UlidGeneratorViewModel}"
+             mc:Ignorable="d"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        TabIndex="10"
+                        Content="?"
+                        Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolUlidTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
+                        Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent"
+                               TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20" />
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
+                <TextBlock Text="{loc:Translate ToolUlidResultLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <DockPanel Margin="{StaticResource MarginStackItem}">
+                    <Button x:Name="BtnCopy"
+                            DockPanel.Dock="Right"
+                            TabIndex="1"
+                            Content="{loc:Translate ToolUlidBtnCopy}"
+                            Click="OnCopyClick"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolUlidBtnCopy}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Stretch" />
+                    <Button x:Name="BtnGenerate"
+                            DockPanel.Dock="Right"
+                            TabIndex="0"
+                            Content="{loc:Translate ToolUlidBtnGenerate}"
+                            Command="{Binding GenerateCommand}"
+                            AutomationProperties.Name="{loc:Translate ToolUlidBtnGenerate}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Stretch" />
+                    <TextBox Text="{Binding SingleResult, Mode=OneWay}"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             FontFamily="Consolas"
+                             Padding="{StaticResource PaddingInput}"
+                             IsReadOnly="True"
+                             AutomationProperties.Name="{loc:Translate ToolUlidResult}"
+                             AutomationProperties.LiveSetting="Polite"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}" />
+                </DockPanel>
+
+                <Border BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="0,16,0,0"
+                        Margin="{StaticResource MarginSubsectionTop}">
+                    <StackPanel>
+                        <TextBlock Text="{loc:Translate ToolUlidBatchLabel}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Margin="{StaticResource MarginStackItem}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <DockPanel Margin="{StaticResource MarginSectionBottom}">
+                            <Button x:Name="BtnGenerateBatch"
+                                    DockPanel.Dock="Right"
+                                    TabIndex="3"
+                                    Content="{loc:Translate ToolUlidBtnGenerateBatch}"
+                                    Command="{Binding GenerateBatchCommand}"
+                                    AutomationProperties.Name="{loc:Translate ToolUlidBtnGenerateBatch}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonPrimary}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Stretch" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{loc:Translate ToolUlidCountLabel}"
+                                           FontSize="{StaticResource FontSizeBody}"
+                                           Margin="{StaticResource MarginInlineSm}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <TextBox x:Name="TxtCount"
+                                         Text="{Binding BatchCountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="{loc:Translate ToolUlidCountLabel}"
+                                         FontSize="{StaticResource FontSizeBodyLarge}"
+                                         Width="60"
+                                         Padding="{StaticResource PaddingInput}"
+                                         Background="{DynamicResource CardBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}"
+                                         TabIndex="2" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <TextBox Text="{Binding BatchResults, Mode=OneWay}"
+                                 AutomationProperties.Name="{loc:Translate ToolUlidBatchResults}"
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 FontFamily="Consolas"
+                                 Padding="{StaticResource PaddingInput}"
+                                 MaxHeight="300"
+                                 IsReadOnly="True"
+                                 AutomationProperties.LiveSetting="Polite"
+                                 AcceptsReturn="True"
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 Background="{DynamicResource CardBrush}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}" />
+                        <Button x:Name="BtnCopyBatch"
+                                TabIndex="4"
+                                Content="{loc:Translate ToolUlidBtnCopyBatch}"
+                                Click="OnCopyBatchClick"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolUlidBtnCopyBatch}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonPrimary}"
+                                Margin="{StaticResource MarginSubsectionTop}"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

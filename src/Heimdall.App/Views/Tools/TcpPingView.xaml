@@ -16,7 +16,17 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.TcpPingView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="Return" Command="{Binding StartCommand}" />
+    </UserControl.InputBindings>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -40,12 +50,14 @@
 
                 <DockPanel Grid.Row="0">
                     <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                            Click="OnHelpClick"
+                            Command="{Binding ToggleHelpCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                             Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                            TabIndex="10"/>
-                    <TextBlock x:Name="HeaderTitle" Text=""
+                            TabIndex="10"
+                            ToolTip="{loc:Translate ToolHelpTooltip}"
+                            AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"/>
+                    <TextBlock x:Name="HeaderTitle" Text="{loc:Translate ToolTcpPingTitle}"
                                FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
@@ -53,80 +65,93 @@
 
                 <WrapPanel Grid.Row="1" Margin="0,12,0,0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
-                        <TextBlock x:Name="LblHost" Text=""
+                        <TextBlock x:Name="LblHost" Text="{loc:Translate ToolTcpPingLblHost}"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
-                        <TextBox x:Name="TxtHost" Text="" MinWidth="140"
+                        <TextBox x:Name="TxtHost" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag=""
+                                 Tag="{Binding HostWatermark}"
+                                 Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="0"/>
+                                 TabIndex="0"
+                                 AutomationProperties.Name="{loc:Translate ToolTcpPingLblHost}"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
-                        <TextBlock x:Name="LblPort" Text=""
+                        <TextBlock x:Name="LblPort" Text="{loc:Translate ToolTcpPingLblPort}"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
-                        <TextBox x:Name="TxtPort" Text="" Width="70"
+                        <TextBox x:Name="TxtPort" Width="70"
+                                 Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="1"/>
+                                 TabIndex="1"
+                                 AutomationProperties.Name="{loc:Translate ToolTcpPingLblPort}"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
-                        <TextBlock x:Name="LblCount" Text=""
+                        <TextBlock x:Name="LblCount" Text="{loc:Translate ToolTcpPingLblCount}"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
-                        <TextBox x:Name="TxtCount" Text="" Width="50"
+                        <TextBox x:Name="TxtCount" Width="50"
+                                 Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}"
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="2"/>
+                                 TabIndex="2"
+                                 AutomationProperties.Name="{loc:Translate ToolTcpPingLblCount}"/>
                     </StackPanel>
 
-                    <Button x:Name="BtnStart" Content=""
-                            Click="OnStartClick"
+                    <Button x:Name="BtnStart"
+                            Content="{loc:Translate ToolTcpPingBtnStart}"
+                            Command="{Binding StartCommand}"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,4,2"
                             VerticalAlignment="Center"
-                            TabIndex="3"/>
-                    <Button x:Name="BtnStop" Content=""
-                            Click="OnStopClick"
+                            TabIndex="3"
+                            AutomationProperties.Name="{loc:Translate ToolTcpPingBtnStart}"/>
+                    <Button x:Name="BtnStop"
+                            Content="{loc:Translate ToolTcpPingBtnStop}"
+                            Command="{Binding StopCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
-                            IsEnabled="False"
-                            TabIndex="4"/>
+                            TabIndex="4"
+                            AutomationProperties.Name="{loc:Translate ToolTcpPingBtnStop}"/>
                 </WrapPanel>
             </Grid>
         </Border>
 
         <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel" Grid.Row="1"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
                 <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"/>
+                        TabIndex="11"
+                        ToolTip="{loc:Translate BtnClose}"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent" Text="{Binding HelpText}" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -135,7 +160,10 @@
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="2" Text=""
+        <TextBlock x:Name="TxtError"
+                   Grid.Row="2"
+                   Text="{Binding ErrorText}"
+                   Visibility="{Binding ShowError, Converter={StaticResource BoolToVisibilityConverter}}"
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,4,12,0"/>
 
@@ -147,14 +175,16 @@
             <ScrollViewer x:Name="LogScrollViewer"
                           VerticalScrollBarVisibility="Auto"
                           Padding="8,4">
-                <TextBox x:Name="TxtResults" Text=""
+                <TextBox x:Name="TxtResults"
+                         Text="{Binding Results}"
                          FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="Transparent" BorderThickness="0"
                          IsReadOnly="True" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Disabled"
                          TabIndex="5"
-                         AutomationProperties.LiveSetting="Polite"/>
+                         AutomationProperties.LiveSetting="Polite"
+                         AutomationProperties.Name="{loc:Translate ToolTcpPingTitle}"/>
             </ScrollViewer>
         </Border>
 
@@ -163,7 +193,8 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
-            <TextBlock x:Name="TxtSummary" Text=""
+            <TextBlock x:Name="TxtSummary"
+                       Text="{Binding SummaryText}"
                        FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        VerticalAlignment="Center"/>
@@ -176,11 +207,16 @@
                 BorderThickness="0,1,0,0">
             <DockPanel>
                 <Button x:Name="BtnCopy" DockPanel.Dock="Right"
-                        Content="" Click="OnCopyClick"
+                        Content="{loc:Translate ToolBtnCopyToClipboard}"
+                        Command="{Binding CopyResultsCommand}"
+                        Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"/>
-                <TextBlock x:Name="TxtStatus" Text=""
+                        TabIndex="6"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.Name="{loc:Translate ToolBtnCopyToClipboard}"/>
+                <TextBlock x:Name="TxtStatus"
+                           Text="{Binding StatusText}"
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>

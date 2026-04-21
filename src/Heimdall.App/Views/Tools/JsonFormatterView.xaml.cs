@@ -14,225 +14,77 @@
  * limitations under the License.
  */
 
-using System.Text.Json;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// JSON formatter tool supporting pretty-print and minification.
-/// </summary>
 public partial class JsonFormatterView : UserControl, IToolView
 {
-    private const long MaxInputSizeBytes = 5 * 1024 * 1024; // 5 MB
-    private const int AsyncThresholdBytes = 100 * 1024; // 100 KB
-
+    private readonly JsonFormatterViewModel _vm;
     private LocalizationManager? _localizer;
-    private bool _initialized;
-
+    private bool _disposed;
     public JsonFormatterView()
     {
         InitializeComponent();
+        _vm = new JsonFormatterViewModel((Application.Current as App)?.Services?.GetService<IJsonFormatterToolService>());
+        DataContext = _vm;
     }
-
-    /// <summary>
-    /// Initializes the view with optional context and localizer.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
         _localizer = localizer;
-        ApplyLocalization();
-
-        if (!string.IsNullOrEmpty(context?.Argument))
-        {
-            InputText.Text = context.Argument;
-        }
-
-        _initialized = true;
-
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        if (_localizer is not null) { _localizer.LocaleChanged += OnLocaleChanged; }
+        _vm.Initialize(localizer);
+        _vm.PrefillInput(context?.Argument);
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
             InputText.Focus();
             InputText.SelectAll();
         });
     }
-
-    private void ApplyLocalization()
+    public bool CanClose() => true;
+    public void Dispose()
     {
-        HeaderTitle.Text = L("ToolJsonTitle");
-        InputLabel.Text = L("ToolJsonInputLabel");
-        OutputLabel.Text = L("ToolJsonOutputLabel");
-        BtnPrettify.Content = L("ToolJsonBtnPrettify");
-        BtnMinify.Content = L("ToolJsonBtnMinify");
-        BtnCopyOutput.Content = L("ToolJsonBtnCopy");
-
-        System.Windows.Automation.AutomationProperties.SetName(BtnPrettify, L("ToolJsonBtnPrettify"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnMinify, L("ToolJsonBtnMinify"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyOutput, L("ToolJsonBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(InputText, L("ToolJsonInputLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(OutputText, L("ToolJsonOutputLabel"));
-
-        BtnCopyOutput.ToolTip = L("ToolBtnCopyToClipboard");
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-
-        InputText.Tag = L("ToolWatermarkPasteJson");
-        TxtEmptyState.Text = L("ToolJsonEmptyState");
+        if (_disposed) { return; }
+        _disposed = true;
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
+    private void OnCopyOutputClick(object sender, RoutedEventArgs e)
     {
-        if (HelpPanel.Visibility == Visibility.Visible)
+        if (string.IsNullOrEmpty(_vm.OutputText)) { return; }
+        try
         {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
+            Clipboard.SetText(_vm.OutputText);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
-        TxtHelpContent.Text = L("ToolHelpJSON").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+        catch (ExternalException) { }
     }
-
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-    {
-        HelpPanel.Visibility = Visibility.Collapsed;
-    }
-
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Enter && _vm.PrettifyCommand.CanExecute(null))
         {
-            OnPrettifyClick(sender, e);
+            _vm.PrettifyCommand.Execute(null);
             e.Handled = true;
         }
     }
-
-    private void OnPrettifyClick(object sender, RoutedEventArgs e)
+    private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        _ = FormatJsonAsync(writeIndented: true);
+        UpdateHelpText();
+        HelpPanel.Visibility = HelpPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
     }
-
-    private void OnMinifyClick(object sender, RoutedEventArgs e)
-    {
-        _ = FormatJsonAsync(writeIndented: false);
-    }
-
-    private async Task FormatJsonAsync(bool writeIndented)
-    {
-        var input = InputText.Text;
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            OutputText.Text = string.Empty;
-            StatusText.Text = string.Empty;
-            return;
-        }
-
-        long inputSize = System.Text.Encoding.UTF8.GetByteCount(input);
-        if (inputSize > MaxInputSizeBytes)
-        {
-            OutputText.Text = string.Empty;
-            StatusText.Text = L("ToolJsonErrorInputTooLarge");
-            return;
-        }
-
-        try
-        {
-            string result;
-            if (inputSize > AsyncThresholdBytes)
-            {
-                BtnPrettify.IsEnabled = false;
-                BtnMinify.IsEnabled = false;
-                StatusText.Text = L("ToolJsonStatusProcessing");
-
-                result = await Task.Run(() => FormatJsonCore(input, writeIndented));
-
-                BtnPrettify.IsEnabled = true;
-                BtnMinify.IsEnabled = true;
-            }
-            else
-            {
-                result = FormatJsonCore(input, writeIndented);
-            }
-
-            OutputText.Text = result;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            ResultsPanel.Visibility = Visibility.Visible;
-
-            var statusKey = writeIndented ? "ToolJsonStatusPrettified" : "ToolJsonStatusMinified";
-            StatusText.Text = string.Format(L(statusKey), result.Length);
-            StatusText.Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush");
-        }
-        catch (JsonException ex)
-        {
-            BtnPrettify.IsEnabled = true;
-            BtnMinify.IsEnabled = true;
-            OutputText.Text = string.Empty;
-
-            if (ex.LineNumber.HasValue && ex.BytePositionInLine.HasValue)
-            {
-                StatusText.Text = string.Format(
-                    L("ToolJsonStatusErrorAtPosition"),
-                    ex.LineNumber.Value + 1,
-                    ex.BytePositionInLine.Value + 1,
-                    ex.InnerException?.Message ?? ex.Message);
-            }
-            else
-            {
-                StatusText.Text = string.Format(L("ToolJsonStatusError"), ex.Message);
-            }
-
-            StatusText.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-        }
-    }
-
-    private static string FormatJsonCore(string input, bool writeIndented)
-    {
-        using var doc = JsonDocument.Parse(input);
-        var options = new JsonWriterOptions
-        {
-            Indented = writeIndented,
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-
-        using var stream = new System.IO.MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, options))
-        {
-            doc.RootElement.WriteTo(writer);
-        }
-
-        return System.Text.Encoding.UTF8.GetString(stream.ToArray());
-    }
-
-    private void OnCopyOutputClick(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrEmpty(OutputText.Text))
-        {
-            try { Clipboard.SetText(OutputText.Text); }
-            catch (System.Runtime.InteropServices.ExternalException) { return; }
-            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-        }
-    }
-
-    private void OnInputTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_initialized)
-        {
-            OutputText.Text = string.Empty;
-            StatusText.Text = string.Empty;
-            ResultsPanel.Visibility = Visibility.Collapsed;
-            EmptyStatePanel.Visibility = Visibility.Visible;
-        }
-    }
-
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e) => HelpPanel.Visibility = Visibility.Collapsed;
+    private void OnLocaleChanged(string _) { if (HelpPanel.Visibility == Visibility.Visible) { UpdateHelpText(); } }
+    private void UpdateHelpText() => TxtHelpContent.Text = L("ToolHelpJSON").Replace("\\n", "\n", StringComparison.Ordinal);
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-    }
 }

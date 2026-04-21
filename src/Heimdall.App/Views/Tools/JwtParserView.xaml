@@ -16,43 +16,73 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.JwtParserView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:JwtParserViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
-    <Grid Margin="0">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        TabIndex="6"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Jwt.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"/>
+                <TextBlock Text="{loc:Translate ToolJwtTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="Jwt.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Jwt.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               AutomationProperties.AutomationId="Jwt.HelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -60,173 +90,238 @@
             </DockPanel>
         </Border>
 
-        <!-- Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Input -->
-                <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                <TextBlock Text="{loc:Translate ToolJwtInputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtInput" Text=""
-                         TabIndex="0"
-                         FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Height="80"
+                <TextBox x:Name="TxtInput"
+                         AutomationProperties.AutomationId="Jwt.InputField"
+                         Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="{StaticResource FontSizeBody}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         Height="80"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
+                         Tag="{loc:Translate ToolWatermarkPasteJwt}"
+                         AutomationProperties.Name="{loc:Translate ToolJwtInputLabel}"
                          TextChanged="OnInputTextChanged"/>
 
-                <!-- Expiration status -->
-                <Border x:Name="ExpirationBorder" Margin="{StaticResource MarginSectionTop}"
-                        Padding="10,6" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Visibility="Collapsed">
-                    <TextBlock x:Name="TxtExpiration" Text=""
-                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"/>
+                <Border x:Name="ExpirationBorder"
+                        Margin="{StaticResource MarginSectionTop}"
+                        Padding="10,6"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Visibility="{Binding IsExpirationVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock x:Name="TxtExpiration"
+                               AutomationProperties.AutomationId="Jwt.ExpirationLabel"
+                               Text="{Binding ExpirationText}"
+                               FontSize="{StaticResource FontSizeBody}"
+                               FontWeight="SemiBold"/>
                 </Border>
 
-                <!-- Error message -->
-                <TextBlock x:Name="TxtError" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionTop}"
+                <TextBlock Text="{Binding ErrorText}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginSectionTop}"
                            Foreground="{DynamicResource ErrorTextBrush}"
                            TextWrapping="Wrap"
-                           Visibility="Collapsed"/>
+                           Visibility="{Binding IsErrorVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                <!-- Empty state -->
-                <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                <Border Style="{StaticResource ToolEmptyStateStyle}"
+                        Visibility="{Binding IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D7;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
+                        <TextBlock Text="{loc:Translate ToolJwtEmptyState}"
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Header section -->
                 <DockPanel Margin="0,16,0,4">
-                    <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
-                            TabIndex="1"
+                    <Button DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="Jwt.CopyHeaderButton"
+                            Click="OnCopyClick"
+                            Tag="{Binding HeaderText}"
+                            Content="{loc:Translate ToolJwtBtnCopyHeader}"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolJwtBtnCopyHeader}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="LblHeader" Text=""
-                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource JwtHeaderBrush}" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Translate ToolJwtHeaderLabel}"
+                               FontSize="{StaticResource FontSizeBody}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource JwtHeaderBrush}"
+                               VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource JwtHeaderBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
-                    <TextBox x:Name="TxtHeader" Text=""
-                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                        BorderBrush="{DynamicResource JwtHeaderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Padding="{StaticResource SpacingSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <TextBox Text="{Binding HeaderText}"
+                             AutomationProperties.AutomationId="Jwt.HeaderOutput"
+                             FontSize="{StaticResource FontSizeBody}"
+                             FontFamily="Consolas"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtHeaderBrush}"
+                             AutomationProperties.Name="{loc:Translate ToolJwtHeaderLabel}"
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
-                <!-- Payload section -->
                 <DockPanel Margin="0,4,0,4">
-                    <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
-                            TabIndex="2"
+                    <Button DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="Jwt.CopyPayloadButton"
+                            Click="OnCopyClick"
+                            Tag="{Binding PayloadText}"
+                            Content="{loc:Translate ToolJwtBtnCopyPayload}"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolJwtBtnCopyPayload}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="LblPayload" Text=""
-                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource JwtPayloadBrush}" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Translate ToolJwtPayloadLabel}"
+                               FontSize="{StaticResource FontSizeBody}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource JwtPayloadBrush}"
+                               VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource JwtPayloadBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
-                    <TextBox x:Name="TxtPayload" Text=""
-                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                        BorderBrush="{DynamicResource JwtPayloadBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Padding="{StaticResource SpacingSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <TextBox Text="{Binding PayloadText}"
+                             AutomationProperties.AutomationId="Jwt.PayloadOutput"
+                             FontSize="{StaticResource FontSizeBody}"
+                             FontFamily="Consolas"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtPayloadBrush}"
+                             AutomationProperties.Name="{loc:Translate ToolJwtPayloadLabel}"
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
-                <!-- Signature section -->
                 <DockPanel Margin="0,4,0,4">
-                    <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
-                            TabIndex="3"
+                    <Button DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="Jwt.CopySignatureButton"
+                            Click="OnCopyClick"
+                            Tag="{Binding SignatureHexText}"
+                            Content="{loc:Translate ToolJwtBtnCopySignature}"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolJwtBtnCopySignature}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="LblSignature" Text=""
-                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource JwtSignatureBrush}" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Translate ToolJwtSignatureLabel}"
+                               FontSize="{StaticResource FontSizeBody}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource JwtSignatureBrush}"
+                               VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource JwtSignatureBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
-                    <TextBox x:Name="TxtSignature" Text=""
-                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                        BorderBrush="{DynamicResource JwtSignatureBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Padding="{StaticResource SpacingSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <TextBox Text="{Binding SignatureHexText}"
+                             AutomationProperties.AutomationId="Jwt.SignatureOutput"
+                             FontSize="{StaticResource FontSizeBody}"
+                             FontFamily="Consolas"
                              IsReadOnly="True"
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtSignatureBrush}"
+                             AutomationProperties.Name="{loc:Translate ToolJwtSignatureLabel}"
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
-                <!-- Signature Verification section -->
-                <Border x:Name="VerifySection" Visibility="Collapsed"
-                        Background="{DynamicResource CardBrush}"
+                <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="{StaticResource SpacingMd}" Margin="{StaticResource MarginSectionBottom}">
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Padding="{StaticResource SpacingMd}"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        Visibility="{Binding IsVerifySectionVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel>
-                        <TextBlock x:Name="LblVerifyTitle" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                        <TextBlock Text="{loc:Translate ToolJwtVerifyHmacTitle}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    Margin="{StaticResource MarginStackItem}"/>
-
-                        <!-- Unsupported algorithm message (for RS/ES) -->
-                        <TextBlock x:Name="TxtUnsupportedAlg" Text=""
-                                   Visibility="Collapsed"
+                        <TextBlock Text="{loc:Translate ToolJwtUnsupportedAlg}"
+                                   Visibility="{Binding IsUnsupportedAlgVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                                    FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap"/>
-
-                        <!-- HMAC verification controls -->
-                        <StackPanel x:Name="HmacVerifyPanel" Visibility="Collapsed">
-                            <TextBlock x:Name="LblSecret" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                        <StackPanel Visibility="{Binding IsHmacVerifyVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="{loc:Translate ToolJwtSecretLabel}"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       Margin="{StaticResource MarginLabelBottom}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <DockPanel Margin="{StaticResource MarginStackItem}">
-                                <Button x:Name="BtnVerify" DockPanel.Dock="Right"
-                                        TabIndex="5"
-                                        Content="" Click="OnVerifyClick"
+                                <Button DockPanel.Dock="Right"
+                                        AutomationProperties.AutomationId="Jwt.VerifyButton"
+                                        Command="{Binding VerifyCommand}"
+                                        Content="{loc:Translate ToolJwtBtnVerify}"
+                                        AutomationProperties.Name="{loc:Translate ToolJwtBtnVerify}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
-                                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                                        Padding="{StaticResource PaddingButtonPrimary}"
+                                        Margin="{StaticResource MarginInlineControl}"
                                         VerticalAlignment="Center"/>
-                                <TextBox x:Name="TxtSecret" Text=""
-                                         TabIndex="4"
-                                         FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                <TextBox Text="{Binding SecretText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="Jwt.SecretInput"
+                                         FontSize="{StaticResource FontSizeBody}"
+                                         FontFamily="Consolas"
                                          Padding="{StaticResource PaddingInput}"
                                          Background="{DynamicResource BackgroundBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                          BorderBrush="{DynamicResource BorderBrush}"
-                                         VerticalAlignment="Center"/>
+                                         VerticalAlignment="Center"
+                                         AutomationProperties.Name="{loc:Translate ToolJwtSecretLabel}"/>
                             </DockPanel>
-                            <TextBlock x:Name="TxtVerifyResult" Text=""
-                                       Visibility="Collapsed"
-                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding VerifyResultText}"
+                                       Visibility="{Binding IsVerifyResultVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsVerifyResultValid}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
             </StackPanel>
         </ScrollViewer>
     </Grid>

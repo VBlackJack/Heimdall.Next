@@ -16,6 +16,7 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.HmacGeneratorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
@@ -24,35 +25,55 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
                         TabIndex="8"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.AutomationId="HmacGenerator.HelpButton"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"/>
+                <TextBlock Text="{loc:Translate ToolHmacTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.AutomationId="HmacGenerator.CloseHelpButton"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -60,150 +81,194 @@
             </DockPanel>
         </Border>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Algorithm selector -->
-                <TextBlock x:Name="LblAlgorithm" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                <TextBlock Text="{loc:Translate ToolHmacAlgorithmLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
                           TabIndex="0"
                           Margin="{StaticResource MarginSectionSeparator}"
-                          Padding="{StaticResource PaddingInput}" FontSize="{StaticResource FontSizeBodyLarge}"
+                          Padding="{StaticResource PaddingInput}"
+                          FontSize="{StaticResource FontSizeBodyLarge}"
                           Background="{DynamicResource CardBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           BorderBrush="{DynamicResource BorderBrush}"
-                          SelectionChanged="OnAlgorithmChanged"/>
+                          ItemsSource="{Binding Algorithms}"
+                          SelectedItem="{Binding SelectedAlgorithm, Mode=TwoWay}"
+                          DisplayMemberPath="DisplayName"
+                          AutomationProperties.AutomationId="HmacGenerator.AlgorithmSelector"
+                          AutomationProperties.Name="{loc:Translate ToolHmacAlgorithmLabel}"/>
 
-                <!-- Secret key with show/hide toggle -->
-                <TextBlock x:Name="LblKey" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                <TextBlock Text="{loc:Translate ToolHmacKeyLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
-                    <Button x:Name="BtnToggleKey" DockPanel.Dock="Right"
+                    <Button x:Name="BtnToggleKey"
+                            DockPanel.Dock="Right"
                             TabIndex="2"
-                            Content="&#xE7B3;"
-                            FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSubtitle}"
-                            Click="OnToggleKeyVisibility"
+                            Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingInput}"
+                            VerticalAlignment="Stretch"
+                            Content="{Binding ToggleKeyIcon}"
+                            Command="{Binding ToggleKeyVisibilityCommand}"
+                            ToolTip="{loc:Translate ToolHmacToggleKeyVisibility}"
+                            AutomationProperties.AutomationId="HmacGenerator.ToggleKeyVisibilityButton"
+                            AutomationProperties.Name="{loc:Translate ToolHmacToggleKeyVisibility}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Stretch"/>
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="{StaticResource FontSizeSubtitle}"/>
                     <Grid>
                         <PasswordBox x:Name="PwdKey"
                                      TabIndex="1"
-                                     FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                      Padding="{StaticResource PaddingInput}"
+                                     FontSize="{StaticResource FontSizeBodyLarge}"
+                                     FontFamily="Consolas"
                                      Background="{DynamicResource CardBrush}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     PasswordChanged="OnKeyPasswordChanged"/>
-                        <TextBox x:Name="TxtKey" Text=""
+                                     PasswordChanged="OnKeyPasswordChanged"
+                                     AutomationProperties.AutomationId="HmacGenerator.KeyPasswordInput"
+                                     AutomationProperties.Name="{loc:Translate ToolHmacKeyLabel}"/>
+                        <TextBox x:Name="TxtKey"
                                  TabIndex="1"
-                                 Style="{DynamicResource WatermarkTextBoxStyle}"
-                                 FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                                 Text=""
                                  Padding="{StaticResource PaddingInput}"
+                                 FontSize="{StaticResource FontSizeBodyLarge}"
+                                 FontFamily="Consolas"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Tag=""
-                                 TextChanged="OnInputChanged"
-                                 Visibility="Collapsed"/>
+                                 Tag="{loc:Translate ToolWatermarkSecretKey}"
+                                 TextChanged="OnTxtKeyChanged"
+                                 Visibility="Collapsed"
+                                 AutomationProperties.AutomationId="HmacGenerator.KeyVisibleInput"
+                                 AutomationProperties.Name="{loc:Translate ToolHmacKeyLabel}"/>
                     </Grid>
                 </DockPanel>
 
-                <!-- Input message -->
-                <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                <TextBlock Text="{loc:Translate ToolHmacInputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtInput" Text=""
+                <TextBox x:Name="TxtInput"
                          TabIndex="3"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Height="120"
-                         AcceptsReturn="True" AcceptsTab="True"
+                         Text=""
+                         Height="120"
+                         Padding="{StaticResource PaddingInput}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
-                         TextChanged="OnInputChanged"/>
+                         Tag="{loc:Translate ToolWatermarkMessage}"
+                         TextChanged="OnInputChanged"
+                         AutomationProperties.AutomationId="HmacGenerator.MessageInput"
+                         AutomationProperties.Name="{loc:Translate ToolHmacInputLabel}"/>
 
-                <!-- Output format toggle -->
-                <TextBlock x:Name="LblFormat" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
+                <TextBlock Text="{loc:Translate ToolHmacFormatLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginSectionBottom}">
-                    <RadioButton x:Name="RdoHex" Content="" IsChecked="True"
+                    <RadioButton x:Name="RdoHex"
                                  TabIndex="4"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,0"
-                                 Checked="OnFormatChanged"/>
-                    <RadioButton x:Name="RdoBase64" Content=""
-                                 TabIndex="5"
+                                 Content="{loc:Translate ToolHmacFormatHex}"
+                                 IsChecked="{Binding IsHexFormat, Mode=TwoWay}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Checked="OnFormatChanged"/>
+                                 AutomationProperties.AutomationId="HmacGenerator.HexFormatOption"
+                                 AutomationProperties.Name="{loc:Translate ToolHmacHexOutput}"/>
+                    <RadioButton x:Name="RdoBase64"
+                                 TabIndex="5"
+                                 Content="{loc:Translate ToolHmacFormatBase64}"
+                                 IsChecked="{Binding IsBase64Format, Mode=TwoWay}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 AutomationProperties.AutomationId="HmacGenerator.Base64FormatOption"
+                                 AutomationProperties.Name="{loc:Translate ToolHmacBase64Output}"/>
                 </StackPanel>
 
-                <!-- Empty state -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        Visibility="{Binding IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D7;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
+                        <TextBlock Text="{loc:Translate ToolHmacEmptyState}"
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Output -->
-                <TextBlock x:Name="LblOutput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{loc:Translate ToolHmacOutputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           AutomationProperties.AutomationId="HmacGenerator.OutputLabel"/>
                 <DockPanel Margin="{StaticResource MarginStackItem}">
-                    <Button x:Name="BtnCopy" DockPanel.Dock="Right"
-                            TabIndex="6"
-                            Content="" Click="OnCopyClick"
+                <Button x:Name="BtnCopy"
+                        DockPanel.Dock="Right"
+                        TabIndex="6"
+                        Content="{loc:Translate ToolHmacBtnCopy}"
+                        Click="OnCopyClick"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.AutomationId="HmacGenerator.CopyButton"
+                        AutomationProperties.Name="{loc:Translate ToolHmacBtnCopy}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"/>
-                    <TextBox x:Name="TxtOutput" Text=""
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                <TextBox x:Name="TxtOutput"
+                         Text="{Binding OutputText, Mode=OneWay}"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.LiveSetting="Polite"/>
+                         VerticalAlignment="Center"
+                         AutomationProperties.AutomationId="HmacGenerator.OutputField"
+                         AutomationProperties.LiveSetting="Polite"
+                         AutomationProperties.Name="{loc:Translate ToolHmacOutputLabel}"/>
                 </DockPanel>
 
-                <!-- Byte length indicator -->
-                <TextBlock x:Name="TxtByteLength" Text=""
+                <TextBlock Text="{Binding ByteLengthText}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
-                <!-- Verify field -->
-                <TextBlock x:Name="LblVerify" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
+                <TextBlock Text="{loc:Translate ToolHmacVerifyLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtVerify" Text=""
+                <TextBox x:Name="TxtVerify"
                          TabIndex="7"
+                         Text="{Binding VerifyInput, UpdateSourceTrigger=PropertyChanged}"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginLabelBottom}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         Margin="{StaticResource MarginLabelBottom}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
-                         TextChanged="OnVerifyTextChanged"/>
-                <TextBlock x:Name="TxtVerifyResult" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
-                           FontWeight="SemiBold"/>
-
+                         Tag="{loc:Translate ToolWatermarkPasteHmacVerify}"
+                         AutomationProperties.AutomationId="HmacGenerator.VerifyInput"
+                         AutomationProperties.Name="{loc:Translate ToolHmacVerifyLabel}"/>
+                <TextBlock Text="{Binding VerifyResultText}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginStackItem}"
+                           FontWeight="SemiBold"
+                           AutomationProperties.AutomationId="HmacGenerator.VerifyResult"
+                           Foreground="{Binding VerifyForegroundBrushKey, Converter={StaticResource ResourceKeyToBrushConverter}}"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

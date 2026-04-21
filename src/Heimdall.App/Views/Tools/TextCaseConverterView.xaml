@@ -16,138 +16,247 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.TextCaseConverterView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:codecs="clr-namespace:Heimdall.Core.Codecs;assembly=Heimdall.Core"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:TextCaseConverterViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="TextCase.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
                         TabIndex="12"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolTextCaseTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="TextCase.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="TextCase.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Input -->
-                <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtInput" Text=""
+                <TextBlock Text="{loc:Translate ToolTextCaseInputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBox x:Name="TxtInput"
+                         AutomationProperties.AutomationId="TextCase.InputField"
                          TabIndex="0"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" MinHeight="100"
+                         Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         MinHeight="100"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
-                         TextChanged="OnInputChanged"/>
+                         Tag="{loc:Translate ToolWatermarkTextToConvert}"
+                         AutomationProperties.Name="{loc:Translate ToolTextCaseInputLabel}" />
 
-                <!-- Conversion buttons -->
-                <TextBlock x:Name="LblConversions" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,8"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{loc:Translate ToolTextCaseConversionsLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="0,16,0,8"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
                 <WrapPanel Margin="{StaticResource MarginSectionSeparator}">
-                    <Button x:Name="BtnCamelCase" Content="" Click="OnCamelCaseClick"
+                    <Button x:Name="BtnCamelCase"
+                            AutomationProperties.AutomationId="TextCase.CamelButton"
                             TabIndex="1"
+                            Content="{loc:Translate ToolTextCaseCamel}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Camel}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnPascalCase" Content="" Click="OnPascalCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseCamel}" />
+                    <Button x:Name="BtnPascalCase"
+                            AutomationProperties.AutomationId="TextCase.PascalButton"
                             TabIndex="2"
+                            Content="{loc:Translate ToolTextCasePascal}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Pascal}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnSnakeCase" Content="" Click="OnSnakeCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCasePascal}" />
+                    <Button x:Name="BtnSnakeCase"
+                            AutomationProperties.AutomationId="TextCase.SnakeButton"
                             TabIndex="3"
+                            Content="{loc:Translate ToolTextCaseSnake}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Snake}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnKebabCase" Content="" Click="OnKebabCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseSnake}" />
+                    <Button x:Name="BtnKebabCase"
+                            AutomationProperties.AutomationId="TextCase.KebabButton"
                             TabIndex="4"
+                            Content="{loc:Translate ToolTextCaseKebab}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Kebab}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnUpperCase" Content="" Click="OnUpperCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseKebab}" />
+                    <Button x:Name="BtnUpperCase"
+                            AutomationProperties.AutomationId="TextCase.UpperButton"
                             TabIndex="5"
+                            Content="{loc:Translate ToolTextCaseUpper}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Upper}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnLowerCase" Content="" Click="OnLowerCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseUpper}" />
+                    <Button x:Name="BtnLowerCase"
+                            AutomationProperties.AutomationId="TextCase.LowerButton"
                             TabIndex="6"
+                            Content="{loc:Translate ToolTextCaseLower}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Lower}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnTitleCase" Content="" Click="OnTitleCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseLower}" />
+                    <Button x:Name="BtnTitleCase"
+                            AutomationProperties.AutomationId="TextCase.TitleButton"
                             TabIndex="7"
+                            Content="{loc:Translate ToolTextCaseTitle_Case}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Title}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
-                    <Button x:Name="BtnConstantCase" Content="" Click="OnConstantCaseClick"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseTitle_Case}" />
+                    <Button x:Name="BtnConstantCase"
+                            AutomationProperties.AutomationId="TextCase.ConstantButton"
                             TabIndex="8"
+                            Content="{loc:Translate ToolTextCaseConstant}"
+                            Command="{Binding ConvertCommand}"
+                            CommandParameter="{x:Static codecs:TextCaseStyle.Constant}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"/>
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseConstant}" />
                 </WrapPanel>
 
-                <!-- Output -->
-                <TextBlock x:Name="LblOutput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{loc:Translate ToolTextCaseOutputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
 
                 <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        AutomationProperties.AutomationId="TextCase.EmptyStatePanel">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource ToolEmptyStateStyle}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasResult}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D2;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
-                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                                   Focusable="False" />
+                        <TextBlock Text="{loc:Translate ToolTextCaseEmptyState}"
+                                   Style="{StaticResource ToolEmptyStateTextStyle}" />
                     </StackPanel>
                 </Border>
 
-                <DockPanel x:Name="ResultsPanel" Margin="{StaticResource MarginStackItem}" Visibility="Collapsed">
-                    <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                <DockPanel x:Name="ResultsPanel"
+                           Margin="{StaticResource MarginStackItem}"
+                           AutomationProperties.AutomationId="TextCase.ResultsPanel">
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasResult}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Style>
+                    <Button x:Name="BtnCopy"
+                            DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="TextCase.CopyButton"
                             TabIndex="10"
-                            Content="" Click="OnCopyClick"
+                            Content="{loc:Translate ToolTextCaseBtnCopy}"
+                            Click="OnCopyClick"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Top"/>
-                    <TextBox x:Name="TxtOutput" Text=""
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Top"
+                            AutomationProperties.Name="{loc:Translate ToolTextCaseBtnCopy}" />
+                    <TextBox x:Name="TxtOutput"
+                             AutomationProperties.AutomationId="TextCase.OutputField"
                              TabIndex="9"
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" MinHeight="100"
+                             Text="{Binding OutputText, Mode=OneWay}"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             FontFamily="Consolas"
+                             Padding="{StaticResource PaddingInput}"
+                             MinHeight="100"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
@@ -155,9 +264,9 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.LiveSetting="Polite"/>
+                             AutomationProperties.LiveSetting="Polite"
+                             AutomationProperties.Name="{loc:Translate ToolTextCaseOutputLabel}" />
                 </DockPanel>
-
             </StackPanel>
         </ScrollViewer>
     </Grid>

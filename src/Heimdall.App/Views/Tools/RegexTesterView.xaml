@@ -16,191 +16,300 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.RegexTesterView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:RegexTesterViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Regex.HelpButton"
+                        Content="?"
                         TabIndex="8"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}" />
+                <TextBlock Text="{loc:Translate ToolRegexTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="Regex.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Regex.CloseHelpButton"
+                        Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        VerticalAlignment="Top"
+                        Width="24"
+                        Height="24"
+                        AutomationProperties.Name="{loc:Translate BtnClose}" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
         <Grid Grid.Row="2" Margin="{StaticResource ContentAreaMargin}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Pattern input -->
-        <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
-            <TextBlock x:Name="PatternLabel" DockPanel.Dock="Top"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
-            <TextBox x:Name="PatternText"
-                     TabIndex="0"
-                     Style="{DynamicResource WatermarkTextBoxStyle}"
-                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                     Background="{DynamicResource SurfaceBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     BorderThickness="1"
-                     Padding="{StaticResource PaddingInput}"
-                     Tag=""
-                     TextChanged="OnPatternTextChanged"
-/>
-        </DockPanel>
-
-        <!-- Regex flags -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginStackItem}">
-            <CheckBox x:Name="ChkIgnoreCase"
-                      TabIndex="1"
-                      Foreground="{DynamicResource TextPrimaryBrush}"
-                      Margin="0,0,16,0"
-                      Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-/>
-            <CheckBox x:Name="ChkMultiline"
-                      TabIndex="2"
-                      Foreground="{DynamicResource TextPrimaryBrush}"
-                      Margin="0,0,16,0"
-                      Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-/>
-            <CheckBox x:Name="ChkSingleline"
-                      TabIndex="3"
-                      Foreground="{DynamicResource TextPrimaryBrush}"
-                      Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-/>
-        </StackPanel>
-
-        <!-- Test text input -->
-        <Grid Grid.Row="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock x:Name="TestTextLabel" Grid.Row="0"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
-            <Grid Grid.Row="1">
-                <TextBox x:Name="TestText"
-                         TabIndex="4"
-                         AcceptsReturn="True" AcceptsTab="True"
-                         TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
+
+            <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
+                <TextBlock Text="{loc:Translate ToolRegexPatternLabel}"
+                           DockPanel.Dock="Top"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}" />
+                <TextBox x:Name="PatternText"
+                         AutomationProperties.AutomationId="Regex.PatternText"
+                         TabIndex="0"
+                         Text="{Binding PatternText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{DynamicResource WatermarkTextBoxStyle}"
+                         FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
                          Background="{DynamicResource SurfaceBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="{StaticResource PaddingInput}"
-                         Tag=""
-                         TextChanged="OnTestTextChanged"
-/>
-                <RichTextBox x:Name="HighlightDisplay"
-                             IsReadOnly="True" IsHitTestVisible="False"
-                             Visibility="Collapsed"
+                         Tag="{loc:Translate ToolWatermarkRegexPattern}"
+                         AutomationProperties.Name="{loc:Translate ToolRegexPatternLabel}" />
+            </DockPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginStackItem}">
+                <CheckBox x:Name="ChkIgnoreCase"
+                          AutomationProperties.AutomationId="Regex.IgnoreCaseCheck"
+                          TabIndex="1"
+                          Content="{loc:Translate ToolRegexIgnoreCase}"
+                          IsChecked="{Binding IsIgnoreCaseChecked, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          Margin="0,0,16,0"
+                          AutomationProperties.Name="{loc:Translate ToolRegexIgnoreCase}" />
+                <CheckBox x:Name="ChkMultiline"
+                          AutomationProperties.AutomationId="Regex.MultilineCheck"
+                          TabIndex="2"
+                          Content="{loc:Translate ToolRegexMultiline}"
+                          IsChecked="{Binding IsMultilineChecked, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          Margin="0,0,16,0"
+                          AutomationProperties.Name="{loc:Translate ToolRegexMultiline}" />
+                <CheckBox x:Name="ChkSingleline"
+                          AutomationProperties.AutomationId="Regex.SinglelineCheck"
+                          TabIndex="3"
+                          Content="{loc:Translate ToolRegexSingleline}"
+                          IsChecked="{Binding IsSinglelineChecked, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          AutomationProperties.Name="{loc:Translate ToolRegexSingleline}" />
+            </StackPanel>
+
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="{loc:Translate ToolRegexTestTextLabel}"
+                           Grid.Row="0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}" />
+                <Grid Grid.Row="1">
+                    <TextBox x:Name="TestText"
+                             AutomationProperties.AutomationId="Regex.TestText"
+                             TabIndex="4"
+                             Text="{Binding TestText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             AcceptsTab="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
                              Background="{DynamicResource SurfaceBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              BorderThickness="1"
                              Padding="{StaticResource PaddingInput}"
-                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             />
+                             Tag="{loc:Translate ToolWatermarkTestString}"
+                             AutomationProperties.Name="{loc:Translate ToolRegexTestTextLabel}" />
+                    <RichTextBox x:Name="HighlightDisplay"
+                                 AutomationProperties.AutomationId="Regex.HighlightDisplay"
+                                 IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 Visibility="Collapsed"
+                                 Background="{DynamicResource SurfaceBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 BorderThickness="1"
+                                 Padding="{StaticResource PaddingInput}"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBodyLarge}"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 AutomationProperties.Name="{loc:Translate ToolRegexHighlightLabel}" />
+                </Grid>
             </Grid>
-        </Grid>
 
-        <!-- Match count -->
-        <DockPanel Grid.Row="3" Margin="0,8">
-            <TextBlock x:Name="MatchCountText"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
-            <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                       HorizontalAlignment="Right"/>
-        </DockPanel>
+            <DockPanel Grid.Row="3" Margin="0,8">
+                <TextBlock Text="{Binding MatchCountText}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding StatusText}"
+                           DockPanel.Dock="Right"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusForegroundBrushKey}" Value="ErrorTextBrush">
+                                    <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </DockPanel>
 
-        <!-- Empty state hint (hidden once matches appear) -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
-                Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="{StaticResource MarginSubsectionTop}">
-            <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE71E;"
-                           Style="{StaticResource ToolEmptyStateIconStyle}"
-                           Focusable="False"/>
-                <TextBlock x:Name="TxtEmptyState" Text=""
-                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
-            </StackPanel>
-        </Border>
+            <Border x:Name="EmptyStatePanel"
+                    Grid.Row="4"
+                    Margin="{StaticResource MarginSubsectionTop}">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource ToolEmptyStateStyle}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEmptyStateVisible}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE71E;"
+                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               Focusable="False" />
+                    <TextBlock Text="{loc:Translate ToolRegexEmptyState}"
+                               Style="{StaticResource ToolEmptyStateTextStyle}" />
+                </StackPanel>
+            </Border>
 
-        <!-- Matches output -->
-        <Grid x:Name="MatchesPanel" Grid.Row="4" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <TextBlock x:Name="MatchesLabel" Grid.Row="0"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
-            <ListBox x:Name="MatchesList" Grid.Row="1"
-                     TabIndex="5"
-                     Background="{DynamicResource SurfaceBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     BorderThickness="1"
-                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                     AutomationProperties.LiveSetting="Polite"
-/>
-        </Grid>
+            <Grid x:Name="MatchesPanel" Grid.Row="4">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsResultsPanelVisible}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="{loc:Translate ToolRegexMatchesLabel}"
+                           Grid.Row="0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}" />
+                <ListBox x:Name="MatchesList"
+                         Grid.Row="1"
+                         TabIndex="5"
+                         ItemsSource="{Binding DisplayedMatches}"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         BorderThickness="1"
+                         FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         AutomationProperties.LiveSetting="Polite"
+                         AutomationProperties.Name="{loc:Translate ToolRegexMatchesLabel}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:MatchDisplayItem}">
+                            <TextBlock Text="{Binding DisplayText}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontFamily="{DynamicResource FontFamilyMonospace}"
+                                       FontSize="{DynamicResource FontSizeBody}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="{Binding TruncatedNoticeText}"
+                           Grid.Row="2"
+                           Margin="{StaticResource MarginSubsectionTop}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           FontStyle="Italic">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsTruncatedNoticeVisible}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
 
-        <!-- Status bar -->
-        <DockPanel Grid.Row="5" Margin="{StaticResource MarginSubsectionTop}">
-            <Button x:Name="BtnCopyMatches" DockPanel.Dock="Right"
-                    TabIndex="7"
-                    Click="OnCopyMatchesClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"/>
-        </DockPanel>
+            <DockPanel Grid.Row="5" Margin="{StaticResource MarginSubsectionTop}">
+                <Button x:Name="BtnCopyMatches"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolRegexBtnCopy}"
+                        TabIndex="7"
+                        Click="OnCopyMatchesClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.Name="{loc:Translate ToolRegexBtnCopy}" />
+            </DockPanel>
         </Grid>
     </Grid>
 </UserControl>

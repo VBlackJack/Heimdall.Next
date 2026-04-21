@@ -16,7 +16,18 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.WakeOnLanView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:network="clr-namespace:Heimdall.Core.Network;assembly=Heimdall.Core"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="Return" Command="{Binding SendCommand}"/>
+    </UserControl.InputBindings>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -24,118 +35,179 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        TabIndex="10"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"/>
+                <TextBlock x:Name="HeaderTitle"
+                           VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           Text="{loc:Translate ToolWolTitle}"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
+                        Command="{Binding ToggleHelpCommand}"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"/>
+                        TabIndex="11"
+                        VerticalAlignment="Top"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20"
+                               Text="{Binding HelpText}"
+                               TextWrapping="Wrap"/>
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2"
+                      Padding="{StaticResource SpacingLg}"
+                      VerticalScrollBarVisibility="Auto">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- MAC Address input -->
-                <TextBlock x:Name="LblMac" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="{StaticResource MarginSectionBottom}">
-                    <Button x:Name="BtnSend" DockPanel.Dock="Right"
-                            Content="" Click="OnSendClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Stretch"
-                            TabIndex="1"/>
-                    <TextBox x:Name="TxtMac" Text=""
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}"
-                             Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             TabIndex="0"/>
-                </DockPanel>
-
-                <!-- Broadcast address -->
-                <TextBlock x:Name="LblBroadcast" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtBroadcast"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginSectionBottom}"
-                         Background="{DynamicResource CardBrush}"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         TabIndex="2"/>
-
-                <!-- Port -->
-                <TextBlock x:Name="LblPort" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtPort"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Width="100" Margin="0,0,0,16"
-                         HorizontalAlignment="Left"
-                         Background="{DynamicResource CardBrush}"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         TabIndex="3"/>
-
-                <!-- Status message -->
-                <TextBlock x:Name="TxtStatus" Text="" TextWrapping="Wrap"
+                <TextBlock x:Name="LblMac"
+                           Margin="{StaticResource MarginLabelBottom}"
                            FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,16"/>
+                           Text="{loc:Translate ToolWolMacLabel}"/>
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
+                    <Button x:Name="BtnSend"
+                            DockPanel.Dock="Right"
+                            Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding SendCommand}"
+                            Content="{loc:Translate ToolWolBtnSend}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            TabIndex="1"
+                            AutomationProperties.Name="{loc:Translate ToolWolBtnSend}"/>
+                    <TextBox x:Name="TxtMac"
+                             Padding="{StaticResource PaddingInput}"
+                             Background="{DynamicResource CardBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Text="{Binding MacAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             TabIndex="0"
+                             AutomationProperties.Name="{loc:Translate ToolWolMacLabel}"/>
+                </DockPanel>
 
-                <!-- History -->
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                        Padding="0,16,0,0" Margin="{StaticResource MarginSubsectionTop}">
+                <TextBlock x:Name="LblBroadcast"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{loc:Translate ToolWolBroadcastLabel}"/>
+                <TextBox x:Name="TxtBroadcast"
+                         Padding="{StaticResource PaddingInput}"
+                         Margin="{StaticResource MarginSectionBottom}"
+                         Background="{DynamicResource CardBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         Text="{Binding BroadcastAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         TabIndex="2"
+                         AutomationProperties.Name="{loc:Translate ToolWolBroadcastLabel}"/>
+
+                <TextBlock x:Name="LblPort"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{loc:Translate ToolWolPortLabel}"/>
+                <TextBox x:Name="TxtPort"
+                         Width="100"
+                         Margin="0,0,0,16"
+                         Padding="{StaticResource PaddingInput}"
+                         HorizontalAlignment="Left"
+                         Background="{DynamicResource CardBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         Text="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         TabIndex="3"
+                         AutomationProperties.Name="{loc:Translate ToolWolPortLabel}"/>
+
+                <TextBlock x:Name="TxtStatus"
+                           Margin="0,0,0,16"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding StatusText}"
+                           TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusKind}" Value="{x:Static network:WakeOnLanStatusKind.Sent}">
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StatusKind}" Value="{x:Static network:WakeOnLanStatusKind.Error}">
+                                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <Border BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="0,16,0,0"
+                        Margin="{StaticResource MarginSubsectionTop}">
                     <StackPanel>
-                        <TextBlock x:Name="LblHistory" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        <TextBox x:Name="TxtHistory" Text=""
-                                 FontSize="{StaticResource FontSizeSmallCaption}" FontFamily="Consolas"
-                                 Padding="{StaticResource PaddingInput}" MaxHeight="200"
-                                 IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
+                        <TextBlock x:Name="LblHistory"
+                                   Margin="{StaticResource MarginStackItem}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{loc:Translate ToolWolHistoryLabel}"/>
+                        <TextBox x:Name="TxtHistory"
+                                 Padding="{StaticResource PaddingInput}"
+                                 MaxHeight="200"
+                                 AcceptsReturn="True"
                                  AutomationProperties.LiveSetting="Polite"
                                  Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeSmallCaption}"
                                  Foreground="{DynamicResource AccentBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"/>
+                                 HorizontalScrollBarVisibility="Auto"
+                                 IsReadOnly="True"
+                                 Text="{Binding History}"
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto"/>
                     </StackPanel>
                 </Border>
-
             </StackPanel>
         </ScrollViewer>
     </Grid>

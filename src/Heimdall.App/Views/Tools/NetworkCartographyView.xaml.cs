@@ -15,12 +15,14 @@
  */
 
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Windows;
-using Heimdall.App.Services;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Discovery;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -35,40 +37,32 @@ namespace Heimdall.App.Views.Tools;
 public partial class NetworkCartographyView : UserControl, IToolView
 {
     private const int LargeSubnetThreshold = 512;
-    private const int DefaultMaxConcurrency = 50;
-    private const int DefaultProbeTimeoutMs = 2000;
-    private const int MinCommandTimeoutSeconds = 10;
-    private const int PortTimeoutDivisor = 2;
-
-    // Regex patterns and subnet utilities are in SubnetDetector (shared across tools).
 
     private LocalizationManager? _localizer;
-    private CancellationTokenSource? _cts;
-    private CancellationTokenSource? _subnetDetectCts;
-    private bool _isScanning;
     private bool _disposed;
-    private NetworkScanSnapshot? _lastSnapshot;
     private List<(string FileName, DateTime Timestamp, string Subnet)> _historyList = [];
     private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
-    private Heimdall.Core.Configuration.SshGatewayDto? _selectedGateway;
     private Action<string, string, ToolContext?>? _openToolAction;
     private Action<bool>? _setBusy;
+    private int _renderedHostCount;
 
-    private NetworkKnowledgeBase? _knowledgeBase;
-
+    private readonly NetworkCartographyViewModel _vm;
     private readonly ObservableCollection<CartographyRowViewModel> _results = [];
 
     public NetworkCartographyView()
     {
+        _vm = new NetworkCartographyViewModel();
         InitializeComponent();
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        DataContext = _vm;
+
         ResultsGrid.ItemsSource = _results;
         TxtSubnet.KeyDown += OnSubnetKeyDown;
         ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
         ResultsGrid.LoadingRow += OnResultsLoadingRow;
         SizeChanged += OnViewSizeChanged;
-        SetScanUiState(false);
-        UpdateResultsSurface();
+        RefreshUiFromVm();
     }
 
     /// <summary>
@@ -102,29 +96,30 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
+        _vm.Initialize(localizer);
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
-            TxtSubnet.Text = context.TargetHost;
+            _vm.Subnet = context.TargetHost;
         }
         else
         {
             var localSubnet = DetectLocalSubnet();
             if (localSubnet is not null)
             {
-                TxtSubnet.Text = localSubnet;
+                _vm.Subnet = localSubnet;
             }
         }
 
-        // Populate gateway selector for "Route via" tunnel support
         if (context?.SshGateways is System.Collections.IList gateways)
         {
             _gateways = gateways.Cast<Heimdall.Core.Configuration.SshGatewayDto>().ToList();
         }
+
         PopulateRouteSelector();
         PopulateHistory();
-        _ = LoadKbStatsAsync();
         UpdateResponsiveLayout(ActualWidth);
-        UpdateResultsSurface();
+        RefreshUiFromVm();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -195,8 +190,88 @@ public partial class NetworkCartographyView : UserControl, IToolView
         TxtEmptyState.Text = L("ToolEmptyStateNetMap");
 
         System.Windows.Automation.AutomationProperties.SetName(ScanProgress, L("ToolNetMapA11yProgress"));
-
         System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolNetMapTitle"));
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        RefreshUiFromVm(e.PropertyName);
+    }
+
+    private void RefreshUiFromVm(string? propertyName = null)
+    {
+        _setBusy?.Invoke(_vm.IsScanning);
+        SetScanUiState(_vm.IsScanning);
+
+        TxtStatus.Text = _vm.StatusText;
+        TxtStats.Text = _vm.StatsText;
+        TxtKbStats.Text = _vm.KbStatsText;
+        TxtStatsSeparator.Visibility = !string.IsNullOrWhiteSpace(_vm.StatsText)
+            && !string.IsNullOrWhiteSpace(_vm.KbStatsText)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        ProgressPanel.Visibility = _vm.ShowProgress || !string.IsNullOrEmpty(_vm.StatusText)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ScanProgress.IsIndeterminate = _vm.ProgressIsIndeterminate;
+        ScanProgress.Maximum = Math.Max(1, _vm.ProgressMaximum);
+        ScanProgress.Value = Math.Min(_vm.ProgressValue, ScanProgress.Maximum);
+        TxtScanProgress.Text = _vm.ProgressText;
+        TxtScanProgress.Visibility = string.IsNullOrEmpty(_vm.ProgressText)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        BtnExportCsv.IsEnabled = !_vm.IsScanning && _results.Count > 0;
+        BtnExportDrawio.IsEnabled = !_vm.IsScanning && _vm.LastSnapshot is not null;
+        BtnEditDiagram.IsEnabled = !_vm.IsScanning
+            && _vm.LastSnapshot is not null
+            && _openToolAction is not null;
+        BtnClearKb.IsEnabled = !_vm.IsScanning && _vm.CanClearKb;
+
+        DiffPanel.Visibility = _vm.ShowDiff ? Visibility.Visible : Visibility.Collapsed;
+        TxtDiff.Text = _vm.DiffText;
+
+        if (propertyName is null || propertyName == nameof(NetworkCartographyViewModel.HostResults))
+        {
+            SyncProjectedResults();
+        }
+
+        if (propertyName == nameof(NetworkCartographyViewModel.LastSnapshot))
+        {
+            RebuildProjectedResults();
+            PopulateHistory();
+        }
+
+        UpdateResultsSurface();
+    }
+
+    private void SyncProjectedResults()
+    {
+        if (_vm.HostResults.Count < _renderedHostCount)
+        {
+            RebuildProjectedResults();
+            return;
+        }
+
+        for (var index = _renderedHostCount; index < _vm.HostResults.Count; index++)
+        {
+            _results.Add(ToRow(_vm.HostResults[index]));
+        }
+
+        _renderedHostCount = _vm.HostResults.Count;
+    }
+
+    private void RebuildProjectedResults()
+    {
+        _results.Clear();
+        foreach (var host in _vm.HostResults)
+        {
+            _results.Add(ToRow(host));
+        }
+
+        _renderedHostCount = _vm.HostResults.Count;
+        ResultsGrid.Items.Refresh();
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -206,6 +281,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             HelpPanel.Visibility = Visibility.Collapsed;
             return;
         }
+
         TxtHelpContent.Text = L("ToolHelpNETMAP").Replace("\\n", "\n");
         HelpPanel.Visibility = Visibility.Visible;
     }
@@ -215,539 +291,54 @@ public partial class NetworkCartographyView : UserControl, IToolView
         HelpPanel.Visibility = Visibility.Collapsed;
     }
 
-    private void OnSubnetKeyDown(object sender, KeyEventArgs e)
+    private async void OnSubnetKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && !_isScanning)
+        if (e.Key == Key.Enter && !_vm.IsScanning)
         {
-            _ = StartScanAsync();
+            await TriggerScanAsync();
             e.Handled = true;
         }
     }
 
-    private void OnStartClick(object sender, RoutedEventArgs e)
+    private async void OnStartClick(object sender, RoutedEventArgs e)
     {
-        if (!_isScanning)
-        {
-            _ = StartScanAsync();
-        }
+        await TriggerScanAsync();
     }
 
-    private void OnStopClick(object sender, RoutedEventArgs e)
+    private async Task TriggerScanAsync()
     {
-        StopScan();
-    }
-
-    private async Task StartScanAsync()
-    {
-        if (_disposed || _isScanning)
+        if (_disposed || _vm.IsScanning)
         {
             return;
         }
 
-        var subnet = TxtSubnet.Text.Trim();
-        if (string.IsNullOrWhiteSpace(subnet))
-        {
-            TxtStatus.Text = L("ToolNetMapErrorEmptySubnet");
-            return;
-        }
+        _vm.SelectedDepth = CmbDepth.SelectedItem is ComboBoxItem item && item.Tag is ScanDepth depth
+            ? depth
+            : ScanDepth.Quick;
+        _vm.SkipPing = ChkSkipPing.IsChecked == true;
+        _vm.ReverseDns = ChkReverseDns.IsChecked == true;
+        _vm.UseKnowledgeBase = ChkUseKnowledgeBase.IsChecked == true;
 
-        // Auto-append /24 if user entered a bare IP without CIDR prefix
-        if (!subnet.Contains('/'))
+        if (_vm.LargeSubnetHostCount > LargeSubnetThreshold)
         {
-            subnet = subnet + "/24";
-            TxtSubnet.Text = subnet;
-        }
-
-        var ipList = CartographyEngine.ParseCidr(subnet);
-        if (ipList.Count == 0)
-        {
-            TxtStatus.Text = L("ToolNetMapErrorInvalidSubnet");
-            return;
-        }
-
-        if (ipList.Count > LargeSubnetThreshold)
-        {
-            var warning = string.Format(L("ToolNetMapWarningLargeSubnet"), ipList.Count);
+            var warning = string.Format(L("ToolNetMapWarningLargeSubnet"), _vm.LargeSubnetHostCount);
             var result = MessageBox.Show(
                 warning,
                 L("ToolNetMapTitle"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes) return;
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
         }
 
-        CancelSubnetDetection();
-        _results.Clear();
-        _cts = new CancellationTokenSource();
-        _isScanning = true;
-        _setBusy?.Invoke(true);
-
-        SetScanUiState(true);
-        ProgressPanel.Visibility = Visibility.Visible;
-        ScanProgress.Value = 0;
-        ScanProgress.IsIndeterminate = true;
-        TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), 0, ipList.Count);
-        TxtStats.Text = "";
-        TxtScanProgress.Visibility = Visibility.Visible;
-        TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), 0, ipList.Count);
-        UpdateResultsSurface();
-
-        var depth = CmbDepth.SelectedItem is ComboBoxItem item && item.Tag is ScanDepth d
-            ? d : ScanDepth.Quick;
-
-        var profile = new ScanProfile(
-            Subnet: subnet,
-            Depth: depth,
-            CustomPorts: null,
-            MaxConcurrency: DefaultMaxConcurrency,
-            TimeoutMs: DefaultProbeTimeoutMs,
-            SkipPing: ChkSkipPing.IsChecked == true,
-            ReverseDns: ChkReverseDns.IsChecked == true);
-
-        // Capture UI state before leaving the UI thread
-        var useKb = ChkUseKnowledgeBase.IsChecked == true;
-
-        // Load knowledge base (for cache if checkbox checked, for merge after scan)
-        try { _knowledgeBase = await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false); }
-        catch { _knowledgeBase = KnowledgeBaseManager.CreateEmpty(); }
-
-        var kb = useKb ? _knowledgeBase : null;
-
-        var engine = new CartographyEngine();
-
-        engine.CacheHitProgress += (host, phase) =>
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                TxtStatus.Text = string.Format(L("ToolNetMapKbCacheHit"), host, phase);
-            });
-        };
-
-        engine.HostDiscoveryProgress += (completed, total) =>
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                ScanProgress.IsIndeterminate = false;
-                ScanProgress.Maximum = total;
-                ScanProgress.Value = completed;
-                TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), completed, total);
-                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), completed, total);
-            });
-        };
-
-        engine.PortScanProgress += (host, completed, totalPorts) =>
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"), host, completed, totalPorts);
-            });
-        };
-
-        engine.EnrichmentProgress += (host, phase) =>
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                TxtStatus.Text = string.Format(L("ToolNetMapStatusEnriching"), host, phase);
-            });
-        };
-
-        engine.HostCompleted += hostResult =>
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                _results.Add(ToRow(hostResult));
-                UpdateResultsSurface();
-            });
-        };
-
-        try
-        {
-            NetworkScanSnapshot snapshot;
-
-            if (_selectedGateway is not null)
-            {
-                snapshot = await ScanViaTunnelAsync(profile, _cts.Token).ConfigureAwait(false);
-            }
-            else
-            {
-                snapshot = await engine.ScanAsync(profile, kb, _cts.Token).ConfigureAwait(false);
-            }
-
-            try
-            {
-                await ScanHistoryManager.SaveSnapshotAsync(snapshot).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"NetworkCartography history save failed: {ex.Message}");
-            }
-
-            // Merge into knowledge base (always, even if KB checkbox unchecked)
-            // Reuse the instance loaded before scan if available, avoid redundant I/O
-            try
-            {
-                _knowledgeBase ??= await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false);
-                _knowledgeBase = KnowledgeBaseManager.MergeSnapshot(_knowledgeBase, snapshot);
-                await KnowledgeBaseManager.SaveAsync(_knowledgeBase).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"NetworkCartography KB merge failed: {ex.Message}");
-            }
-
-            await Dispatcher.InvokeAsync(() =>
-            {
-                _lastSnapshot = snapshot;
-                var totalServices = snapshot.Hosts.Sum(h => h.Services.Count);
-                var totalRoles = snapshot.Hosts.Count(h => h.PrimaryRole is not null);
-                var durationText = snapshot.Duration.TotalSeconds < 60
-                    ? $"{snapshot.Duration.TotalSeconds:F1}s"
-                    : $"{snapshot.Duration.TotalMinutes:F1}m";
-
-                if (snapshot.Hosts.Count == 0)
-                {
-                    TxtStatus.Text = L("ToolNetMapNoHostsFound");
-                }
-                else
-                {
-                    TxtStatus.Text = string.Format(
-                        L("ToolNetMapStatusComplete"),
-                        snapshot.Hosts.Count, totalServices, totalRoles, durationText);
-                }
-
-                var serviceNames = snapshot.Hosts
-                    .SelectMany(h => h.Services)
-                    .Where(s => s.ServiceName is not null)
-                    .Select(s => s.ServiceName!)
-                    .Distinct()
-                    .Count();
-                TxtStats.Text = string.Format(
-                    L("ToolNetMapStats"),
-                    snapshot.Hosts.Count, totalServices, serviceNames);
-                TxtStatsSeparator.Visibility = Visibility.Visible;
-
-                BtnExportCsv.IsEnabled = _results.Count > 0;
-                BtnExportDrawio.IsEnabled = true;
-                BtnEditDiagram.IsEnabled = _openToolAction is not null;
-
-                // Refresh VLAN column now that full snapshot with VLAN data is available
-                if (snapshot.DetectedVlans is { Count: > 0 })
-                {
-                    foreach (var row in _results)
-                    {
-                        var vlan = snapshot.DetectedVlans
-                            .FirstOrDefault(v => v.MemberIps.Contains(row.IpAddress));
-                        if (vlan is not null)
-                            row.VlanSegment = $"VLAN {vlan.VlanId} ({vlan.Subnet})";
-                    }
-                    ResultsGrid.Items.Refresh();
-                }
-
-                UpdateKbStats();
-                PopulateHistory();
-                UpdateResultsSurface();
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // Scan cancelled
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"NetworkCartography scan failed: {ex.Message}");
-            await Dispatcher.InvokeAsync(() =>
-            {
-                TxtStatus.Text = string.Format(L("ToolNetMapErrorScanFailed"), ex.Message);
-                UpdateResultsSurface();
-            });
-        }
-
-        await Dispatcher.InvokeAsync(StopScan);
+        await _vm.ScanCommand.ExecuteAsync(null);
     }
 
-    /// <summary>
-    /// Scans a subnet via SSH gateway using remote commands.
-    /// Phase 1: Ping sweep + ARP table for host discovery.
-    /// Phase 2: Parallel /dev/tcp port probes with per-probe timeout.
-    /// Phase 3: Batch reverse DNS.
-    /// </summary>
-    private async Task<NetworkScanSnapshot> ScanViaTunnelAsync(ScanProfile profile, CancellationToken ct)
+    private void OnStopClick(object sender, RoutedEventArgs e)
     {
-        var startTime = DateTime.UtcNow;
-        var gw = _selectedGateway!;
-
-        await Dispatcher.InvokeAsync(() =>
-            TxtStatus.Text = string.Format(L("ToolTunnelConnecting"), gw.Name));
-
-        using var sshClient = await Task.Run(
-            () => ToolGatewayConnector.Connect(gw), ct).ConfigureAwait(false);
-
-        var ipList = CartographyEngine.ParseCidr(profile.Subnet);
-        var hosts = new List<HostScanResult>();
-        var ports = profile.CustomPorts ?? (profile.Depth == ScanDepth.Quick
-            ? CartographyEngine.QuickPorts : CartographyEngine.StandardPorts);
-
-        // Pre-compute validated port list once (invariant across hosts)
-        var portList = string.Join(" ", ports.Where(p => p is >= 1 and <= 65535));
-
-        // ── Phase 1: Host Discovery ──────────────────────────────────
-        HashSet<string> aliveHosts;
-
-        if (profile.SkipPing)
-        {
-            aliveHosts = new(ipList, StringComparer.OrdinalIgnoreCase);
-        }
-        else
-        {
-            await Dispatcher.InvokeAsync(() =>
-            {
-                ScanProgress.IsIndeterminate = true;
-                TxtStatus.Text = L("ToolNetMapTunnelPingSweep");
-            });
-
-            // Batch ping sweep via SSH (all IPs as parallel background jobs)
-            aliveHosts = await TunnelPingSweepAsync(sshClient, ipList, ct);
-
-            // ARP table: discover hosts that block ICMP but are in the gateway's cache
-            var arpHosts = await TunnelArpDiscoveryAsync(sshClient, ipList, ct);
-            foreach (var ip in arpHosts)
-                aliveHosts.Add(ip);
-
-            // If nothing responded, fall back to scanning all IPs
-            // (ping may be restricted on the gateway)
-            if (aliveHosts.Count == 0)
-                aliveHosts = new(ipList, StringComparer.OrdinalIgnoreCase);
-
-            await Dispatcher.InvokeAsync(() =>
-                TxtStatus.Text = string.Format(L("ToolNetMapTunnelDiscovered"),
-                    aliveHosts.Count, ipList.Count));
-        }
-
-        // ── Phase 2: Batch Reverse DNS ───────────────────────────────
-        var targetsInOrder = ipList.Where(aliveHosts.Contains).ToList();
-        var dnsMap = profile.ReverseDns
-            ? await TunnelBatchReverseDnsAsync(sshClient, targetsInOrder, ct)
-            : new Dictionary<string, string>();
-
-        // ── Phase 3: Port Scan ───────────────────────────────────────
-        var completed = 0;
-
-        foreach (var ip in targetsInOrder)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            if (!System.Net.IPAddress.TryParse(ip, out _)) continue;
-
-            var openServices = new List<ServiceResult>();
-            try
-            {
-                var safeIp = InputValidator.EscapeShellArg(ip);
-
-                // All port probes run as parallel background jobs inside bash.
-                // Each probe is capped at 5 seconds (the sleep duration) — no
-                // single filtered port can block the entire scan for this host.
-                // Explicitly invoke bash for /dev/tcp support (dash/sh lack it).
-                using var cmd = sshClient.CreateCommand(
-                    $"bash -c 'for p in {portList}; do " +
-                    $"(echo >/dev/tcp/{safeIp}/$p && echo $p) 2>/dev/null & " +
-                    "done; sleep 5; kill $(jobs -p) 2>/dev/null; wait'");
-                cmd.CommandTimeout = TimeSpan.FromSeconds(15);
-                var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
-
-                if (result is not null)
-                {
-                    foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        if (int.TryParse(line.Trim(), out var port))
-                        {
-                            var svcName = RoleClassifier.GetPortServiceName(port);
-                            openServices.Add(new ServiceResult(port, true,
-                                svcName != $"Port-{port}" ? svcName : null,
-                                null, null, 0));
-                        }
-                    }
-                }
-            }
-            catch (OperationCanceledException) { throw; }
-            catch { /* probe failed */ }
-
-            dnsMap.TryGetValue(ip, out var hostname);
-            var openPorts = openServices.Select(s => s.Port).ToList();
-            var roles = RoleClassifier.Classify(openPorts);
-
-            var hostResult = new HostScanResult(ip, hostname, true, 0,
-                openServices, roles.FirstOrDefault(), roles);
-            hosts.Add(hostResult);
-
-            await Dispatcher.InvokeAsync(() => _results.Add(ToRow(hostResult)));
-
-            completed++;
-            await Dispatcher.InvokeAsync(() =>
-            {
-                ScanProgress.IsIndeterminate = false;
-                ScanProgress.Maximum = targetsInOrder.Count;
-                ScanProgress.Value = completed;
-                TxtStatus.Text = string.Format(L("ToolNetMapTunnelScanningHost"),
-                    ip, completed, targetsInOrder.Count);
-                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"),
-                    completed, targetsInOrder.Count);
-            });
-        }
-
-        var orderedHosts = hosts.OrderBy(h => CartographyEngine.IpToLong(h.IpAddress)).ToList();
-        var vlans = VlanDetector.InferFromHosts(orderedHosts, profile.Subnet);
-
-        return new NetworkScanSnapshot(
-            Guid.NewGuid().ToString("N"),
-            DateTime.UtcNow,
-            profile,
-            gw.Name,
-            DateTime.UtcNow - startTime,
-            orderedHosts,
-            vlans);
-    }
-
-    /// <summary>
-    /// Runs a batch ping sweep on the remote gateway.
-    /// All IPs are pinged in parallel as background shell jobs.
-    /// </summary>
-    private static async Task<HashSet<string>> TunnelPingSweepAsync(
-        Renci.SshNet.SshClient client, List<string> ips, CancellationToken ct)
-    {
-        var aliveHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        var ipArgs = string.Join(" ", ips
-            .Where(ip => System.Net.IPAddress.TryParse(ip, out _))
-            .Select(InputValidator.EscapeShellArg));
-
-        try
-        {
-            using var cmd = client.CreateCommand(
-                $"for ip in {ipArgs}; do " +
-                "(ping -c1 -W1 $ip >/dev/null 2>&1 && echo $ip) & " +
-                "done; wait");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(15, ips.Count / 4));
-            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
-
-            if (result is not null)
-            {
-                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var ip = line.Trim();
-                    if (System.Net.IPAddress.TryParse(ip, out _))
-                        aliveHosts.Add(ip);
-                }
-            }
-        }
-        catch (OperationCanceledException) { throw; }
-        catch { /* ping sweep failed */ }
-
-        return aliveHosts;
-    }
-
-    /// <summary>
-    /// Reads the gateway's ARP table to discover hosts that block ICMP
-    /// but have recently communicated on the local network.
-    /// </summary>
-    private static async Task<HashSet<string>> TunnelArpDiscoveryAsync(
-        Renci.SshNet.SshClient client, List<string> subnetIps, CancellationToken ct)
-    {
-        var discovered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var subnetSet = new HashSet<string>(subnetIps, StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            using var cmd = client.CreateCommand(
-                "cat /proc/net/arp 2>/dev/null || arp -n 2>/dev/null");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(5);
-            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
-
-            if (result is not null)
-            {
-                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length >= 1
-                        && System.Net.IPAddress.TryParse(parts[0], out _)
-                        && subnetSet.Contains(parts[0]))
-                    {
-                        discovered.Add(parts[0]);
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException) { throw; }
-        catch { /* ARP check failed */ }
-
-        return discovered;
-    }
-
-    /// <summary>
-    /// Resolves reverse DNS for all IPs in a single SSH command.
-    /// </summary>
-    private static async Task<Dictionary<string, string>> TunnelBatchReverseDnsAsync(
-        Renci.SshNet.SshClient client, List<string> ips, CancellationToken ct)
-    {
-        var dnsMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (ips.Count == 0) return dnsMap;
-
-        var ipArgs = string.Join(" ", ips
-            .Where(ip => System.Net.IPAddress.TryParse(ip, out _))
-            .Select(InputValidator.EscapeShellArg));
-
-        try
-        {
-            using var cmd = client.CreateCommand(
-                $"for ip in {ipArgs}; do " +
-                "r=$(host $ip 2>/dev/null | head -1); " +
-                "echo \"$ip|$r\"; " +
-                "done");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(10, ips.Count));
-            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
-
-            if (result is not null)
-            {
-                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var sep = line.IndexOf('|');
-                    if (sep <= 0) continue;
-                    var ip = line[..sep].Trim();
-                    var dnsLine = line[(sep + 1)..].Trim();
-                    if (dnsLine.Contains("domain name pointer")
-                        && System.Net.IPAddress.TryParse(ip, out _))
-                    {
-                        var hostname = dnsLine
-                            .Split("domain name pointer")[1].Trim().TrimEnd('.');
-                        if (hostname.Length > 0)
-                            dnsMap[ip] = hostname;
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException) { throw; }
-        catch { /* batch DNS failed */ }
-
-        return dnsMap;
-    }
-
-    private void StopScan()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _isScanning = false;
-        _setBusy?.Invoke(false);
-
-        SetScanUiState(false);
-        TxtScanProgress.Visibility = Visibility.Collapsed;
-
-        // Keep progress panel visible if there's a status message to show
-        // (0-hosts warning, error, or completion summary)
-        if (string.IsNullOrEmpty(TxtStatus.Text))
-            ProgressPanel.Visibility = Visibility.Collapsed;
-
-        UpdateResultsSurface();
+        _vm.CancelCommand.Execute(null);
     }
 
     private void SetScanUiState(bool isScanning)
@@ -761,37 +352,15 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ChkUseKnowledgeBase.IsEnabled = !isScanning;
         CmbRouteVia.IsEnabled = !isScanning;
         CmbHistory.IsEnabled = !isScanning;
-
-        if (isScanning)
-        {
-            BtnExportCsv.IsEnabled = false;
-            BtnExportDrawio.IsEnabled = false;
-            BtnEditDiagram.IsEnabled = false;
-            BtnClearKb.IsEnabled = false;
-            return;
-        }
-
-        BtnExportCsv.IsEnabled = _results.Count > 0;
-        BtnExportDrawio.IsEnabled = _lastSnapshot is not null;
-        BtnEditDiagram.IsEnabled = _lastSnapshot is not null && _openToolAction is not null;
-        BtnClearKb.IsEnabled = _knowledgeBase is not null &&
-            KnowledgeBaseManager.HostCount(_knowledgeBase) > 0;
     }
 
     private void UpdateResultsSurface()
     {
         var hasResults = _results.Count > 0;
         ResultsPanel.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
-        EmptyStatePanel.Visibility = hasResults || _isScanning
+        EmptyStatePanel.Visibility = hasResults || _vm.IsScanning
             ? Visibility.Collapsed
             : Visibility.Visible;
-    }
-
-    private void CancelSubnetDetection()
-    {
-        _subnetDetectCts?.Cancel();
-        _subnetDetectCts?.Dispose();
-        _subnetDetectCts = null;
     }
 
     private CartographyRowViewModel ToRow(HostScanResult host)
@@ -816,10 +385,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 tlsStatus = $"{tlsCert.TlsVersion} ({L("ToolNetMapCertValid")} {tlsCert.NotAfter:yyyy-MM-dd})";
         }
 
-        // OS fingerprint
         var osGuess = host.OsFingerprint?.OsGuess ?? "\u2014";
 
-        // Details summary: compact one-line
         var detailParts = new List<string>();
         if (!string.IsNullOrEmpty(host.NetBiosName))
             detailParts.Add($"NB:{host.NetBiosName}");
@@ -841,7 +408,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
             detailParts.Add($"SMB:{host.SmbInfo.DialectRevision:X4}");
         var detailsSummary = detailParts.Count > 0 ? string.Join(" | ", detailParts) : "\u2014";
 
-        // Full tooltip (localized labels)
         var tooltipParts = new List<string>
         {
             $"{L("ToolNetMapTipIp")}: {host.IpAddress}"
@@ -958,7 +524,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 : (host.Manufacturer is not null ? "MAC" : "\u2014"),
             DetailsSummary = detailsSummary,
             DetailTooltip = detailTooltip,
-            VlanSegment = _lastSnapshot?.DetectedVlans?
+            VlanSegment = _vm.LastSnapshot?.DetectedVlans?
                 .FirstOrDefault(v => v.MemberIps.Contains(host.IpAddress))
                 is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014",
             Manufacturer = host.Manufacturer ?? "\u2014",
@@ -971,7 +537,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             SnmpSysLocation = host.SnmpInfo?.SysLocation,
             MdnsServicesList = mdnsServicesList,
             SsdpDeviceType = host.SsdpInfo is not null
-                ? FormatSsdpSummary(host.SsdpInfo) : null,
+                ? CartographyEngine.FormatSsdpSummary(host.SsdpInfo) : null,
             SnmpObjectId = host.SnmpInfo?.SysObjectId,
             NtlmDns = host.NtlmInfo?.DnsComputerName,
             NtlmDomain = host.NtlmInfo?.DnsDomainName,
@@ -982,67 +548,27 @@ public partial class NetworkCartographyView : UserControl, IToolView
         };
     }
 
-    private static string FormatSsdpSummary(SsdpInfo ssdp)
-    {
-        var parts = new List<string>();
-        if (ssdp.FriendlyName is not null) parts.Add(ssdp.FriendlyName);
-        else if (ssdp.ModelName is not null) parts.Add(ssdp.ModelName);
-        else if (ssdp.DeviceType is not null) parts.Add(ssdp.DeviceType);
-        if (ssdp.Manufacturer is not null) parts.Add(ssdp.Manufacturer);
-        if (ssdp.Server is not null) parts.Add(ssdp.Server);
-        return parts.Count > 0 ? string.Join(" | ", parts) : "";
-    }
-
     private void OnExportCsvClick(object sender, RoutedEventArgs e)
     {
-        if (_results.Count == 0) return;
+        if (_results.Count == 0 || _vm.LastSnapshot is null)
+        {
+            return;
+        }
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = L("FileDialogCsvFilter"),
-            FileName = $"cartography_{TxtSubnet.Text.Trim().Replace('/', '_')}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+            FileName = $"cartography_{_vm.Subnet.Trim().Replace('/', '_')}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 
-        if (dialog.ShowDialog() != true) return;
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
 
         try
         {
-            var sb = new StringBuilder();
-            sb.AppendLine(L("ToolNetMapExportHeader"));
-
-            foreach (var r in _results.Where(r => !string.IsNullOrEmpty(r.PortSummary)
-                || !string.IsNullOrEmpty(r.PrimaryRoleName)
-                || !string.IsNullOrEmpty(r.Hostname)))
-            {
-                var hostname = InputValidator.SanitizeCsvCell(r.Hostname ?? "").Replace("\"", "\"\"");
-                var os = InputValidator.SanitizeCsvCell(r.OsGuess ?? "").Replace("\"", "\"\"");
-                var ports = InputValidator.SanitizeCsvCell(r.PortSummary).Replace("\"", "\"\"");
-                var services = InputValidator.SanitizeCsvCell(r.ServiceSummary).Replace("\"", "\"\"");
-                var tls = InputValidator.SanitizeCsvCell(r.TlsStatus ?? "").Replace("\"", "\"\"");
-                var certSubject = InputValidator.SanitizeCsvCell(r.CertSubject ?? "").Replace("\"", "\"\"");
-                var certExpires = InputValidator.SanitizeCsvCell(r.CertExpires ?? "");
-                var certAlgorithm = InputValidator.SanitizeCsvCell(r.CertAlgorithm ?? "").Replace("\"", "\"\"");
-                var certStatus = InputValidator.SanitizeCsvCell(r.CertStatus ?? "").Replace("\"", "\"\"");
-                var role = InputValidator.SanitizeCsvCell(r.PrimaryRoleName ?? "").Replace("\"", "\"\"");
-                var nbName = InputValidator.SanitizeCsvCell(r.NetBiosName ?? "").Replace("\"", "\"\"");
-                var nbDomain = InputValidator.SanitizeCsvCell(r.NetBiosDomain ?? "").Replace("\"", "\"\"");
-                var snmpName = InputValidator.SanitizeCsvCell(r.SnmpSysName ?? "").Replace("\"", "\"\"");
-                var snmpDescr = InputValidator.SanitizeCsvCell(r.SnmpSysDescr ?? "").Replace("\"", "\"\"");
-                var snmpLoc = InputValidator.SanitizeCsvCell(r.SnmpSysLocation ?? "").Replace("\"", "\"\"");
-                var mdns = InputValidator.SanitizeCsvCell(r.MdnsServicesList ?? "").Replace("\"", "\"\"");
-                var manufacturer = InputValidator.SanitizeCsvCell(r.Manufacturer ?? "").Replace("\"", "\"\"");
-                var vlan = InputValidator.SanitizeCsvCell(r.VlanSegment ?? "").Replace("\"", "\"\"");
-                var ssdpDevice = InputValidator.SanitizeCsvCell(r.SsdpDeviceType ?? "").Replace("\"", "\"\"");
-                var snmpOid = InputValidator.SanitizeCsvCell(r.SnmpObjectId ?? "").Replace("\"", "\"\"");
-                var ntlmDns = InputValidator.SanitizeCsvCell(r.NtlmDns ?? "").Replace("\"", "\"\"");
-                var ntlmDomain = InputValidator.SanitizeCsvCell(r.NtlmDomain ?? "").Replace("\"", "\"\"");
-                var ntlmBuild = InputValidator.SanitizeCsvCell(r.NtlmBuild ?? "").Replace("\"", "\"\"");
-                var sshHash = InputValidator.SanitizeCsvCell(r.SshHashFingerprint ?? "").Replace("\"", "\"\"");
-                var favHash = InputValidator.SanitizeCsvCell(r.FaviconHashValue ?? "");
-                sb.AppendLine($"{InputValidator.SanitizeCsvCell(r.IpAddress)},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{snmpOid}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\",\"{ntlmDns}\",\"{ntlmDomain}\",\"{ntlmBuild}\",\"{sshHash}\",\"{favHash}\"");
-            }
-
-            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            File.WriteAllText(dialog.FileName, _vm.BuildCsvExport(), Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
         catch (Exception ex)
@@ -1053,19 +579,30 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private void OnExportDrawioClick(object sender, RoutedEventArgs e)
     {
-        if (_lastSnapshot is null) return;
+        if (_vm.LastSnapshot is null)
+        {
+            return;
+        }
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = "Draw.io (*.drawio)|*.drawio",
-            FileName = $"network-map_{_lastSnapshot.Profile.Subnet.Replace('/', '-')}_{_lastSnapshot.Timestamp:yyyyMMdd_HHmmss}.drawio"
+            FileName = $"network-map_{_vm.LastSnapshot.Profile.Subnet.Replace('/', '-')}_{_vm.LastSnapshot.Timestamp:yyyyMMdd_HHmmss}.drawio"
         };
 
-        if (dialog.ShowDialog() != true) return;
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
 
         try
         {
-            var xml = DrawIoExporter.Generate(_lastSnapshot);
+            var xml = _vm.GetDrawIoXml();
+            if (xml is null)
+            {
+                return;
+            }
+
             File.WriteAllText(dialog.FileName, xml, Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
@@ -1077,22 +614,25 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private void OnEditDiagramClick(object sender, RoutedEventArgs e)
     {
-        if (_lastSnapshot is null || _openToolAction is null) return;
+        if (_vm.LastSnapshot is null || _openToolAction is null)
+        {
+            return;
+        }
 
         try
         {
-            // Generate draw.io XML from the last scan snapshot
-            var xml = DrawIoExporter.Generate(_lastSnapshot);
+            var xml = _vm.GetDrawIoXml();
+            if (xml is null)
+            {
+                return;
+            }
 
-            // Save to temp file so the diagram editor can load it
             var tempFile = Path.Combine(
                 Path.GetTempPath(),
                 $"heimdall_netmap_{DateTime.Now:yyyyMMdd_HHmmss}.drawio");
             File.WriteAllText(tempFile, xml, Encoding.UTF8);
 
-            // Open in diagram editor tool tab
-            _openToolAction("DIAGRAM", L("PaletteToolDiagram"),
-                new ToolContext(Argument: tempFile));
+            _openToolAction("DIAGRAM", L("PaletteToolDiagram"), new ToolContext(Argument: tempFile));
         }
         catch (Exception ex)
         {
@@ -1102,56 +642,35 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private void PopulateHistory()
     {
-        _historyList = ScanHistoryManager.ListSnapshots();
+        _historyList = _vm.GetHistoryList();
         CmbHistory.Items.Clear();
         CmbHistory.Items.Add(new ComboBoxItem { Content = L("ToolNetMapNoComparison") });
         foreach (var (_, timestamp, subnet) in _historyList)
         {
             CmbHistory.Items.Add(new ComboBoxItem
             {
-                Content = $"{timestamp:yyyy-MM-dd HH:mm} \u2014 {subnet}"
+                Content = $"{timestamp:yyyy-MM-dd HH:mm} — {subnet}"
             });
         }
+
         CmbHistory.SelectedIndex = 0;
     }
 
     private void OnHistorySelected(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbHistory.SelectedIndex <= 0 || _lastSnapshot is null)
+        if (CmbHistory.SelectedIndex <= 0 || _vm.LastSnapshot is null)
         {
             DiffPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
-        var idx = CmbHistory.SelectedIndex - 1;
-        if (idx >= _historyList.Count) return;
-
-        var oldSnapshot = ScanHistoryManager.LoadSnapshot(_historyList[idx].FileName);
-        if (oldSnapshot is null) return;
-
-        var diff = ScanHistoryManager.ComputeDiff(oldSnapshot, _lastSnapshot);
-        ShowDiffResults(diff);
-    }
-
-    private void ShowDiffResults(ScanDiff diff)
-    {
-        var parts = new List<string>();
-
-        if (diff.NewHosts.Count > 0)
-            parts.Add(string.Format(L("ToolNetMapDiffNew"), diff.NewHosts.Count));
-        if (diff.RemovedHosts.Count > 0)
-            parts.Add(string.Format(L("ToolNetMapDiffRemoved"), diff.RemovedHosts.Count));
-        if (diff.ModifiedHosts.Count > 0)
-            parts.Add(string.Format(L("ToolNetMapDiffChanged"), diff.ModifiedHosts.Count));
-
-        if (parts.Count == 0)
+        var index = CmbHistory.SelectedIndex - 1;
+        if (index >= _historyList.Count)
         {
-            DiffPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
-        TxtDiff.Text = string.Join(" | ", parts);
-        DiffPanel.Visibility = Visibility.Visible;
+        _vm.CompareWithHistory(_historyList[index].FileName);
     }
 
     private void PopulateRouteSelector()
@@ -1160,79 +679,56 @@ public partial class NetworkCartographyView : UserControl, IToolView
         CmbRouteVia.Items.Add(L("ToolTunnelDirect"));
         if (_gateways is not null)
         {
-            foreach (var gw in _gateways)
+            foreach (var gateway in _gateways)
             {
-                CmbRouteVia.Items.Add($"{gw.Name} ({gw.Host}:{gw.Port})");
+                CmbRouteVia.Items.Add($"{gateway.Name} ({gateway.Host}:{gateway.Port})");
             }
         }
+
         CmbRouteVia.SelectedIndex = 0;
     }
 
-    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    private async void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
     {
         if (CmbRouteVia.SelectedIndex <= 0 || _gateways is null)
         {
-            _selectedGateway = null;
+            _vm.SetGateway(null);
+            TxtSubnet.ToolTip = null;
             return;
         }
-        var idx = CmbRouteVia.SelectedIndex - 1;
-        _selectedGateway = idx < _gateways.Count ? _gateways[idx] : null;
 
-        if (_selectedGateway is not null)
+        var index = CmbRouteVia.SelectedIndex - 1;
+        var gateway = index < _gateways.Count ? _gateways[index] : null;
+        _vm.SetGateway(gateway);
+        if (gateway is null)
         {
-            _ = DetectRemoteSubnetsAsync(_selectedGateway);
+            return;
+        }
+
+        _vm.StatusText = string.Format(L("ToolNetMapDetectingSubnet"), gateway.Name);
+
+        try
+        {
+            var subnets = await _vm.DetectRemoteSubnetsAsync();
+            if (subnets.Count > 0)
+            {
+                _vm.Subnet = subnets[0];
+                _vm.StatusText = string.Format(L("ToolNetMapSubnetDetected"), subnets.Count, gateway.Name);
+                TxtSubnet.ToolTip = subnets.Count > 1 ? string.Join("\n", subnets) : null;
+            }
+            else
+            {
+                _vm.StatusText = L("ToolNetMapSubnetDetectFailed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Subnet detection failed for {gateway.Name}: {ex.Message}");
+            _vm.StatusText = L("ToolNetMapSubnetDetectFailed");
         }
     }
 
     private static string? DetectLocalSubnet() => SubnetDetector.DetectLocalSubnet();
-
-    /// <summary>
-    /// Connects to the selected gateway via SSH, discovers its network
-    /// interfaces, and auto-populates TxtSubnet with the first non-loopback
-    /// IPv4 CIDR found.
-    /// </summary>
-    private async Task DetectRemoteSubnetsAsync(Core.Configuration.SshGatewayDto gateway)
-    {
-        CancelSubnetDetection();
-        _subnetDetectCts = new CancellationTokenSource();
-        var ct = _subnetDetectCts.Token;
-
-        await Dispatcher.InvokeAsync(() =>
-            TxtStatus.Text = string.Format(L("ToolNetMapDetectingSubnet"), gateway.Name));
-
-        try
-        {
-            var subnets = await SubnetDetector.DetectRemoteSubnetsAsync(gateway, ct);
-
-            if (subnets.Count > 0)
-            {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    TxtSubnet.Text = subnets[0];
-                    TxtStatus.Text = string.Format(
-                        L("ToolNetMapSubnetDetected"),
-                        subnets.Count,
-                        gateway.Name);
-                    if (subnets.Count > 1)
-                    {
-                        TxtSubnet.ToolTip = string.Join("\n", subnets);
-                    }
-                });
-            }
-            else
-            {
-                await Dispatcher.InvokeAsync(() =>
-                    TxtStatus.Text = L("ToolNetMapSubnetDetectFailed"));
-            }
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"Subnet detection failed for {gateway.Name}: {ex.Message}");
-            await Dispatcher.InvokeAsync(() =>
-                TxtStatus.Text = L("ToolNetMapSubnetDetectFailed"));
-        }
-    }
 
     private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
@@ -1255,20 +751,26 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
         else
         {
-            // Fallback: copy actions only
             var copyIp = new MenuItem { Header = L("ToolCtxCopyIp") };
-            copyIp.Click += (_, _) => { try { Clipboard.SetText(row.IpAddress); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+            copyIp.Click += (_, _) =>
+            {
+                try { Clipboard.SetText(row.IpAddress); }
+                catch (System.Runtime.InteropServices.ExternalException) { }
+            };
             menu.Items.Add(copyIp);
 
             if (!string.IsNullOrWhiteSpace(row.Hostname) && row.Hostname != "\u2014")
             {
                 var copyHost = new MenuItem { Header = L("ToolCtxCopyHostname") };
-                copyHost.Click += (_, _) => { try { Clipboard.SetText(row.Hostname); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+                copyHost.Click += (_, _) =>
+                {
+                    try { Clipboard.SetText(row.Hostname); }
+                    catch (System.Runtime.InteropServices.ExternalException) { }
+                };
                 menu.Items.Add(copyHost);
             }
         }
 
-        // Copy row as CSV
         var csvText = $"{row.IpAddress},{row.Hostname},{row.OsGuess},{row.PortSummary},{row.ServiceSummary},{row.PrimaryRoleName},{row.Manufacturer}";
         menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
         menu.Items.Add(ToolContextMenuHelper.BuildCopyAllAction(ResultsGrid, _localizer));
@@ -1287,43 +789,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
     }
 
-    private async Task LoadKbStatsAsync()
-    {
-        try
-        {
-            _knowledgeBase = await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false);
-            await Dispatcher.InvokeAsync(UpdateKbStats);
-        }
-        catch { /* KB load failed, stats remain empty */ }
-    }
-
-    private void UpdateKbStats()
-    {
-        var isEmpty = _knowledgeBase is null || KnowledgeBaseManager.HostCount(_knowledgeBase) == 0;
-        BtnClearKb.IsEnabled = !_isScanning && !isEmpty;
-
-        if (isEmpty)
-        {
-            TxtKbStats.Text = L("ToolNetMapKbStatsNever");
-            return;
-        }
-        var count = KnowledgeBaseManager.HostCount(_knowledgeBase!);
-        var ago = FormatTimeAgo(_knowledgeBase!.LastUpdated);
-        TxtKbStats.Text = string.Format(L("ToolNetMapKbStats"), count, ago);
-    }
-
-    private string FormatTimeAgo(DateTime utcTime)
-    {
-        var elapsed = DateTime.UtcNow - utcTime;
-        if (elapsed.TotalMinutes < 5)
-            return L("ToolNetMapKbTimeAgoJustNow");
-        if (elapsed.TotalHours < 1)
-            return string.Format(L("ToolNetMapKbTimeAgo1m"), (int)elapsed.TotalMinutes);
-        if (elapsed.TotalHours < 24)
-            return string.Format(L("ToolNetMapKbTimeAgo1h"), (int)elapsed.TotalHours);
-        return string.Format(L("ToolNetMapKbTimeAgo1d"), (int)elapsed.TotalDays);
-    }
-
     private async void OnClearKbClick(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show(
@@ -1332,17 +797,14 @@ public partial class NetworkCartographyView : UserControl, IToolView
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
-        if (result != MessageBoxResult.Yes) return;
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
 
         try
         {
-            _knowledgeBase = KnowledgeBaseManager.CreateEmpty();
-            await KnowledgeBaseManager.SaveAsync(_knowledgeBase).ConfigureAwait(false);
-            await Dispatcher.InvokeAsync(() =>
-            {
-                UpdateKbStats();
-                TxtStatus.Text = L("ToolNetMapKbCleared");
-            });
+            await _vm.ClearKbCommand.ExecuteAsync(null);
         }
         catch (Exception ex)
         {
@@ -1352,22 +814,24 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
-    public bool CanClose() => !_isScanning;
+    public bool CanClose() => !_vm.IsScanning;
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         TxtSubnet.KeyDown -= OnSubnetKeyDown;
         ResultsGrid.PreviewMouseRightButtonDown -= ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening -= OnResultsContextMenuOpening;
         ResultsGrid.LoadingRow -= OnResultsLoadingRow;
         SizeChanged -= OnViewSizeChanged;
-        StopScan();
-        _subnetDetectCts?.Cancel();
-        _subnetDetectCts?.Dispose();
-        _subnetDetectCts = null;
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -1394,8 +858,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string Manufacturer { get; init; } = "";
         public string MacAddress { get; init; } = "";
         public string Latency { get; init; } = "";
-
-        // Raw fields for CSV export
         public string? NetBiosName { get; init; }
         public string? NetBiosDomain { get; init; }
         public string? SnmpSysName { get; init; }
@@ -1409,10 +871,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string? NtlmBuild { get; init; }
         public string? SshHashFingerprint { get; init; }
         public string? FaviconHashValue { get; init; }
-
-        /// <summary>
-        /// Raw list of open ports for cross-tool context menu actions.
-        /// </summary>
         public IReadOnlyList<int> OpenPorts { get; init; } = [];
     }
 }

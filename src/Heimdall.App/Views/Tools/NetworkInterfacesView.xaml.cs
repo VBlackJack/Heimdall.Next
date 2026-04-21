@@ -14,170 +14,110 @@
  * limitations under the License.
  */
 
-using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
-using System.Text;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>
-/// Lists all network interfaces with IP, MAC, speed, status, and DHCP info.
-/// Uses <see cref="NetworkInterface.GetAllNetworkInterfaces"/> — no P/Invoke or external tool.
+/// Thin WPF shell for the network interfaces tool.
 /// </summary>
 public partial class NetworkInterfacesView : UserControl, IToolView
 {
+    private readonly NetworkInterfacesViewModel _vm;
     private LocalizationManager? _localizer;
-    private readonly ObservableCollection<NicEntry> _entries = [];
+    private bool _disposed;
 
     public NetworkInterfacesView()
     {
+        _vm = new NetworkInterfacesViewModel();
         InitializeComponent();
+        DataContext = _vm;
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        _vm.CopyResultsRequested += OnCopyResultsRequested;
     }
 
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
-        _localizer = localizer;
-        ApplyLocalization();
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+        }
 
-        InterfacesGrid.ItemsSource = _entries;
-        Refresh();
+        _localizer = localizer;
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged += OnLocaleChanged;
+        }
+
+        _vm.Initialize(localizer);
+        ApplyLocalization();
+        _vm.RefreshCommand.Execute(null);
+    }
+
+    public bool CanClose() => true;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+            _localizer = null;
+        }
+
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.CopyResultsRequested -= OnCopyResultsRequested;
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void ApplyLocalization()
     {
-        HeaderTitle.Text = L("ToolNetIfTitle");
-        BtnRefresh.Content = L("ToolNetIfBtnRefresh");
-        BtnCopy.Content = L("ToolBtnCopyToClipboard");
-
-        ColName.Header = L("ToolNetIfColName");
-        ColType.Header = L("ToolNetIfColType");
-        ColStatus.Header = L("ToolNetIfColStatus");
-        ColSpeed.Header = L("ToolNetIfColSpeed");
-        ColMac.Header = L("ToolNetIfColMac");
-        ColIpv4.Header = L("ToolNetIfColIpv4");
-        ColSubnet.Header = L("ToolNetIfColSubnet");
-        ColGateway.Header = L("ToolNetIfColGateway");
-        ColDhcp.Header = L("ToolNetIfColDhcp");
-
-        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, L("ToolNetIfBtnRefresh"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolBtnCopyToClipboard"));
-        System.Windows.Automation.AutomationProperties.SetName(InterfacesGrid, L("ToolNetIfTitle"));
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        AutomationProperties.SetName(BtnRefresh, L("ToolNetIfBtnRefresh"));
+        AutomationProperties.SetName(BtnCopy, L("ToolBtnCopyToClipboard"));
+        AutomationProperties.SetName(InterfacesGrid, L("ToolNetIfTitle"));
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
-    private void OnRefreshClick(object sender, RoutedEventArgs e) => Refresh();
-
-    private void Refresh()
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        _entries.Clear();
-
-        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        if (e.PropertyName is nameof(NetworkInterfacesViewModel.StatusText))
         {
-            var props = nic.GetIPProperties();
-
-            var ipv4 = props.UnicastAddresses
-                .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork);
-
-            var gateway = props.GatewayAddresses
-                .FirstOrDefault(g => g.Address.AddressFamily == AddressFamily.InterNetwork);
-
-            var dhcp = props.DhcpServerAddresses.Count > 0;
-
-            _entries.Add(new NicEntry
-            {
-                Name = nic.Name,
-                InterfaceType = nic.NetworkInterfaceType.ToString(),
-                Status = nic.OperationalStatus.ToString(),
-                Speed = FormatSpeed(nic.Speed),
-                Mac = FormatMac(nic.GetPhysicalAddress()),
-                Ipv4 = ipv4?.Address.ToString() ?? "",
-                Subnet = ipv4?.IPv4Mask?.ToString() ?? "",
-                Gateway = gateway?.Address.ToString() ?? "",
-                Dhcp = dhcp ? "DHCP" : "Static",
-            });
+            TxtStatus.Text = _vm.StatusText;
         }
-
-        TxtStatus.Text = string.Format(CultureInfo.InvariantCulture,
-            L("ToolNetIfStatus"), _entries.Count,
-            DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
     }
 
-    private static string FormatSpeed(long bitsPerSecond)
+    private void OnCopyResultsRequested(object? sender, string text)
     {
-        return bitsPerSecond switch
-        {
-            <= 0 => "-",
-            < 1_000_000 => $"{bitsPerSecond / 1_000} Kbps",
-            < 1_000_000_000 => $"{bitsPerSecond / 1_000_000} Mbps",
-            _ => $"{bitsPerSecond / 1_000_000_000} Gbps",
-        };
-    }
-
-    private static string FormatMac(PhysicalAddress mac)
-    {
-        var bytes = mac.GetAddressBytes();
-        if (bytes.Length == 0) return "";
-        return string.Join(":", bytes.Select(b => b.ToString("X2", CultureInfo.InvariantCulture)));
-    }
-
-    private void OnCopyClick(object sender, RoutedEventArgs e)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("Name\tType\tStatus\tSpeed\tMAC\tIPv4\tSubnet\tGateway\tDHCP");
-        foreach (var entry in _entries)
-        {
-            sb.Append(entry.Name).Append('\t')
-              .Append(entry.InterfaceType).Append('\t')
-              .Append(entry.Status).Append('\t')
-              .Append(entry.Speed).Append('\t')
-              .Append(entry.Mac).Append('\t')
-              .Append(entry.Ipv4).Append('\t')
-              .Append(entry.Subnet).Append('\t')
-              .Append(entry.Gateway).Append('\t')
-              .AppendLine(entry.Dhcp);
-        }
-
         try
         {
-            Clipboard.SetText(sb.ToString());
-            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(BtnCopy);
         }
-        catch (System.Runtime.InteropServices.ExternalException) { }
+        catch (ExternalException)
+        {
+            // Clipboard locked by another process.
+        }
     }
 
-    private void OnHelpClick(object sender, RoutedEventArgs e)
+    private void OnLocaleChanged(string _)
     {
-        if (HelpPanel.Visibility == Visibility.Visible) { HelpPanel.Visibility = Visibility.Collapsed; return; }
-        TxtHelpContent.Text = L("ToolHelpNETIF").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+        ApplyLocalization();
     }
-
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-        => HelpPanel.Visibility = Visibility.Collapsed;
 
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose() => GC.SuppressFinalize(this);
-
-    public sealed class NicEntry
-    {
-        public required string Name { get; init; }
-        public required string InterfaceType { get; init; }
-        public required string Status { get; init; }
-        public required string Speed { get; init; }
-        public required string Mac { get; init; }
-        public required string Ipv4 { get; init; }
-        public required string Subnet { get; init; }
-        public required string Gateway { get; init; }
-        public required string Dhcp { get; init; }
-    }
 }

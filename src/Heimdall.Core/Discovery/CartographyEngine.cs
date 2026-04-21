@@ -25,6 +25,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Discovery;
 
@@ -1030,6 +1031,113 @@ public sealed class CartographyEngine
     }
 
     /// <summary>
+    /// Builds CSV content from a scan snapshot.
+    /// </summary>
+    public static string BuildCsvExport(
+        NetworkScanSnapshot snapshot,
+        Func<string, string>? localize = null)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        var builder = new StringBuilder();
+        builder.AppendLine(L(localize, "ToolNetMapExportHeader"));
+
+        foreach (var host in snapshot.Hosts.Where(ShouldExportHost))
+        {
+            var openPorts = host.Services
+                .Where(service => service.IsOpen)
+                .Select(service => service.Port)
+                .OrderBy(port => port)
+                .ToList();
+            var services = host.Services
+                .Where(service => service.IsOpen && service.ServiceName is not null)
+                .Select(service => service.ServiceName!)
+                .Distinct()
+                .OrderBy(name => name);
+
+            var certificate = host.Services.FirstOrDefault(service => service.Certificate is not null)?.Certificate;
+            var certStatus = certificate is null
+                ? string.Empty
+                : certificate.IsExpired
+                    ? L(localize, "ToolNetMapCertExpired")
+                    : certificate.ExpiresSoon
+                        ? L(localize, "ToolNetMapCertExpiring")
+                        : L(localize, "ToolNetMapCertValid");
+            var tlsStatus = certificate is null
+                ? string.Empty
+                : certificate.IsExpired
+                    ? $"{L(localize, "ToolNetMapCertExpired")}!"
+                    : certificate.ExpiresSoon
+                        ? $"{certificate.TlsVersion} ({L(localize, "ToolNetMapCertExpiring")} {certificate.NotAfter:yyyy-MM-dd})"
+                        : $"{certificate.TlsVersion} ({L(localize, "ToolNetMapCertValid")} {certificate.NotAfter:yyyy-MM-dd})";
+
+            var confidence = host.PrimaryRole is not null
+                ? $"{host.PrimaryRole.Confidence}%"
+                : host.Manufacturer is not null ? "MAC" : "\u2014";
+            var role = host.PrimaryRole?.Role
+                ?? (host.Manufacturer is not null ? host.Manufacturer : "\u2014");
+            var mdnsServices = host.MdnsServices is { Count: > 0 }
+                ? string.Join("; ", host.MdnsServices)
+                : string.Empty;
+            var vlan = snapshot.DetectedVlans?
+                .FirstOrDefault(item => item.MemberIps.Contains(host.IpAddress))
+                is { } detectedVlan
+                    ? $"VLAN {detectedVlan.VlanId} ({detectedVlan.Subnet})"
+                    : string.Empty;
+            var ssdpSummary = host.SsdpInfo is not null
+                ? FormatSsdpSummary(host.SsdpInfo)
+                : string.Empty;
+
+            builder.AppendLine(string.Join(",",
+                EscapeCsv(host.IpAddress),
+                EscapeCsv(host.Hostname ?? string.Empty),
+                EscapeCsv(host.OsFingerprint?.OsGuess ?? string.Empty),
+                EscapeCsv(string.Join(", ", openPorts)),
+                EscapeCsv(string.Join(", ", services)),
+                EscapeCsv(tlsStatus),
+                EscapeCsv(certificate?.Subject ?? string.Empty),
+                EscapeCsv(certificate?.NotAfter.ToString("yyyy-MM-dd") ?? string.Empty),
+                EscapeCsv(certificate?.KeyAlgorithm ?? string.Empty),
+                EscapeCsv(certStatus),
+                EscapeCsv(role),
+                EscapeCsv(confidence),
+                EscapeCsv(host.NetBiosName ?? string.Empty),
+                EscapeCsv(host.NetBiosDomain ?? string.Empty),
+                EscapeCsv(host.SnmpInfo?.SysName ?? string.Empty),
+                EscapeCsv(host.SnmpInfo?.SysDescr ?? string.Empty),
+                EscapeCsv(host.SnmpInfo?.SysLocation ?? string.Empty),
+                EscapeCsv(host.SnmpInfo?.SysObjectId ?? string.Empty),
+                EscapeCsv(mdnsServices),
+                EscapeCsv(host.Manufacturer ?? string.Empty),
+                EscapeCsv(vlan),
+                EscapeCsv(ssdpSummary),
+                EscapeCsv(host.NtlmInfo?.DnsComputerName ?? string.Empty),
+                EscapeCsv(host.NtlmInfo?.DnsDomainName ?? string.Empty),
+                EscapeCsv(host.NtlmInfo?.OsBuild ?? string.Empty),
+                EscapeCsv(host.SshHashFingerprint ?? string.Empty),
+                EscapeCsv(host.FaviconHash?.ToString() ?? string.Empty)));
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Formats SSDP/UPnP discovery info into a single summary string.
+    /// </summary>
+    public static string FormatSsdpSummary(SsdpInfo ssdp)
+    {
+        ArgumentNullException.ThrowIfNull(ssdp);
+
+        var parts = new List<string>();
+        if (ssdp.FriendlyName is not null) parts.Add(ssdp.FriendlyName);
+        else if (ssdp.ModelName is not null) parts.Add(ssdp.ModelName);
+        else if (ssdp.DeviceType is not null) parts.Add(ssdp.DeviceType);
+        if (ssdp.Manufacturer is not null) parts.Add(ssdp.Manufacturer);
+        if (ssdp.Server is not null) parts.Add(ssdp.Server);
+        return parts.Count > 0 ? string.Join(" | ", parts) : string.Empty;
+    }
+
+    /// <summary>
     /// Detects the OS default gateway IP addresses from all active network interfaces.
     /// Used to auto-classify the gateway host as Router/Gateway with high confidence.
     /// </summary>
@@ -1146,4 +1254,24 @@ public sealed class CartographyEngine
         catch { /* ARP table unavailable */ }
         return result;
     }
+
+    private static bool ShouldExportHost(HostScanResult host)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+
+        return host.Services.Any(service => service.IsOpen)
+            || host.PrimaryRole is not null
+            || !string.IsNullOrWhiteSpace(host.Hostname)
+            || !string.IsNullOrWhiteSpace(host.Manufacturer);
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        var sanitized = InputValidator.SanitizeCsvCell(value)
+            .Replace("\"", "\"\"", StringComparison.Ordinal);
+        return $"\"{sanitized}\"";
+    }
+
+    private static string L(Func<string, string>? localize, string key)
+        => localize?.Invoke(key) ?? key;
 }

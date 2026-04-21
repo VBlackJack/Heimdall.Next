@@ -14,235 +14,96 @@
  * limitations under the License.
  */
 
-using System.Globalization;
-using System.Net;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// IP address converter tool that displays an IPv4 address in multiple formats:
-/// dotted decimal, integer, hexadecimal, binary, and IPv4-mapped IPv6.
-/// Accepts input in any of those formats and converts to all others.
-/// </summary>
 public partial class IpConverterView : UserControl, IToolView
 {
+    private readonly IpConverterViewModel _vm;
     private LocalizationManager? _localizer;
+    private bool _disposed;
 
     public IpConverterView()
     {
         InitializeComponent();
-        TxtInput.TextChanged += OnInputTextChanged;
+        _vm = new IpConverterViewModel((Application.Current as App)?.Services?.GetService<IIpConverterToolService>());
+        DataContext = _vm;
     }
 
-    /// <summary>
-    /// Initializes the tool with optional context and localization.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
         _localizer = localizer;
-        ApplyLocalization();
+        if (_localizer is not null) { _localizer.LocaleChanged += OnLocaleChanged; }
 
-        TxtInput.Clear();
+        _vm.Initialize(localizer);
+        _vm.Reset();
+        _vm.PrefillInput(context?.TargetHost);
 
-        if (!string.IsNullOrWhiteSpace(context?.TargetHost))
-        {
-            TxtInput.Text = context.TargetHost;
-        }
-
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
             TxtInput.Focus();
             TxtInput.SelectAll();
         });
     }
 
-    private void ApplyLocalization()
+    public bool CanClose() => true;
+
+    public void Dispose()
     {
-        HeaderTitle.Text = L("ToolIpConvTitle");
-        LblInput.Text = L("ToolIpConvInputLabel");
-        LblDotted.Text = L("ToolIpConvDottedDecimal");
-        LblDecimal.Text = L("ToolIpConvInteger");
-        LblHex.Text = L("ToolIpConvHexadecimal");
-        LblBinary.Text = L("ToolIpConvBinary");
-        LblMappedIpv6.Text = L("ToolIpConvMappedIpv6");
-
-        var copyLabel = L("ToolBtnCopyValue");
-        var copyTooltip = L("ToolBtnCopyToClipboard");
-        BtnCopyDotted.Content = copyLabel;
-        BtnCopyDecimal.Content = copyLabel;
-        BtnCopyHex.Content = copyLabel;
-        BtnCopyBinary.Content = copyLabel;
-        BtnCopyIpv6.Content = copyLabel;
-        BtnCopyDotted.ToolTip = copyTooltip;
-        BtnCopyDecimal.ToolTip = copyTooltip;
-        BtnCopyHex.ToolTip = copyTooltip;
-        BtnCopyBinary.ToolTip = copyTooltip;
-        BtnCopyIpv6.ToolTip = copyTooltip;
-
-        System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolIpConvInputLabel"));
-
-        var copyA11y = L("ToolBtnCopyToClipboard");
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyDotted, copyA11y);
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyDecimal, copyA11y);
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyHex, copyA11y);
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyBinary, copyA11y);
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyIpv6, copyA11y);
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-
-        TxtInput.Tag = L("ToolWatermarkIpOrInteger");
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-        TxtEmptyState.Text = L("ToolIpConvEmptyState");
-    }
-
-    private void OnInputTextChanged(object sender, TextChangedEventArgs e)
-    {
-        Convert();
-    }
-
-    private void Convert()
-    {
-        var input = TxtInput.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            EmptyStatePanel.Visibility = Visibility.Visible;
-            return;
-        }
-
-        if (!TryParseToUint32(input, out var ipValue))
-        {
-            TxtError.Text = L("ToolIpConvErrorInvalid");
-            TxtError.Visibility = Visibility.Visible;
-            return;
-        }
-
-        var bytes = new byte[]
-        {
-            (byte)(ipValue >> 24),
-            (byte)(ipValue >> 16),
-            (byte)(ipValue >> 8),
-            (byte)ipValue
-        };
-
-        TxtDotted.Text = new IPAddress(bytes).ToString();
-        TxtDecimal.Text = ipValue.ToString(CultureInfo.InvariantCulture);
-        TxtHex.Text = $"0x{ipValue:X8}";
-        TxtBinary.Text = string.Join(".",
-            System.Convert.ToString(bytes[0], 2).PadLeft(8, '0'),
-            System.Convert.ToString(bytes[1], 2).PadLeft(8, '0'),
-            System.Convert.ToString(bytes[2], 2).PadLeft(8, '0'),
-            System.Convert.ToString(bytes[3], 2).PadLeft(8, '0'));
-        TxtMappedIpv6.Text = $"::ffff:{bytes[0]:x02}{bytes[1]:x02}:{bytes[2]:x02}{bytes[3]:x02}";
-
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>
-    /// Tries to parse a string as an IPv4 address in dotted decimal, integer,
-    /// hexadecimal (0x prefix), or dotted binary format.
-    /// </summary>
-    private static bool TryParseToUint32(string input, out uint result)
-    {
-        result = 0;
-
-        // Hexadecimal: 0x prefix
-        if (input.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ||
-            input.StartsWith("0X", StringComparison.OrdinalIgnoreCase))
-        {
-            return uint.TryParse(input.AsSpan(2), NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture, out result);
-        }
-
-        // Dotted binary: e.g. 11000000.10101000.00000001.00000001
-        if (input.Contains('.') && input.Replace(".", "").All(c => c is '0' or '1') &&
-            input.Split('.') is { Length: 4 } binaryParts)
-        {
-            try
-            {
-                var b0 = System.Convert.ToByte(binaryParts[0], 2);
-                var b1 = System.Convert.ToByte(binaryParts[1], 2);
-                var b2 = System.Convert.ToByte(binaryParts[2], 2);
-                var b3 = System.Convert.ToByte(binaryParts[3], 2);
-                result = ((uint)b0 << 24) | ((uint)b1 << 16) | ((uint)b2 << 8) | b3;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // Dotted decimal: standard IPv4
-        if (IPAddress.TryParse(input, out var addr) &&
-            addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-        {
-            var bytes = addr.GetAddressBytes();
-            result = ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) |
-                     ((uint)bytes[2] << 8) | bytes[3];
-            return true;
-        }
-
-        // Plain integer
-        if (uint.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out result))
-        {
-            return true;
-        }
-
-        return false;
+        if (_disposed) { return; }
+        _disposed = true;
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void OnCopyValueClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button btn) return;
+        if (sender is not Button btn) { return; }
 
         var text = btn.Tag?.ToString() switch
         {
-            "Dotted" => TxtDotted.Text,
-            "Decimal" => TxtDecimal.Text,
-            "Hex" => TxtHex.Text,
-            "Binary" => TxtBinary.Text,
-            "Ipv6" => TxtMappedIpv6.Text,
-            _ => null
+            "Dotted" => _vm.DottedText,
+            "Decimal" => _vm.DecimalText,
+            "Hex" => _vm.HexText,
+            "Binary" => _vm.BinaryText,
+            "Ipv6" => _vm.MappedIpv6Text,
+            _ => null,
         };
 
-        if (!string.IsNullOrEmpty(text))
+        if (string.IsNullOrEmpty(text)) { return; }
+        try
         {
-            try { Clipboard.SetText(text); }
-            catch (System.Runtime.InteropServices.ExternalException) { return; }
+            Clipboard.SetText(text);
             CopyFeedbackHelper.ShowCopyFeedback(btn);
         }
+        catch (ExternalException) { }
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        TxtHelpContent.Text = L("ToolHelpIPCONV").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+        UpdateHelpText();
+        HelpPanel.Visibility = HelpPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e) => HelpPanel.Visibility = Visibility.Collapsed;
+
+    private void OnLocaleChanged(string _)
     {
-        HelpPanel.Visibility = Visibility.Collapsed;
+        if (HelpPanel.Visibility == Visibility.Visible) { UpdateHelpText(); }
     }
+
+    private void UpdateHelpText() => TxtHelpContent.Text = L("ToolHelpIPCONV").Replace("\\n", "\n", StringComparison.Ordinal);
 
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose()
-    {
-        TxtInput.TextChanged -= OnInputTextChanged;
-        GC.SuppressFinalize(this);
-    }
 }
