@@ -17,11 +17,9 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -29,6 +27,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Network;
 
 using Heimdall.App.Services;
 
@@ -40,10 +39,6 @@ namespace Heimdall.App.Views.Tools;
 public partial class ArpMonitorView : UserControl, IToolView
 {
     private static readonly int ProcessTimeoutMs = 5000;
-
-    private static readonly Regex MacOsArpRegex = new(
-        @"\((.*?)\)\s+at\s+([a-fA-F0-9:]+)",
-        RegexOptions.Compiled);
 
     private LocalizationManager? _localizer;
     private Action<bool>? _setBusy;
@@ -382,8 +377,6 @@ public partial class ArpMonitorView : UserControl, IToolView
     /// </summary>
     private static async Task<Dictionary<string, string>> ReadArpTableAsync()
     {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             var psi = new ProcessStartInfo
@@ -405,46 +398,20 @@ public partial class ArpMonitorView : UserControl, IToolView
             }
             var output = await outputTask;
 
-            // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
-            foreach (var line in output.Split('\n'))
-            {
-                var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2)
-                {
-                    var ip = parts[0];
-                    var mac = parts[1];
-                    // Validate MAC format: exactly 5 dashes (aa-bb-cc-dd-ee-ff)
-                    if (IPAddress.TryParse(ip, out _) &&
-                        mac.Length == 17 && mac.Count(c => c == '-') == 5)
-                    {
-                        result[ip] = mac;
-                    }
-                }
-            }
+            return ArpTableParser.ParseWindows(output);
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             if (!System.IO.File.Exists("/proc/net/arp"))
             {
                 throw new InvalidOperationException("ARP table is not available on this system.");
             }
 
-            var lines = System.IO.File.ReadAllLines("/proc/net/arp");
-            foreach (var line in lines.Skip(1))
-            {
-                var parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 4)
-                {
-                    var ip = parts[0];
-                    var mac = parts[3];
-                    if (mac != "00:00:00:00:00:00" && IPAddress.TryParse(ip, out _))
-                    {
-                        result[ip] = mac.Replace(':', '-');
-                    }
-                }
-            }
+            return ArpTableParser.ParseLinuxProcNet(System.IO.File.ReadAllText("/proc/net/arp"));
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             var psi = new ProcessStartInfo
             {
@@ -465,22 +432,10 @@ public partial class ArpMonitorView : UserControl, IToolView
             }
             var output = await outputTask;
 
-            // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
-            foreach (var line in output.Split('\n'))
-            {
-                var match = MacOsArpRegex.Match(line);
-                if (match.Success)
-                {
-                    result[match.Groups[1].Value] = match.Groups[2].Value.Replace(':', '-');
-                }
-            }
-        }
-        else
-        {
-            throw new PlatformNotSupportedException("ARP monitor is not supported on this operating system.");
+            return ArpTableParser.ParseMacOs(output);
         }
 
-        return result;
+        throw new PlatformNotSupportedException("ARP monitor is not supported on this operating system.");
     }
 
     /// <summary>
