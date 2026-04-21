@@ -89,29 +89,52 @@ public sealed class FileLogger : IDisposable
     {
         if (_disposed || _queue.IsEmpty) return;
 
-        var sb = new StringBuilder();
-        while (_queue.TryDequeue(out var entry))
-        {
-            sb.AppendLine(entry);
-        }
-
-        if (sb.Length == 0) return;
-
         lock (_writeLock)
         {
-            try
-            {
-                File.AppendAllText(_logPath, sb.ToString(), Encoding.UTF8);
+            if (_disposed || _queue.IsEmpty) return;
 
-                if (!_aclApplied && OperatingSystem.IsWindows())
-                {
-                    AclEnforcer.SetFileAcl(_logPath);
-                    _aclApplied = true;
-                }
-            }
-            catch
+            List<string> entries = [];
+            var sb = new StringBuilder();
+            while (_queue.TryDequeue(out var entry))
             {
-                // Logging must never crash the app
+                entries.Add(entry);
+                sb.AppendLine(entry);
+            }
+
+            if (sb.Length == 0) return;
+
+            int[] retryDelaysMs = [10, 50, 200];
+            for (var attempt = 0; attempt <= retryDelaysMs.Length; attempt++)
+            {
+                try
+                {
+                    File.AppendAllText(_logPath, sb.ToString(), Encoding.UTF8);
+
+                    if (!_aclApplied && OperatingSystem.IsWindows())
+                    {
+                        AclEnforcer.SetFileAcl(_logPath);
+                        _aclApplied = true;
+                    }
+
+                    return;
+                }
+                catch (IOException) when (attempt < retryDelaysMs.Length)
+                {
+                    Thread.Sleep(retryDelaysMs[attempt]);
+                }
+                catch (IOException)
+                {
+                    foreach (var originalEntry in entries)
+                    {
+                        _queue.Enqueue(originalEntry);
+                    }
+
+                    return;
+                }
+                catch
+                {
+                    return;
+                }
             }
         }
     }
