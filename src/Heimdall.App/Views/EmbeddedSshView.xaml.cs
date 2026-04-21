@@ -1421,6 +1421,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         var fontFamily = TerminalSettings?.TerminalFontFamily ?? "Consolas";
         var fontSize = TerminalSettings?.TerminalFontSize ?? 14;
         var schemeName = TerminalSettings?.TerminalColorScheme ?? "Dracula";
+        var convertEol = _terminalSession is Heimdall.Terminal.PipeModeSession
+            ? "true"
+            : "false";
 
         if (!ColorSchemes.TryGetValue(schemeName, out var themeJson))
         {
@@ -1436,6 +1439,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         html = html.Replace("/*{{TERMINAL_FONT_FAMILY}}*/", safeFontFamily, StringComparison.Ordinal);
         html = html.Replace("/*{{TERMINAL_FONT_SIZE}}*/", safeFontSize.ToString(), StringComparison.Ordinal);
         html = html.Replace("/*{{TERMINAL_THEME}}*/", themeJson, StringComparison.Ordinal);
+        html = html.Replace("/*{{TERMINAL_CONVERT_EOL}}*/", convertEol, StringComparison.Ordinal);
 
         // Extract background color from the theme for CSS variables
         var bgColor = ExtractThemeColor(themeJson, "background", "#282A36");

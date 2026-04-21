@@ -152,27 +152,6 @@ internal sealed class SshHandler : IProtocolHandler
             return new ConnectionResult(false, failure.Message, null);
         }
 
-        if (!string.IsNullOrWhiteSpace(server.PostConnectCommand))
-        {
-            var delayMs = server.PostConnectDelayMs > 0 ? server.PostConnectDelayMs : 800;
-            await Task.Delay(delayMs, ct).ConfigureAwait(false);
-
-            var lines = server.PostConnectCommand
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            foreach (var line in lines)
-            {
-                session.Write(line + "\n");
-                if (lines.Length > 1)
-                {
-                    await Task.Delay(150, ct).ConfigureAwait(false);
-                }
-            }
-
-            Core.Logging.FileLogger.Info(
-                $"Post-connect: sent {lines.Length} command(s) to {server.DisplayName}");
-        }
-
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new SshSessionResult(session));
     }

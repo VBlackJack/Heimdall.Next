@@ -18,6 +18,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
@@ -36,6 +38,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private readonly Stack<string> _navigationHistory = new();
+    private readonly Dispatcher _uiDispatcher;
     private IRemoteBrowser? _browser;
     private SshConnectionParams? _sshParams;
     private HostKeyStore? _hostKeyStore;
@@ -48,6 +51,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// </summary>
     public EmbeddedSftpViewModel()
     {
+        _uiDispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         Files = [];
         Bookmarks = [];
         UnfilteredEntries = [];
@@ -362,11 +366,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// </summary>
     public async Task ToggleSudoMode()
     {
-        SudoMode = !SudoMode;
-
-        UpdateStatus(SudoMode
-            ? (_localizer?["SftpSudoModeEnabled"] ?? "Sudo mode enabled — browsing as root")
-            : (_localizer?["SftpSudoModeDisabled"] ?? "Sudo mode disabled"));
+        await RunOnUiAsync(() =>
+        {
+            SudoMode = !SudoMode;
+            UpdateStatus(SudoMode
+                ? (_localizer?["SftpSudoModeEnabled"] ?? "Sudo mode enabled — browsing as root")
+                : (_localizer?["SftpSudoModeDisabled"] ?? "Sudo mode disabled"));
+        });
 
         await Refresh().ConfigureAwait(false);
     }
@@ -579,12 +585,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 await RunSudoCommandAsync($"sudo mkdir -p {PathEscaper.EscapeForShell(remotePath)}");
             }
 
-            UpdateStatus(L10n("SftpSuccessMkdir"));
+            await RunOnUiAsync(() => UpdateStatus(L10n("SftpSuccessMkdir")));
             await Refresh().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            await RunOnUiAsync(() =>
+                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
         }
     }
 
@@ -623,12 +630,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                     $"sudo mv {PathEscaper.EscapeForShell(file.FullPath)} {PathEscaper.EscapeForShell(newPath)}");
             }
 
-            UpdateStatus(L10n("SftpSuccessRename"));
+            await RunOnUiAsync(() => UpdateStatus(L10n("SftpSuccessRename")));
             await Refresh().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            await RunOnUiAsync(() =>
+                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
         }
     }
 
@@ -674,12 +682,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 }
             }
 
-            UpdateStatus(L10n("SftpSuccessDelete"));
+            await RunOnUiAsync(() => UpdateStatus(L10n("SftpSuccessDelete")));
             await Refresh().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            await RunOnUiAsync(() =>
+                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
         }
     }
 
@@ -727,12 +736,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                     $"sudo chmod {newPerms} {PathEscaper.EscapeForShell(file.FullPath)}");
             }
 
-            UpdateStatus(L10n("SftpChmodSuccess"));
+            await RunOnUiAsync(() => UpdateStatus(L10n("SftpChmodSuccess")));
             await Refresh().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            await RunOnUiAsync(() =>
+                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
         }
     }
 
@@ -853,11 +863,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             return;
         }
 
-        IsLoading = true;
+        await RunOnUiAsync(() => IsLoading = true);
 
         try
         {
-            UpdateStatus(_localizer?["SftpStatusLoading"] ?? "Loading...");
+            await RunOnUiAsync(() => UpdateStatus(_localizer?["SftpStatusLoading"] ?? "Loading..."));
 
             IReadOnlyList<SftpFileInfo> entries;
 
@@ -879,25 +889,29 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 }
             }
 
-            if (pushToHistory && !string.Equals(path, CurrentPath, StringComparison.Ordinal))
+            await RunOnUiAsync(() =>
             {
-                _navigationHistory.Push(CurrentPath);
-            }
+                if (pushToHistory && !string.Equals(path, CurrentPath, StringComparison.Ordinal))
+                {
+                    _navigationHistory.Push(CurrentPath);
+                }
 
-            CurrentPath = path;
-            UnfilteredEntries = [.. entries];
-            ApplyFilterAndSort();
-            CanGoBack = _navigationHistory.Count > 0;
-            UpdateStatus(_localizer?["SftpStatusReady"] ?? "Ready");
+                CurrentPath = path;
+                UnfilteredEntries = [.. entries];
+                ApplyFilterAndSort();
+                CanGoBack = _navigationHistory.Count > 0;
+                UpdateStatus(_localizer?["SftpStatusReady"] ?? "Ready");
+            });
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"EmbeddedSFTP LoadDirectory failed: {ex.Message}");
-            SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            await RunOnUiAsync(() =>
+                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
         }
         finally
         {
-            IsLoading = false;
+            await RunOnUiAsync(() => IsLoading = false);
         }
     }
 
@@ -994,6 +1008,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             ApplyFilterAndSort();
         }
+    }
+
+    private Task RunOnUiAsync(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        return _uiDispatcher.InvokeAsync(action).Task;
     }
 
     private string L10n(string key) => _localizer?.GetString(key) ?? key;

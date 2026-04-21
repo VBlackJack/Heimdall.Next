@@ -286,6 +286,7 @@
             function initializeTerminal() {
                 term = new Terminal({
                     allowProposedApi: true,
+                    convertEol: /*{{TERMINAL_CONVERT_EOL}}*/,
                     cursorBlink: true,
                     cursorStyle: 'block',
                     fontFamily: '/*{{TERMINAL_FONT_FAMILY}}*/, "Courier New", monospace',
