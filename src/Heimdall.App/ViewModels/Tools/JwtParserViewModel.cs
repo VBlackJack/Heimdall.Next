@@ -265,16 +265,29 @@ public sealed partial class JwtParserViewModel : ObservableObject, IDisposable
 
     private void OnLocaleChanged(string _)
     {
-        if (string.IsNullOrWhiteSpace(InputText))
+        void RefreshForLocaleChange()
         {
-            return;
+            if (string.IsNullOrWhiteSpace(InputText))
+            {
+                return;
+            }
+
+            var rerunVerification = IsVerifyResultVisible && CanVerify();
+            Parse();
+            if (rerunVerification)
+            {
+                Verify();
+            }
         }
 
-        var rerunVerification = IsVerifyResultVisible && CanVerify();
-        Parse();
-        if (rerunVerification)
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
         {
-            Verify();
+            RefreshForLocaleChange();
+        }
+        else
+        {
+            dispatcher.BeginInvoke(new System.Action(RefreshForLocaleChange));
         }
     }
 
