@@ -412,7 +412,7 @@ Four sub-VMs extracted in Phase 4:
 - **`CommandPaletteViewModel`** (Ctrl+K palette) — 14 methods covering fuzzy search ranking, tool-command parsing (`tools`, `ping 10.0.0.1`), ad-hoc connection string parsing (`user@host:port` with protocol inference), recent-tools boosting, and the connect/split flows. Owns the `IsCommandPaletteOpen` state and the `SplitLayoutMemory` pairing lookup.
 - **`TunnelsViewModel`** — tunnel panel collection, tunnel tab, route resolver (`ResolveRoute(sessionId)` for the session header display). Subscribes to `TunnelManager.ActiveTunnels` `CollectionChanged` and tears it down in `Dispose`.
 - **`ScheduledTasksViewModel`** — `TaskSchedulerService` ownership, `TasksProvider`/`TaskDueCallback`/`PersistCallback` wire-up, idempotent `_started` flag to survive `LoadAsync` re-entrancy.
-- **`SessionCoordinator`** — session-lifecycle hub: 8 external wire-ups (5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks: `BroadcastCallback`, `IsBroadcastActive`, `ReconnectRequestedCallback`), the broadcast-mode cluster (toggle + fan-out + per-view indicators), `OnSessionReady` (materialize session tabs, resolve tunnel route, record history, auto-open SFTP companion pane), `OnReconnectRequestedAsync` (close stale tab + re-trigger connect flow), and `RestoreWorkspaceAsync` (called from `LoadAsync` when `EnableSessionPersistence` is on). `OpenToolCallback` stayed on `MainViewModel` because `OpenToolTabAsync` is a shell concern shared with the sidebar/tools-tab/palette consumers.
+- **`SessionCoordinator`** — session-lifecycle hub: 8 external wire-ups (5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks: `BroadcastCallback`, `IsBroadcastActive`, `ReconnectRequestedCallback`), the broadcast-mode cluster (toggle + fan-out + per-view indicators), `OnSessionReady` (materialize session tabs, resolve tunnel route, record history, auto-open SFTP companion pane), and `OnReconnectRequestedAsync` (close stale tab + re-trigger connect flow). `OpenToolCallback` stayed on `MainViewModel` because `OpenToolTabAsync` is a shell concern shared with the sidebar/tools-tab/palette consumers.
 
 Two additional shell-layer sub-VMs were extracted during Phase 2 to mirror the XAML binding story for the left sidebar:
 
@@ -449,6 +449,55 @@ The Phase 5 final smoke test also surfaced a latent Command Palette regression f
 - `FileShareService` can implement `INotifyPropertyChanged` so `Mw_ShareFolderLabel` becomes a pure binding and `UpdateShareFolderLabel()` disappears.
 - Eight accessibility keys (five navigation tabs from Phase 5B and three gateway buttons from Phase 5C.2) currently preserve imperative behavior over the more descriptive `Access*` variants. If NVDA testing flags phrasing issues, this is a small XAML-only key swap.
 - The 5 residual settings helpers can move into dedicated CredProv / external-tool helper services, eliminating `MainWindow.Localization.cs` entirely. That is an architectural cleanup, not an i18n migration requirement.
+
+### 29. Post-connect Command Library Resolution
+
+Batch 57 introduced structured post-connect steps for SSH embedded sessions.
+Batch 58 keeps the runner stateless but adds a runtime resolver bridge to
+TwinShell so a step can either remain literal (`Input`) or reference a Command
+Library action by ID. The data contract stays additive on
+`Heimdall.Core.Models.PostConnectStep`:
+
+- `Input` remains the literal command and is preserved for unlink UX.
+- `CommandLibraryId` identifies the linked TwinShell action.
+- `CommandLibraryParams` stores parameter values keyed by
+  `TemplateParameter.Name`.
+
+`SessionCoordinator` still owns the SSH embedded trigger point, but it now
+passes an optional `IPostConnectStepResolver` into
+`IPostConnectSequenceRunner.RunAsync(...)`. The resolver is implemented in App
+because it needs TwinShell services, while the migration logic stays in Core
+next to `ServerProfileDto` and `ConfigManager`.
+
+The resolution chain is:
+
+1. `SessionCoordinator.OnSessionReady` starts the post-connect sequence for SSH
+   embedded tabs only.
+2. `PostConnectSequenceRunner` inspects each step.
+3. Literal step (`CommandLibraryId == null`) executes `Input` exactly as in
+   batch 57.
+4. Linked step opens a fresh DI scope via `IServiceScopeFactory`, resolves
+   `IActionService` and `ICommandGeneratorService`, and attempts to resolve the
+   Linux command template at run time.
+5. Successful resolution emits `Resolved` and the generated Linux command is
+   written to the session callback.
+6. Configuration faults (`action missing`, `no Linux template`,
+   `invalid parameters`) emit `Broken`, increment `StepsBroken`, and continue
+   the sequence without honoring `OnFailure.Stop`.
+
+This keeps Command Library linkage fresh on every connect, avoids caching scoped
+TwinShell services, and prevents a stale or deleted library entry from silently
+executing the dormant literal fallback.
+
+Batch 59 keeps the runtime untouched and improves authoring only. The
+`ServerDialog` captures a minimal `AutoPrefillContext` (`Host`, `Port`,
+`Username`, `ConnectionType`) when opening the Command Library picker. The
+picker applies a strict alias table (`host`/`hostname`/..., `port`/`sshPort`/...,
+`user`/`username`/...) to prefill matching parameters once, at selection time.
+Prefill is snapshot-only, never live-bound back to server fields, and existing
+parameter values always win. Parameters whose technical name matches the secret
+blacklist (`password`, `token`, `secret`, etc.) are structurally excluded from
+prefill even if future alias tables expand.
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 
