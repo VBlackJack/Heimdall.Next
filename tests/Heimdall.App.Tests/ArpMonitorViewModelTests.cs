@@ -26,7 +26,7 @@ public sealed class ArpMonitorViewModelTests
     [Fact]
     public async Task RefreshCommand_PopulatesEntriesFromReader()
     {
-        var vm = CreateViewModel(Map("192.168.1.10", "AA-BB-CC-DD-EE-FF"));
+        var vm = CreateViewModel(Map("192.168.1.10", "00-50-56-AA-BB-CC"));
         vm.Initialize(await CreateLocalizerAsync("en"));
 
         await vm.RefreshCommand.ExecuteAsync(null);
@@ -34,7 +34,7 @@ public sealed class ArpMonitorViewModelTests
         Assert.Single(vm.Entries);
         var entry = vm.Entries[0];
         Assert.Equal("192.168.1.10", entry.Ip);
-        Assert.Equal("AA-BB-CC-DD-EE-FF", entry.Mac);
+        Assert.Equal("00-50-56-AA-BB-CC", entry.Mac);
         Assert.Equal("new", entry.Status);
         Assert.Equal("New", entry.StatusDisplay);
         Assert.True(vm.HasResults);
@@ -58,14 +58,13 @@ public sealed class ArpMonitorViewModelTests
     }
 
     [Fact]
-    public async Task RefreshCommand_MarksChangedMacAsChangedAndRaisesAlert()
+    public async Task RefreshCommand_MarksChangedMacAsChangedAndShowsAlert()
     {
+        var localizer = await CreateLocalizerAsync("en");
         var vm = CreateViewModel(
-            Map("192.168.1.10", "AA-BB-CC-DD-EE-FF"),
-            Map("192.168.1.10", "11-22-33-44-55-66"));
-        vm.Initialize(await CreateLocalizerAsync("en"));
-        ArpMacChangedEventArgs? alert = null;
-        vm.MacChangedDetected += (_, args) => alert = args;
+            Map("192.168.1.10", "00-50-56-AA-BB-CC"),
+            Map("192.168.1.10", "08-00-27-11-22-33"));
+        vm.Initialize(localizer);
 
         await vm.RefreshCommand.ExecuteAsync(null);
         await vm.RefreshCommand.ExecuteAsync(null);
@@ -73,11 +72,12 @@ public sealed class ArpMonitorViewModelTests
         var entry = Assert.Single(vm.Entries);
         Assert.Equal("changed", entry.Status);
         Assert.Equal("Changed", entry.StatusDisplay);
-        Assert.Equal("AA-BB-CC-DD-EE-FF", entry.PreviousMac);
-        Assert.NotNull(alert);
-        Assert.Equal("192.168.1.10", alert!.Ip);
-        Assert.Equal("AA-BB-CC-DD-EE-FF", alert.PreviousMac);
-        Assert.Equal("11-22-33-44-55-66", alert.NewMac);
+        Assert.Equal("00-50-56-AA-BB-CC", entry.PreviousMac);
+        Assert.True(vm.IsAlertVisible);
+        Assert.Equal(localizer["ToolArpAlertTitle"], vm.AlertTitle);
+        Assert.Equal(
+            string.Format(localizer["ToolArpAlertMacChanged"], "192.168.1.10", "00-50-56-AA-BB-CC", "08-00-27-11-22-33"),
+            vm.AlertMessage);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class ArpMonitorViewModelTests
     public async Task StartAsync_RunsImmediateRefreshAndSetsRunning()
     {
         var localizer = await CreateLocalizerAsync("en");
-        var vm = CreateViewModel(Map("192.168.1.10", "AA-BB-CC-DD-EE-FF"));
+        var vm = CreateViewModel(Map("192.168.1.10", "00-50-56-AA-BB-CC"));
         vm.Initialize(localizer);
 
         await vm.StartAsync(60000);
@@ -152,6 +152,81 @@ public sealed class ArpMonitorViewModelTests
 
         Assert.False(vm.IsRunning);
         Assert.Equal("ToolArpEmptyState", vm.EmptyStateText);
+    }
+
+    [Fact]
+    public async Task RefreshCommand_KeepsAlertHiddenWithoutChangedDelta()
+    {
+        var vm = CreateViewModel(
+            Map("192.168.1.10", "AA-BB-CC-DD-EE-FF"),
+            Map("192.168.1.10", "AA-BB-CC-DD-EE-FF"),
+            new Dictionary<string, string>());
+        vm.Initialize(await CreateLocalizerAsync("en"));
+
+        await vm.RefreshCommand.ExecuteAsync(null);
+        await vm.RefreshCommand.ExecuteAsync(null);
+        await vm.RefreshCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsAlertVisible);
+        Assert.Equal(string.Empty, vm.AlertTitle);
+        Assert.Equal(string.Empty, vm.AlertMessage);
+    }
+
+    [Fact]
+    public async Task DismissAlertCommand_HidesAlertAndPreservesMessage()
+    {
+        var localizer = await CreateLocalizerAsync("en");
+        var vm = CreateViewModel(
+            Map("192.168.1.10", "00-50-56-AA-BB-CC"),
+            Map("192.168.1.10", "08-00-27-11-22-33"));
+        vm.Initialize(localizer);
+
+        await vm.RefreshCommand.ExecuteAsync(null);
+        await vm.RefreshCommand.ExecuteAsync(null);
+
+        var title = vm.AlertTitle;
+        var message = vm.AlertMessage;
+
+        vm.DismissAlertCommand.Execute(null);
+
+        Assert.False(vm.IsAlertVisible);
+        Assert.Equal(title, vm.AlertTitle);
+        Assert.Equal(message, vm.AlertMessage);
+    }
+
+    [Fact]
+    public async Task CopyAllCommand_RaisesClipboardPayload()
+    {
+        var localizer = await CreateLocalizerAsync("en");
+        var vm = CreateViewModel(Map("192.168.1.10", "00-50-56-AA-BB-CC"));
+        vm.Initialize(localizer);
+        string? payload = null;
+        vm.CopyResultsRequested += (_, text) => payload = text;
+
+        await vm.RefreshCommand.ExecuteAsync(null);
+        vm.CopyAllCommand.Execute(null);
+
+        var expected = string.Join(
+            Environment.NewLine,
+            $"{localizer["ToolArpColIp"]}\t{localizer["ToolArpColMac"]}\t{localizer["ToolArpColVendor"]}\t{localizer["ToolArpColStatus"]}\t{localizer["ToolArpColFirstSeen"]}\t{localizer["ToolArpColLastSeen"]}",
+            $"{vm.Entries[0].Ip}\t{vm.Entries[0].Mac}\t{vm.Entries[0].Vendor}\t{vm.Entries[0].StatusDisplay}\t{vm.Entries[0].FirstSeen}\t{vm.Entries[0].LastSeen}",
+            string.Empty,
+            string.Format(localizer["ToolArpTotal"], vm.Entries.Count),
+            string.Empty);
+
+        Assert.Equal(expected, payload);
+    }
+
+    [Fact]
+    public void CopyAllCommand_WithEmptyEntries_DoesNotRaiseClipboardPayload()
+    {
+        var vm = CreateViewModel();
+        string? payload = null;
+        vm.CopyResultsRequested += (_, text) => payload = text;
+
+        vm.CopyAllCommand.Execute(null);
+
+        Assert.Null(payload);
     }
 
     private static ArpMonitorViewModel CreateViewModel(params IReadOnlyDictionary<string, string>[] snapshots)
