@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.Services.PostConnect;
+using Heimdall.App.ViewModels.Dialogs;
 using Microsoft.Extensions.DependencyInjection;
 using TwinShell.Core.Enums;
 using TwinShell.Core.Models;

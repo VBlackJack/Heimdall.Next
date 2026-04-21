@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-using Heimdall.App.ViewModels.Tools;
-using Heimdall.Core.Configuration;
-using Heimdall.Core.Localization;
-using Heimdall.Core.Models;
-using Heimdall.Core.Security;
 using System.Collections;
 using System.ComponentModel;
 using System.Windows;
@@ -26,6 +21,11 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Heimdall.App.ViewModels.Tools;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Security;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
 

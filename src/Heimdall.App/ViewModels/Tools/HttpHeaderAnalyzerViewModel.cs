@@ -50,7 +50,7 @@ public sealed partial class HttpHeaderAnalyzerViewModel : ObservableObject, IDis
     [ObservableProperty] private string _errorText = string.Empty;
     [ObservableProperty] private string _statusText = string.Empty;
     [ObservableProperty] private bool _hasResults;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(GradeText))] private HttpGrade _grade = HttpGrade.F;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(GradeText))] private HttpGrade _grade = HttpGrade.F;
     [ObservableProperty] private string _rawResponse = string.Empty;
     [ObservableProperty] private string _reportText = string.Empty;
 

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
-using Heimdall.App.Services;
 
 namespace Heimdall.App.Services.Handlers;
 

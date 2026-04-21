@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows.Automation;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -1273,8 +1273,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 TabSettings.IsChecked = true;
                 SwitchToTab("Settings");
                 break;
-            // Step 3 (index 2): sidebar switch happens in OnOnboardingCompleted
-            // once persistence has succeeded.
+                // Step 3 (index 2): sidebar switch happens in OnOnboardingCompleted
+                // once persistence has succeeded.
         }
     }
 

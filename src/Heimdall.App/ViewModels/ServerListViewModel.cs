@@ -24,10 +24,10 @@ using Heimdall.App.Services.Import;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
-using Heimdall.Core.Models;
 using Microsoft.Win32;
 
 namespace Heimdall.App.ViewModels;

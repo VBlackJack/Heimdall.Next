@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+using System.IO;
 using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
-using System.IO;
 
 namespace Heimdall.App.Tests;
 

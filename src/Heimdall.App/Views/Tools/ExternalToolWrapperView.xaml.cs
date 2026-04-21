@@ -21,11 +21,10 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-
-using Heimdall.App.Services;
 
 namespace Heimdall.App.Views.Tools;
 

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-using Heimdall.App.ViewModels.Tools;
-using Heimdall.Core.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Heimdall.App.ViewModels.Tools;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Tests;
 

@@ -16,8 +16,8 @@
 
 using Heimdall.App.Services.Import;
 using Heimdall.App.Services.PostConnect;
-using Heimdall.Core.Import;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Import;
 using Heimdall.Core.Ssh;
 
 namespace Heimdall.App.Services;
