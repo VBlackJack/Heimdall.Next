@@ -15,10 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Automation;
@@ -27,9 +24,9 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Network;
-
 using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -38,8 +35,6 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class ArpMonitorView : UserControl, IToolView
 {
-    private static readonly int ProcessTimeoutMs = 5000;
-
     private LocalizationManager? _localizer;
     private Action<bool>? _setBusy;
     private DispatcherTimer? _refreshTimer;
@@ -47,6 +42,7 @@ public partial class ArpMonitorView : UserControl, IToolView
     private bool _isRefreshing;
     private bool _disposed;
     private readonly ToolAsyncStateController _viewState;
+    private readonly IArpTableReader _reader;
 
     private readonly ObservableCollection<ArpEntry> _entries = [];
     private readonly Dictionary<string, ArpEntry> _knownEntries = new(StringComparer.OrdinalIgnoreCase);
@@ -54,6 +50,8 @@ public partial class ArpMonitorView : UserControl, IToolView
     public ArpMonitorView()
     {
         InitializeComponent();
+        _reader = (Application.Current as App)?.Services?.GetService<IArpTableReader>()
+            ?? new DefaultArpTableReader();
         _viewState = new ToolAsyncStateController(
             null,
             LoadingBar,
@@ -191,7 +189,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
         try
         {
-            var current = await Task.Run(ReadArpTableAsync);
+            var current = await _reader.ReadAsync(CancellationToken.None);
 
             var now = DateTime.Now.ToString("HH:mm:ss");
             var successBrush = (Brush)FindResource("SuccessBrush");
@@ -372,73 +370,6 @@ public partial class ArpMonitorView : UserControl, IToolView
     }
 
     /// <summary>
-    /// Reads the local ARP table by running "arp -a" (Windows/macOS) or reading /proc/net/arp (Linux).
-    /// Returns a dictionary mapping IP addresses to MAC addresses (dash-separated format).
-    /// </summary>
-    private static async Task<Dictionary<string, string>> ReadArpTableAsync()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "arp",
-                Arguments = "-a",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var proc = Process.Start(psi)
-                ?? throw new InvalidOperationException("Failed to start arp process.");
-
-            var outputTask = proc.StandardOutput.ReadToEndAsync();
-            if (!proc.WaitForExit(ProcessTimeoutMs))
-            {
-                try { proc.Kill(); } catch { /* already exited */ }
-            }
-            var output = await outputTask;
-
-            return ArpTableParser.ParseWindows(output);
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            if (!System.IO.File.Exists("/proc/net/arp"))
-            {
-                throw new InvalidOperationException("ARP table is not available on this system.");
-            }
-
-            return ArpTableParser.ParseLinuxProcNet(System.IO.File.ReadAllText("/proc/net/arp"));
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "arp",
-                Arguments = "-a",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var proc = Process.Start(psi)
-                ?? throw new InvalidOperationException("Failed to start arp process.");
-
-            var outputTask = proc.StandardOutput.ReadToEndAsync();
-            if (!proc.WaitForExit(ProcessTimeoutMs))
-            {
-                try { proc.Kill(); } catch { /* already exited */ }
-            }
-            var output = await outputTask;
-
-            return ArpTableParser.ParseMacOs(output);
-        }
-
-        throw new PlatformNotSupportedException("ARP monitor is not supported on this operating system.");
-    }
-
-    /// <summary>
     /// Looks up the vendor name from the MAC OUI (first 3 octets).
     /// </summary>
     private static string LookupVendor(string mac)
@@ -585,82 +516,5 @@ public partial class ArpMonitorView : UserControl, IToolView
             _refreshTimer.Tick -= OnTimerTick;
         StopMonitoring();
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Represents a single ARP table entry with change tracking and notification support.
-    /// </summary>
-    public sealed class ArpEntry : INotifyPropertyChanged
-    {
-        private string _ip = "";
-        private string _mac = "";
-        private string _vendor = "";
-        private string _status = "";
-        private string _statusDisplay = "";
-        private Brush _statusBrush = Brushes.Transparent;
-        private string _firstSeen = "";
-        private string _lastSeen = "";
-        private string _previousMac = "";
-
-        public string Ip
-        {
-            get => _ip;
-            init { _ip = value; OnPropertyChanged(); }
-        }
-
-        public string Mac
-        {
-            get => _mac;
-            set { if (_mac != value) { _mac = value; OnPropertyChanged(); } }
-        }
-
-        public string Vendor
-        {
-            get => _vendor;
-            set { if (_vendor != value) { _vendor = value; OnPropertyChanged(); } }
-        }
-
-        public string Status
-        {
-            get => _status;
-            set { if (_status != value) { _status = value; OnPropertyChanged(); } }
-        }
-
-        public string StatusDisplay
-        {
-            get => _statusDisplay;
-            set { if (_statusDisplay != value) { _statusDisplay = value; OnPropertyChanged(); } }
-        }
-
-        public Brush StatusBrush
-        {
-            get => _statusBrush;
-            set { if (!ReferenceEquals(_statusBrush, value)) { _statusBrush = value; OnPropertyChanged(); } }
-        }
-
-        public string FirstSeen
-        {
-            get => _firstSeen;
-            init { _firstSeen = value; OnPropertyChanged(); }
-        }
-
-        public string LastSeen
-        {
-            get => _lastSeen;
-            set { if (_lastSeen != value) { _lastSeen = value; OnPropertyChanged(); } }
-        }
-
-        public string PreviousMac
-        {
-            get => _previousMac;
-            set { if (_previousMac != value) { _previousMac = value; OnPropertyChanged(); } }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
     }
 }

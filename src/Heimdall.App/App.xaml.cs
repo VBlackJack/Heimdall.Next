@@ -325,6 +325,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ITextCaseConverterService, TextCaseConverterService>();
         services.AddSingleton<IIpConverterToolService, IpConverterToolService>();
         services.AddSingleton<IJsonFormatterToolService, JsonFormatterToolService>();
+        services.AddSingleton<IArpTableReader, DefaultArpTableReader>();
         services.AddSingleton<IRegexTesterToolService, RegexTesterToolService>();
         services.AddSingleton<ITextDiffToolService, TextDiffToolService>();
         services.AddSingleton<IUuidGeneratorToolService, UuidGeneratorToolService>();
