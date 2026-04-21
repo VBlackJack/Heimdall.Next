@@ -15,7 +15,6 @@
  */
 
 using System.IO;
-using System.Reflection;
 using System.Windows.Threading;
 using Heimdall.App.Localization;
 using Heimdall.Core.Localization;
@@ -159,13 +158,15 @@ public static class WpfTestHost
         EnsureStarted();
         Invoke(() =>
         {
+            LocalizationSource.Instance.Initialize(_localizer!);
+
             if (string.Equals(_localizer!.CurrentLocale, locale, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            _localizer.LoadAsync(Path.Combine(_repoRoot!, "locales"), locale).GetAwaiter().GetResult();
-            RaiseLocaleChangedOnUiThread(locale);
+            _localizer.SwitchLocaleAsync(locale).GetAwaiter().GetResult();
+            LocalizationSource.Instance.Initialize(_localizer);
         });
     }
 
@@ -208,12 +209,5 @@ public static class WpfTestHost
 
         return dir?.FullName
             ?? throw new DirectoryNotFoundException("Could not locate Heimdall.slnx from AppContext.BaseDirectory.");
-    }
-
-    private static void RaiseLocaleChangedOnUiThread(string locale)
-    {
-        var eventField = typeof(LocalizationManager).GetField("LocaleChanged", BindingFlags.Instance | BindingFlags.NonPublic);
-        var callback = eventField?.GetValue(_localizer) as Action<string>;
-        callback?.Invoke(locale);
     }
 }
