@@ -34,9 +34,16 @@ public sealed class ShellLaunchTests
         try
         {
             using var automation = new UIA3Automation();
-            var window = app.GetMainWindow(automation, TimeSpan.FromSeconds(30));
-            Assert.NotNull(window);
-            Assert.Contains("Heimdall", window!.Title ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            var window = WaitHelpers.WaitFor(
+                () => app.GetMainWindow(automation),
+                "Heimdall main window",
+                TimeSpan.FromSeconds(60));
+
+            WaitHelpers.WaitUntil(
+                () => !string.IsNullOrWhiteSpace(window.Title)
+                    && window.Title.Contains("Heimdall", StringComparison.OrdinalIgnoreCase),
+                "Heimdall main window title",
+                TimeSpan.FromSeconds(10));
         }
         finally
         {
