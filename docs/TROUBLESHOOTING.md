@@ -306,6 +306,16 @@ Additional fixes:
 
 ---
 
+## Build — Build.ps1 -SkipTests with dotnet test --no-build
+
+**Symptom**: After running `Build.ps1 -SkipTests`, invoking `dotnet test --no-build` runs stale test assemblies, or fails to find them outright.
+
+**Root Cause**: `-SkipTests` skips both the test pass and the rebuild of test assemblies. `--no-build` then reuses whatever is already on disk.
+
+**Solution**: When iterating on tests after a `-SkipTests` build, run an explicit `dotnet build Heimdall.slnx -c Debug -p:nodeReuse=false` before `dotnet test`.
+
+---
+
 ## TOFU — HostKeyFingerprint on PSCustomObject
 
 **Symptom**: `The property 'HostKeyFingerprint' cannot be found on this object` (Heimdall v1 legacy issue).
