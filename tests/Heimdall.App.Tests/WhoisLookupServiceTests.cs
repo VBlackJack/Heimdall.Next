@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+using System.Net.Sockets;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Network;
-using System.Net.Sockets;
 
 namespace Heimdall.App.Tests;
 

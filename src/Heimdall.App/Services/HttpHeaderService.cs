@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Network;
 using Heimdall.Core.Security;

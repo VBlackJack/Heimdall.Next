@@ -27,12 +27,12 @@ using Microsoft.Extensions.DependencyInjection;
 using TwinShell.Core.Interfaces;
 using ActionModel = TwinShell.Core.Models.Action;
 using CommandTemplate = TwinShell.Core.Models.CommandTemplate;
-using TemplateParameter = TwinShell.Core.Models.TemplateParameter;
 // File-local aliases resolve two name clashes between Heimdall.App.Services
 // and TwinShell.Core.Interfaces (IDialogService) and between System and
 // TwinShell.Core.Models (Action). All other partials use the field/parameter
 // types declared here so they don't need their own aliases.
 using IDialogService = Heimdall.App.Services.IDialogService;
+using TemplateParameter = TwinShell.Core.Models.TemplateParameter;
 
 namespace Heimdall.App.ViewModels;
 

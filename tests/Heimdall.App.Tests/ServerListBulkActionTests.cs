@@ -16,8 +16,8 @@
 
 using System.IO;
 using Heimdall.App.Services;
-using Heimdall.App.Services.Import;
 using Heimdall.App.Services.Handlers;
+using Heimdall.App.Services.Import;
 using Heimdall.App.Services.PostConnect;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;

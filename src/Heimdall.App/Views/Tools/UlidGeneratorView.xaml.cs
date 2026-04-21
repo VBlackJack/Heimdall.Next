@@ -25,6 +25,7 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 namespace Heimdall.App.Views.Tools;
+
 public partial class UlidGeneratorView : UserControl, IToolView
 {
     private readonly UlidGeneratorViewModel _vm;

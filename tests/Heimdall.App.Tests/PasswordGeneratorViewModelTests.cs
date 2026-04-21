@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using System.Reflection;
 using System.IO;
+using System.Reflection;
 using Heimdall.App.ViewModels.Tools;
 
 namespace Heimdall.App.Tests;
