@@ -16,7 +16,15 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.HttpHeaderAnalyzerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:HeaderStatusToBrushConverter x:Key="HeaderStatusToBrushConverter"/>
+        <conv:HeaderStatusToIconConverter x:Key="HeaderStatusToIconConverter"/>
+        <conv:HeaderStatusToTextConverter x:Key="HeaderStatusToTextConverter"/>
+        <conv:HttpGradeToBrushConverter x:Key="HttpGradeToBrushConverter"/>
+    </UserControl.Resources>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,157 +33,186 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        Content="?"
                         Click="OnHelpClick"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         TabIndex="5"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                <TextBlock x:Name="HeaderTitle"
+                           VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="6"/>
+                        TabIndex="6"
+                        VerticalAlignment="Top"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20"
+                               TextWrapping="Wrap"/>
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2"
+                      Padding="{StaticResource SpacingLg}"
+                      VerticalScrollBarVisibility="Auto">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Input Row -->
-                <TextBlock x:Name="LblUrl" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                <TextBlock x:Name="LblUrl"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
+
                 <DockPanel Margin="{StaticResource MarginStackItem}">
-                    <Button x:Name="BtnCheck" DockPanel.Dock="Right"
-                            Content="" Click="OnCheckClick"
+                    <Button x:Name="BtnCheck"
+                            DockPanel.Dock="Right"
+                            Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            TabIndex="0"/>
-                    <TextBox x:Name="TxtUrl" Text=""
-                             Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag=""
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                            TabIndex="0"
+                            VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtUrl"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             TabIndex="1"/>
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             TabIndex="1"
+                             Tag=""
+                             Text="{Binding UrlInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalAlignment="Center"/>
                 </DockPanel>
 
-                <!-- Route via gateway -->
                 <DockPanel Margin="{StaticResource MarginStackItem}">
-                    <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
-                    <ComboBox x:Name="CmbRouteVia" Width="240"
-                              SelectionChanged="OnRouteViaChanged"
+                    <TextBlock x:Name="LblRouteVia"
+                               Margin="{StaticResource MarginInlineSm}"
+                               VerticalAlignment="Center"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <ComboBox x:Name="CmbRouteVia"
+                              Width="240"
                               Background="{DynamicResource CardBrush}"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"
-                              TabIndex="2"/>
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              SelectionChanged="OnRouteViaChanged"
+                              TabIndex="2"
+                              VerticalAlignment="Center"/>
                 </DockPanel>
 
-                <!-- Error message -->
-                <TextBlock x:Name="TxtError" Text=""
+                <TextBlock x:Name="TxtError"
                            Style="{StaticResource ToolInlineErrorTextStyle}"/>
 
-                <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar"
                              Style="{StaticResource ToolLoadingBarStyle}"/>
 
-                <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        Style="{StaticResource ToolEmptyStateStyle}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
-                                   Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   Focusable="False"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"/>
+                        <TextBlock x:Name="TxtEmptyState"
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Results -->
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed">
-
-                    <!-- Grade badge -->
                     <Border x:Name="GradeBanner"
-                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="16,10" Margin="{StaticResource MarginSectionBottom}"
-                            HorizontalAlignment="Left">
+                            Margin="{StaticResource MarginSectionBottom}"
+                            Padding="16,10"
+                            HorizontalAlignment="Left"
+                            Background="{Binding Grade, Converter={StaticResource HttpGradeToBrushConverter}}"
+                            CornerRadius="{StaticResource CornerRadiusSm}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="TxtGradeLabel" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                            <TextBlock x:Name="TxtGradeLabel"
+                                       Margin="{StaticResource MarginInlineSm}"
+                                       VerticalAlignment="Center"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextOnAccentBrush}"/>
+                            <TextBlock x:Name="TxtGrade"
+                                       VerticalAlignment="Center"
+                                       FontSize="{StaticResource FontSizeHeadline}"
+                                       FontWeight="Bold"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
-                                       VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
-                            <TextBlock x:Name="TxtGrade" Text=""
-                                       FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
-                                       Foreground="{DynamicResource TextOnAccentBrush}"
-                                       VerticalAlignment="Center"/>
+                                       Text="{Binding GradeText}"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Security Headers section -->
-                    <TextBlock x:Name="TxtSecuritySection" Text=""
-                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="{StaticResource MarginStackItem}"/>
-                    <Border Background="{DynamicResource CardBrush}"
+                    <TextBlock x:Name="TxtSecuritySection"
+                               Margin="{StaticResource MarginStackItem}"
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <Border Margin="{StaticResource MarginSectionBottom}"
+                            Padding="{StaticResource PaddingSectionCard}"
+                            Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource CornerRadiusSm}">
                         <ItemsControl x:Name="SecurityHeadersList"
+                                      ItemsSource="{Binding SecurityHeaders}"
                                       AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="0,4">
-                                        <TextBlock Text="{Binding StatusIcon}" DockPanel.Dock="Left"
-                                                   FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="Bold"
-                                                   Foreground="{Binding StatusBrush}" Width="24"
+                                        <TextBlock DockPanel.Dock="Left"
+                                                   Width="24"
                                                    VerticalAlignment="Top"
-                                                   AutomationProperties.Name="{Binding Status}"/>
+                                                   AutomationProperties.Name="{Binding Status, Converter={StaticResource HeaderStatusToTextConverter}}"
+                                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding Status, Converter={StaticResource HeaderStatusToBrushConverter}}"
+                                                   Text="{Binding Status, Converter={StaticResource HeaderStatusToIconConverter}}"/>
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                            <TextBlock Text="{Binding Value}"
-                                                       FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                                            <TextBlock FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       Text="{Binding DisplayName}"/>
+                                            <TextBlock Margin="0,2,0,0"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       FontFamily="Consolas"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                            <TextBlock Text="{Binding Recommendation}"
+                                                       Text="{Binding DisplayValue}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Margin="0,2,0,0"
                                                        FontSize="{StaticResource FontSizeCaption}"
                                                        Foreground="{DynamicResource TextDisabledBrush}"
-                                                       TextWrapping="Wrap" Margin="0,2,0,0"
-                                                       Visibility="{Binding RecommendationVisibility}"/>
+                                                       Text="{Binding Recommendation}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding Recommendation, Converter={StaticResource NullToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </DockPanel>
                                 </DataTemplate>
@@ -183,38 +220,48 @@
                         </ItemsControl>
                     </Border>
 
-                    <!-- Information Disclosure section -->
-                    <TextBlock x:Name="TxtDisclosureSection" Text=""
-                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="{StaticResource MarginStackItem}"/>
-                    <Border Background="{DynamicResource CardBrush}"
+                    <TextBlock x:Name="TxtDisclosureSection"
+                               Margin="{StaticResource MarginStackItem}"
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <Border Margin="{StaticResource MarginSectionBottom}"
+                            Padding="{StaticResource PaddingSectionCard}"
+                            Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource CornerRadiusSm}">
                         <ItemsControl x:Name="DisclosureHeadersList"
+                                      ItemsSource="{Binding DisclosureHeaders}"
                                       AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="0,4">
-                                        <TextBlock Text="{Binding StatusIcon}" DockPanel.Dock="Left"
-                                                   FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="Bold"
-                                                   Foreground="{Binding StatusBrush}" Width="24"
+                                        <TextBlock DockPanel.Dock="Left"
+                                                   Width="24"
                                                    VerticalAlignment="Top"
-                                                   AutomationProperties.Name="{Binding Status}"/>
+                                                   AutomationProperties.Name="{Binding Status, Converter={StaticResource HeaderStatusToTextConverter}}"
+                                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding Status, Converter={StaticResource HeaderStatusToBrushConverter}}"
+                                                   Text="{Binding Status, Converter={StaticResource HeaderStatusToIconConverter}}"/>
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                            <TextBlock Text="{Binding Value}"
-                                                       FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                                            <TextBlock FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       Text="{Binding DisplayName}"/>
+                                            <TextBlock Margin="0,2,0,0"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       FontFamily="Consolas"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                            <TextBlock Text="{Binding Recommendation}"
+                                                       Text="{Binding DisplayValue}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Margin="0,2,0,0"
                                                        FontSize="{StaticResource FontSizeCaption}"
                                                        Foreground="{DynamicResource TextDisabledBrush}"
-                                                       TextWrapping="Wrap" Margin="0,2,0,0"
-                                                       Visibility="{Binding RecommendationVisibility}"/>
+                                                       Text="{Binding Recommendation}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding Recommendation, Converter={StaticResource NullToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </DockPanel>
                                 </DataTemplate>
@@ -222,48 +269,53 @@
                         </ItemsControl>
                     </Border>
 
-                    <!-- Raw Headers (collapsible) -->
-                    <Expander x:Name="RawHeadersExpander" IsExpanded="False"
+                    <Expander x:Name="RawHeadersExpander"
+                              Margin="{StaticResource MarginSectionBottom}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
-                              FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}">
-                        <Border Background="{DynamicResource CardBrush}"
+                              FontSize="{StaticResource FontSizeBody}"
+                              IsExpanded="False">
+                        <Border Margin="0,4,0,0"
+                                Padding="{StaticResource PaddingSectionCard}"
+                                Background="{DynamicResource CardBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                                Padding="{StaticResource PaddingSectionCard}" Margin="0,4,0,0">
-                            <TextBox x:Name="TxtRawHeaders" Text=""
-                                     FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
-                                     Foreground="{DynamicResource TextPrimaryBrush}"
-                                     IsReadOnly="True"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource CornerRadiusSm}">
+                            <TextBox x:Name="TxtRawHeaders"
+                                     MaxHeight="300"
                                      AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
+                                     AutomationProperties.LiveSetting="Polite"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     MaxHeight="300"
+                                     FontFamily="Consolas"
+                                     FontSize="{StaticResource FontSizeCaption}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     IsReadOnly="True"
                                      TabIndex="3"
-                                     AutomationProperties.LiveSetting="Polite"/>
+                                     Text="{Binding RawResponse}"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"/>
                         </Border>
                     </Expander>
 
-                    <!-- Copy button -->
-                    <Button x:Name="BtnCopyReport" Click="OnCopyReportClick"
-                            Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}"
+                    <Button x:Name="BtnCopyReport"
                             HorizontalAlignment="Left"
+                            Click="OnCopyReportClick"
+                            IsEnabled="{Binding HasResults}"
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
                             TabIndex="4"/>
-
                 </StackPanel>
-
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
-            <TextBlock x:Name="TxtStatus" Text=""
-                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+            <TextBlock x:Name="TxtStatus"
+                       FontFamily="Consolas"
+                       FontSize="{StaticResource FontSizeBody}"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>
     </Grid>

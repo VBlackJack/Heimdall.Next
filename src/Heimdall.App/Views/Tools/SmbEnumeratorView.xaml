@@ -16,7 +16,16 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.SmbEnumeratorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <conv:SmbSeverityToBrushConverter x:Key="SmbSeverityBrush"/>
+        <conv:SmbSeverityToIconConverter x:Key="SmbSeverityIcon"/>
+        <conv:BoolToYesNoConverter x:Key="BoolYesNo"/>
+    </UserControl.Resources>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,7 +34,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -44,7 +52,6 @@
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
         <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
                 <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
@@ -61,11 +68,9 @@
             </DockPanel>
         </Border>
 
-        <!-- Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
-                <!-- Input Row -->
                 <TextBlock x:Name="LblHost" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -76,7 +81,8 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"/>
-                    <TextBox x:Name="TxtHost" Text=""
+                    <TextBox x:Name="TxtHost"
+                             Text="{Binding HostInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              TabIndex="0"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
@@ -88,7 +94,6 @@
                              VerticalAlignment="Center"/>
                 </DockPanel>
 
-                <!-- Route via gateway -->
                 <DockPanel Margin="{StaticResource MarginStackItem}">
                     <TextBlock x:Name="LblRouteVia" Text=""
                                FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
@@ -103,18 +108,14 @@
                               VerticalAlignment="Center"/>
                 </DockPanel>
 
-                <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
-                <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" Style="{StaticResource ToolLoadingBarStyle}"/>
 
-                <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        Style="{StaticResource ToolEmptyStateStyle}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -124,10 +125,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Results Panel -->
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed">
-
-                    <!-- Card 1: Host Identity -->
                     <Border Margin="{StaticResource MarginSectionBottom}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
@@ -156,44 +154,51 @@
 
                                 <TextBlock x:Name="LblComputerName" Grid.Row="0" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValComputerName" Grid.Row="0" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValComputerName" Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding Result.ComputerName, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblDomain" Grid.Row="1" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValDomain" Grid.Row="1" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValDomain" Grid.Row="1" Grid.Column="1"
+                                           Text="{Binding Result.Domain, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblDnsName" Grid.Row="2" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValDnsName" Grid.Row="2" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValDnsName" Grid.Row="2" Grid.Column="1"
+                                           Text="{Binding Result.DnsName, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
 
                                 <TextBlock x:Name="LblDnsDomain" Grid.Row="3" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValDnsDomain" Grid.Row="3" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValDnsDomain" Grid.Row="3" Grid.Column="1"
+                                           Text="{Binding Result.DnsDomain, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
 
                                 <TextBlock x:Name="LblForest" Grid.Row="4" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValForest" Grid.Row="4" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValForest" Grid.Row="4" Grid.Column="1"
+                                           Text="{Binding Result.Forest, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
 
                                 <TextBlock x:Name="LblOsBuild" Grid.Row="5" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValOsBuild" Grid.Row="5" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValOsBuild" Grid.Row="5" Grid.Column="1"
+                                           Text="{Binding Result.OsBuild, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblMac" Grid.Row="6" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValMac" Grid.Row="6" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValMac" Grid.Row="6" Grid.Column="1"
+                                           Text="{Binding Result.MacAddress, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
                             </Grid>
                         </StackPanel>
                     </Border>
 
-                    <!-- Card 2: SMB Protocol -->
                     <Border Margin="{StaticResource MarginSectionBottom}"
+                            Visibility="{Binding HasProtocolSection, Converter={StaticResource BoolToVisibility}}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -219,34 +224,40 @@
 
                                 <TextBlock x:Name="LblDialect" Grid.Row="0" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValDialect" Grid.Row="0" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValDialect" Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding Result.Dialect, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblSigning" Grid.Row="1" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValSigning" Grid.Row="1" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValSigning" Grid.Row="1" Grid.Column="1"
+                                           Text="{Binding Result.SigningRequired, Converter={StaticResource BoolYesNo}}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblServerGuid" Grid.Row="2" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValServerGuid" Grid.Row="2" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValServerGuid" Grid.Row="2" Grid.Column="1"
+                                           Text="{Binding Result.ServerGuid, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
 
                                 <TextBlock x:Name="LblSystemTime" Grid.Row="3" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValSystemTime" Grid.Row="3" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValSystemTime" Grid.Row="3" Grid.Column="1"
+                                           Text="{Binding Result.SystemTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss UTC}, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
 
                                 <TextBlock x:Name="LblBootTime" Grid.Row="4" Grid.Column="0" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                                <TextBlock x:Name="ValBootTime" Grid.Row="4" Grid.Column="1" Text=""
+                                <TextBlock x:Name="ValBootTime" Grid.Row="4" Grid.Column="1"
+                                           Text="{Binding Result.BootTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss UTC}, TargetNullValue=-, FallbackValue=-}"
                                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
                             </Grid>
                         </StackPanel>
                     </Border>
 
-                    <!-- Card 3: Security Findings -->
-                    <Border x:Name="FindingsPanel" Visibility="Collapsed" Margin="{StaticResource MarginSectionBottom}"
+                    <Border x:Name="FindingsPanel"
+                            Visibility="{Binding HasFindings, Converter={StaticResource BoolToVisibility}}"
+                            Margin="{StaticResource MarginSectionBottom}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -257,16 +268,32 @@
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
                                        Margin="{StaticResource MarginStackItem}"/>
-                            <StackPanel x:Name="FindingsList"/>
+                            <ItemsControl ItemsSource="{Binding Findings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:SmbFindingViewItem}">
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
+                                            <TextBlock Text="{Binding Severity, Converter={StaticResource SmbSeverityIcon}}"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       Foreground="{Binding Severity, Converter={StaticResource SmbSeverityBrush}}"
+                                                       Margin="0,0,8,0"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       Foreground="{Binding Severity, Converter={StaticResource SmbSeverityBrush}}"
+                                                       TextWrapping="Wrap"
+                                                       VerticalAlignment="Center"
+                                                       AutomationProperties.Name="{Binding Text}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </Border>
-
                 </StackPanel>
-
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Footer -->
         <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"

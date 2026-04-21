@@ -1,0 +1,240 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Diagnostics;
+using System.Net.Sockets;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Network;
+using Heimdall.Core.Security;
+using Heimdall.Ssh;
+using Renci.SshNet;
+
+namespace Heimdall.App.Services;
+
+public sealed class FwProbeProgress
+{
+    public required int Completed { get; init; }
+    public required int Total { get; init; }
+    public FwProbeResult? LatestResult { get; init; }
+}
+
+public interface IFirewallTesterService
+{
+    /// <summary>
+    /// Probes every host × port combination, returning connectivity status
+    /// for each cell of the matrix.
+    /// </summary>
+    Task<IReadOnlyList<FwProbeResult>> TestMatrixAsync(
+        IReadOnlyList<string> hosts,
+        IReadOnlyList<int> ports,
+        Action<FwProbeProgress>? onProgress,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Sets the SSH gateway for tunnel mode. Null = direct.
+    /// </summary>
+    void SetGateway(SshGatewayDto? gateway);
+}
+
+/// <summary>
+/// Service that performs direct and tunnel-based firewall probing.
+/// </summary>
+public sealed class FirewallTesterService : IFirewallTesterService
+{
+    private SshGatewayDto? _gateway;
+
+    public FirewallTesterService(SshGatewayDto? gateway = null)
+    {
+        _gateway = gateway;
+    }
+
+    public void SetGateway(SshGatewayDto? gateway)
+    {
+        _gateway = gateway;
+    }
+
+    public async Task<IReadOnlyList<FwProbeResult>> TestMatrixAsync(
+        IReadOnlyList<string> hosts,
+        IReadOnlyList<int> ports,
+        Action<FwProbeProgress>? onProgress,
+        CancellationToken ct)
+    {
+        var results = new List<FwProbeResult>();
+        var completed = 0;
+        var lockObject = new object();
+        var total = hosts.Count * ports.Count;
+
+        SshClient? tunnelClient = null;
+        if (_gateway is not null)
+        {
+            tunnelClient = ToolGatewayConnector.Connect(_gateway);
+        }
+
+        var concurrency = tunnelClient is not null
+            ? FirewallProbeEngine.MaxConcurrentTunnel
+            : FirewallProbeEngine.MaxConcurrentDirect;
+        using var semaphore = new SemaphoreSlim(concurrency);
+
+        try
+        {
+            var tasks = new List<Task>(total);
+
+            foreach (var host in hosts)
+            {
+                foreach (var port in ports)
+                {
+                    var capturedHost = host;
+                    var capturedPort = port;
+
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        await semaphore.WaitAsync(ct).ConfigureAwait(false);
+                        try
+                        {
+                            ct.ThrowIfCancellationRequested();
+
+                            var probe = tunnelClient is not null
+                                ? await ProbeViaTunnelAsync(tunnelClient, capturedHost, capturedPort, ct).ConfigureAwait(false)
+                                : await ProbeDirectAsync(capturedHost, capturedPort, ct).ConfigureAwait(false);
+
+                            int current;
+                            lock (lockObject)
+                            {
+                                results.Add(probe);
+                                current = ++completed;
+                            }
+
+                            onProgress?.Invoke(new FwProbeProgress
+                            {
+                                Completed = current,
+                                Total = total,
+                                LatestResult = probe,
+                            });
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }, ct));
+                }
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Caller cancelled the matrix run.
+            }
+        }
+        finally
+        {
+            if (tunnelClient is not null)
+            {
+                try
+                {
+                    tunnelClient.Disconnect();
+                }
+                catch
+                {
+                    // Best effort cleanup.
+                }
+
+                tunnelClient.Dispose();
+            }
+        }
+
+        return results;
+    }
+
+    private static async Task<FwProbeResult> ProbeDirectAsync(string host, int port, CancellationToken ct)
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            using var client = new TcpClient();
+            using var timeout = new CancellationTokenSource(FirewallProbeEngine.ConnectTimeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
+
+            await client.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Open, stopwatch.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Timeout, stopwatch.ElapsedMilliseconds);
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
+        {
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Timeout, stopwatch.ElapsedMilliseconds);
+        }
+        catch (SocketException)
+        {
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Closed, stopwatch.ElapsedMilliseconds);
+        }
+        catch
+        {
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Closed, stopwatch.ElapsedMilliseconds);
+        }
+    }
+
+    private static async Task<FwProbeResult> ProbeViaTunnelAsync(
+        SshClient sshClient,
+        string host,
+        int port,
+        CancellationToken ct)
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                var safeHost = InputValidator.EscapeShellArg(host);
+                using var command = sshClient.CreateCommand(
+                    $"timeout 2 bash -c \"echo >/dev/tcp/{safeHost}/{port}\" 2>/dev/null && echo OPEN || echo CLOSED");
+                command.CommandTimeout = TimeSpan.FromSeconds(5);
+                command.Execute();
+                return command.Result?.Trim();
+            }, ct).ConfigureAwait(false);
+
+            stopwatch.Stop();
+            var status = string.Equals(result, "OPEN", StringComparison.OrdinalIgnoreCase)
+                ? ProbeStatus.Open
+                : ProbeStatus.Closed;
+            return new FwProbeResult(host, port, status, stopwatch.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            stopwatch.Stop();
+            return new FwProbeResult(host, port, ProbeStatus.Timeout, stopwatch.ElapsedMilliseconds);
+        }
+    }
+}

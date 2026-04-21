@@ -80,7 +80,7 @@
                     <TextBlock x:Name="LblSubnet" Text="" FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
-                    <TextBox x:Name="TxtSubnet" Text="" Width="180"
+                    <TextBox x:Name="TxtSubnet" Text="{Binding Subnet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="180"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"

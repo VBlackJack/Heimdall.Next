@@ -16,271 +16,399 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.ChmodCalculatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:ChmodCalculatorViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Chmod.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        TabIndex="20"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="20"/>
-                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolChmodTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="Chmod.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Chmod.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="21"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
         <Grid Grid.Row="2" Margin="{StaticResource ContentAreaMargin}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <!-- Permission matrix: 3x3 grid with headers -->
-        <Grid Grid.Row="0" Margin="{StaticResource MarginSectionSeparator}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="80"/>
-                <ColumnDefinition Width="80"/>
-                <ColumnDefinition Width="80"/>
-            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Column headers -->
-            <TextBlock x:Name="HeaderRead" Grid.Row="0" Grid.Column="1"
-                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
-            <TextBlock x:Name="HeaderWrite" Grid.Row="0" Grid.Column="2"
-                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
-            <TextBlock x:Name="HeaderExecute" Grid.Row="0" Grid.Column="3"
-                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
-
-            <!-- Owner row -->
-            <TextBlock x:Name="LabelOwner" Grid.Row="1" Grid.Column="0"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       VerticalAlignment="Center" Margin="0,4"/>
-            <CheckBox x:Name="ChkOwnerR" Grid.Row="1" Grid.Column="1"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="0"/>
-            <CheckBox x:Name="ChkOwnerW" Grid.Row="1" Grid.Column="2"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="1"/>
-            <CheckBox x:Name="ChkOwnerX" Grid.Row="1" Grid.Column="3"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="2"/>
-
-            <!-- Group row -->
-            <TextBlock x:Name="LabelGroup" Grid.Row="2" Grid.Column="0"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       VerticalAlignment="Center" Margin="0,4"/>
-            <CheckBox x:Name="ChkGroupR" Grid.Row="2" Grid.Column="1"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="3"/>
-            <CheckBox x:Name="ChkGroupW" Grid.Row="2" Grid.Column="2"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="4"/>
-            <CheckBox x:Name="ChkGroupX" Grid.Row="2" Grid.Column="3"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="5"/>
-
-            <!-- Others row -->
-            <TextBlock x:Name="LabelOthers" Grid.Row="3" Grid.Column="0"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       VerticalAlignment="Center" Margin="0,4"/>
-            <CheckBox x:Name="ChkOthersR" Grid.Row="3" Grid.Column="1"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="6"/>
-            <CheckBox x:Name="ChkOthersW" Grid.Row="3" Grid.Column="2"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="7"/>
-            <CheckBox x:Name="ChkOthersX" Grid.Row="3" Grid.Column="3"
-                      HorizontalAlignment="Center"
-                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="8"/>
-        </Grid>
-
-        <!-- Octal + Symbolic display -->
-        <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
-                Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="{StaticResource MarginSectionBottom}">
-            <Grid>
+            <Grid Grid.Row="0" Margin="{StaticResource MarginSectionSeparator}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="80" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <TextBlock x:Name="OctalLabel" Grid.Column="0"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
-                <TextBox x:Name="OctalInput" Grid.Column="1"
-                         FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
-                         MaxLength="3"
-                         Background="Transparent"
-                         Foreground="{DynamicResource AccentBrush}"
-                         BorderThickness="0"
-                         VerticalAlignment="Center"
-                         TextChanged="OnOctalTextChanged"
-                         TabIndex="9"/>
-
-                <TextBlock x:Name="SymbolicLabel" Grid.Column="3"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
-                <TextBlock x:Name="SymbolicDisplay" Grid.Column="4"
-                           FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           Text="{loc:Translate ToolChmodRead}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
-            </Grid>
-        </Border>
+                           Margin="{StaticResource MarginDetailRow}" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                           Text="{loc:Translate ToolChmodWrite}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="{StaticResource MarginDetailRow}" />
+                <TextBlock Grid.Row="0" Grid.Column="3"
+                           Text="{loc:Translate ToolChmodExecute}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="{StaticResource MarginDetailRow}" />
 
-        <!-- Symbolic input -->
-        <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
-                Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="{StaticResource MarginSectionBottom}">
-            <StackPanel>
-                <TextBlock x:Name="SymbolicInputLabel"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
-                <TextBox x:Name="SymbolicInput"
-                         FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
-                         Background="Transparent"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         BorderThickness="0,0,0,1"
-                         Padding="{StaticResource PaddingInput}"
-                         KeyDown="OnSymbolicInputKeyDown"
-                         TabIndex="10"/>
-                <TextBlock x:Name="SymbolicInputError"
-                           Foreground="{DynamicResource ErrorTextBrush}"
-                           FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
-                           Visibility="Collapsed"/>
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="{loc:Translate ToolChmodOwner}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,4" />
+                <CheckBox Grid.Row="1" Grid.Column="1"
+                          AutomationProperties.AutomationId="Chmod.OwnerRead"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OwnerR, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OwnerRAutomationName}"
+                          TabIndex="0" />
+                <CheckBox Grid.Row="1" Grid.Column="2"
+                          AutomationProperties.AutomationId="Chmod.OwnerWrite"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OwnerW, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OwnerWAutomationName}"
+                          TabIndex="1" />
+                <CheckBox Grid.Row="1" Grid.Column="3"
+                          AutomationProperties.AutomationId="Chmod.OwnerExecute"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OwnerX, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OwnerXAutomationName}"
+                          TabIndex="2" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="{loc:Translate ToolChmodGroup}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,4" />
+                <CheckBox Grid.Row="2" Grid.Column="1"
+                          AutomationProperties.AutomationId="Chmod.GroupRead"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding GroupR, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding GroupRAutomationName}"
+                          TabIndex="3" />
+                <CheckBox Grid.Row="2" Grid.Column="2"
+                          AutomationProperties.AutomationId="Chmod.GroupWrite"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding GroupW, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding GroupWAutomationName}"
+                          TabIndex="4" />
+                <CheckBox Grid.Row="2" Grid.Column="3"
+                          AutomationProperties.AutomationId="Chmod.GroupExecute"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding GroupX, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding GroupXAutomationName}"
+                          TabIndex="5" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="{loc:Translate ToolChmodOthers}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,4" />
+                <CheckBox Grid.Row="3" Grid.Column="1"
+                          AutomationProperties.AutomationId="Chmod.OthersRead"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OthersR, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OthersRAutomationName}"
+                          TabIndex="6" />
+                <CheckBox Grid.Row="3" Grid.Column="2"
+                          AutomationProperties.AutomationId="Chmod.OthersWrite"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OthersW, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OthersWAutomationName}"
+                          TabIndex="7" />
+                <CheckBox Grid.Row="3" Grid.Column="3"
+                          AutomationProperties.AutomationId="Chmod.OthersExecute"
+                          HorizontalAlignment="Center"
+                          IsChecked="{Binding OthersX, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding OthersXAutomationName}"
+                          TabIndex="8" />
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Padding="{StaticResource SpacingMd}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CornerRadiusSm}"
+                    Margin="{StaticResource MarginSectionBottom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{loc:Translate ToolChmodOctal}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="{StaticResource MarginInlineSm}" />
+                    <TextBox x:Name="OctalInput"
+                             Grid.Column="1"
+                             AutomationProperties.AutomationId="Chmod.OctalInput"
+                             Text="{Binding OctalText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeDisplay}"
+                             FontWeight="Bold"
+                             MaxLength="3"
+                             Background="Transparent"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderThickness="0"
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name="{loc:Translate ToolChmodOctal}"
+                             TabIndex="9" />
+
+                    <TextBlock Grid.Column="3"
+                               Text="{loc:Translate ToolChmodSymbolic}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="{StaticResource MarginInlineSm}" />
+                    <TextBlock Grid.Column="4"
+                               AutomationProperties.AutomationId="Chmod.SymbolicDisplay"
+                               Text="{Binding SymbolicText}"
+                               FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeDisplay}"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2"
+                    Padding="{StaticResource SpacingMd}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CornerRadiusSm}"
+                    Margin="{StaticResource MarginSectionBottom}">
+                <StackPanel>
+                    <TextBlock Text="{loc:Translate ToolChmodSymbolicInput}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Margin="{StaticResource MarginLabelBottom}" />
+                    <TextBox Text="{Binding SymbolicInputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.AutomationId="Chmod.SymbolicInput"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeSubtitle}"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             BorderThickness="0,0,0,1"
+                             Padding="{StaticResource PaddingInput}"
+                             Tag="{loc:Translate ToolChmodSymbolicInputPlaceholder}"
+                             AutomationProperties.Name="{loc:Translate ToolChmodSymbolicInput}"
+                             TabIndex="10">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding ApplySymbolicCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <TextBlock Text="{Binding SymbolicInputErrorText}"
+                               Foreground="{DynamicResource ErrorTextBrush}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Margin="0,2,0,0"
+                               Visibility="{Binding HasSymbolicInputError, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="3"
+                    Padding="{StaticResource SpacingMd}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CornerRadiusSm}"
+                    Margin="{StaticResource MarginSectionBottom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{loc:Translate ToolChmodCommandPreview}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="{StaticResource MarginInlineSm}" />
+                    <TextBlock Grid.Column="1"
+                               AutomationProperties.AutomationId="Chmod.CommandPreview"
+                               Text="{Binding CommandPreviewText}"
+                               FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeSubtitle}"
+                               Foreground="{DynamicResource AccentBrush}"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="2"
+                            AutomationProperties.AutomationId="Chmod.CopyCommandButton"
+                            Content="{loc:Translate ToolChmodBtnCopyCommand}"
+                            Click="OnCopyClick"
+                            Tag="{Binding CommandPreviewText}"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolChmodBtnCopyCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            TabIndex="11" />
+                </Grid>
+            </Border>
+
+            <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource MarginSectionSeparator}">
+                <Button Content="{loc:Translate ToolChmodBtnCopyOctal}"
+                        AutomationProperties.AutomationId="Chmod.CopyOctalButton"
+                        Click="OnCopyClick"
+                        Tag="{Binding OctalText}"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.Name="{loc:Translate ToolChmodBtnCopyOctal}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        Margin="{StaticResource MarginInlineSm}"
+                        TabIndex="12" />
+                <Button Content="{loc:Translate ToolChmodBtnCopySymbolic}"
+                        AutomationProperties.AutomationId="Chmod.CopySymbolicButton"
+                        Click="OnCopyClick"
+                        Tag="{Binding SymbolicText}"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.Name="{loc:Translate ToolChmodBtnCopySymbolic}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        TabIndex="13" />
             </StackPanel>
-        </Border>
 
-        <!-- Command preview -->
-        <Border Grid.Row="3" Padding="{StaticResource SpacingMd}"
-                Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="{StaticResource MarginSectionBottom}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock x:Name="CommandPreviewLabel" Grid.Column="0"
+            <StackPanel Grid.Row="5">
+                <TextBlock Text="{loc:Translate ToolChmodPresets}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
-                <TextBlock x:Name="CommandPreviewText" Grid.Column="1"
-                           FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
-                           Foreground="{DynamicResource AccentBrush}"
-                           VerticalAlignment="Center"/>
-                <Button x:Name="BtnCopyCommand" Grid.Column="2"
-                        Click="OnCopyCommandClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="11"/>
-            </Grid>
-        </Border>
-
-        <!-- Copy buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource MarginSectionSeparator}">
-            <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
-                    TabIndex="12"/>
-            <Button x:Name="BtnCopySymbolic" Click="OnCopySymbolicClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"
-                    TabIndex="13"/>
-        </StackPanel>
-
-        <!-- Presets -->
-        <StackPanel Grid.Row="5">
-            <TextBlock x:Name="PresetsLabel"
-                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       Margin="{StaticResource MarginDetailRow}"/>
-            <WrapPanel Orientation="Horizontal">
-                <Button x:Name="BtnPreset644" Content="644" Click="OnPresetClick" Tag="644"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="14"/>
-                <Button x:Name="BtnPreset755" Content="755" Click="OnPresetClick" Tag="755"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="15"/>
-                <Button x:Name="BtnPreset600" Content="600" Click="OnPresetClick" Tag="600"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="16"/>
-                <Button x:Name="BtnPreset700" Content="700" Click="OnPresetClick" Tag="700"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="17"/>
-                <Button x:Name="BtnPreset777" Content="777" Click="OnPresetClick" Tag="777"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="18"/>
-            </WrapPanel>
-        </StackPanel>
+                           Margin="{StaticResource MarginDetailRow}" />
+                <WrapPanel Orientation="Horizontal">
+                    <Button Content="644"
+                            AutomationProperties.AutomationId="Chmod.Preset644"
+                            Command="{Binding ApplyPresetCommand}"
+                            CommandParameter="644"
+                            AutomationProperties.Name="644"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            TabIndex="14" />
+                    <Button Content="755"
+                            AutomationProperties.AutomationId="Chmod.Preset755"
+                            Command="{Binding ApplyPresetCommand}"
+                            CommandParameter="755"
+                            AutomationProperties.Name="755"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            TabIndex="15" />
+                    <Button Content="600"
+                            AutomationProperties.AutomationId="Chmod.Preset600"
+                            Command="{Binding ApplyPresetCommand}"
+                            CommandParameter="600"
+                            AutomationProperties.Name="600"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            TabIndex="16" />
+                    <Button Content="700"
+                            AutomationProperties.AutomationId="Chmod.Preset700"
+                            Command="{Binding ApplyPresetCommand}"
+                            CommandParameter="700"
+                            AutomationProperties.Name="700"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            TabIndex="17" />
+                    <Button Content="777"
+                            AutomationProperties.AutomationId="Chmod.Preset777"
+                            Command="{Binding ApplyPresetCommand}"
+                            CommandParameter="777"
+                            AutomationProperties.Name="777"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Margin="{StaticResource MarginButtonGroup}"
+                            TabIndex="18" />
+                </WrapPanel>
+            </StackPanel>
         </Grid>
     </Grid>
 </UserControl>

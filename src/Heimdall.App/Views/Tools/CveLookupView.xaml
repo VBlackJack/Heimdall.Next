@@ -14,171 +14,236 @@
   limitations under the License.
 -->
 <UserControl x:Class="Heimdall.App.Views.Tools.CveLookupView"
+             x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <conv:CveSeverityToBrushConverter x:Key="CveSeverityToBrush" />
+        <conv:CveSearchStateToVisibilityConverter x:Key="CveStateToVisibility" />
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        TabIndex="2"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle"
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        TabIndex="2"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}" />
+
+                <TextBlock FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBox x:Name="TxtInput" MinWidth="200"
-                             TabIndex="0"
-                             Style="{StaticResource WatermarkTextBoxStyle}"
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                           VerticalAlignment="Center"
+                           DockPanel.Dock="Left"
+                           Text="{loc:Translate ToolCveTitle}" />
+
+                <StackPanel Orientation="Horizontal"
+                            Margin="16,0,0,0"
+                            VerticalAlignment="Center">
+                    <TextBox x:Name="TxtInput"
+                             MinWidth="200"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
-                    <Button x:Name="BtnSearch" Content=""
-                            TabIndex="1"
-                            Click="OnSearchClick"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             FontFamily="Consolas"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             TabIndex="0"
+                             Tag="{loc:Translate ToolCveInput}"
+                             Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name="{loc:Translate ToolCveInput}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Return"
+                                        Command="{Binding DataContext.SearchCommand, ElementName=Root}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <Button x:Name="BtnSearch"
+                            Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{loc:Translate ToolCveBtnSearch}"
+                            Command="{Binding SearchCommand}"
+                            Content="{loc:Translate ToolCveBtnSearch}"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"/>
+                            TabIndex="1" />
                 </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Content="&#xE711;"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
-                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
-                               FontSize="{StaticResource FontSizeBody}"
+                        ToolTip="{loc:Translate BtnClose}"
+                        VerticalAlignment="Top"
+                        AutomationProperties.Name="{loc:Translate BtnClose}" />
+
+                <ScrollViewer MaxHeight="200"
+                              VerticalScrollBarVisibility="Auto">
+                    <TextBlock FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20"
+                               Text="{Binding HelpText}"
+                               TextWrapping="Wrap" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content area -->
         <Grid Grid.Row="2">
-            <!-- Empty state -->
             <Border x:Name="EmptyStatePanel"
-                    Style="{StaticResource ToolEmptyStateStyle}"
-                   >
+                    Visibility="{Binding State, Converter={StaticResource CveStateToVisibility}, ConverterParameter=Empty}"
+                    Style="{StaticResource ToolEmptyStateStyle}">
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
-                               Style="{StaticResource ToolEmptyStateIconStyle}"
-                               Focusable="False"/>
-                    <TextBlock x:Name="TxtEmptyState"
-                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
-                    <TextBlock x:Name="TxtDbInfo"
-                               FontSize="{StaticResource FontSizeCaption}" TextAlignment="Center"
-                               Foreground="{DynamicResource TextDisabledBrush}" Margin="{StaticResource MarginSubsectionTop}"/>
+                               Focusable="False"
+                               Style="{StaticResource ToolEmptyStateIconStyle}" />
+                    <TextBlock Style="{StaticResource ToolEmptyStateTextStyle}"
+                               Text="{loc:Translate ToolCveEmptyState}" />
+                    <TextBlock Margin="{StaticResource MarginSubsectionTop}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextDisabledBrush}"
+                               Text="{Binding DbInfoText}"
+                               TextAlignment="Center" />
                 </StackPanel>
             </Border>
 
-            <!-- No results state -->
-            <Border x:Name="NoResultsPanel" Visibility="Collapsed"
-                    Style="{StaticResource ToolEmptyStateStyle}"
-                   >
+            <Border x:Name="NoResultsPanel"
+                    Visibility="{Binding State, Converter={StaticResource CveStateToVisibility}, ConverterParameter=NoResults}"
+                    Style="{StaticResource ToolEmptyStateStyle}">
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
-                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               Focusable="False"
                                Foreground="{DynamicResource SuccessBrush}"
-                               Focusable="False"/>
-                    <TextBlock x:Name="TxtNoResults"
-                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                               Style="{StaticResource ToolEmptyStateIconStyle}" />
+                    <TextBlock Style="{StaticResource ToolEmptyStateTextStyle}"
+                               Text="{loc:Translate ToolCveNoResults}" />
                 </StackPanel>
             </Border>
 
-            <!-- Results list -->
-            <ScrollViewer x:Name="ResultsPanel" Visibility="Collapsed"
-                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer x:Name="ResultsPanel"
+                          Visibility="{Binding State, Converter={StaticResource CveStateToVisibility}, ConverterParameter=HasResults}"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="{StaticResource ContentAreaMargin}">
-                    <!-- Summary line -->
-                    <TextBlock x:Name="TxtSummary"
-                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                    <TextBlock Margin="0,8,0,12"
+                               AutomationProperties.LiveSetting="Polite"
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="0,8,0,12"
-                               AutomationProperties.LiveSetting="Polite"/>
+                               Text="{Binding SummaryText}" />
 
-                    <!-- CVE cards -->
-                    <ItemsControl x:Name="ResultsList">
+                    <ItemsControl ItemsSource="{Binding Results}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{DynamicResource CardBrush}"
+                                <Border Margin="{StaticResource MarginStackItem}"
+                                        Padding="12,10"
+                                        Background="{DynamicResource CardBrush}"
                                         BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                                        Padding="12,10" Margin="{StaticResource MarginStackItem}">
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource CornerRadiusSm}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <!-- Row 0: CVE-ID + severity badge + CVSS badge -->
-                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                                        <StackPanel Grid.Row="0"
+                                                    Grid.Column="0"
+                                                    Orientation="Horizontal"
                                                     VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding CveId}" FontFamily="Consolas"
-                                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="Bold"
+                                            <TextBlock FontFamily="Consolas"
+                                                       FontSize="{StaticResource FontSizeBodyLarge}"
+                                                       FontWeight="Bold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       VerticalAlignment="Center"/>
-                                            <Border Background="{Binding SeverityBrush}" CornerRadius="{StaticResource CornerRadiusXs}"
-                                                    Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}"
+                                                       Text="{Binding CveId}"
+                                                       VerticalAlignment="Center" />
+                                            <Border Margin="{StaticResource MarginInlineControl}"
+                                                    Padding="{StaticResource PaddingButtonHelp}"
+                                                    Background="{Binding Severity, Converter={StaticResource CveSeverityToBrush}}"
+                                                    CornerRadius="{StaticResource CornerRadiusXs}"
                                                     VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding SeverityLabel}"
-                                                           FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="Bold"
-                                                           Foreground="{DynamicResource TextOnAccentBrush}"/>
+                                                <TextBlock FontSize="{StaticResource FontSizeSmallCaption}"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextOnAccentBrush}"
+                                                           Text="{Binding SeverityLabel}" />
                                             </Border>
                                         </StackPanel>
 
-                                        <Border Grid.Row="0" Grid.Column="1"
-                                                Background="{Binding CvssBrush}" CornerRadius="{StaticResource CornerRadiusXs}"
-                                                Padding="{StaticResource PaddingButtonPreset}" VerticalAlignment="Center"
-                                                HorizontalAlignment="Right">
-                                            <TextBlock Text="{Binding CvssLabel}" FontFamily="Consolas"
-                                                       FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                                                       Foreground="{DynamicResource TextOnAccentBrush}"/>
+                                        <Border Grid.Row="0"
+                                                Grid.Column="1"
+                                                Padding="{StaticResource PaddingButtonPreset}"
+                                                Background="{Binding Severity, Converter={StaticResource CveSeverityToBrush}}"
+                                                CornerRadius="{StaticResource CornerRadiusXs}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center">
+                                            <TextBlock FontFamily="Consolas"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource TextOnAccentBrush}"
+                                                       Text="{Binding CvssLabel}" />
                                         </Border>
 
-                                        <!-- Row 1: Summary -->
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                   Text="{Binding Summary}"
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.Column="0"
+                                                   Grid.ColumnSpan="2"
+                                                   Margin="0,4,0,0"
                                                    FontSize="{StaticResource FontSizeBody}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                   Text="{Binding Summary}"
+                                                   TextWrapping="Wrap" />
 
-                                        <!-- Row 2: Affected versions -->
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.Column="0"
+                                                   Grid.ColumnSpan="2"
+                                                   Margin="0,4,0,0"
                                                    FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextDisabledBrush}"
-                                                   Margin="0,4,0,0">
-                                            <Run Text="{Binding AffectedLabel, Mode=OneTime}"/>
-                                            <Run Text="{Binding AffectedVersions, Mode=OneTime}" FontFamily="Consolas"/>
+                                                   Foreground="{DynamicResource TextDisabledBrush}">
+                                            <Run Text="{Binding AffectedLabel, Mode=OneTime}" />
+                                            <Run FontFamily="Consolas"
+                                                 Text="{Binding AffectedVersions, Mode=OneTime}" />
                                         </TextBlock>
                                     </Grid>
                                 </Border>
@@ -189,21 +254,24 @@
             </ScrollViewer>
         </Grid>
 
-        <!-- Footer -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <Button x:Name="BtnCopy" Content=""
-                        Click="OnCopyClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
-                        VerticalAlignment="Center" IsEnabled="False"/>
-                <TextBlock x:Name="TxtFooterInfo"
-                           FontSize="{StaticResource FontSizeCaption}"
+                <Button x:Name="BtnCopy"
+                        DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{loc:Translate ToolCveBtnCopy}"
+                        Command="{Binding CopyCommand}"
+                        Content="{loc:Translate ToolCveBtnCopy}"
+                        Style="{DynamicResource SecondaryButtonStyle}" />
+                <TextBlock FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center"/>
+                           Text="{Binding DbInfoText}"
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
     </Grid>

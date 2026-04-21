@@ -14,342 +14,109 @@
  * limitations under the License.
  */
 
-using System.Text;
-using System.Text.RegularExpressions;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// Real-time regex pattern tester with match listing and group captures.
-/// </summary>
 public partial class RegexTesterView : UserControl, IToolView
 {
-    private const int MaxDisplayedMatches = 500;
-
-    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan DebounceDelay = TimeSpan.FromMilliseconds(300);
-
+    private readonly RegexTesterViewModel _vm;
     private LocalizationManager? _localizer;
-    private bool _initialized;
-    private DispatcherTimer? _debounceTimer;
+    private bool _disposed;
 
     public RegexTesterView()
     {
         InitializeComponent();
+        _vm = new RegexTesterViewModel((Application.Current as App)?.Services?.GetService<IRegexTesterToolService>());
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        DataContext = _vm;
     }
 
-    /// <summary>
-    /// Initializes the view with optional context and localizer.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
         _localizer = localizer;
-        ApplyLocalization();
+        if (_localizer is not null) { _localizer.LocaleChanged += OnLocaleChanged; }
+        _vm.Initialize(localizer);
+        _vm.PrefillPattern(context?.Argument);
+        _vm.MarkInitialized();
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => { PatternText.Focus(); PatternText.SelectAll(); });
+    }
 
-        _debounceTimer = new DispatcherTimer
+    public bool CanClose() => true;
+
+    public void Dispose()
+    {
+        if (_disposed) { return; }
+        _disposed = true;
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(RegexTesterViewModel.HighlightSegments)) { RenderHighlight(); } }
+
+    private void RenderHighlight()
+    {
+        if (_vm.HighlightSegments.Count == 0)
         {
-            Interval = DebounceDelay
-        };
-        _debounceTimer.Tick += (_, _) =>
-        {
-            _debounceTimer.Stop();
-            ExecuteMatch();
-        };
-
-        if (!string.IsNullOrEmpty(context?.Argument))
-        {
-            PatternText.Text = context.Argument;
-        }
-
-        _initialized = true;
-
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
-        {
-            PatternText.Focus();
-            PatternText.SelectAll();
-        });
-    }
-
-    private void ApplyLocalization()
-    {
-        HeaderTitle.Text = L("ToolRegexTitle");
-        PatternLabel.Text = L("ToolRegexPatternLabel");
-        TestTextLabel.Text = L("ToolRegexTestTextLabel");
-        MatchesLabel.Text = L("ToolRegexMatchesLabel");
-        BtnCopyMatches.Content = L("ToolRegexBtnCopy");
-        ChkIgnoreCase.Content = L("ToolRegexIgnoreCase");
-        ChkMultiline.Content = L("ToolRegexMultiline");
-        ChkSingleline.Content = L("ToolRegexSingleline");
-        MatchCountText.Text = string.Empty;
-        StatusText.Text = string.Empty;
-
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyMatches, L("ToolRegexBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(ChkIgnoreCase, L("ToolRegexIgnoreCase"));
-        System.Windows.Automation.AutomationProperties.SetName(ChkMultiline, L("ToolRegexMultiline"));
-        System.Windows.Automation.AutomationProperties.SetName(ChkSingleline, L("ToolRegexSingleline"));
-        System.Windows.Automation.AutomationProperties.SetName(PatternText, L("ToolRegexPatternLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TestText, L("ToolRegexTestTextLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(MatchesList, L("ToolRegexMatchesLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(HighlightDisplay, L("ToolRegexHighlightLabel"));
-
-        BtnCopyMatches.ToolTip = L("ToolBtnCopyToClipboard");
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-
-        PatternText.Tag = L("ToolWatermarkRegexPattern");
-        TestText.Tag = L("ToolWatermarkTestString");
-        TxtEmptyState.Text = L("ToolRegexEmptyState");
-    }
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
-    {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        TxtHelpContent.Text = L("ToolHelpREGEX").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
-    }
-
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-    {
-        HelpPanel.Visibility = Visibility.Collapsed;
-    }
-
-    private void OnPatternTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_initialized) ScheduleMatch();
-    }
-
-    private void OnTestTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_initialized) ScheduleMatch();
-    }
-
-    private void OnFlagChanged(object sender, RoutedEventArgs e)
-    {
-        if (_initialized) ScheduleMatch();
-    }
-
-    private void ScheduleMatch()
-    {
-        _debounceTimer?.Stop();
-        _debounceTimer?.Start();
-    }
-
-    private void ExecuteMatch()
-    {
-        MatchesList.Items.Clear();
-        MatchCountText.Text = string.Empty;
-        ClearHighlightDisplay();
-
-        var pattern = PatternText.Text;
-        var testText = TestText.Text;
-
-        if (string.IsNullOrEmpty(pattern))
-        {
-            StatusText.Text = string.Empty;
-            EmptyStatePanel.Visibility = Visibility.Visible;
-            MatchesPanel.Visibility = Visibility.Collapsed;
+            HighlightDisplay.Document = new FlowDocument();
+            HighlightDisplay.Visibility = Visibility.Collapsed;
             return;
         }
 
-        RegexOptions options = RegexOptions.None;
-        if (ChkIgnoreCase.IsChecked == true) options |= RegexOptions.IgnoreCase;
-        if (ChkMultiline.IsChecked == true) options |= RegexOptions.Multiline;
-        if (ChkSingleline.IsChecked == true) options |= RegexOptions.Singleline;
-
-        Regex regex;
-        try
-        {
-            regex = new Regex(pattern, options, RegexTimeout);
-            StatusText.Text = L("ToolRegexStatusValid");
-            StatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
-        }
-        catch (ArgumentException ex)
-        {
-            StatusText.Text = string.Format(L("ToolRegexStatusInvalid"), ex.Message);
-            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(testText))
-        {
-            return;
-        }
-
-        try
-        {
-            var matches = regex.Matches(testText);
-            int totalCount = matches.Count;
-            MatchCountText.Text = string.Format(L("ToolRegexMatchCount"), totalCount);
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            MatchesPanel.Visibility = Visibility.Visible;
-
-            // Build inline highlight display
-            if (totalCount > 0)
-            {
-                BuildHighlightDisplay(testText, matches, regex.GetGroupNames());
-            }
-
-            int displayCount = Math.Min(totalCount, MaxDisplayedMatches);
-            for (int i = 0; i < displayCount; i++)
-            {
-                var match = matches[i];
-                var sb = new StringBuilder();
-                sb.Append(string.Format(L("ToolRegexMatchEntry"), i, match.Index, match.Value));
-
-                for (int g = 1; g < match.Groups.Count; g++)
-                {
-                    var group = match.Groups[g];
-                    sb.Append(string.Format(L("ToolRegexGroupEntry"), g, group.Value));
-                }
-
-                MatchesList.Items.Add(new ListBoxItem
-                {
-                    Content = sb.ToString(),
-                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                    FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
-                    FontSize = (double)FindResource("FontSizeBody")
-                });
-            }
-
-            if (totalCount > MaxDisplayedMatches)
-            {
-                MatchesList.Items.Add(new ListBoxItem
-                {
-                    Content = string.Format(L("ToolRegexMatchesTruncated"), MaxDisplayedMatches, totalCount),
-                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
-                    FontStyle = FontStyles.Italic,
-                    FontSize = (double)FindResource("FontSizeBody")
-                });
-            }
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            StatusText.Text = L("ToolRegexStatusTimeout");
-            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
-        }
-    }
-
-    /// <summary>
-    /// Builds a FlowDocument with highlighted match regions overlaid on the test text.
-    /// Full match uses semi-transparent accent; named capture groups use a distinct color.
-    /// </summary>
-    private void BuildHighlightDisplay(string input, MatchCollection matches, string[] groupNames)
-    {
-        var accentSolid = FindResource("AccentBrush") as SolidColorBrush;
-        var accentColor = accentSolid?.Color ?? Colors.DodgerBlue;
+        var accent = FindResource("AccentBrush") as SolidColorBrush;
+        var accentColor = accent?.Color ?? System.Windows.Media.Colors.DodgerBlue;
         var matchBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(80, accentColor.R, accentColor.G, accentColor.B));
         var groupBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 255, 165, 0));
+        var foreground = FindResource("TextPrimaryBrush") as Brush ?? System.Windows.SystemColors.ControlTextBrush;
+        var document = new FlowDocument { FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"), FontSize = (double)FindResource("FontSizeBody"), PagePadding = new Thickness(0) };
+        var paragraph = new Paragraph { Margin = new Thickness(0) };
 
-        var foregroundBrush = FindResource("TextPrimaryBrush") as Brush ?? System.Windows.SystemColors.ControlTextBrush;
-
-        // Determine whether named groups exist (beyond index-only group names)
-        bool hasNamedGroups = false;
-        foreach (var name in groupNames)
+        foreach (var segment in _vm.HighlightSegments)
         {
-            if (!int.TryParse(name, out _))
+            var run = new Run(segment.Text) { Foreground = foreground };
+            run.Background = segment.Kind switch
             {
-                hasNamedGroups = true;
-                break;
-            }
-        }
-
-        var doc = new FlowDocument
-        {
-            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
-            FontSize = (double)FindResource("FontSizeBody"),
-            PagePadding = new Thickness(0)
-        };
-        var para = new Paragraph { Margin = new Thickness(0) };
-
-        int lastEnd = 0;
-        foreach (Match m in matches)
-        {
-            // Add unhighlighted segment before this match
-            if (m.Index > lastEnd)
-            {
-                var normalRun = new Run(input[lastEnd..m.Index]) { Foreground = foregroundBrush };
-                para.Inlines.Add(normalRun);
-            }
-
-            // Determine if any named group contributed to this match
-            bool usesNamedGroup = false;
-            if (hasNamedGroups)
-            {
-                foreach (var name in groupNames)
-                {
-                    if (!int.TryParse(name, out _) && m.Groups[name].Success && m.Groups[name].Length > 0)
-                    {
-                        usesNamedGroup = true;
-                        break;
-                    }
-                }
-            }
-
-            var highlightedRun = new Run(m.Value)
-            {
-                Background = usesNamedGroup ? groupBrush : matchBrush,
-                Foreground = foregroundBrush
+                RegexHighlightKind.Match => matchBrush,
+                RegexHighlightKind.NamedGroupMatch => groupBrush,
+                _ => null,
             };
-            para.Inlines.Add(highlightedRun);
-
-            lastEnd = m.Index + m.Length;
+            paragraph.Inlines.Add(run);
         }
 
-        // Add remaining unhighlighted text
-        if (lastEnd < input.Length)
-        {
-            var tailRun = new Run(input[lastEnd..]) { Foreground = foregroundBrush };
-            para.Inlines.Add(tailRun);
-        }
-
-        doc.Blocks.Add(para);
-        HighlightDisplay.Document = doc;
+        document.Blocks.Add(paragraph);
+        HighlightDisplay.Document = document;
         HighlightDisplay.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>
-    /// Hides the highlight overlay and resets its document content.
-    /// </summary>
-    private void ClearHighlightDisplay()
-    {
-        HighlightDisplay.Document = new FlowDocument();
-        HighlightDisplay.Visibility = Visibility.Collapsed;
     }
 
     private void OnCopyMatchesClick(object sender, RoutedEventArgs e)
     {
-        if (MatchesList.Items.Count == 0) return;
-
-        var sb = new StringBuilder();
-        foreach (ListBoxItem item in MatchesList.Items)
+        if (string.IsNullOrEmpty(_vm.MatchesCopyText)) { return; }
+        try
         {
-            sb.AppendLine(item.Content?.ToString());
+            Clipboard.SetText(_vm.MatchesCopyText);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
-
-        try { Clipboard.SetText(sb.ToString()); }
-        catch (System.Runtime.InteropServices.ExternalException) { return; }
-        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        catch (ExternalException) { }
     }
 
+    private void OnHelpClick(object sender, RoutedEventArgs e) { UpdateHelpText(); HelpPanel.Visibility = HelpPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e) => HelpPanel.Visibility = Visibility.Collapsed;
+    private void OnLocaleChanged(string _) { if (HelpPanel.Visibility == Visibility.Visible) { UpdateHelpText(); } }
+    private void UpdateHelpText() => TxtHelpContent.Text = L("ToolHelpREGEX").Replace("\\n", "\n", StringComparison.Ordinal);
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose()
-    {
-        _debounceTimer?.Stop();
-        _debounceTimer = null;
-        GC.SuppressFinalize(this);
-    }
 }

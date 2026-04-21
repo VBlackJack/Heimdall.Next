@@ -14,44 +14,35 @@
  * limitations under the License.
  */
 
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Text;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Threading;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
-
 using Heimdall.App.Services;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// Service status dashboard for viewing and managing Windows services on the local machine.
-/// </summary>
 public partial class ServiceStatusView : UserControl, IToolView
 {
     private static readonly TimeSpan AutoRefreshInterval = TimeSpan.FromSeconds(5);
 
+    private readonly ServiceStatusViewModel _vm;
     private LocalizationManager? _localizer;
     private Action<bool>? _setBusy;
-    private CancellationTokenSource? _cts;
     private DispatcherTimer? _autoRefreshTimer;
     private bool _disposed;
-    private bool _isLoading;
     private readonly ToolAsyncStateController _viewState;
-
-    private readonly ObservableCollection<ServiceEntry> _displayedServices = [];
-    private readonly List<ServiceEntry> _allServices = [];
 
     public ServiceStatusView()
     {
+        _vm = new ServiceStatusViewModel();
         InitializeComponent();
-        TxtFilter.KeyDown += OnFilterKeyDown;
+        DataContext = _vm;
         _viewState = new ToolAsyncStateController(
             isBusy => _setBusy?.Invoke(isBusy),
             LoadingBar,
@@ -63,400 +54,142 @@ public partial class ServiceStatusView : UserControl, IToolView
             TxtFilter,
             ChkRunningOnly,
             ChkAutoRefresh);
-        ServicesGrid.ItemsSource = _displayedServices;
+        _vm.PropertyChanged += OnVmPropertyChanged;
+        _vm.CopyResultsRequested += OnCopyResultsRequested;
+        UpdateStats();
     }
 
-    /// <summary>
-    /// Initializes the tool with optional context and localizer.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null) _localizer.LocaleChanged -= OnLocaleChanged;
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
+        if (_localizer is not null) _localizer.LocaleChanged += OnLocaleChanged;
+        _vm.Initialize(localizer);
         ApplyLocalization();
-
-        // Auto-load on first display
-        _ = LoadServicesAsync();
-
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
-        {
-            TxtFilter.Focus();
-        });
+        UpdateViewState();
+        _ = _vm.RefreshCommand.ExecuteAsync(null);
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => TxtFilter.Focus());
     }
 
     private void ApplyLocalization()
     {
-        HeaderTitle.Text = L("ToolServicesTitle");
-        TxtFilter.ToolTip = L("ToolServicesFilterTooltip");
-        ChkRunningOnly.Content = L("ToolServicesRunningOnly");
-        ChkAutoRefresh.Content = L("ToolServicesAutoRefresh");
-        BtnRefresh.Content = L("ToolServicesBtnRefresh");
-        BtnCopy.Content = L("ToolServicesBtnCopy");
-
-        ColServiceName.Header = L("ToolServicesColName");
-        ColDisplayName.Header = L("ToolServicesColDisplayName");
-        ColStatus.Header = L("ToolServicesColStatus");
-        ColStartType.Header = L("ToolServicesColStartType");
-
-        LblTotal.Text = L("ToolServicesTotal");
-        LblRunning.Text = L("ToolServicesRunningLabel");
-        LblStopped.Text = L("ToolServicesStoppedLabel");
-
-        MenuStart.Header = L("ToolServicesMenuStart");
-        MenuStop.Header = L("ToolServicesMenuStop");
-        MenuRestart.Header = L("ToolServicesMenuRestart");
-
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
-
         AutomationProperties.SetName(TxtFilter, L("ToolServicesFilterTooltip"));
         AutomationProperties.SetName(BtnRefresh, L("ToolServicesBtnRefresh"));
         AutomationProperties.SetName(BtnCopy, L("ToolServicesBtnCopy"));
         AutomationProperties.SetName(ChkRunningOnly, L("ToolServicesRunningOnly"));
         AutomationProperties.SetName(ChkAutoRefresh, L("ToolServicesAutoRefresh"));
         AutomationProperties.SetName(ServicesGrid, L("ToolServicesTitle"));
-
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         AutomationProperties.SetName(LoadingBar, L("ToolServicesA11yLoading"));
-        TxtEmptyState.Text = L("ToolServiceStatusEmptyState");
-        TxtFilter.Tag = L("ToolWatermarkServiceFilter");
+        UpdateStats();
     }
 
-    // ── Data Loading ────────────────────────────────────────────
-
-    private void OnRefreshClick(object sender, RoutedEventArgs e)
+    private void UpdateStats()
     {
-        _ = LoadServicesAsync();
-    }
-
-    private async Task LoadServicesAsync()
-    {
-        if (_disposed || _isLoading)
+        if (!_vm.HasRefreshSnapshot)
         {
+            TxtTotal.Text = TxtRunning.Text = TxtStopped.Text = "—";
             return;
         }
-
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        _cts.CancelAfter(TimeSpan.FromSeconds(30));
-
-        _isLoading = true;
-        _viewState.Begin();
-
-        try
-        {
-            var services = await GetServicesAsync(_cts.Token);
-
-            if (_cts.IsCancellationRequested) return;
-
-            _allServices.Clear();
-            _allServices.AddRange(services);
-            ApplyFilter();
-            if (_allServices.Count == 0)
-            {
-                _viewState.Reset();
-            }
-            else
-            {
-                _viewState.ShowResults();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _viewState.ShowError(
-                L("ToolServicesErrorTimeout"),
-                showEmptyState: _allServices.Count == 0,
-                keepResultsVisible: _allServices.Count > 0);
-        }
-        catch (Exception ex)
-        {
-            _viewState.ShowError(
-                string.Format(L("ToolServicesErrorFailed"), ex.Message),
-                showEmptyState: _allServices.Count == 0,
-                keepResultsVisible: _allServices.Count > 0);
-        }
-        finally
-        {
-            _isLoading = false;
-            _viewState.End();
-        }
+        TxtTotal.Text = _vm.TotalCount.ToString();
+        TxtRunning.Text = _vm.RunningCount.ToString();
+        TxtStopped.Text = _vm.StoppedCount.ToString();
     }
-
-    private static async Task<List<ServiceEntry>> GetServicesAsync(CancellationToken ct)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = "-NoProfile -Command \"Get-Service | Select-Object Name,DisplayName,Status,StartType | ConvertTo-Csv -NoTypeInformation\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8
-        };
-
-        using var proc = Process.Start(psi);
-        if (proc is null) return [];
-
-        var output = await proc.StandardOutput.ReadToEndAsync(ct);
-        await proc.WaitForExitAsync(ct);
-
-        return ParseServiceCsv(output);
-    }
-
-    private static List<ServiceEntry> ParseServiceCsv(string csv)
-    {
-        var results = new List<ServiceEntry>();
-        if (string.IsNullOrWhiteSpace(csv)) return results;
-
-        var lines = csv.Split('\n');
-        if (lines.Length < 2) return results;
-
-        // Skip header line (first line is column names)
-        for (var i = 1; i < lines.Length; i++)
-        {
-            var line = lines[i].Trim();
-            if (string.IsNullOrEmpty(line)) continue;
-
-            var fields = ParseCsvLine(line);
-            if (fields.Count < 4) continue;
-
-            results.Add(new ServiceEntry(fields[0], fields[1], fields[2], fields[3]));
-        }
-
-        return results.OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
-    }
-
-    /// <summary>
-    /// Parses a single CSV line with proper quote handling.
-    /// </summary>
-    private static List<string> ParseCsvLine(string line)
-    {
-        var fields = new List<string>();
-        var current = new StringBuilder();
-        var inQuotes = false;
-
-        for (var i = 0; i < line.Length; i++)
-        {
-            var c = line[i];
-
-            if (c == '"')
-            {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Append('"');
-                    i++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                fields.Add(current.ToString().Trim());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-
-        fields.Add(current.ToString().Trim());
-        return fields;
-    }
-
-    // ── Filtering ───────────────────────────────────────────────
-
-    private void OnFilterKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            ApplyFilter();
-        }
-    }
-
-    private void OnFilterChanged(object sender, TextChangedEventArgs e)
-    {
-        ApplyFilter();
-    }
-
-    private void OnRunningOnlyChanged(object sender, RoutedEventArgs e)
-    {
-        ApplyFilter();
-    }
-
-    private void ApplyFilter()
-    {
-        var filter = TxtFilter.Text.Trim();
-        var runningOnly = ChkRunningOnly.IsChecked == true;
-
-        _displayedServices.Clear();
-
-        var totalCount = _allServices.Count;
-        var runningCount = 0;
-        var stoppedCount = 0;
-
-        foreach (var svc in _allServices)
-        {
-            if (svc.Status.Contains("Running", StringComparison.OrdinalIgnoreCase))
-                runningCount++;
-            else if (svc.Status.Contains("Stopped", StringComparison.OrdinalIgnoreCase))
-                stoppedCount++;
-        }
-
-        foreach (var svc in _allServices)
-        {
-            if (runningOnly && !svc.Status.Contains("Running", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            if (!string.IsNullOrEmpty(filter) &&
-                !svc.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
-                !svc.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            _displayedServices.Add(svc);
-        }
-
-        TxtTotal.Text = totalCount.ToString();
-        TxtRunning.Text = runningCount.ToString();
-        TxtStopped.Text = stoppedCount.ToString();
-    }
-
-    // ── Auto Refresh ────────────────────────────────────────────
 
     private void OnAutoRefreshChanged(object sender, RoutedEventArgs e)
     {
-        if (ChkAutoRefresh.IsChecked == true)
-        {
-            _autoRefreshTimer ??= new DispatcherTimer { Interval = AutoRefreshInterval };
-            _autoRefreshTimer.Tick += OnAutoRefreshTick;
-            _autoRefreshTimer.Start();
-        }
-        else
-        {
-            if (_autoRefreshTimer is not null)
-            {
-                _autoRefreshTimer.Stop();
-                _autoRefreshTimer.Tick -= OnAutoRefreshTick;
-            }
-        }
+        _autoRefreshTimer ??= new DispatcherTimer { Interval = AutoRefreshInterval };
+        _autoRefreshTimer.Tick -= OnAutoRefreshTick;
+        _autoRefreshTimer.Tick += OnAutoRefreshTick;
+        if (ChkAutoRefresh.IsChecked == true) _autoRefreshTimer.Start();
+        else _autoRefreshTimer.Stop();
     }
 
     private void OnAutoRefreshTick(object? sender, EventArgs e)
     {
-        _ = LoadServicesAsync();
+        _ = _vm.RefreshCommand.ExecuteAsync(null);
     }
 
-    // ── Service Actions ─────────────────────────────────────────
-
-    private void OnStartServiceClick(object sender, RoutedEventArgs e)
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        ExecuteServiceAction("Start-Service");
-    }
-
-    private void OnStopServiceClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteServiceAction("Stop-Service");
-    }
-
-    private void OnRestartServiceClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteServiceAction("Restart-Service");
-    }
-
-    private void ExecuteServiceAction(string command)
-    {
-        if (ServicesGrid.SelectedItem is not ServiceEntry selected) return;
-
-        var safeName = selected.Name.Replace("'", "''", StringComparison.Ordinal);
-        var script = $"{command} '{safeName}'";
-        var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
-
-        try
+        switch (e.PropertyName)
         {
-            using var proc = Process.Start(new ProcessStartInfo
-            {
-                FileName = "powershell",
-                Arguments = $"-NoProfile -EncodedCommand {encoded}",
-                Verb = "runas",
-                UseShellExecute = true
-            });
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            // UAC was declined or not available
-        }
-
-        // Refresh after a brief delay to allow the action to complete
-        Dispatcher.BeginInvoke(DispatcherPriority.Background, async () =>
-        {
-            await Task.Delay(2000);
-            await LoadServicesAsync();
-        });
-    }
-
-    // ── Copy ────────────────────────────────────────────────────
-
-    private void OnCopyClick(object sender, RoutedEventArgs e)
-    {
-        var sb = new StringBuilder();
-        foreach (var svc in _displayedServices)
-        {
-            sb.AppendLine($"{InputValidator.SanitizeCsvCell(svc.Name)}\t{InputValidator.SanitizeCsvCell(svc.DisplayName)}\t{InputValidator.SanitizeCsvCell(svc.Status)}\t{InputValidator.SanitizeCsvCell(svc.StartType)}");
-        }
-
-        if (sb.Length > 0)
-        {
-            try { Clipboard.SetText(sb.ToString()); }
-            catch (System.Runtime.InteropServices.ExternalException) { return; }
-            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+            case nameof(ServiceStatusViewModel.IsBusy):
+            case nameof(ServiceStatusViewModel.HasError):
+            case nameof(ServiceStatusViewModel.ErrorText):
+            case nameof(ServiceStatusViewModel.HasResults):
+                UpdateViewState();
+                break;
+            case nameof(ServiceStatusViewModel.TotalCount):
+            case nameof(ServiceStatusViewModel.RunningCount):
+            case nameof(ServiceStatusViewModel.StoppedCount):
+            case nameof(ServiceStatusViewModel.HasRefreshSnapshot):
+                UpdateStats();
+                break;
         }
     }
 
-    private void OnHelpClick(object sender, RoutedEventArgs e)
+    private void UpdateViewState()
     {
-        if (HelpPanel.Visibility == Visibility.Visible)
+        if (_vm.IsBusy)
         {
-            HelpPanel.Visibility = Visibility.Collapsed;
+            _viewState.Begin();
             return;
         }
-        TxtHelpContent.Text = L("ToolHelpSERVICES").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+        _viewState.End();
+        if (_vm.HasError)
+        {
+            _viewState.ShowError(
+                _vm.ErrorText,
+                showEmptyState: !_vm.HasResults,
+                keepResultsVisible: _vm.HasResults);
+            return;
+        }
+        if (_vm.HasResults) _viewState.ShowResults();
+        else _viewState.Reset();
     }
 
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    private void OnCopyResultsRequested(object? sender, string text)
     {
-        HelpPanel.Visibility = Visibility.Collapsed;
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+        try
+        {
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(BtnCopy);
+        }
+        catch (ExternalException) { }
     }
+
+    private void OnLocaleChanged(string _) { ApplyLocalization(); UpdateStats(); }
 
     private string L(string key) => _localizer?[key] ?? key;
 
-    public bool CanClose() => !_isLoading;
+    public bool CanClose() => !_vm.IsBusy;
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        TxtFilter.KeyDown -= OnFilterKeyDown;
         _setBusy?.Invoke(false);
-
+        if (_localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+            _localizer = null;
+        }
         if (_autoRefreshTimer is not null)
         {
             _autoRefreshTimer.Stop();
             _autoRefreshTimer.Tick -= OnAutoRefreshTick;
         }
-
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.CopyResultsRequested -= OnCopyResultsRequested;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
-
-    // ── Data Model ──────────────────────────────────────────────
-
-    private sealed record ServiceEntry(string Name, string DisplayName, string Status, string StartType);
 }

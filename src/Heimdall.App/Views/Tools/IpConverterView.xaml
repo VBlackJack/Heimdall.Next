@@ -16,166 +16,334 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.IpConverterView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:IpConverterViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="IpConverter.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="6"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolIpConvTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="IpConverter.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="IpConverter.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        TabIndex="7"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="7"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Input -->
-                <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtInput" Text=""
+                <TextBlock Text="{loc:Translate ToolIpConvInputLabel}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBox x:Name="TxtInput"
+                         AutomationProperties.AutomationId="IpConverter.InputField"
+                         TabIndex="0"
+                         Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource WatermarkTextBoxStyle}"
-                         Tag=""
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginSectionSeparator}"
+                         Tag="{loc:Translate ToolWatermarkIpOrInteger}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         Margin="{StaticResource MarginSectionSeparator}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          VerticalAlignment="Center"
-                         TabIndex="0"/>
+                         AutomationProperties.Name="{loc:Translate ToolIpConvInputLabel}" />
 
-                <!-- Error message -->
-                <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorTextBrush}"/>
+                <TextBlock x:Name="TxtError"
+                           AutomationProperties.AutomationId="IpConverter.ErrorText"
+                           Text="{loc:Translate ToolIpConvErrorInvalid}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginSectionBottom}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource ErrorTextBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
-                <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        AutomationProperties.AutomationId="IpConverter.EmptyStatePanel">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource ToolEmptyStateStyle}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEmptyState}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
-                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                        <TextBlock Text="&#xE968;"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"
+                                   Focusable="False" />
+                        <TextBlock Text="{loc:Translate ToolIpConvEmptyState}"
+                                   Style="{StaticResource ToolEmptyStateTextStyle}" />
                     </StackPanel>
                 </Border>
 
-                <!-- Results -->
-                <Border x:Name="ResultsPanel" Visibility="Collapsed"
+                <Border x:Name="ResultsPanel"
+                        AutomationProperties.AutomationId="IpConverter.ResultsPanel"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="{StaticResource PaddingSectionCard}"
                         AutomationProperties.LiveSetting="Polite">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasResult}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{StaticResource SpacingRowGapGrid}" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Row 0: Dotted Decimal -->
-                        <TextBlock x:Name="LblDotted" Grid.Row="0" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtDotted" Grid.Row="0" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyDotted" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
-                                Tag="Dotted" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="1"/>
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="{loc:Translate ToolIpConvDottedDecimal}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtDotted"
+                                   Grid.Row="0"
+                                   Grid.Column="2"
+                                   AutomationProperties.AutomationId="IpConverter.DottedOutput"
+                                   Text="{Binding DottedText}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="BtnCopyDotted"
+                                Grid.Row="0"
+                                Grid.Column="3"
+                                AutomationProperties.AutomationId="IpConverter.CopyDottedButton"
+                                TabIndex="1"
+                                Content="{loc:Translate ToolBtnCopyValue}"
+                                Click="OnCopyValueClick"
+                                Tag="Dotted"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolBtnCopyValue}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonHelp}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                VerticalAlignment="Center" />
 
-                        <!-- Row 2: Decimal (Integer) -->
-                        <TextBlock x:Name="LblDecimal" Grid.Row="2" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtDecimal" Grid.Row="2" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyDecimal" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
-                                Tag="Decimal" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="2"/>
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Text="{loc:Translate ToolIpConvInteger}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtDecimal"
+                                   Grid.Row="2"
+                                   Grid.Column="2"
+                                   AutomationProperties.AutomationId="IpConverter.DecimalOutput"
+                                   Text="{Binding DecimalText}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="BtnCopyDecimal"
+                                Grid.Row="2"
+                                Grid.Column="3"
+                                AutomationProperties.AutomationId="IpConverter.CopyDecimalButton"
+                                TabIndex="2"
+                                Content="{loc:Translate ToolBtnCopyValue}"
+                                Click="OnCopyValueClick"
+                                Tag="Decimal"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolBtnCopyValue}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonHelp}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                VerticalAlignment="Center" />
 
-                        <!-- Row 4: Hexadecimal -->
-                        <TextBlock x:Name="LblHex" Grid.Row="4" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtHex" Grid.Row="4" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyHex" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
-                                Tag="Hex" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="3"/>
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Text="{loc:Translate ToolIpConvHexadecimal}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtHex"
+                                   Grid.Row="4"
+                                   Grid.Column="2"
+                                   AutomationProperties.AutomationId="IpConverter.HexOutput"
+                                   Text="{Binding HexText}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="BtnCopyHex"
+                                Grid.Row="4"
+                                Grid.Column="3"
+                                AutomationProperties.AutomationId="IpConverter.CopyHexButton"
+                                TabIndex="3"
+                                Content="{loc:Translate ToolBtnCopyValue}"
+                                Click="OnCopyValueClick"
+                                Tag="Hex"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolBtnCopyValue}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonHelp}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                VerticalAlignment="Center" />
 
-                        <!-- Row 6: Binary -->
-                        <TextBlock x:Name="LblBinary" Grid.Row="6" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtBinary" Grid.Row="6" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
-                                   TextWrapping="Wrap"/>
-                        <Button x:Name="BtnCopyBinary" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
-                                Tag="Binary" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="4"/>
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="0"
+                                   Text="{loc:Translate ToolIpConvBinary}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtBinary"
+                                   Grid.Row="6"
+                                   Grid.Column="2"
+                                   AutomationProperties.AutomationId="IpConverter.BinaryOutput"
+                                   Text="{Binding BinaryText}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        <Button x:Name="BtnCopyBinary"
+                                Grid.Row="6"
+                                Grid.Column="3"
+                                AutomationProperties.AutomationId="IpConverter.CopyBinaryButton"
+                                TabIndex="4"
+                                Content="{loc:Translate ToolBtnCopyValue}"
+                                Click="OnCopyValueClick"
+                                Tag="Binary"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolBtnCopyValue}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonHelp}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                VerticalAlignment="Center" />
 
-                        <!-- Row 8: Mapped IPv6 -->
-                        <TextBlock x:Name="LblMappedIpv6" Grid.Row="8" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtMappedIpv6" Grid.Row="8" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnCopyIpv6" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
-                                Tag="Ipv6" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="5"/>
+                        <TextBlock Grid.Row="8"
+                                   Grid.Column="0"
+                                   Text="{loc:Translate ToolIpConvMappedIpv6}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtMappedIpv6"
+                                   Grid.Row="8"
+                                   Grid.Column="2"
+                                   AutomationProperties.AutomationId="IpConverter.MappedIpv6Output"
+                                   Text="{Binding MappedIpv6Text}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="BtnCopyIpv6"
+                                Grid.Row="8"
+                                Grid.Column="3"
+                                AutomationProperties.AutomationId="IpConverter.CopyIpv6Button"
+                                TabIndex="5"
+                                Content="{loc:Translate ToolBtnCopyValue}"
+                                Click="OnCopyValueClick"
+                                Tag="Ipv6"
+                                ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                AutomationProperties.Name="{loc:Translate ToolBtnCopyValue}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonHelp}"
+                                Margin="{StaticResource MarginInlineControl}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                VerticalAlignment="Center" />
                     </Grid>
                 </Border>
-
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
+using System.Collections;
+using System.ComponentModel;
 using System.IO;
-using System.Net.NetworkInformation;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Threading;
 using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
+using Heimdall.Core.Network;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -37,47 +38,22 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class PingToolView : UserControl, IToolView
 {
-    private const int MaxDataPoints = 60;
-    private const int DefaultPingTimeoutMs = 2000;
-    private const int DefaultPingCount = 0;
-
     private LocalizationManager? _localizer;
-    private DispatcherTimer? _pingTimer;
-    private CancellationTokenSource? _cts;
-    private bool _isRunning;
     private bool _disposed;
     private Action<bool>? _setBusy;
-
-    private readonly List<PingDataPoint> _dataPoints = new(MaxDataPoints + 1);
-    private readonly StringBuilder _logBuilder = new();
-    private int _sequenceNumber;
-    private int _sentCount;
-    private int _lostCount;
-    private long _minLatency = long.MaxValue;
-    private long _maxLatency;
-    private long _totalLatency;
-    private int _successCount;
-    private double _sumSquaredLatency;
-
-    private readonly List<PingCsvEntry> _csvEntries = [];
-
-    private Polyline? _graphLine;
-    private readonly List<Ellipse> _timeoutMarkers = [];
-
     private List<SshGatewayDto>? _gateways;
-    private SshGatewayDto? _selectedGateway;
-    private Renci.SshNet.SshClient? _sshClient;
-
-    private static readonly Regex s_pingTimeRegex = new(
-        @"time[=<]\s*(\d+(?:\.\d+)?)\s*ms",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private readonly PingToolViewModel _vm;
 
     public PingToolView()
     {
+        _vm = new PingToolViewModel();
         InitializeComponent();
-        TxtTimeout.Text = DefaultPingTimeoutMs.ToString();
-        TxtCount.Text = DefaultPingCount.ToString();
+        _vm.PropertyChanged += OnVmPropertyChanged;
+
+        TxtTimeout.Text = PingStatsEngine.DefaultPingTimeoutMs.ToString();
+        TxtCount.Text = PingStatsEngine.DefaultPingCount.ToString();
         TxtHost.KeyDown += OnHostKeyDown;
+        ResetStats();
     }
 
     /// <summary>
@@ -87,6 +63,7 @@ public partial class PingToolView : UserControl, IToolView
     {
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
+        _vm.Initialize(localizer);
         ApplyLocalization();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
@@ -98,11 +75,13 @@ public partial class PingToolView : UserControl, IToolView
             TxtHost.Text = string.Empty;
         }
 
-        if (context?.SshGateways is System.Collections.IList gateways)
+        if (context?.SshGateways is IList gateways)
         {
             _gateways = gateways.Cast<SshGatewayDto>().ToList();
         }
+
         PopulateRouteSelector();
+        _vm.SetGateway(null);
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -150,7 +129,6 @@ public partial class PingToolView : UserControl, IToolView
         TxtYMin.Text = string.Format(L("ToolPingUnitMs"), 0);
 
         LblHost.Text = L("ToolPingHostLabel");
-
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
@@ -169,10 +147,10 @@ public partial class PingToolView : UserControl, IToolView
 
         if (_gateways is not null)
         {
-            foreach (var gw in _gateways)
+            foreach (var gateway in _gateways)
             {
-                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
-                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+                var label = $"{gateway.Name} ({gateway.Host}:{gateway.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gateway });
             }
         }
 
@@ -181,13 +159,13 @@ public partial class PingToolView : UserControl, IToolView
 
     private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gateway)
         {
-            _selectedGateway = gw;
+            _vm.SetGateway(gateway);
         }
         else
         {
-            _selectedGateway = null;
+            _vm.SetGateway(null);
         }
     }
 
@@ -205,32 +183,99 @@ public partial class PingToolView : UserControl, IToolView
         TogglePing();
     }
 
-    private void OnClearClick(object sender, RoutedEventArgs e)
+    private void TogglePing()
     {
-        _dataPoints.Clear();
-        _logBuilder.Clear();
-        _csvEntries.Clear();
+        if (_vm.IsRunning)
+        {
+            StopPing();
+        }
+        else
+        {
+            _ = StartPingAsync();
+        }
+    }
+
+    private async Task StartPingAsync()
+    {
+        var (inputs, errorKey) = _vm.ValidateInputs(TxtHost.Text, TxtTimeout.Text, TxtCount.Text);
+        if (errorKey is not null)
+        {
+            TxtLog.Inlines.Clear();
+            AppendLogLine(L(errorKey), true);
+            return;
+        }
+
         TxtLog.Text = string.Empty;
         TxtLog.Inlines.Clear();
-        _sequenceNumber = 0;
-        _sentCount = 0;
-        _lostCount = 0;
-        _minLatency = long.MaxValue;
-        _maxLatency = 0;
-        _totalLatency = 0;
-        _successCount = 0;
-        _sumSquaredLatency = 0;
         ResetStats();
         TxtPingCount.Text = string.Empty;
+        RedrawGraph();
+
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        MainAreaPanel.Visibility = Visibility.Visible;
+
+        _setBusy?.Invoke(true);
+        BtnToggle.Content = L("ToolPingBtnStop");
+        BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
+        BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
+        TxtHost.IsReadOnly = true;
+        CmbInterval.IsEnabled = false;
+        CmbRouteVia.IsEnabled = false;
+        TxtTimeout.IsReadOnly = true;
+        TxtCount.IsReadOnly = true;
+
+        try
+        {
+            await _vm.StartAsync(inputs!, GetSelectedIntervalMs());
+        }
+        finally
+        {
+            ReleaseStartingUiState();
+        }
+    }
+
+    private void ReleaseStartingUiState()
+    {
+        _setBusy?.Invoke(false);
+        BtnToggle.Content = L("ToolPingBtnStart");
+        BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
+        BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
+        TxtHost.IsReadOnly = false;
+        CmbInterval.IsEnabled = true;
+        CmbRouteVia.IsEnabled = true;
+        TxtTimeout.IsReadOnly = false;
+        TxtCount.IsReadOnly = false;
+
+        if (_vm.GetHistory().Count == 0 && TxtLog.Inlines.Count == 0)
+        {
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            MainAreaPanel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void StopPing()
+    {
+        _vm.Stop();
+    }
+
+    private void OnClearClick(object sender, RoutedEventArgs e)
+    {
+        _vm.Reset();
+        TxtLog.Text = string.Empty;
+        TxtLog.Inlines.Clear();
+        TxtPingCount.Text = string.Empty;
+        ResetStats();
         RedrawGraph();
     }
 
     private void OnCopyLogClick(object sender, RoutedEventArgs e)
     {
-        var logText = new System.Text.StringBuilder();
+        var logText = new StringBuilder();
         foreach (var inline in TxtLog.Inlines)
         {
-            if (inline is System.Windows.Documents.Run run)
+            if (inline is Run run)
             {
                 logText.Append(run.Text);
             }
@@ -251,561 +296,10 @@ public partial class PingToolView : UserControl, IToolView
         }
     }
 
-    private void TogglePing()
-    {
-        if (_isRunning)
-        {
-            StopPing();
-        }
-        else
-        {
-            StartPing();
-        }
-    }
-
-    private void StartPing()
-    {
-        var host = TxtHost.Text.Trim();
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            TxtLog.Inlines.Clear();
-            AppendLogLine(L("ToolValidationHostRequired"), true);
-            return;
-        }
-
-        if (!int.TryParse(TxtTimeout.Text.Trim(), out var timeout) || timeout < 100 || timeout > 30000)
-        {
-            TxtLog.Inlines.Clear();
-            AppendLogLine(L("ToolPingValidationTimeout"), true);
-            return;
-        }
-
-        var countText = TxtCount.Text.Trim();
-        if (!string.IsNullOrEmpty(countText) && (!int.TryParse(countText, out var count) || count < 0 || count > 100000))
-        {
-            TxtLog.Inlines.Clear();
-            AppendLogLine(L("ToolPingValidationCount"), true);
-            return;
-        }
-
-        // Reset state
-        _dataPoints.Clear();
-        _logBuilder.Clear();
-        _csvEntries.Clear();
-        TxtLog.Text = string.Empty;
-        TxtLog.Inlines.Clear();
-        _sequenceNumber = 0;
-        _sentCount = 0;
-        _lostCount = 0;
-        _minLatency = long.MaxValue;
-        _maxLatency = 0;
-        _totalLatency = 0;
-        _successCount = 0;
-        _sumSquaredLatency = 0;
-        ResetStats();
-
-        _cts = new CancellationTokenSource();
-        _isRunning = true;
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        MainAreaPanel.Visibility = Visibility.Visible;
-        try
-        {
-            _setBusy?.Invoke(true);
-            BtnToggle.Content = L("ToolPingBtnStop");
-            BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
-            BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
-            System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
-            TxtHost.IsReadOnly = true;
-            CmbInterval.IsEnabled = false;
-            CmbRouteVia.IsEnabled = false;
-            TxtTimeout.IsReadOnly = true;
-            TxtCount.IsReadOnly = true;
-
-            if (_selectedGateway is not null)
-            {
-                try
-                {
-                    _sshClient = ToolGatewayConnector.Connect(_selectedGateway);
-                }
-                catch (Exception ex)
-                {
-                    AppendLogLine(string.Format(L("ToolPingGatewayError"), ex.Message), true);
-                    _isRunning = false;
-                    _setBusy?.Invoke(false);
-                    BtnToggle.Content = L("ToolPingBtnStart");
-                    BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
-                    BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
-                    TxtHost.IsReadOnly = false;
-                    CmbInterval.IsEnabled = true;
-                    CmbRouteVia.IsEnabled = true;
-                    TxtTimeout.IsReadOnly = false;
-                    TxtCount.IsReadOnly = false;
-                    return;
-                }
-            }
-
-            var intervalMs = GetSelectedIntervalMs();
-
-            _pingTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(intervalMs)
-            };
-            _pingTimer.Tick += OnPingTimerTick;
-            _pingTimer.Start();
-
-            // Fire first ping immediately
-            _ = SendPingAsync();
-        }
-        catch
-        {
-            _isRunning = false;
-            throw;
-        }
-    }
-
-    private void StopPing()
-    {
-        _pingTimer?.Stop();
-        _pingTimer = null;
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _isRunning = false;
-        _setBusy?.Invoke(false);
-        BtnToggle.Content = L("ToolPingBtnStart");
-        BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
-        BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
-        TxtHost.IsReadOnly = false;
-        CmbInterval.IsEnabled = true;
-        CmbRouteVia.IsEnabled = true;
-        TxtTimeout.IsReadOnly = false;
-        TxtCount.IsReadOnly = false;
-
-        DisposeSshClient();
-
-        if (_dataPoints.Count == 0 && TxtLog.Inlines.Count == 0)
-        {
-            EmptyStatePanel.Visibility = Visibility.Visible;
-            MainAreaPanel.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private async void OnPingTimerTick(object? sender, EventArgs e)
-    {
-        await SendPingAsync();
-    }
-
-    private async Task SendPingAsync()
-    {
-        if (_cts is null || _cts.IsCancellationRequested)
-        {
-            return;
-        }
-
-        var host = TxtHost.Text.Trim();
-        _sequenceNumber++;
-        _sentCount++;
-        var seq = _sequenceNumber;
-
-        var timeoutMs = GetConfiguredTimeoutMs();
-
-        try
-        {
-            if (_sshClient is not null && _sshClient.IsConnected)
-            {
-                await SendTunneledPingAsync(host, seq, timeoutMs);
-                return;
-            }
-
-            using var ping = new Ping();
-            var reply = await ping.SendPingAsync(host, timeoutMs);
-
-            if (_cts is null || _cts.IsCancellationRequested)
-            {
-                return;
-            }
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-
-            if (reply.Status == IPStatus.Success)
-            {
-                var latency = reply.RoundtripTime;
-                var ttl = reply.Options?.Ttl ?? 0;
-
-                _dataPoints.Add(new PingDataPoint(latency, false));
-                if (_dataPoints.Count > MaxDataPoints)
-                {
-                    _dataPoints.RemoveAt(0);
-                }
-
-                _successCount++;
-                _totalLatency += latency;
-                _sumSquaredLatency += latency * (double)latency;
-                if (latency < _minLatency) _minLatency = latency;
-                if (latency > _maxLatency) _maxLatency = latency;
-
-                _csvEntries.Add(new PingCsvEntry(seq, timestamp, latency, "OK"));
-
-                AppendLogLine(
-                    string.Format(L("ToolPingReplyFormat"), timestamp, seq, reply.Address, latency, ttl),
-                    false);
-            }
-            else
-            {
-                _dataPoints.Add(new PingDataPoint(-1, true));
-                if (_dataPoints.Count > MaxDataPoints)
-                {
-                    _dataPoints.RemoveAt(0);
-                }
-
-                _lostCount++;
-                _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, reply.Status.ToString()));
-
-                AppendLogLine(
-                    string.Format(L("ToolPingTimeoutFormat"), timestamp, seq, reply.Status),
-                    true);
-            }
-        }
-        catch (PingException ex)
-        {
-            if (_cts is null || _cts.IsCancellationRequested)
-            {
-                return;
-            }
-
-            _dataPoints.Add(new PingDataPoint(-1, true));
-            if (_dataPoints.Count > MaxDataPoints)
-            {
-                _dataPoints.RemoveAt(0);
-            }
-
-            _lostCount++;
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            var message = ex.InnerException?.Message ?? ex.Message;
-            _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, $"Error: {message}"));
-            AppendLogLine(
-                string.Format(L("ToolPingErrorFormat"), timestamp, seq, message),
-                true);
-        }
-
-        UpdateStats();
-        UpdatePingCount();
-        RedrawGraph();
-        CheckPingCountLimit();
-    }
-
-    private void AppendLogLine(string text, bool isError)
-    {
-        var run = new System.Windows.Documents.Run(text + Environment.NewLine);
-        if (isError)
-        {
-            run.Foreground = (Brush)FindResource("ErrorBrush");
-        }
-        else
-        {
-            run.Foreground = (Brush)FindResource("TextPrimaryBrush");
-        }
-
-        TxtLog.Inlines.Add(run);
-        LogScrollViewer.ScrollToEnd();
-    }
-
-    private void UpdateStats()
-    {
-        if (_successCount > 0)
-        {
-            TxtMin.Text = string.Format(L("ToolPingUnitMs"), _minLatency);
-            TxtAvg.Text = string.Format(L("ToolPingUnitMs"), _totalLatency / _successCount);
-            TxtMax.Text = string.Format(L("ToolPingUnitMs"), _maxLatency);
-
-            // Jitter = standard deviation of latencies
-            double mean = (double)_totalLatency / _successCount;
-            double variance = (_sumSquaredLatency / _successCount) - (mean * mean);
-            double jitter = Math.Sqrt(Math.Max(0, variance));
-            TxtJitter.Text = string.Format(L("ToolPingUnitMs"), $"{jitter:F1}");
-        }
-
-        var lossPercent = _sentCount > 0 ? (_lostCount * 100.0 / _sentCount) : 0;
-        TxtLoss.Text = string.Format(L("ToolPingStatsPercent"), $"{lossPercent:F1}");
-    }
-
-    private void UpdatePingCount()
-    {
-        TxtPingCount.Text = string.Format(L("ToolPingCountFormat"), _sentCount);
-    }
-
-    private void ResetStats()
-    {
-        TxtMin.Text = "\u2014";
-        TxtAvg.Text = "\u2014";
-        TxtMax.Text = "\u2014";
-        TxtJitter.Text = "\u2014";
-        TxtLoss.Text = "\u2014";
-    }
-
-    private async Task SendTunneledPingAsync(string host, int seq, int timeoutMs)
-    {
-        var timestamp = DateTime.Now.ToString("HH:mm:ss");
-        var timeoutSec = Math.Max(1, timeoutMs / 1000);
-        var escapedHost = InputValidator.EscapeShellArg(host);
-        var command = $"ping -c 1 -W {timeoutSec} {escapedHost}";
-
-        try
-        {
-            var result = await Task.Run(() =>
-            {
-                using var cmd = _sshClient!.CreateCommand(command);
-                cmd.CommandTimeout = TimeSpan.FromMilliseconds(timeoutMs + 5000);
-                cmd.Execute();
-                return (cmd.Result, cmd.ExitStatus);
-            });
-
-            if (_cts is null || _cts.IsCancellationRequested) return;
-
-            var match = s_pingTimeRegex.Match(result.Result ?? string.Empty);
-            if (match.Success && double.TryParse(match.Groups[1].Value,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var latencyD))
-            {
-                var latency = (long)Math.Round(latencyD);
-                _dataPoints.Add(new PingDataPoint(latency, false));
-                if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
-
-                _successCount++;
-                _totalLatency += latency;
-                _sumSquaredLatency += latency * (double)latency;
-                if (latency < _minLatency) _minLatency = latency;
-                if (latency > _maxLatency) _maxLatency = latency;
-
-                _csvEntries.Add(new PingCsvEntry(seq, timestamp, latency, "OK"));
-                AppendLogLine(
-                    string.Format(L("ToolPingReplyFormat"), timestamp, seq, host, latency, 0),
-                    false);
-            }
-            else
-            {
-                _dataPoints.Add(new PingDataPoint(-1, true));
-                if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
-
-                _lostCount++;
-                _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, "Timeout"));
-                AppendLogLine(
-                    string.Format(L("ToolPingTimeoutFormat"), timestamp, seq, "Timeout"),
-                    true);
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_cts is null || _cts.IsCancellationRequested) return;
-
-            _dataPoints.Add(new PingDataPoint(-1, true));
-            if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
-
-            _lostCount++;
-            var message = ex.InnerException?.Message ?? ex.Message;
-            _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, $"Error: {message}"));
-            AppendLogLine(
-                string.Format(L("ToolPingErrorFormat"), timestamp, seq, message),
-                true);
-        }
-
-        UpdateStats();
-        UpdatePingCount();
-        RedrawGraph();
-        CheckPingCountLimit();
-    }
-
-    private void DisposeSshClient()
-    {
-        if (_sshClient is not null)
-        {
-            try
-            {
-                if (_sshClient.IsConnected) _sshClient.Disconnect();
-                _sshClient.Dispose();
-            }
-            catch { /* best-effort cleanup */ }
-            _sshClient = null;
-        }
-    }
-
-    private void OnGraphCanvasSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        RedrawGraph();
-    }
-
-    private void RedrawGraph()
-    {
-        GraphCanvas.Children.Clear();
-        _timeoutMarkers.Clear();
-
-        if (_dataPoints.Count < 2)
-        {
-            return;
-        }
-
-        var width = GraphCanvas.ActualWidth;
-        var height = GraphCanvas.ActualHeight;
-
-        if (width <= 0 || height <= 0)
-        {
-            return;
-        }
-
-        // Find max latency for Y-axis scaling (only successful pings)
-        long maxY = 1;
-        foreach (var dp in _dataPoints)
-        {
-            if (!dp.IsTimeout && dp.Latency > maxY)
-            {
-                maxY = dp.Latency;
-            }
-        }
-
-        // Add 20% headroom
-        maxY = (long)(maxY * 1.2);
-        if (maxY < 10) maxY = 10;
-
-        // Update Y-axis labels
-        var msFormat = L("ToolPingUnitMs");
-        TxtYMax.Text = string.Format(msFormat, maxY);
-        TxtYMid.Text = string.Format(msFormat, maxY / 2);
-
-        const double marginLeft = 50;
-        const double marginRight = 10;
-        const double marginTop = 10;
-        const double marginBottom = 10;
-
-        var graphWidth = width - marginLeft - marginRight;
-        var graphHeight = height - marginTop - marginBottom;
-
-        // Draw grid lines
-        for (int i = 0; i <= 4; i++)
-        {
-            var y = marginTop + (graphHeight * i / 4.0);
-            var gridLine = new Line
-            {
-                X1 = marginLeft,
-                Y1 = y,
-                X2 = width - marginRight,
-                Y2 = y,
-                Stroke = (Brush)FindResource("BorderBrush"),
-                StrokeThickness = 0.5,
-                Opacity = 0.5
-            };
-            GraphCanvas.Children.Add(gridLine);
-        }
-
-        // Build polyline for successful pings
-        var accentBrush = (Brush)FindResource("AccentBrush");
-        var errorBrush = (Brush)FindResource("ErrorBrush");
-
-        var polyline = new Polyline
-        {
-            Stroke = accentBrush,
-            StrokeThickness = 2,
-            StrokeLineJoin = PenLineJoin.Round
-        };
-
-        var stepX = _dataPoints.Count > 1 ? graphWidth / (_dataPoints.Count - 1) : 0;
-
-        for (int i = 0; i < _dataPoints.Count; i++)
-        {
-            var dp = _dataPoints[i];
-            var x = marginLeft + (i * stepX);
-
-            if (dp.IsTimeout)
-            {
-                // Draw timeout marker
-                var marker = new Ellipse
-                {
-                    Width = 6,
-                    Height = 6,
-                    Fill = errorBrush
-                };
-                Canvas.SetLeft(marker, x - 3);
-                Canvas.SetTop(marker, marginTop + graphHeight - 3);
-                GraphCanvas.Children.Add(marker);
-                _timeoutMarkers.Add(marker);
-            }
-            else
-            {
-                var y = marginTop + graphHeight - (dp.Latency * graphHeight / maxY);
-                polyline.Points.Add(new System.Windows.Point(x, y));
-            }
-        }
-
-        if (polyline.Points.Count > 1)
-        {
-            GraphCanvas.Children.Add(polyline);
-        }
-
-        _graphLine = polyline;
-    }
-
-    /// <summary>
-    /// Returns the selected ping interval in milliseconds from the ComboBox.
-    /// </summary>
-    private int GetSelectedIntervalMs()
-    {
-        if (CmbInterval.SelectedItem is ComboBoxItem item && item.Tag is string tagStr &&
-            int.TryParse(tagStr, out var ms))
-        {
-            return ms;
-        }
-
-        return 1000;
-    }
-
-    /// <summary>
-    /// Returns the configured timeout in milliseconds from the TextBox.
-    /// </summary>
-    private int GetConfiguredTimeoutMs()
-    {
-        if (int.TryParse(TxtTimeout.Text.Trim(), out var ms) && ms > 0)
-        {
-            return ms;
-        }
-
-        return DefaultPingTimeoutMs;
-    }
-
-    /// <summary>
-    /// Returns the configured ping count limit (0 = unlimited).
-    /// </summary>
-    private int GetConfiguredCount()
-    {
-        if (int.TryParse(TxtCount.Text.Trim(), out var count) && count >= 0)
-        {
-            return count;
-        }
-
-        return DefaultPingCount;
-    }
-
-    /// <summary>
-    /// Checks whether the configured ping count has been reached and auto-stops if so.
-    /// </summary>
-    private void CheckPingCountLimit()
-    {
-        var limit = GetConfiguredCount();
-        if (limit > 0 && _sentCount >= limit)
-        {
-            StopPing();
-
-            var lossPercent = _sentCount > 0 ? (_lostCount * 100.0 / _sentCount) : 0;
-            AppendLogLine(
-                string.Format(L("ToolPingCompleteFormat"), _sentCount, _successCount, $"{lossPercent:F1}"),
-                false);
-        }
-    }
-
     private void OnExportCsvClick(object sender, RoutedEventArgs e)
     {
-        if (_csvEntries.Count == 0)
+        var history = _vm.GetHistory();
+        if (history.Count == 0)
         {
             return;
         }
@@ -823,16 +317,8 @@ public partial class PingToolView : UserControl, IToolView
 
         try
         {
-            var sb = new StringBuilder();
-            sb.AppendLine(L("ToolPingCsvHeader"));
-
-            foreach (var entry in _csvEntries)
-            {
-                var latencyStr = entry.Latency >= 0 ? entry.Latency.ToString() : "";
-                sb.AppendLine($"{entry.Seq},{InputValidator.SanitizeCsvCell(entry.Timestamp)},{latencyStr},{InputValidator.SanitizeCsvCell(entry.Status)}");
-            }
-
-            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            var csv = PingStatsEngine.BuildCsvExport(history, CreateLocalize());
+            File.WriteAllText(dialog.FileName, csv, Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
         catch (Exception ex)
@@ -848,7 +334,8 @@ public partial class PingToolView : UserControl, IToolView
             HelpPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        TxtHelpContent.Text = L("ToolHelpPING").Replace("\\n", "\n");
+
+        TxtHelpContent.Text = L("ToolHelpPING").Replace("\\n", "\n", StringComparison.Ordinal);
         HelpPanel.Visibility = Visibility.Visible;
     }
 
@@ -857,9 +344,217 @@ public partial class PingToolView : UserControl, IToolView
         HelpPanel.Visibility = Visibility.Collapsed;
     }
 
+    private void OnGraphCanvasSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        RedrawGraph();
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(PingToolViewModel.Stats):
+                RenderStats(_vm.Stats);
+                break;
+
+            case nameof(PingToolViewModel.SentCount):
+                TxtPingCount.Text = string.Format(L("ToolPingCountFormat"), _vm.SentCount);
+                break;
+
+            case nameof(PingToolViewModel.LatestResult):
+                if (_vm.LatestResult is { } result)
+                {
+                    AppendLogForResult(result);
+                    RedrawGraph();
+                }
+                break;
+
+            case nameof(PingToolViewModel.ShowError) when _vm.ShowError:
+                AppendLogLine(_vm.ErrorText, true);
+                break;
+
+            case nameof(PingToolViewModel.SessionCompleted) when _vm.SessionCompleted:
+                var stats = _vm.Stats;
+                AppendLogLine(
+                    string.Format(L("ToolPingCompleteFormat"), stats.Sent, stats.Received, $"{stats.LossPercent:F1}"),
+                    false);
+                break;
+        }
+    }
+
+    private void RenderStats(PingStatsSnapshot stats)
+    {
+        if (stats.Received > 0)
+        {
+            TxtMin.Text = string.Format(L("ToolPingUnitMs"), stats.Min);
+            TxtAvg.Text = string.Format(L("ToolPingUnitMs"), stats.Avg);
+            TxtMax.Text = string.Format(L("ToolPingUnitMs"), stats.Max);
+            TxtJitter.Text = string.Format(L("ToolPingUnitMs"), $"{stats.Jitter:F1}");
+        }
+        else
+        {
+            TxtMin.Text = "\u2014";
+            TxtAvg.Text = "\u2014";
+            TxtMax.Text = "\u2014";
+            TxtJitter.Text = "\u2014";
+        }
+
+        TxtLoss.Text = string.Format(L("ToolPingStatsPercent"), $"{stats.LossPercent:F1}");
+    }
+
+    private void AppendLogForResult(PingProbeResult result)
+    {
+        switch (result.Status)
+        {
+            case PingStatus.Success:
+                AppendLogLine(
+                    string.Format(L("ToolPingReplyFormat"), result.Timestamp, result.Seq, result.Address, result.Latency, result.Ttl),
+                    false);
+                break;
+
+            case PingStatus.Timeout:
+                AppendLogLine(
+                    string.Format(L("ToolPingTimeoutFormat"), result.Timestamp, result.Seq, result.StatusDetail),
+                    true);
+                break;
+
+            case PingStatus.Error:
+                AppendLogLine(
+                    string.Format(L("ToolPingErrorFormat"), result.Timestamp, result.Seq, result.StatusDetail),
+                    true);
+                break;
+        }
+    }
+
+    private void AppendLogLine(string text, bool isError)
+    {
+        var run = new Run(text + Environment.NewLine)
+        {
+            Foreground = isError
+                ? (Brush)FindResource("ErrorBrush")
+                : (Brush)FindResource("TextPrimaryBrush"),
+        };
+
+        TxtLog.Inlines.Add(run);
+        LogScrollViewer.ScrollToEnd();
+    }
+
+    private void RedrawGraph()
+    {
+        GraphCanvas.Children.Clear();
+
+        var dataPoints = _vm.GetDataPoints();
+        if (dataPoints.Count < 2)
+        {
+            return;
+        }
+
+        var width = GraphCanvas.ActualWidth;
+        var height = GraphCanvas.ActualHeight;
+
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        var scale = PingStatsEngine.ComputeGraphYScale(dataPoints);
+        var maxY = scale.MaxY;
+
+        var msFormat = L("ToolPingUnitMs");
+        TxtYMax.Text = string.Format(msFormat, maxY);
+        TxtYMid.Text = string.Format(msFormat, scale.MidY);
+
+        const double marginLeft = 50;
+        const double marginRight = 10;
+        const double marginTop = 10;
+        const double marginBottom = 10;
+
+        var graphWidth = width - marginLeft - marginRight;
+        var graphHeight = height - marginTop - marginBottom;
+
+        for (var index = 0; index <= 4; index++)
+        {
+            var y = marginTop + (graphHeight * index / 4.0);
+            var gridLine = new Line
+            {
+                X1 = marginLeft,
+                Y1 = y,
+                X2 = width - marginRight,
+                Y2 = y,
+                Stroke = (Brush)FindResource("BorderBrush"),
+                StrokeThickness = 0.5,
+                Opacity = 0.5,
+            };
+            GraphCanvas.Children.Add(gridLine);
+        }
+
+        var accentBrush = (Brush)FindResource("AccentBrush");
+        var errorBrush = (Brush)FindResource("ErrorBrush");
+        var polyline = new Polyline
+        {
+            Stroke = accentBrush,
+            StrokeThickness = 2,
+            StrokeLineJoin = PenLineJoin.Round,
+        };
+
+        var stepX = dataPoints.Count > 1 ? graphWidth / (dataPoints.Count - 1) : 0;
+
+        for (var index = 0; index < dataPoints.Count; index++)
+        {
+            var point = dataPoints[index];
+            var x = marginLeft + (index * stepX);
+
+            if (point.IsTimeout)
+            {
+                var marker = new Ellipse
+                {
+                    Width = 6,
+                    Height = 6,
+                    Fill = errorBrush,
+                };
+                Canvas.SetLeft(marker, x - 3);
+                Canvas.SetTop(marker, marginTop + graphHeight - 3);
+                GraphCanvas.Children.Add(marker);
+            }
+            else
+            {
+                var y = marginTop + graphHeight - (point.Latency * graphHeight / maxY);
+                polyline.Points.Add(new System.Windows.Point(x, y));
+            }
+        }
+
+        if (polyline.Points.Count > 1)
+        {
+            GraphCanvas.Children.Add(polyline);
+        }
+    }
+
+    private int GetSelectedIntervalMs()
+    {
+        if (CmbInterval.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagString &&
+            int.TryParse(tagString, out var milliseconds))
+        {
+            return milliseconds;
+        }
+
+        return 1000;
+    }
+
+    private void ResetStats()
+    {
+        TxtMin.Text = "\u2014";
+        TxtAvg.Text = "\u2014";
+        TxtMax.Text = "\u2014";
+        TxtJitter.Text = "\u2014";
+        TxtLoss.Text = "\u2014";
+    }
+
+    private Func<string, string> CreateLocalize() => key => _localizer?[key] ?? key;
+
     private string L(string key) => _localizer?[key] ?? key;
 
-    public bool CanClose() => !_isRunning;
+    public bool CanClose() => !_vm.IsRunning;
 
     public void Dispose()
     {
@@ -870,12 +565,8 @@ public partial class PingToolView : UserControl, IToolView
 
         _disposed = true;
         TxtHost.KeyDown -= OnHostKeyDown;
-        if (_pingTimer is not null)
-            _pingTimer.Tick -= OnPingTimerTick;
-        StopPing();
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
-
-    private readonly record struct PingDataPoint(long Latency, bool IsTimeout);
-    private readonly record struct PingCsvEntry(int Seq, string Timestamp, long Latency, string Status);
 }

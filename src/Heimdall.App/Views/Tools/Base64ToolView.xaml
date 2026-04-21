@@ -16,162 +16,239 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.Base64ToolView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:Base64ToolViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Base64.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
                         TabIndex="8"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolBase64Title}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="Base64.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Base64.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
         <Grid Grid.Row="2" Margin="{StaticResource ContentAreaMargin}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Mode toggle + labels -->
-        <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                <CheckBox x:Name="ChkUrlSafe"
-                          TabIndex="1"
-                          Foreground="{DynamicResource TextPrimaryBrush}"
-                          VerticalAlignment="Center"
-                          Margin="0,0,16,0"/>
-                <CheckBox x:Name="ChkFileMode"
-                          TabIndex="2"
-                          Foreground="{DynamicResource TextPrimaryBrush}"
-                          Checked="OnFileModeChanged" Unchecked="OnFileModeChanged"
-                          VerticalAlignment="Center"/>
-            </StackPanel>
-            <TextBlock x:Name="InputLabel"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
-        </DockPanel>
-
-        <!-- Input text area -->
-        <TextBox x:Name="InputText" Grid.Row="1"
-                 TabIndex="0"
-                 AcceptsReturn="True" AcceptsTab="True"
-                 TextWrapping="Wrap"
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalScrollBarVisibility="Auto"
-                 FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                 Background="{DynamicResource SurfaceBrush}"
-                 Foreground="{DynamicResource TextPrimaryBrush}"
-                 BorderBrush="{DynamicResource BorderBrush}"
-                 BorderThickness="1"
-                 Padding="{StaticResource PaddingInput}"
-                 Tag=""
-                 TextChanged="OnInputTextChanged"/>
-
-        <!-- Action buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal"
-                    HorizontalAlignment="Center" Margin="0,8">
-            <Button x:Name="BtnEncode" Click="OnEncodeClick"
-                    TabIndex="3"
-                    Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}"/>
-            <Button x:Name="BtnDecode" Click="OnDecodeClick"
-                    TabIndex="4"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"/>
-        </StackPanel>
-
-        <!-- Output text area -->
-        <Grid Grid.Row="3">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock x:Name="OutputLabel" Grid.Row="0"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
 
-            <Border x:Name="EmptyStatePanel" Grid.Row="1"
-                    Style="{StaticResource ToolEmptyStateStyle}"
-                   >
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="&#xE943;"
-                               Style="{StaticResource ToolEmptyStateIconStyle}"
-                               Focusable="False"/>
-                    <TextBlock x:Name="TxtEmptyState" Text=""
-                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
+            <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <CheckBox x:Name="ChkUrlSafe"
+                              AutomationProperties.AutomationId="Base64.UrlSafeCheck"
+                              TabIndex="1"
+                              Margin="0,0,16,0"
+                              Content="{loc:Translate ToolBase64UrlSafe}"
+                              IsChecked="{Binding IsUrlSafe, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              AutomationProperties.Name="{loc:Translate ToolBase64UrlSafe}"
+                              VerticalAlignment="Center" />
+                    <CheckBox x:Name="ChkFileMode"
+                              AutomationProperties.AutomationId="Base64.FileModeCheck"
+                              TabIndex="2"
+                              Content="{loc:Translate ToolBase64FileMode}"
+                              IsChecked="{Binding IsFileMode, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              AutomationProperties.Name="{loc:Translate ToolBase64FileMode}"
+                              VerticalAlignment="Center" />
                 </StackPanel>
-            </Border>
+                <TextBlock Text="{loc:Translate ToolBase64InputLabel}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           VerticalAlignment="Center" />
+            </DockPanel>
 
-            <Border x:Name="ResultsPanel" Grid.Row="1" Visibility="Collapsed">
-                <TextBox x:Name="OutputText"
-                         TabIndex="5"
-                         IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                         Background="{DynamicResource SurfaceBrush}"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         BorderThickness="1"
-                         Padding="{StaticResource PaddingInput}"/>
-            </Border>
-        </Grid>
+            <TextBox x:Name="InputText"
+                     AutomationProperties.AutomationId="Base64.InputField"
+                     Grid.Row="1"
+                     TabIndex="0"
+                     Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsInputReadOnly}"
+                     AcceptsReturn="True"
+                     AcceptsTab="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"
+                     FontFamily="Consolas"
+                     FontSize="{StaticResource FontSizeBodyLarge}"
+                     Background="{DynamicResource SurfaceBrush}"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}"
+                     BorderThickness="1"
+                     Padding="{StaticResource PaddingInput}"
+                     Tag="{loc:Translate ToolWatermarkTextToEncode}"
+                     TextChanged="OnInputTextChanged"
+                     PreviewKeyDown="OnInputPreviewKeyDown"
+                     AutomationProperties.Name="{loc:Translate ToolBase64InputLabel}" />
 
-        <!-- Status bar -->
-        <DockPanel Grid.Row="4" Margin="{StaticResource MarginSubsectionTop}">
-            <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
-                    TabIndex="7"
-                    Click="OnCopyOutputClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"/>
-            <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
-                    TabIndex="6"
-                    Click="OnBrowseFileClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
-                    Visibility="Collapsed"/>
-            <TextBlock x:Name="StatusText"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
-        </DockPanel>
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,8">
+                <Button x:Name="BtnEncode"
+                        AutomationProperties.AutomationId="Base64.EncodeButton"
+                        TabIndex="3"
+                        Content="{loc:Translate ToolBase64BtnEncode}"
+                        Command="{Binding EncodeCommand}"
+                        IsEnabled="{Binding IsEncodeEnabled}"
+                        AutomationProperties.Name="{loc:Translate ToolBase64BtnEncode}"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        Margin="{StaticResource MarginInlineSm}" />
+                <Button x:Name="BtnDecode"
+                        AutomationProperties.AutomationId="Base64.DecodeButton"
+                        TabIndex="4"
+                        Content="{loc:Translate ToolBase64BtnDecode}"
+                        Click="OnDecodeClick"
+                        AutomationProperties.Name="{loc:Translate ToolBase64BtnDecode}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        Margin="{StaticResource MarginInlineControl}" />
+            </StackPanel>
+
+            <Grid Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="{loc:Translate ToolBase64OutputLabel}"
+                           Grid.Row="0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}" />
+
+                <Border x:Name="EmptyStatePanel"
+                        AutomationProperties.AutomationId="Base64.EmptyStatePanel"
+                        Grid.Row="1"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Visibility="{Binding IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE943;"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"
+                                   Focusable="False" />
+                        <TextBlock Text="{loc:Translate ToolBase64EmptyState}"
+                                   Style="{StaticResource ToolEmptyStateTextStyle}" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="ResultsPanel"
+                        AutomationProperties.AutomationId="Base64.ResultsPanel"
+                        Grid.Row="1"
+                        Visibility="{Binding IsResultsPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBox x:Name="OutputText"
+                             AutomationProperties.AutomationId="Base64.OutputField"
+                             TabIndex="5"
+                             Text="{Binding OutputText, Mode=OneWay}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             BorderThickness="1"
+                             Padding="{StaticResource PaddingInput}"
+                             AutomationProperties.LiveSetting="Polite"
+                             AutomationProperties.Name="{loc:Translate ToolBase64OutputLabel}" />
+                </Border>
+            </Grid>
+
+            <DockPanel Grid.Row="4" Margin="{StaticResource MarginSubsectionTop}">
+                <Button x:Name="BtnCopyOutput"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Base64.CopyOutputButton"
+                        TabIndex="7"
+                        Content="{loc:Translate ToolBase64BtnCopy}"
+                        Click="OnCopyOutputClick"
+                        ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                        AutomationProperties.Name="{loc:Translate ToolBase64BtnCopy}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}" />
+                <Button x:Name="BtnBrowseFile"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="Base64.BrowseFileButton"
+                        TabIndex="6"
+                        Content="{loc:Translate ToolBase64BtnBrowse}"
+                        Click="OnBrowseFileClick"
+                        AutomationProperties.Name="{loc:Translate ToolBase64BtnBrowse}"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}"
+                        Margin="{StaticResource MarginInlineSm}"
+                        Visibility="{Binding IsBrowseFileButtonVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <TextBlock x:Name="StatusText"
+                           AutomationProperties.AutomationId="Base64.StatusText"
+                           Text="{Binding StatusText, Mode=OneWay}"
+                           Foreground="{Binding StatusForegroundBrushKey, Converter={StaticResource ResourceKeyToBrushConverter}}"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           VerticalAlignment="Center" />
+            </DockPanel>
         </Grid>
     </Grid>
 </UserControl>

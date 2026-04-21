@@ -16,126 +16,177 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.DnsLookupView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Grid Margin="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        TabIndex="6"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}" />
+                <TextBlock FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           Text="{loc:Translate ToolDnsTitle}"
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
         <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="24"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Content="&#xE711;"
+                        Command="{Binding ToggleHelpCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="7"/>
-                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                        ToolTip="{loc:Translate BtnClose}"
+                        VerticalAlignment="Top"
+                        TabIndex="7"
+                        AutomationProperties.Name="{loc:Translate BtnClose}" />
+                <ScrollViewer MaxHeight="200"
+                              VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding HelpText}"
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2"
+                      Padding="{StaticResource SpacingLg}"
+                      VerticalScrollBarVisibility="Auto">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
-                <!-- Input Row -->
-                <TextBlock x:Name="LblHostname" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <!-- Hostname label + input row -->
+                <TextBlock FontSize="{StaticResource FontSizeBody}"
+                           Margin="{StaticResource MarginLabelBottom}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{loc:Translate ToolDnsHostnameLabel}" />
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
-                    <Button x:Name="BtnLookup" DockPanel.Dock="Right"
-                            Content="" Click="OnLookupClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                    <Button x:Name="BtnLookup"
+                            DockPanel.Dock="Right"
+                            Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
                             VerticalAlignment="Center"
-                            TabIndex="3"/>
-                    <ComboBox x:Name="CmbDnsServer" DockPanel.Dock="Right"
-                              Width="160" Margin="{StaticResource MarginInlineControl}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            TabIndex="3" />
+                    <ComboBox x:Name="CmbDnsServer"
+                              DockPanel.Dock="Right"
+                              Width="160"
+                              Margin="{StaticResource MarginInlineControl}"
                               VerticalAlignment="Center"
                               Background="{DynamicResource CardBrush}"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="2"/>
-                    <ComboBox x:Name="CmbRecordType" DockPanel.Dock="Right"
-                              Width="100" Margin="{StaticResource MarginInlineControl}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              ItemsSource="{Binding DnsServers}"
+                              SelectedIndex="{Binding SelectedDnsServerIndex, Mode=TwoWay}"
+                              TabIndex="2"
+                              AutomationProperties.Name="{loc:Translate ToolDnsServerLabel}" />
+                    <ComboBox x:Name="CmbRecordType"
+                              DockPanel.Dock="Right"
+                              Width="100"
+                              Margin="{StaticResource MarginInlineControl}"
                               VerticalAlignment="Center"
                               Background="{DynamicResource CardBrush}"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="1"/>
-                    <TextBox x:Name="TxtHostname" Text=""
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              ItemsSource="{Binding RecordTypes}"
+                              SelectedIndex="{Binding SelectedRecordTypeIndex, Mode=TwoWay}"
+                              TabIndex="1"
+                              AutomationProperties.Name="{loc:Translate ToolDnsRecordTypeLabel}" />
+                    <TextBox x:Name="TxtHostname"
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag=""
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                             Tag="{Binding HostnameWatermark}"
+                             Text="{Binding Hostname, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="{StaticResource FontSizeBodyLarge}"
+                             FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="0"/>
+                             TabIndex="0"
+                             AutomationProperties.Name="{loc:Translate ToolDnsHostnameLabel}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Return"
+                                        Command="{Binding LookupCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
                 </DockPanel>
 
                 <!-- Route via gateway -->
                 <DockPanel Margin="{StaticResource MarginStackItem}">
-                    <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
+                    <TextBlock Margin="{StaticResource MarginInlineSm}"
+                               FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
-                    <ComboBox x:Name="CmbRouteVia" Width="240"
+                               Text="{loc:Translate ToolTunnelRouteVia}"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="CmbRouteVia"
+                              Width="240"
                               SelectionChanged="OnRouteViaChanged"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="4"/>
+                              TabIndex="4" />
                 </DockPanel>
 
                 <!-- Error message -->
-                <TextBlock x:Name="TxtError" Text=""
-                           Style="{StaticResource ToolInlineErrorTextStyle}"/>
+                <TextBlock x:Name="TxtError"
+                           Style="{StaticResource ToolInlineErrorTextStyle}" />
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar"
-                             Style="{StaticResource ToolLoadingBarStyle}"/>
+                             Style="{StaticResource ToolLoadingBarStyle}" />
 
                 <!-- Empty state hint (hidden once results appear) -->
                 <Border x:Name="EmptyStatePanel"
-                        Style="{StaticResource ToolEmptyStateStyle}"
-                       >
+                        Style="{StaticResource ToolEmptyStateStyle}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   Focusable="False"/>
-                        <TextBlock x:Name="TxtEmptyState" Text=""
-                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                                   Focusable="False" />
+                        <TextBlock Text="{Binding EmptyStateText}"
+                                   Style="{StaticResource ToolEmptyStateTextStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -145,19 +196,29 @@
                         AutomationProperties.LiveSetting="Polite">
                     <StackPanel>
                         <DockPanel Margin="{StaticResource MarginStackItem}">
-                            <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
+                            <Button x:Name="BtnCopyResults"
+                                    DockPanel.Dock="Right"
+                                    Click="OnCopyResultsClick"
+                                    Content="{loc:Translate ToolDnsBtnCopyResults}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
-                                    TabIndex="5"/>
-                            <TextBlock x:Name="TxtResultHeader" Text=""
-                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                                    Padding="{StaticResource PaddingButtonPreset}"
+                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    VerticalAlignment="Center"
+                                    TabIndex="5"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                                    AutomationProperties.Name="{loc:Translate ToolDnsBtnCopyResults}" />
+                            <TextBlock Text="{Binding ResultHeader}"
+                                       FontSize="{StaticResource FontSizeBodyLarge}"
+                                       FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center" />
                         </DockPanel>
-                        <TextBlock x:Name="TxtResults" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                        <TextBlock Text="{Binding Results}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   FontFamily="Consolas"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                   TextWrapping="Wrap"/>
+                                   TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
@@ -165,13 +226,15 @@
         </ScrollViewer>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
-            <TextBlock x:Name="TxtStatus" Text=""
-                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock x:Name="TxtStatus"
+                       FontSize="{StaticResource FontSizeBody}"
+                       FontFamily="Consolas"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
         </Border>
     </Grid>
 </UserControl>

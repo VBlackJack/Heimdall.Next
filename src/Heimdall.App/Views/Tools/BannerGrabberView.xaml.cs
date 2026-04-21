@@ -16,21 +16,19 @@
 
 using System.Collections;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
+using System.ComponentModel;
 using System.IO;
-using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
+using Heimdall.Core.Network;
 using Heimdall.Ssh;
-
-using Heimdall.App.Services;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -40,46 +38,36 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class BannerGrabberView : UserControl, IToolView
 {
-    private const int ConnectTimeoutMs = 2000;
-    private const int BannerReadTimeoutMs = 2000;
-    private const int BannerMaxBytes = 512;
-    private const int MaxConcurrent = 20;
-
     private LocalizationManager? _localizer;
-    private CancellationTokenSource? _cts;
-    private bool _isGrabbing;
     private bool _disposed;
     private List<SshGatewayDto>? _gateways;
-    private SshGatewayDto? _selectedGateway;
     private Action<string, string, ToolContext?>? _openToolAction;
     private Action<bool>? _setBusy;
     private readonly ToolAsyncStateController _viewState;
-
     private readonly ObservableCollection<BannerResult> _results = [];
-    private readonly List<BannerResult> _allResults = [];
-
-    /// <summary>
-    /// Regex to strip control characters (except newline/tab) from banner text.
-    /// </summary>
-    private static readonly Regex ControlCharRegex = new(
-        @"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]",
-        RegexOptions.Compiled);
+    private readonly BannerGrabViewModel _vm;
 
     public BannerGrabberView()
     {
+        _vm = new BannerGrabViewModel();
         InitializeComponent();
+        DataContext = _vm;
+        _vm.PropertyChanged += OnVmPropertyChanged;
+
         _viewState = new ToolAsyncStateController(
-            null,
+            isBusy => _setBusy?.Invoke(isBusy),
             null,
             TxtError,
             EmptyStatePanel,
             ResultsPanel,
             null);
+
         ResultsGrid.ItemsSource = _results;
         TxtHost.KeyDown += OnHostKeyDown;
         TxtPorts.KeyDown += OnHostKeyDown;
         ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
+        RefreshUiFromVm();
     }
 
     /// <summary>
@@ -90,6 +78,7 @@ public partial class BannerGrabberView : UserControl, IToolView
         _localizer = localizer;
         _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         _setBusy = context?.SetBusyAction;
+        _vm.Initialize(localizer);
         ApplyLocalization();
 
         TxtHost.Clear();
@@ -104,7 +93,11 @@ public partial class BannerGrabberView : UserControl, IToolView
         {
             _gateways = gateways.Cast<SshGatewayDto>().ToList();
         }
+
         PopulateRouteSelector();
+        _results.Clear();
+        _viewState.Reset();
+        RefreshUiFromVm();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -170,7 +163,8 @@ public partial class BannerGrabberView : UserControl, IToolView
             HelpPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        TxtHelpContent.Text = L("ToolHelpBANNER").Replace("\\n", "\n");
+
+        TxtHelpContent.Text = L("ToolHelpBANNER").Replace("\\n", "\n", StringComparison.Ordinal);
         HelpPanel.Visibility = Visibility.Visible;
     }
 
@@ -195,7 +189,7 @@ public partial class BannerGrabberView : UserControl, IToolView
 
     private void ToggleGrab()
     {
-        if (_isGrabbing)
+        if (_vm.IsGrabbing)
         {
             StopGrab();
         }
@@ -207,172 +201,18 @@ public partial class BannerGrabberView : UserControl, IToolView
 
     private async Task StartGrabAsync()
     {
-        if (_isGrabbing)
-        {
-            return;
-        }
-
-        var host = TxtHost.Text.Trim();
-        _viewState.Reset();
-
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            _viewState.ShowError(L("ToolValidationHostRequired"));
-            return;
-        }
-
-        if (!InputValidator.Validate(host, "Address"))
-        {
-            _viewState.ShowError(L("ErrorInvalidHost"));
-            return;
-        }
-
-        var ports = ParsePorts(TxtPorts.Text.Trim());
-        if (ports.Count == 0)
-        {
-            _viewState.ShowError(L("ToolValidationPortRangeRequired"));
-            return;
-        }
-
         _results.Clear();
-        _allResults.Clear();
-        _cts = new CancellationTokenSource();
-        _isGrabbing = true;
-        try
-        {
-            _setBusy?.Invoke(true);
-            BtnGrab.Content = L("ToolBannerBtnStop");
-            BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-            BtnGrab.Style = (Style)FindResource("SecondaryButtonStyle");
-            System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnStop"));
-            SetGrabInputsEnabled(false);
-            GrabProgress.IsIndeterminate = false;
-            GrabProgress.Maximum = ports.Count;
-            GrabProgress.Value = 0;
-            TxtProgressPercent.Text = "0%";
-            TxtProgressCount.Text = string.Format(L("ToolBannerProgress"), 0, ports.Count);
-            ProgressPanel.Visibility = Visibility.Visible;
-            _viewState.ShowResults();
-        }
-        catch
-        {
-            _isGrabbing = false;
-            throw;
-        }
+        RefreshUiFromVm();
 
-        var completed = 0;
+        await _vm.GrabAsync(TxtHost.Text.Trim(), TxtPorts.Text.Trim());
 
-        Renci.SshNet.SshClient? tunnelClient = null;
-        if (_selectedGateway is not null)
-        {
-            try
-            {
-                tunnelClient = ConnectToGateway(_selectedGateway);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"BannerGrabber gateway connection failed: {ex.Message}");
-                StopGrab();
-                _viewState.ShowError(string.Format(L("ToolTunnelFailed"), ex.Message));
-                return;
-            }
-        }
-
-        var semaphore = new SemaphoreSlim(tunnelClient is not null ? 10 : MaxConcurrent);
-        var ct = _cts.Token;
-
-        try
-        {
-            var tasks = ports.Select(async port =>
-            {
-                await semaphore.WaitAsync(ct);
-                try
-                {
-                    ct.ThrowIfCancellationRequested();
-                    var probeResult = tunnelClient is not null
-                        ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ct)
-                        : await ProbePortAsync(host, port, ct);
-
-                    await Dispatcher.InvokeAsync(() =>
-                    {
-                        var result = new BannerResult
-                        {
-                            Port = probeResult.Port,
-                            Service = probeResult.Service,
-                            Banner = probeResult.Banner ?? "",
-                            ResponseTime = probeResult.ResponseTime,
-                            HasBanner = !string.IsNullOrWhiteSpace(probeResult.Banner),
-                        };
-                        _allResults.Add(result);
-                        completed++;
-                        GrabProgress.Value = completed;
-                        var percent = (int)(completed * 100.0 / GrabProgress.Maximum);
-                        TxtProgressPercent.Text = $"{percent}%";
-                        TxtProgressCount.Text = string.Format(
-                            L("ToolBannerProgress"), completed, (int)GrabProgress.Maximum);
-
-                        if (ChkBannerOnly?.IsChecked != true || result.HasBanner)
-                        {
-                            _results.Add(result);
-                        }
-
-                        UpdateResultCount();
-                    });
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            });
-
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                // Grab was cancelled
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"BannerGrabber scan failed: {ex.Message}");
-            }
-        }
-        finally
-        {
-            semaphore.Dispose();
-
-            if (tunnelClient is not null)
-            {
-                try { tunnelClient.Disconnect(); } catch { /* best effort */ }
-                tunnelClient.Dispose();
-            }
-        }
-
-        if (_allResults.Count == 0)
-        {
-            _viewState.Reset();
-        }
-        else
-        {
-            _viewState.ShowResults();
-        }
-        StopGrab();
+        ApplyBannerOnlyFilter();
+        RefreshUiFromVm();
     }
 
     private void StopGrab()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _isGrabbing = false;
-        _setBusy?.Invoke(false);
-        BtnGrab.Content = L("ToolBannerBtnGrab");
-        BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
-        BtnGrab.Style = (Style)FindResource("PrimaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnGrab"));
-        SetGrabInputsEnabled(true);
-        ProgressPanel.Visibility = Visibility.Collapsed;
+        _vm.CancelGrab();
     }
 
     private void SetGrabInputsEnabled(bool enabled)
@@ -394,10 +234,10 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         if (_gateways is not null)
         {
-            foreach (var gw in _gateways)
+            foreach (var gateway in _gateways)
             {
-                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
-                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+                var label = $"{gateway.Name} ({gateway.Host}:{gateway.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gateway });
             }
         }
 
@@ -406,283 +246,19 @@ public partial class BannerGrabberView : UserControl, IToolView
 
     private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gateway)
         {
-            _selectedGateway = gw;
+            _vm.SetGateway(gateway);
         }
         else
         {
-            _selectedGateway = null;
+            _vm.SetGateway(null);
         }
-    }
-
-    /// <summary>
-    /// Probes a single port directly via TCP, reads up to 512 bytes of banner data.
-    /// </summary>
-    private static async Task<BannerProbeResult> ProbePortAsync(string host, int port, CancellationToken ct)
-    {
-        var sw = Stopwatch.StartNew();
-
-        try
-        {
-            using var client = new TcpClient();
-            using var timeout = new CancellationTokenSource(ConnectTimeoutMs);
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
-
-            await client.ConnectAsync(host, port, linked.Token);
-            sw.Stop();
-
-            var service = IdentifyService(port, null);
-            var banner = await GrabBannerAsync(client, ct);
-            var parsed = ParseBanner(banner);
-            var enrichedService = IdentifyService(port, parsed);
-            return new BannerProbeResult(port, enrichedService, $"{sw.ElapsedMilliseconds} ms", parsed);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            sw.Stop();
-            var service = IdentifyService(port, null);
-            return new BannerProbeResult(port, service, "\u2014", null);
-        }
-    }
-
-    /// <summary>
-    /// Reads the first 512 bytes from an already-connected TCP client.
-    /// </summary>
-    private static async Task<string?> GrabBannerAsync(TcpClient client, CancellationToken ct)
-    {
-        try
-        {
-            using var timeout = new CancellationTokenSource(BannerReadTimeoutMs);
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
-            var stream = client.GetStream();
-            var buffer = new byte[BannerMaxBytes];
-            var read = await stream.ReadAsync(buffer, linked.Token);
-            return read > 0 ? Encoding.ASCII.GetString(buffer, 0, read).Trim() : null;
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            // Per-read timeout — not a user cancellation. Return null banner.
-            return null;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Probes a single port remotely via an SSH gateway using /dev/tcp bash built-in.
-    /// First checks connectivity, then attempts to read banner data.
-    /// </summary>
-    private static async Task<BannerProbeResult> ProbePortViaTunnelAsync(
-        Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
-    {
-        var sw = Stopwatch.StartNew();
-
-        try
-        {
-            var safeHost = InputValidator.EscapeShellArg(host);
-
-            // First check connectivity — use 'timeout' to prevent filtered ports
-            // from leaving zombie bash processes on the gateway.
-            var connectResult = await Task.Run(() =>
-            {
-                using var cmd = sshClient.CreateCommand(
-                    $"timeout 2 bash -c \"echo >/dev/tcp/{safeHost}/{port}\" 2>/dev/null && echo OPEN || echo CLOSED");
-                cmd.CommandTimeout = TimeSpan.FromSeconds(5);
-                cmd.Execute();
-                return cmd.Result?.Trim();
-            }, ct).ConfigureAwait(false);
-
-            if (!string.Equals(connectResult, "OPEN", StringComparison.OrdinalIgnoreCase))
-            {
-                sw.Stop();
-                var service = IdentifyService(port, null);
-                return new BannerProbeResult(port, service, "\u2014", null);
-            }
-
-            // Attempt banner grab via /dev/tcp
-            var bannerRaw = await Task.Run(() =>
-            {
-                using var cmd = sshClient.CreateCommand(
-                    $"timeout 2 bash -c \"cat < /dev/tcp/{safeHost}/{port}\" 2>/dev/null | head -c {BannerMaxBytes}");
-                cmd.CommandTimeout = TimeSpan.FromSeconds(5);
-                cmd.Execute();
-                return cmd.Result?.Trim();
-            }, ct).ConfigureAwait(false);
-
-            sw.Stop();
-            var banner = ParseBanner(bannerRaw);
-            var enrichedService = IdentifyService(port, banner);
-            return new BannerProbeResult(port, enrichedService, $"{sw.ElapsedMilliseconds} ms", banner);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            sw.Stop();
-            var service = IdentifyService(port, null);
-            return new BannerProbeResult(port, service, "\u2014", null);
-        }
-    }
-
-    /// <summary>
-    /// Cleans control characters from raw banner text, preserving printable content.
-    /// </summary>
-    private static string? ParseBanner(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        // Replace control chars with spaces, collapse multiple spaces
-        var cleaned = ControlCharRegex.Replace(raw, " ");
-        cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim();
-        return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
-    }
-
-    /// <summary>
-    /// Maps a port to a known service name, enriching with banner content when available.
-    /// </summary>
-    private static string IdentifyService(int port, string? banner)
-    {
-        var baseService = NetworkToolPresets.GetPortServiceLabel(port);
-
-        if (string.IsNullOrWhiteSpace(banner))
-        {
-            return baseService;
-        }
-
-        var bannerLower = banner.ToLowerInvariant();
-
-        // Enhance service identification from banner content
-        if (bannerLower.Contains("openssh"))
-        {
-            return "OpenSSH";
-        }
-
-        if (bannerLower.Contains("dropbear"))
-        {
-            return "Dropbear SSH";
-        }
-
-        if (bannerLower.Contains("apache"))
-        {
-            return "Apache HTTP";
-        }
-
-        if (bannerLower.Contains("nginx"))
-        {
-            return "nginx";
-        }
-
-        if (bannerLower.Contains("microsoft-iis"))
-        {
-            return "IIS";
-        }
-
-        if (bannerLower.Contains("postfix"))
-        {
-            return "Postfix SMTP";
-        }
-
-        if (bannerLower.Contains("exim"))
-        {
-            return "Exim SMTP";
-        }
-
-        if (bannerLower.Contains("dovecot"))
-        {
-            return "Dovecot";
-        }
-
-        if (bannerLower.Contains("mysql"))
-        {
-            return "MySQL";
-        }
-
-        if (bannerLower.Contains("postgresql") || bannerLower.Contains("pgsql"))
-        {
-            return "PostgreSQL";
-        }
-
-        if (bannerLower.Contains("redis"))
-        {
-            return "Redis";
-        }
-
-        if (bannerLower.Contains("mongodb") || bannerLower.Contains("mongod"))
-        {
-            return "MongoDB";
-        }
-
-        if (bannerLower.Contains("proftpd"))
-        {
-            return "ProFTPD";
-        }
-
-        if (bannerLower.Contains("vsftpd"))
-        {
-            return "vsftpd";
-        }
-
-        if (bannerLower.Contains("filezilla"))
-        {
-            return "FileZilla FTP";
-        }
-
-        return baseService;
-    }
-
-    private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
-        => ToolGatewayConnector.Connect(gateway);
-
-    /// <summary>
-    /// Parses a port specification string supporting comma-separated values and ranges.
-    /// </summary>
-    private static List<int> ParsePorts(string input)
-    {
-        var ports = new HashSet<int>();
-
-        foreach (var segment in input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (segment.Contains('-'))
-            {
-                var rangeParts = segment.Split('-', 2);
-                if (int.TryParse(rangeParts[0].Trim(), out var start) &&
-                    int.TryParse(rangeParts[1].Trim(), out var end) &&
-                    start >= 1 && end <= 65535 && start <= end)
-                {
-                    for (var p = start; p <= end; p++)
-                    {
-                        ports.Add(p);
-                    }
-                }
-            }
-            else if (int.TryParse(segment, out var port) && port >= 1 && port <= 65535)
-            {
-                ports.Add(port);
-            }
-        }
-
-        return ports.OrderBy(p => p).ToList();
     }
 
     private void OnPresetClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string ports)
+        if (sender is Button button && button.Tag is string ports)
         {
             TxtPorts.Text = ports;
         }
@@ -700,27 +276,18 @@ public partial class BannerGrabberView : UserControl, IToolView
     {
         _results.Clear();
 
-        var filtered = ChkBannerOnly?.IsChecked == true
-            ? _allResults.Where(r => r.HasBanner)
-            : _allResults.AsEnumerable();
-
-        foreach (var result in filtered)
+        var bannerOnly = ChkBannerOnly?.IsChecked == true;
+        foreach (var result in _vm.GetFilteredResults(bannerOnly))
         {
             _results.Add(result);
         }
 
-        UpdateResultCount();
-    }
-
-    private void UpdateResultCount()
-    {
-        var withBanner = _allResults.Count(r => r.HasBanner);
-        TxtResultCount.Text = $"{withBanner} / {_allResults.Count}";
+        TxtResultCount.Text = _vm.ResultCountText;
     }
 
     private void OnExportCsvClick(object sender, RoutedEventArgs e)
     {
-        if (_allResults.Count == 0)
+        if (_vm.GetAllResults().Count == 0)
         {
             return;
         }
@@ -738,18 +305,7 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         try
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{L("ToolBannerColPort")},{L("ToolBannerColService")},{L("ToolBannerColBanner")},{L("ToolBannerColTime")}");
-
-            foreach (var r in _allResults.OrderBy(r => r.Port))
-            {
-                var banner = InputValidator.SanitizeCsvCell(r.Banner).Replace("\"", "\"\"");
-                var service = InputValidator.SanitizeCsvCell(r.Service);
-                var responseTime = InputValidator.SanitizeCsvCell(r.ResponseTime);
-                sb.AppendLine($"{r.Port},{service},\"{banner}\",{responseTime}");
-            }
-
-            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            File.WriteAllText(dialog.FileName, _vm.BuildCsvExport(), Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
         catch (Exception ex)
@@ -767,16 +323,13 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         try
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{L("ToolBannerColPort"),-8}{L("ToolBannerColService"),-20}{L("ToolBannerColTime"),-12}{L("ToolBannerColBanner")}");
-            sb.AppendLine(new string('-', 72));
-
-            foreach (var r in _results)
+            var text = _vm.BuildClipboardText([.. _results]);
+            if (string.IsNullOrWhiteSpace(text))
             {
-                sb.AppendLine($"{r.Port,-8}{r.Service,-20}{r.ResponseTime,-12}{r.Banner}");
+                return;
             }
 
-            Clipboard.SetText(sb.ToString());
+            Clipboard.SetText(text);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
         catch (Exception ex)
@@ -796,24 +349,51 @@ public partial class BannerGrabberView : UserControl, IToolView
         var menu = new ContextMenu();
         var host = TxtHost.Text.Trim();
 
-        // Copy Port
         var copyPort = new MenuItem { Header = L("ToolCtxCopyPort") };
-        copyPort.Click += (_, _) => { try { Clipboard.SetText(row.Port.ToString()); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+        copyPort.Click += (_, _) =>
+        {
+            try
+            {
+                Clipboard.SetText(row.Port.ToString());
+            }
+            catch (System.Runtime.InteropServices.ExternalException)
+            {
+                // Clipboard temporarily locked.
+            }
+        };
         menu.Items.Add(copyPort);
 
-        // Copy Service
         if (!string.IsNullOrWhiteSpace(row.Service))
         {
             var copyService = new MenuItem { Header = L("ToolCtxCopyService") };
-            copyService.Click += (_, _) => { try { Clipboard.SetText(row.Service); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+            copyService.Click += (_, _) =>
+            {
+                try
+                {
+                    Clipboard.SetText(row.Service);
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                    // Clipboard temporarily locked.
+                }
+            };
             menu.Items.Add(copyService);
         }
 
-        // Copy Banner
         if (!string.IsNullOrWhiteSpace(row.Banner))
         {
             var copyBanner = new MenuItem { Header = L("ToolCtxCopyBanner") };
-            copyBanner.Click += (_, _) => { try { Clipboard.SetText(row.Banner); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+            copyBanner.Click += (_, _) =>
+            {
+                try
+                {
+                    Clipboard.SetText(row.Banner);
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                    // Clipboard temporarily locked.
+                }
+            };
             menu.Items.Add(copyBanner);
         }
 
@@ -821,14 +401,14 @@ public partial class BannerGrabberView : UserControl, IToolView
         {
             menu.Items.Add(new Separator());
 
-            // Open Port Scanner for deeper analysis
             var portScan = new MenuItem { Header = L("ToolCtxOpenPortScan") };
-            portScan.Click += (_, _) => _openToolAction("PORTSCAN", L("PaletteToolPortScan"),
+            portScan.Click += (_, _) => _openToolAction(
+                "PORTSCAN",
+                L("PaletteToolPortScan"),
                 new ToolContext(TargetHost: host, TargetPort: row.Port));
             menu.Items.Add(portScan);
         }
 
-        // Copy row
         menu.Items.Add(new Separator());
         var csvText = $"{row.Port}\t{row.Service}\t{row.Banner}\t{row.ResponseTime}";
         menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
@@ -839,9 +419,84 @@ public partial class BannerGrabberView : UserControl, IToolView
         ResultsGrid.ContextMenu = menu;
     }
 
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(BannerGrabViewModel.Completed)
+            or nameof(BannerGrabViewModel.ResultCountText))
+        {
+            ApplyBannerOnlyFilter();
+        }
+
+        if (e.PropertyName is nameof(BannerGrabViewModel.IsGrabbing)
+            or nameof(BannerGrabViewModel.ShowError)
+            or nameof(BannerGrabViewModel.ErrorText)
+            or nameof(BannerGrabViewModel.Completed)
+            or nameof(BannerGrabViewModel.Total)
+            or nameof(BannerGrabViewModel.ProgressPercent)
+            or nameof(BannerGrabViewModel.ProgressCountText)
+            or nameof(BannerGrabViewModel.ResultCountText))
+        {
+            RefreshUiFromVm();
+        }
+    }
+
+    private void RefreshUiFromVm()
+    {
+        if (_vm.IsGrabbing)
+        {
+            _setBusy?.Invoke(true);
+            _viewState.Reset(showEmptyState: false);
+            _viewState.ShowResults();
+        }
+        else if (_vm.ShowError)
+        {
+            _setBusy?.Invoke(false);
+            _viewState.Reset(showEmptyState: _results.Count == 0);
+            _viewState.ShowError(
+                _vm.ErrorText,
+                showEmptyState: _results.Count == 0,
+                keepResultsVisible: _results.Count > 0);
+        }
+        else if (_results.Count > 0)
+        {
+            _setBusy?.Invoke(false);
+            _viewState.Reset(showEmptyState: false);
+            _viewState.ShowResults();
+        }
+        else
+        {
+            _setBusy?.Invoke(false);
+            _viewState.Reset(showEmptyState: true);
+        }
+
+        SetGrabInputsEnabled(!_vm.IsGrabbing);
+        GrabProgress.IsIndeterminate = false;
+        GrabProgress.Maximum = Math.Max(_vm.Total, 1);
+        GrabProgress.Value = Math.Min(_vm.Completed, GrabProgress.Maximum);
+        TxtProgressPercent.Text = $"{_vm.ProgressPercent}%";
+        TxtProgressCount.Text = _vm.ProgressCountText;
+        ProgressPanel.Visibility = _vm.IsGrabbing ? Visibility.Visible : Visibility.Collapsed;
+        TxtResultCount.Text = _vm.ResultCountText;
+
+        if (_vm.IsGrabbing)
+        {
+            BtnGrab.Content = L("ToolBannerBtnStop");
+            BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
+            BtnGrab.Style = (Style)FindResource("SecondaryButtonStyle");
+            System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnStop"));
+        }
+        else
+        {
+            BtnGrab.Content = L("ToolBannerBtnGrab");
+            BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
+            BtnGrab.Style = (Style)FindResource("PrimaryButtonStyle");
+            System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnGrab"));
+        }
+    }
+
     private string L(string key) => _localizer?[key] ?? key;
 
-    public bool CanClose() => !_isGrabbing;
+    public bool CanClose() => !_vm.IsGrabbing;
 
     public void Dispose()
     {
@@ -851,24 +506,13 @@ public partial class BannerGrabberView : UserControl, IToolView
         }
 
         _disposed = true;
-        StopGrab();
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        TxtHost.KeyDown -= OnHostKeyDown;
+        TxtPorts.KeyDown -= OnHostKeyDown;
+        ResultsGrid.PreviewMouseRightButtonDown -= ToolContextMenuHelper.SelectRowOnRightClick;
+        ResultsGrid.ContextMenuOpening -= OnResultsContextMenuOpening;
+        _vm.Dispose();
+        _setBusy?.Invoke(false);
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Internal result from port probing (before UI binding).
-    /// </summary>
-    private sealed record BannerProbeResult(int Port, string Service, string ResponseTime, string? Banner);
-
-    /// <summary>
-    /// Represents a single banner grab result for DataGrid binding.
-    /// </summary>
-    public sealed class BannerResult
-    {
-        public int Port { get; init; }
-        public string Service { get; init; } = "";
-        public string Banner { get; init; } = "";
-        public string ResponseTime { get; init; } = "";
-        public bool HasBanner { get; init; }
     }
 }

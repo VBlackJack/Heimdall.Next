@@ -16,7 +16,12 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.TcpTracerouteView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <conv:HopStatusToBrushConverter x:Key="HopStatusToBrushConverter"/>
+        <conv:HopStatusToTextConverter x:Key="HopStatusToTextConverter"/>
+    </UserControl.Resources>
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -176,8 +181,15 @@
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColLatency" Binding="{Binding Latency}" Width="180"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="*"
-                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTemplateColumn x:Name="ColStatus" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Status, Converter={StaticResource HopStatusToTextConverter}}"
+                                           Foreground="{Binding Status, Converter={StaticResource HopStatusToBrushConverter}}"
+                                           VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

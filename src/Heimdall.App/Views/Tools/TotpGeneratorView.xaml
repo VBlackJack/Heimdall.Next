@@ -16,6 +16,12 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.TotpGeneratorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:TotpGeneratorViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="0">
         <Grid.RowDefinitions>
@@ -33,10 +39,13 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         TabIndex="3"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.AutomationId="TotpGenerator.HelpButton"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
+                <TextBlock Text="{loc:Translate ToolTotpTitle}"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -49,6 +58,9 @@
                 <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
+                        ToolTip="{loc:Translate BtnClose}"
+                        AutomationProperties.AutomationId="TotpGenerator.CloseHelpButton"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
@@ -65,74 +77,95 @@
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Secret key input -->
-                <TextBlock x:Name="LblSecret" Text=""
+                <TextBlock Text="{loc:Translate ToolTotpSecretLabel}"
                            FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
                             TabIndex="1"
-                            Content="" Click="OnGenerateClick"
+                            Content="{loc:Translate ToolTotpBtnStart}"
+                            Command="{Binding StartCommand}"
+                            AutomationProperties.AutomationId="TotpGenerator.GenerateButton"
+                            AutomationProperties.Name="{loc:Translate ToolTotpBtnStart}"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"/>
-                    <TextBox x:Name="TxtSecret" Text=""
+                    <TextBox x:Name="TxtSecret"
                              TabIndex="0"
+                             Text="{Binding SecretInput, UpdateSourceTrigger=PropertyChanged}"
                              Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             Tag=""
+                             Tag="{loc:Translate ToolWatermarkBase32Secret}"
                              KeyDown="OnInputKeyDown"
+                             AutomationProperties.AutomationId="TotpGenerator.SecretInput"
+                             AutomationProperties.Name="{loc:Translate ToolTotpSecretLabel}"
                              VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Error message -->
-                <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
+                <TextBlock x:Name="TxtError"
+                           Text="{Binding ErrorMessage}"
+                           Visibility="{Binding IsErrorVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                            FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
+                           AutomationProperties.AutomationId="TotpGenerator.ErrorText"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- TOTP code display -->
-                <Border x:Name="CodePanel" Visibility="Collapsed"
+                <Border x:Name="CodePanel"
+                        Visibility="{Binding IsCodePanelVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        AutomationProperties.AutomationId="TotpGenerator.CodePanel"
                         Padding="24,16" Margin="{StaticResource MarginSectionSeparator}">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock x:Name="LblCode" Text=""
+                        <TextBlock Text="{loc:Translate ToolTotpCodeLabel}"
                                    FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <DockPanel HorizontalAlignment="Center" Margin="{StaticResource MarginSectionBottom}">
                             <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                                     TabIndex="2"
-                                    Content="" Click="OnCopyClick"
+                                    Content="{loc:Translate ToolTotpBtnCopy}" Click="OnCopyClick"
+                                    AutomationProperties.AutomationId="TotpGenerator.CopyButton"
+                                    AutomationProperties.Name="{loc:Translate ToolTotpBtnCopy}"
+                                    ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
                                     VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TxtCode" Text="------"
+                            <TextBlock x:Name="TxtCode"
+                                       Text="{Binding CurrentCode}"
                                        FontSize="{StaticResource IconSizeXLarge}" FontWeight="Bold"
                                        FontFamily="Consolas"
                                        Foreground="{DynamicResource AccentBrush}"
+                                       AutomationProperties.AutomationId="TotpGenerator.CodeText"
+                                       AutomationProperties.Name="{loc:Translate ToolTotpCodeLabel}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
 
                         <!-- Time remaining -->
-                        <TextBlock x:Name="LblTimeRemaining" Text=""
+                        <TextBlock x:Name="LblTimeRemaining"
+                                   Text="{Binding TimeRemainingText}"
                                    FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
+                                   AutomationProperties.AutomationId="TotpGenerator.TimeRemainingText"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <ProgressBar x:Name="ProgressTime"
                                      Height="6" Width="300"
-                                     Minimum="0" Maximum="30" Value="30"
+                                     Minimum="0" Maximum="{Binding TimeStepSeconds}" Value="{Binding RemainingSeconds}"
                                      Foreground="{DynamicResource AccentBrush}"
+                                     AutomationProperties.AutomationId="TotpGenerator.ProgressTime"
+                                     AutomationProperties.Name="{loc:Translate ToolTotpTimeRemaining}"
                                      Background="{DynamicResource SurfaceBrush}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Info -->
-                <TextBlock x:Name="TxtInfo" Text=""
+                <TextBlock Text="{loc:Translate ToolTotpInfo}"
                            FontSize="{StaticResource FontSizeCaption}" TextWrapping="Wrap"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 

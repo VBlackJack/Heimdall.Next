@@ -16,115 +16,173 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.UrlEncoderView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Tools"
+             d:DataContext="{d:DesignInstance Type=vm:UrlEncoderViewModel}"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
-    <Grid Margin="0">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        TabIndex="6"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="UrlEncoder.HelpButton"
+                        Width="24"
+                        Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        Content="?"
                         Click="OnHelpClick"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" />
+                <TextBlock Text="{loc:Translate ToolUrlEncTitle}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
-        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+        <Border x:Name="HelpPanel"
+                Grid.Row="1"
+                AutomationProperties.AutomationId="UrlEncoder.HelpPanel"
+                Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        AutomationProperties.AutomationId="UrlEncoder.CloseHelpButton"
+                        Width="24"
+                        Height="24"
+                        Content="&#xE711;"
                         Click="OnCloseHelpClick"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"/>
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        VerticalAlignment="Top" />
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               LineHeight="20"/>
+                               LineHeight="20" />
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
-
-                <!-- Decoded field -->
                 <DockPanel Margin="{StaticResource MarginLabelBottom}">
-                    <Button x:Name="BtnCopyDecoded" DockPanel.Dock="Right"
-                            TabIndex="1"
-                            Content="" Click="OnCopyDecodedClick"
+                    <Button x:Name="BtnCopyDecoded"
+                            DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="UrlEncoder.CopyDecodedButton"
+                            Content="{loc:Translate ToolUrlEncBtnCopy}"
+                            Click="OnCopyDecodedClick"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolUrlEncBtnCopy}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Bottom"/>
-                    <TextBlock x:Name="LblDecoded" Text=""
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Bottom" />
+                    <TextBlock Text="{loc:Translate ToolUrlEncDecodedLabel}"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Bottom"/>
+                               VerticalAlignment="Bottom" />
                 </DockPanel>
-                <TextBox x:Name="TxtDecoded" Text=""
-                         TabIndex="0"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginStackItem}"
-                         AcceptsReturn="True" TextWrapping="Wrap"
-                         MinHeight="80" MaxHeight="200"
+
+                <TextBox x:Name="TxtDecoded"
+                         AutomationProperties.AutomationId="UrlEncoder.DecodedField"
+                         Text="{Binding DecodedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         Margin="{StaticResource MarginStackItem}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="80"
+                         MaxHeight="200"
                          VerticalScrollBarVisibility="Auto"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
-                         TextChanged="OnDecodedTextChanged"
-                         AutomationProperties.LiveSetting="Polite"/>
+                         BorderThickness="1"
+                         Tag="{loc:Translate ToolWatermarkUrlToEncode}"
+                         AutomationProperties.Name="{loc:Translate ToolUrlEncDecodedLabel}"
+                         AutomationProperties.LiveSetting="Polite">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasDecodeError}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
 
-                <!-- Encoded field -->
                 <DockPanel Margin="0,8,0,4">
-                    <Button x:Name="BtnCopyEncoded" DockPanel.Dock="Right"
-                            TabIndex="3"
-                            Content="" Click="OnCopyEncodedClick"
+                    <Button x:Name="BtnCopyEncoded"
+                            DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="UrlEncoder.CopyEncodedButton"
+                            Content="{loc:Translate ToolUrlEncBtnCopy}"
+                            Click="OnCopyEncodedClick"
+                            ToolTip="{loc:Translate ToolBtnCopyToClipboard}"
+                            AutomationProperties.Name="{loc:Translate ToolUrlEncBtnCopy}"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Bottom"/>
-                    <TextBlock x:Name="LblEncoded" Text=""
+                            Padding="{StaticResource PaddingButtonCopy}"
+                            Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Bottom" />
+                    <TextBlock Text="{loc:Translate ToolUrlEncEncodedLabel}"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Bottom"/>
+                               VerticalAlignment="Bottom" />
                 </DockPanel>
-                <TextBox x:Name="TxtEncoded" Text=""
-                         TabIndex="2"
-                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginStackItem}"
-                         AcceptsReturn="True" TextWrapping="Wrap"
-                         MinHeight="80" MaxHeight="200"
+
+                <TextBox x:Name="TxtEncoded"
+                         AutomationProperties.AutomationId="UrlEncoder.EncodedField"
+                         Text="{Binding EncodedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}"
+                         Margin="{StaticResource MarginStackItem}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="80"
+                         MaxHeight="200"
                          VerticalScrollBarVisibility="Auto"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Tag=""
-                         TextChanged="OnEncodedTextChanged"
-                         AutomationProperties.LiveSetting="Polite"/>
+                         BorderThickness="1"
+                         Tag="{loc:Translate ToolWatermarkEncodedUrl}"
+                         AutomationProperties.Name="{loc:Translate ToolUrlEncEncodedLabel}"
+                         AutomationProperties.LiveSetting="Polite" />
 
-                <!-- Component encoding toggle -->
-                <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
-                          TabIndex="4"
-                          Foreground="{DynamicResource TextSecondaryBrush}">
-                    <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="{StaticResource FontSizeBody}"/>
-                </CheckBox>
-
+                <CheckBox x:Name="ChkComponentEncoding"
+                          AutomationProperties.AutomationId="UrlEncoder.ComponentEncodingCheck"
+                          Margin="0,4,0,0"
+                          Content="{loc:Translate ToolUrlEncComponentMode}"
+                          IsChecked="{Binding ComponentMode, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
+                          AutomationProperties.Name="{loc:Translate ToolUrlEncComponentMode}" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

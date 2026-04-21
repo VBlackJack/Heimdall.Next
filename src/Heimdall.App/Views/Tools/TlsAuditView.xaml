@@ -90,7 +90,7 @@
                             VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              TabIndex="1"
-                             Text="" Width="70"
+                             Text="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
@@ -103,7 +103,8 @@
                                FontSize="{StaticResource FontSizeBodyLarge}" Margin="{StaticResource MarginInlineStart}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
-                    <TextBox x:Name="TxtHost" Text=""
+                    <TextBox x:Name="TxtHost"
+                             Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              TabIndex="0"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""

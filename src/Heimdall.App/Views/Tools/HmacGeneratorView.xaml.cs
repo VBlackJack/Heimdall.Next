@@ -14,45 +14,43 @@
  * limitations under the License.
  */
 
-using System.Security.Cryptography;
-using System.Text;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
-/// <summary>
-/// HMAC generator tool that computes keyed-hash message authentication codes.
-/// Supports HMAC-SHA256, HMAC-SHA384, HMAC-SHA512, HMAC-SHA1, and HMAC-MD5.
-/// Includes verify mode and show/hide key toggle.
-/// </summary>
 public partial class HmacGeneratorView : UserControl, IToolView
 {
+    private readonly HmacGeneratorViewModel _vm;
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
-    private bool _keyVisible;
     private bool _syncingKey;
-
-    private static readonly string[] Algorithms =
-        ["HMAC-SHA256", "HMAC-SHA384", "HMAC-SHA512", "HMAC-SHA1", "HMAC-MD5"];
+    private bool _disposed;
 
     public HmacGeneratorView()
     {
         InitializeComponent();
-        InitializeAlgorithms();
+        var service = (Application.Current as App)?.Services?.GetService<IHmacGeneratorService>();
+        _vm = new HmacGeneratorViewModel(service);
+        DataContext = _vm;
+        _vm.PropertyChanged += OnVmPropertyChanged;
         InitializeDebounceTimer();
     }
 
-    /// <summary>
-    /// Initializes the tool with localization and optional context.
-    /// </summary>
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; }
         _localizer = localizer;
+        if (_localizer is not null) { _localizer.LocaleChanged += OnLocaleChanged; }
+        _vm.Initialize(localizer);
         ApplyLocalization();
 
         if (!string.IsNullOrWhiteSpace(context?.Argument))
@@ -60,305 +58,118 @@ public partial class HmacGeneratorView : UserControl, IToolView
             TxtInput.Text = context.Argument;
         }
 
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
             TxtInput.Focus();
             TxtInput.SelectAll();
         });
     }
 
-    private void InitializeAlgorithms()
-    {
-        foreach (var algo in Algorithms)
-        {
-            CmbAlgorithm.Items.Add(algo);
-        }
+    public bool CanClose() => true;
 
-        CmbAlgorithm.SelectedIndex = 0; // HMAC-SHA256
+    public void Dispose()
+    {
+        if (_disposed) { return; }
+        _disposed = true;
+        if (_localizer is not null) { _localizer.LocaleChanged -= OnLocaleChanged; _localizer = null; }
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _debounceTimer?.Stop();
+        _vm.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void InitializeDebounceTimer()
     {
-        _debounceTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(150)
-        };
+        _debounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _debounceTimer.Tick += (_, _) =>
         {
             _debounceTimer.Stop();
-            ComputeHmac();
+            _vm.RequestRecompute();
         };
     }
 
     private void ApplyLocalization()
     {
-        HeaderTitle.Text = L("ToolHmacTitle");
-        LblAlgorithm.Text = L("ToolHmacAlgorithmLabel");
-        LblKey.Text = L("ToolHmacKeyLabel");
-        LblInput.Text = L("ToolHmacInputLabel");
-        LblOutput.Text = L("ToolHmacOutputLabel");
-        LblFormat.Text = L("ToolHmacFormatLabel");
-        RdoHex.Content = L("ToolHmacFormatHex");
-        RdoBase64.Content = L("ToolHmacFormatBase64");
-        BtnCopy.Content = L("ToolHmacBtnCopy");
-        LblVerify.Text = L("ToolHmacVerifyLabel");
-
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolHmacBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(CmbAlgorithm, L("ToolHmacAlgorithmLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(PwdKey, L("ToolHmacKeyLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtKey, L("ToolHmacKeyLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolHmacInputLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtOutput, L("ToolHmacOutputLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(RdoHex, L("ToolHmacHexOutput"));
-        System.Windows.Automation.AutomationProperties.SetName(RdoBase64, L("ToolHmacBase64Output"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggleKey, L("ToolHmacToggleKeyVisibility"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtVerify, L("ToolHmacVerifyLabel"));
-
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
-        BtnToggleKey.ToolTip = L("ToolHmacToggleKeyVisibility");
-
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-
-        TxtKey.Tag = L("ToolWatermarkSecretKey");
-        TxtInput.Tag = L("ToolWatermarkMessage");
-        TxtVerify.Tag = L("ToolWatermarkPasteHmacVerify");
-        TxtEmptyState.Text = L("ToolHmacEmptyState");
+        TxtHelpContent.Text = L("ToolHelpHMAC").Replace("\\n", "\n", StringComparison.Ordinal);
     }
 
-    private void OnToggleKeyVisibility(object sender, RoutedEventArgs e)
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        _keyVisible = !_keyVisible;
+        if (e.PropertyName != nameof(HmacGeneratorViewModel.IsKeyVisible))
+        {
+            return;
+        }
+
         _syncingKey = true;
-
-        if (_keyVisible)
+        try
         {
-            // Show TextBox, hide PasswordBox
-            TxtKey.Text = PwdKey.Password;
-            TxtKey.Visibility = Visibility.Visible;
-            PwdKey.Visibility = Visibility.Collapsed;
-            // Eye-off icon
-            BtnToggleKey.Content = "\uED1A";
+            if (_vm.IsKeyVisible)
+            {
+                TxtKey.Text = PwdKey.Password;
+                TxtKey.Visibility = Visibility.Visible;
+                PwdKey.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                PwdKey.Password = TxtKey.Text;
+                PwdKey.Visibility = Visibility.Visible;
+                TxtKey.Visibility = Visibility.Collapsed;
+            }
         }
-        else
+        finally
         {
-            // Show PasswordBox, hide TextBox
-            PwdKey.Password = TxtKey.Text;
-            PwdKey.Visibility = Visibility.Visible;
-            TxtKey.Visibility = Visibility.Collapsed;
-            // Eye icon
-            BtnToggleKey.Content = "\uE7B3";
+            _syncingKey = false;
         }
-
-        _syncingKey = false;
-    }
-
-    private void OnKeyPasswordChanged(object sender, RoutedEventArgs e)
-    {
-        if (_syncingKey) return;
-
-        _debounceTimer?.Stop();
-        _debounceTimer?.Start();
     }
 
     private void OnInputChanged(object sender, TextChangedEventArgs e)
     {
-        if (_syncingKey) return;
-
+        if (_syncingKey) { return; }
+        _vm.UpdateInputText(TxtInput.Text);
         _debounceTimer?.Stop();
         _debounceTimer?.Start();
     }
 
-    private void OnAlgorithmChanged(object sender, SelectionChangedEventArgs e)
+    private void OnKeyPasswordChanged(object sender, RoutedEventArgs e)
     {
-        ComputeHmac();
+        if (_syncingKey) { return; }
+        _vm.UpdateKeyText(PwdKey.Password);
+        _debounceTimer?.Stop();
+        _debounceTimer?.Start();
     }
 
-    private void OnFormatChanged(object sender, RoutedEventArgs e)
+    private void OnTxtKeyChanged(object sender, TextChangedEventArgs e)
     {
-        ComputeHmac();
-    }
-
-    /// <summary>
-    /// Gets the current key text from whichever control is visible.
-    /// </summary>
-    private string GetCurrentKey()
-    {
-        return _keyVisible ? (TxtKey?.Text ?? string.Empty) : (PwdKey?.Password ?? string.Empty);
-    }
-
-    private void ComputeHmac()
-    {
-        var input = TxtInput?.Text;
-        var key = GetCurrentKey();
-
-        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(key))
-        {
-            if (TxtOutput is not null) TxtOutput.Text = string.Empty;
-            if (TxtByteLength is not null) TxtByteLength.Text = string.Empty;
-            EmptyStatePanel.Visibility = Visibility.Visible;
-            UpdateVerifyResult();
-            return;
-        }
-
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-
-        var algorithmName = CmbAlgorithm?.SelectedItem as string ?? "HMAC-SHA256";
-
-        try
-        {
-            var keyBytes = Encoding.UTF8.GetBytes(key);
-            using var hmac = CreateHmacAlgorithm(algorithmName, keyBytes);
-
-            if (hmac is null)
-            {
-                TxtOutput.Text = L("ToolHmacErrorUnsupported");
-                TxtByteLength.Text = string.Empty;
-                return;
-            }
-
-            var inputBytes = Encoding.UTF8.GetBytes(input);
-            var hashBytes = hmac.ComputeHash(inputBytes);
-
-            var useBase64 = RdoBase64?.IsChecked == true;
-            TxtOutput.Text = useBase64
-                ? Convert.ToBase64String(hashBytes)
-                : Convert.ToHexStringLower(hashBytes);
-
-            TxtByteLength.Text = string.Format(
-                L("ToolHmacByteLengthFormat"),
-                hashBytes.Length,
-                hashBytes.Length * 8);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"HmacGenerator computation failed: {ex.Message}");
-            TxtOutput.Text = string.Empty;
-            TxtByteLength.Text = string.Empty;
-        }
-
-        UpdateVerifyResult();
-    }
-
-    private void OnVerifyTextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateVerifyResult();
-    }
-
-    private void UpdateVerifyResult()
-    {
-        if (TxtVerifyResult is null || TxtVerify is null || TxtOutput is null) return;
-
-        var expected = TxtVerify.Text.Trim();
-
-        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(GetCurrentKey()) || string.IsNullOrEmpty(TxtInput?.Text))
-        {
-            TxtVerifyResult.Text = string.Empty;
-            return;
-        }
-
-        // Compute both hex and base64 outputs for comparison
-        var hexOutput = ComputeHmacFormatted(useBase64: false);
-        var b64Output = ComputeHmacFormatted(useBase64: true);
-
-        bool match = (!string.IsNullOrEmpty(hexOutput) && string.Equals(expected, hexOutput, StringComparison.OrdinalIgnoreCase))
-                  || (!string.IsNullOrEmpty(b64Output) && string.Equals(expected, b64Output, StringComparison.OrdinalIgnoreCase));
-
-        if (match)
-        {
-            TxtVerifyResult.Text = L("ToolHmacVerifyMatch");
-            TxtVerifyResult.Foreground = (Brush)FindResource("SuccessBrush");
-        }
-        else
-        {
-            TxtVerifyResult.Text = L("ToolHmacVerifyNoMatch");
-            TxtVerifyResult.Foreground = (Brush)FindResource("ErrorBrush");
-        }
-    }
-
-    /// <summary>
-    /// Computes the HMAC in the specified format without updating the UI output.
-    /// </summary>
-    private string? ComputeHmacFormatted(bool useBase64)
-    {
-        var input = TxtInput?.Text;
-        var key = GetCurrentKey();
-        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(key)) return null;
-
-        var algorithmName = CmbAlgorithm?.SelectedItem as string ?? "HMAC-SHA256";
-
-        try
-        {
-            var keyBytes = Encoding.UTF8.GetBytes(key);
-            using var hmac = CreateHmacAlgorithm(algorithmName, keyBytes);
-            if (hmac is null) return null;
-
-            var inputBytes = Encoding.UTF8.GetBytes(input);
-            var hashBytes = hmac.ComputeHash(inputBytes);
-
-            return useBase64
-                ? Convert.ToBase64String(hashBytes)
-                : Convert.ToHexStringLower(hashBytes);
-        }
-        catch
-        {
-            return null;
-        }
+        if (_syncingKey) { return; }
+        _vm.UpdateKeyText(TxtKey.Text);
+        _debounceTimer?.Stop();
+        _debounceTimer?.Start();
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
     {
-        var hash = TxtOutput.Text;
-        if (!string.IsNullOrEmpty(hash))
+        if (string.IsNullOrEmpty(_vm.OutputText))
         {
-            try
-            {
-                Clipboard.SetText(hash);
-                CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"HmacGenerator clipboard copy failed: {ex.Message}");
-            }
-        }
-    }
-
-    private static HMAC? CreateHmacAlgorithm(string name, byte[] key) => name switch
-    {
-        "HMAC-MD5" => new HMACMD5(key),
-        "HMAC-SHA1" => new HMACSHA1(key),
-        "HMAC-SHA256" => new HMACSHA256(key),
-        "HMAC-SHA384" => new HMACSHA384(key),
-        "HMAC-SHA512" => new HMACSHA512(key),
-        _ => null
-    };
-
-    private void OnHelpClick(object sender, RoutedEventArgs e)
-    {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        TxtHelpContent.Text = L("ToolHelpHMAC").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+
+        try
+        {
+            Clipboard.SetText(_vm.OutputText);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+        catch (ExternalException)
+        {
+            // Clipboard locked by another process.
+        }
     }
 
-    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
-    {
-        HelpPanel.Visibility = Visibility.Collapsed;
-    }
+    private void OnHelpClick(object sender, RoutedEventArgs e) =>
+        HelpPanel.Visibility = HelpPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e) => HelpPanel.Visibility = Visibility.Collapsed;
+
+    private void OnLocaleChanged(string _) => ApplyLocalization();
 
     private string L(string key) => _localizer?[key] ?? key;
-
-    public void Dispose()
-    {
-        if (_debounceTimer is not null)
-        {
-            _debounceTimer.Stop();
-            _debounceTimer = null;
-        }
-        GC.SuppressFinalize(this);
-    }
 }
