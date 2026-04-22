@@ -1,0 +1,64 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.App.Services.Handlers;
+using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Ssh;
+
+namespace Heimdall.App.Tests;
+
+public sealed class SshSessionDiagnosticFactoryTests
+{
+    [Fact]
+    public void FromClassifiedFailure_ForAuthRejected_UsesAuthStageAndPreservesCodeAndDetail()
+    {
+        var diagnostic = SshSessionDiagnosticFactory.FromClassifiedFailure(
+            new SshFailureInfo(
+                SshFailureCode.AuthRejected,
+                "Permission denied (password).",
+                true));
+
+        Assert.Equal(SessionFailureStage.SshAuth, diagnostic.Stage);
+        Assert.Equal("ErrorSshAuthRejected", diagnostic.MessageKey);
+        Assert.Equal((int)SshFailureCode.AuthRejected, diagnostic.Code);
+        Assert.Contains("Permission denied", diagnostic.Detail);
+    }
+
+    [Fact]
+    public void FromClassifiedFailure_ForHostKeyMismatch_UsesHostKeyStage()
+    {
+        var diagnostic = SshSessionDiagnosticFactory.FromClassifiedFailure(
+            new SshFailureInfo(
+                SshFailureCode.HostKeyMismatch,
+                "REMOTE HOST IDENTIFICATION HAS CHANGED!",
+                true));
+
+        Assert.Equal(SessionFailureStage.SshHostKey, diagnostic.Stage);
+        Assert.Equal("ErrorSshHostKeyMismatch", diagnostic.MessageKey);
+        Assert.Equal((int)SshFailureCode.HostKeyMismatch, diagnostic.Code);
+    }
+
+    [Fact]
+    public void CreateGatewayFailure_UsesGatewayStage()
+    {
+        var diagnostic = SshSessionDiagnosticFactory.CreateGatewayFailure("Gateway tunnel failed.");
+
+        Assert.Equal(SessionFailureStage.SshGateway, diagnostic.Stage);
+        Assert.Equal("ErrorConnectionFailed", diagnostic.MessageKey);
+        Assert.Null(diagnostic.Code);
+        Assert.Equal("Gateway tunnel failed.", diagnostic.Detail);
+    }
+}

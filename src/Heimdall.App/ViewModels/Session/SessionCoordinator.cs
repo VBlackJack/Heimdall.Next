@@ -23,6 +23,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
+using Heimdall.Core.SessionDiagnostics;
 
 namespace Heimdall.App.ViewModels.Session;
 
@@ -102,6 +103,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         // Subscribe to ServerList.SessionReady to materialize the session tab
         _main.ServerList.SessionReady += OnSessionReady;
+        _main.ServerList.SessionFailed += OnSessionFailed;
     }
 
     // ── Broadcast mode ───────────────────────────────────────────────
@@ -216,6 +218,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
         tab.OriginalServerId = originalServerId;
+        tab.FailureDetails = null;
         tab.HostControl = _embeddedSessionManager.CreateHostControl(
             tab,
             displayName,
@@ -248,6 +251,25 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             _ = SafeFireAndForgetAsync(
                 RunPostConnectSequenceAsync(tab, originalServerId, displayName, sshSession, _main.Split.GetSessionToken(tab)));
         }
+    }
+
+    /// <summary>
+    /// Creates a failed SSH tab so diagnostics can be inspected after the connection flow aborts.
+    /// </summary>
+    private void OnSessionFailed(
+        string sessionId,
+        string originalServerId,
+        string displayName,
+        string connectionType,
+        string statusText,
+        SessionDiagnostic diagnostic)
+    {
+        var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
+        tab.OriginalServerId = originalServerId;
+        tab.Status = statusText;
+        tab.FailureDetails = diagnostic;
+        tab.TunnelRoute = _main.Tunnels.ResolveRoute(sessionId);
+        _main.StatusText = statusText;
     }
 
     /// <summary>
@@ -475,6 +497,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _disposed = true;
 
         _main.ServerList.SessionReady -= OnSessionReady;
+        _main.ServerList.SessionFailed -= OnSessionFailed;
         // The 8 provider/callback wire-ups on Split + EmbeddedSessionManager
         // + ConnectionService are owned by external services and are left
         // in place on shutdown — clearing them could break other teardown

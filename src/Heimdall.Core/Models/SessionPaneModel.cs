@@ -15,6 +15,7 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.Core.SessionDiagnostics;
 
 namespace Heimdall.Core.Models;
 
@@ -65,4 +66,25 @@ public partial class SessionPaneModel : ObservableObject, ISplitContent
 
     [ObservableProperty]
     private string _environmentColor = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFailureDetails))]
+    [NotifyPropertyChangedFor(nameof(HasFailureCode))]
+    [NotifyPropertyChangedFor(nameof(HasFailureDetail))]
+    private SessionDiagnostic? _failureDetails;
+
+    /// <summary>
+    /// True when this pane has structured failure diagnostics to display.
+    /// </summary>
+    public bool HasFailureDetails => FailureDetails is not null;
+
+    /// <summary>
+    /// True when the diagnostic exposes a numeric protocol-specific code.
+    /// </summary>
+    public bool HasFailureCode => FailureDetails?.Code is not null;
+
+    /// <summary>
+    /// True when the diagnostic exposes a raw technical detail string.
+    /// </summary>
+    public bool HasFailureDetail => !string.IsNullOrWhiteSpace(FailureDetails?.Detail);
 }

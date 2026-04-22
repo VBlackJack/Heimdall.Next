@@ -17,6 +17,7 @@
 using System.Diagnostics;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
+using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
 
@@ -28,7 +29,12 @@ namespace Heimdall.App.Services;
 /// <param name="Success">Whether the connection was established.</param>
 /// <param name="ErrorMessage">Error description on failure; null on success.</param>
 /// <param name="Session">Typed session result on success; null on failure.</param>
-public sealed record ConnectionResult(bool Success, string? ErrorMessage, ISessionResult? Session);
+/// <param name="Failure">Optional structured failure details when the connection fails.</param>
+public sealed record ConnectionResult(
+    bool Success,
+    string? ErrorMessage,
+    ISessionResult? Session,
+    SessionDiagnostic? Failure = null);
 
 /// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
 public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : ISessionResult;

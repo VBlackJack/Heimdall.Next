@@ -20,6 +20,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Services.Handlers;
 using Heimdall.App.Services.Import;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
@@ -27,6 +28,7 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
+using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Core.StateMachine;
 using Microsoft.Win32;
 
@@ -101,6 +103,12 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// Parameters: sessionId, originalServerId, displayName, connectionType, session result.
     /// </summary>
     public event Action<string, string, string, string, Core.Models.ISessionResult?>? SessionReady;
+
+    /// <summary>
+    /// Raised when an SSH connection fails with structured diagnostics and should surface a failed tab.
+    /// Parameters: sessionId, originalServerId, displayName, connectionType, user-facing status text, diagnostic payload.
+    /// </summary>
+    public event Action<string, string, string, string, string, SessionDiagnostic>? SessionFailed;
 
     /// <summary>
     /// Raised when a TOOL:* entry is double-clicked. MainViewModel handles opening the tool tab.
@@ -594,10 +602,20 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return outcome.Status switch
             {
                 BulkConnectOutcomeStatus.Success => true,
-                BulkConnectOutcomeStatus.PreflightFailed => ShowConnectionError(
+                BulkConnectOutcomeStatus.PreflightFailed => ShowSshFailureAndConnectionError(
+                    serverDto,
+                    sessionId,
+                    originalId,
+                    server,
+                    outcome,
                     _localizer["ErrorPreflightTitle"],
                     outcome.ErrorMessage ?? _localizer["ErrorPreflightFailed"]),
-                BulkConnectOutcomeStatus.ConnectionFailed => ShowConnectionError(
+                BulkConnectOutcomeStatus.ConnectionFailed => ShowSshFailureAndConnectionError(
+                    serverDto,
+                    sessionId,
+                    originalId,
+                    server,
+                    outcome,
                     _localizer["ErrorConnectionTitle"],
                     outcome.ErrorMessage ?? _localizer["ErrorConnectionFailed"]),
                 BulkConnectOutcomeStatus.Cancelled => false,
@@ -626,7 +644,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             server.ConnectionState = "Error";
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.PreflightFailed,
-                preflight.Message ?? _localizer["ErrorPreflightFailed"]);
+                preflight.Message ?? _localizer["ErrorPreflightFailed"],
+                string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+                    ? SshSessionDiagnosticFactory.FromPreflight(preflight)
+                    : null);
         }
 
         serverDto.Id = sessionId;
@@ -703,7 +724,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             server.ConnectionState = "Error";
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.ConnectionFailed,
-                result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
+                result.ErrorMessage ?? _localizer["ErrorConnectionFailed"],
+                result.Failure);
         }
         catch (OperationCanceledException)
         {
@@ -717,7 +739,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             server.ConnectionState = "Error";
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.ConnectionFailed,
-                failure.Message);
+                failure.Message,
+                string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+                    ? SshSessionDiagnosticFactory.FromClassifiedFailure(failure)
+                    : null);
         }
         finally
         {
@@ -852,6 +877,41 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     {
         _dialogService.ShowError(title, message);
         return false;
+    }
+
+    private bool ShowSshFailureAndConnectionError(
+        ServerProfileDto serverDto,
+        string sessionId,
+        string originalId,
+        ServerItemViewModel server,
+        BulkConnectOutcome outcome,
+        string title,
+        string message)
+    {
+        PublishSshFailureSession(serverDto, sessionId, originalId, server, outcome);
+        return ShowConnectionError(title, message);
+    }
+
+    private void PublishSshFailureSession(
+        ServerProfileDto serverDto,
+        string sessionId,
+        string originalId,
+        ServerItemViewModel server,
+        BulkConnectOutcome outcome)
+    {
+        if (!string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+            || outcome.Failure is null)
+        {
+            return;
+        }
+
+        SessionFailed?.Invoke(
+            sessionId,
+            originalId,
+            server.DisplayName,
+            serverDto.ConnectionType,
+            outcome.ErrorMessage ?? _localizer["ErrorConnectionFailed"],
+            outcome.Failure);
     }
 
     [RelayCommand]
@@ -1694,4 +1754,5 @@ internal enum BulkConnectOutcomeStatus
 
 internal readonly record struct BulkConnectOutcome(
     BulkConnectOutcomeStatus Status,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    SessionDiagnostic? Failure = null);
