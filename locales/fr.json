@@ -2561,6 +2561,8 @@
   "SplitToggleOrientation": "Changer l'orientation",
   "SplitCloseSecondary": "Fermer le panneau secondaire",
   "SplitReconnectSecondary": "Reconnecter le secondaire",
+  "SessionPaneBtnCloseShort": "Fermer",
+  "SessionPaneBtnReconnectShort": "Reconnecter",
   "SplitSecondaryDisconnected": "Session deconnectee",
   "SplitSecondaryConnecting": "Connexion en cours...",
   "SplitDropToMerge": "Deposer pour diviser",
