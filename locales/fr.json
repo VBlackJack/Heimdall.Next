@@ -2503,6 +2503,9 @@
   "ToolsSharingServed": "Servi\u00a0: {0} via {1}",
   "ToolsSharingHelpTitle": "Serveur de fichiers rapide",
   "ToolsSharingHelp": "Dossier partag\u00e9\u00a0: {0}\n\nURL du serveur\u00a0: {1}\n\nUtilisez ces commandes sur le serveur distant pour t\u00e9l\u00e9charger des fichiers\u00a0:\n\n  wget {2}\n  curl {3}\n  tftp {4}\n\nL'URL a \u00e9t\u00e9 copi\u00e9e dans votre presse-papiers.\nCollez-la dans votre terminal SSH pour t\u00e9l\u00e9charger des fichiers.\n\nCliquez sur \u00ab\u00a0Arr\u00eater le serveur\u00a0\u00bb pour stopper le partage.",
+  "CbxEnableTftpShare": "Activer le partage TFTP",
+  "LblTftpNoAuthWarning": "Le TFTP n'a aucune authentification - activez-le uniquement sur des LAN de confiance.",
+  "LblTftpDisabledHint": "(TFTP d\u00e9sactiv\u00e9)",
 
   "X11ServerNotFound": "Aucun serveur X11 trouv\u00e9. Installez VcXsrv ou Xming pour le transfert X11.",
   "X11ServerStarted": "Serveur X11 d\u00e9marr\u00e9 : {0}",
