@@ -38,12 +38,12 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedSshView : UserControl, IDisposable
 {
-    private static readonly (string Tag, string RelativePath, string WrapperStart, string WrapperEnd)[] InlineAssets =
+    private static readonly (string Tag, Func<string> ContentFactory, string WrapperStart, string WrapperEnd)[] InlineAssets =
     [
-        ("<link rel=\"stylesheet\" href=\"./Terminal/xterm.min.css\" />", Path.Combine("Terminal", "xterm.min.css"), "<style>", "</style>"),
-        ("<script src=\"./Terminal/xterm.min.js\"></script>", Path.Combine("Terminal", "xterm.min.js"), "<script>", "</script>"),
-        ("<script src=\"./Terminal/addon-fit.min.js\"></script>", Path.Combine("Terminal", "addon-fit.min.js"), "<script>", "</script>"),
-        ("<script src=\"./Terminal/addon-webgl.min.js\"></script>", Path.Combine("Terminal", "addon-webgl.min.js"), "<script>", "</script>")
+        ("<link rel=\"stylesheet\" href=\"./Terminal/xterm.min.css\" />", static () => TerminalAssetsLoader.XtermCss, "<style>", "</style>"),
+        ("<script src=\"./Terminal/xterm.min.js\"></script>", static () => TerminalAssetsLoader.XtermJs, "<script>", "</script>"),
+        ("<script src=\"./Terminal/addon-fit.min.js\"></script>", static () => TerminalAssetsLoader.AddonFitJs, "<script>", "</script>"),
+        ("<script src=\"./Terminal/addon-webgl.min.js\"></script>", static () => TerminalAssetsLoader.AddonWebglJs, "<script>", "</script>")
     ];
 
     private static readonly byte[] KeepAliveCr = [0x0D];
@@ -1410,11 +1410,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private string GetTerminalHtml()
     {
-        var html = ReadTerminalAsset("terminal.html");
+        var html = TerminalAssetsLoader.TerminalHtml;
 
         foreach (var asset in InlineAssets)
         {
-            var content = ReadTerminalAsset(asset.RelativePath);
+            var content = asset.ContentFactory();
             html = html.Replace(
                 asset.Tag,
                 asset.WrapperStart + content + asset.WrapperEnd,
@@ -1465,16 +1465,5 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         // Match pattern like: background: '#282A36' or background: 'rgba(...)'
         var match = Regex.Match(themeJson, $@"{key}:\s*'([^']+)'");
         return match.Success ? match.Groups[1].Value : fallback;
-    }
-
-    private static string ReadTerminalAsset(string relativePath)
-    {
-        var fullPath = Path.Combine(AppContext.BaseDirectory, "Assets", relativePath);
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException($"Terminal asset not found: {fullPath}", fullPath);
-        }
-
-        return File.ReadAllText(fullPath);
     }
 }
