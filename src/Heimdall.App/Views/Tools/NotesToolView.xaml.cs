@@ -36,6 +36,7 @@ namespace Heimdall.App.Views.Tools;
 
 public partial class NotesToolView : UserControl, IToolView
 {
+    private const double NotesSidebarCollapseWidth = 760;
     private readonly record struct NotesLaunchRequest(string? PreferredPath, NoteTemplateKind? TemplateKind);
     private const string MarkdownLinkSuffix = "](url)";
     private const string MarkdownLinkTemplate = "[text](url)";
@@ -1508,7 +1509,7 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        if (ActualWidth < 920)
+        if (ActualWidth < NotesSidebarCollapseWidth)
         {
             if (_sidebarVisible)
             {
