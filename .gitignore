@@ -24,6 +24,10 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
+# Local architect scratchpad (never committed)
+_bookkeeping/
+prompts/
+
 ## WebView2 Fixed Version Runtime (downloaded per-machine via Setup-WebView2.ps1)
 runtimes/
 
