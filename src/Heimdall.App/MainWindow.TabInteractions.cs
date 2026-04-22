@@ -168,45 +168,48 @@ public partial class MainWindow
 
     private void OnTabDragOver(object sender, System.Windows.DragEventArgs e)
     {
+        if (!e.Data.GetDataPresent("SessionTab"))
+        {
+            return;
+        }
+
         ClearTabDropHighlight();
 
-        if (e.Data.GetDataPresent("SessionTab"))
-        {
-            e.Effects = System.Windows.DragDropEffects.Move;
+        e.Effects = System.Windows.DragDropEffects.Move;
 
-            var targetTab = ResolveDropTargetTab(e);
-            if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
-            {
-                DropTargetVisualState.SetIsDropTarget(targetTab, true);
-                _tabState.LastDropHighlight = targetTab;
-                ContentDropZone.Visibility = Visibility.Collapsed;
-            }
-            else if (targetTab is null && _tabState.DragItem is not null)
-            {
-                // Dragging over the content area — show split drop zone
-                // Allow merging into already-split sessions (N-pane support)
-                if (DataContext is MainViewModel vm
-                    && vm.DragDisplaySession is not null
-                    && vm.DragDisplaySession != _tabState.DragItem)
-                {
-                    ContentDropZone.Visibility = Visibility.Visible;
-                }
-            }
-        }
-        else
+        var targetTab = ResolveDropTargetTab(e);
+        if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
         {
-            e.Effects = System.Windows.DragDropEffects.None;
+            DropTargetVisualState.SetIsDropTarget(targetTab, true);
+            _tabState.LastDropHighlight = targetTab;
+            ContentDropZone.Visibility = Visibility.Collapsed;
         }
+        else if (targetTab is null && _tabState.DragItem is not null)
+        {
+            // Dragging over the content area — show split drop zone
+            // Allow merging into already-split sessions (N-pane support)
+            if (DataContext is MainViewModel vm
+                && vm.DragDisplaySession is not null
+                && vm.DragDisplaySession != _tabState.DragItem)
+            {
+                ContentDropZone.Visibility = Visibility.Visible;
+            }
+        }
+
         e.Handled = true;
     }
 
     private void OnTabDrop(object sender, System.Windows.DragEventArgs e)
     {
+        if (!e.Data.GetDataPresent("SessionTab"))
+        {
+            return;
+        }
+
         ClearTabDropHighlight();
         ContentDropZone.Visibility = Visibility.Collapsed;
 
         if (DataContext is not MainViewModel vm) return;
-        if (!e.Data.GetDataPresent("SessionTab")) return;
 
         var draggedItem = e.Data.GetData("SessionTab") as SessionTabViewModel;
         if (draggedItem is null) return;
