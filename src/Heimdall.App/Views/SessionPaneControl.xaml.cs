@@ -102,6 +102,7 @@ public partial class SessionPaneControl : UserControl
                 UpdateOverlays();
                 break;
             case nameof(SessionPaneModel.Status):
+            case nameof(SessionPaneModel.FailureDetails):
                 UpdateOverlays();
                 break;
         }
@@ -127,17 +128,21 @@ public partial class SessionPaneControl : UserControl
         }
 
         var hasContent = _model.HostControl is not null;
+        var hasFailureDetails = _model.HasFailureDetails;
         var status = _model.Status ?? "";
 
         // Loading: pane exists but host control not yet assigned (connection in progress)
-        LoadingOverlay.Visibility = !hasContent
+        LoadingOverlay.Visibility = !hasContent && !hasFailureDetails
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        // Disconnected: content exists but status indicates disconnect/error
-        DisconnectedOverlay.Visibility = hasContent
-            && (string.Equals(status, nameof(ConnectionState.Disconnected), StringComparison.OrdinalIgnoreCase)
+        // Disconnected: show either a failed connection without hosted content,
+        // or an established pane whose host later reports disconnection/error.
+        DisconnectedOverlay.Visibility = hasFailureDetails
+            || (hasContent
+                && (string.Equals(status, nameof(ConnectionState.Disconnected), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(status, nameof(ConnectionState.Error), StringComparison.OrdinalIgnoreCase))
+                )
             ? Visibility.Visible
             : Visibility.Collapsed;
     }

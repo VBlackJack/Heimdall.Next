@@ -75,7 +75,11 @@ internal sealed class SshHandler : IProtocolHandler
 
         if (!tunnelOk)
         {
-            return new ConnectionResult(false, tunnelError, null);
+            return new ConnectionResult(
+                false,
+                tunnelError,
+                null,
+                SshSessionDiagnosticFactory.CreateGatewayFailure(tunnelError));
         }
 
         if (server.SshX11Forwarding)
@@ -149,7 +153,11 @@ internal sealed class SshHandler : IProtocolHandler
             }
 
             _connectionSm.SetError(server.Id, failure.Message);
-            return new ConnectionResult(false, failure.Message, null);
+            return new ConnectionResult(
+                false,
+                failure.Message,
+                null,
+                SshSessionDiagnosticFactory.FromClassifiedFailure(failure));
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
@@ -171,7 +179,11 @@ internal sealed class SshHandler : IProtocolHandler
         {
             var msg = _localizer["ErrorPuttyNotConfigured"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreateGenericFailure("ErrorPuttyNotConfigured", msg));
         }
 
         if (!string.IsNullOrEmpty(server.SshUsername) &&
@@ -179,14 +191,22 @@ internal sealed class SshHandler : IProtocolHandler
         {
             var msg = _localizer["ErrorInvalidSshUsername"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidSshUsername", msg));
         }
 
         if (!InputValidator.Validate(targetHost, "Address"))
         {
             var msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidTargetHost", msg));
         }
 
         var args = new List<string> { "-ssh" };
@@ -235,7 +255,11 @@ internal sealed class SshHandler : IProtocolHandler
         {
             Core.Logging.FileLogger.Error("PuTTY launch failed", ex);
             _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(false, ex.Message, null);
+            return new ConnectionResult(
+                false,
+                ex.Message,
+                null,
+                SshSessionDiagnosticFactory.CreateGenericFailure("ErrorConnectionFailed", ex.Message));
         }
     }
 
@@ -258,7 +282,14 @@ internal sealed class SshHandler : IProtocolHandler
                 ? _localizer.Format("ErrorPlinkNotConfiguredWithReason", originalFailure)
                 : _localizer["ErrorPlinkNotConfigured"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                    "ErrorPlinkNotConfigured",
+                    msg,
+                    originalFailure));
         }
 
         if (!string.IsNullOrEmpty(server.SshUsername) &&
@@ -266,14 +297,22 @@ internal sealed class SshHandler : IProtocolHandler
         {
             var msg = _localizer["ErrorInvalidSshUsername"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidSshUsername", msg));
         }
 
         if (!InputValidator.Validate(targetHost, "Address"))
         {
             var msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
+            return new ConnectionResult(
+                false,
+                msg,
+                null,
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidTargetHost", msg));
         }
 
         var argParts = new List<string> { "-ssh", "-t", "-no-antispoof" };
@@ -330,7 +369,11 @@ internal sealed class SshHandler : IProtocolHandler
             pipeSession.Dispose();
             Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
             _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(false, ex.Message, null);
+            return new ConnectionResult(
+                false,
+                ex.Message,
+                null,
+                SshSessionDiagnosticFactory.CreatePipeModeFailure(ex.Message));
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);

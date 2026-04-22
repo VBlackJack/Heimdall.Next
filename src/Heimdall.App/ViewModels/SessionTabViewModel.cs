@@ -16,6 +16,7 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.Core.Models;
+using Heimdall.Core.SessionDiagnostics;
 
 namespace Heimdall.App.ViewModels;
 
@@ -110,6 +111,19 @@ public partial class SessionTabViewModel : ObservableObject
             OnPropertyChanged(nameof(HeaderToolTip));
         }
     }
+
+    public SessionDiagnostic? FailureDetails
+    {
+        get => PrimaryPane.FailureDetails;
+        set
+        {
+            PrimaryPane.FailureDetails = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasFailureDetails));
+        }
+    }
+
+    public bool HasFailureDetails => PrimaryPane.HasFailureDetails;
 
     public object? HostControl
     {
@@ -304,6 +318,8 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(TunnelRoute));
         OnPropertyChanged(nameof(HeaderToolTip));
         OnPropertyChanged(nameof(EnvironmentColor));
+        OnPropertyChanged(nameof(FailureDetails));
+        OnPropertyChanged(nameof(HasFailureDetails));
         OnPropertyChanged(nameof(IsSplit));
         OnPropertyChanged(nameof(SplitOrientation));
         OnPropertyChanged(nameof(SplitRatio));

@@ -1,0 +1,136 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Ssh;
+
+namespace Heimdall.App.Services.Handlers;
+
+/// <summary>
+/// Maps SSH failure signals to the shared session diagnostic contract.
+/// </summary>
+internal static class SshSessionDiagnosticFactory
+{
+    internal static SessionDiagnostic FromClassifiedFailure(SshFailureInfo failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+
+        return new SessionDiagnostic(
+            MapStage(failure.Code),
+            GetMessageKey(failure.Code, "ErrorConnectionFailed"),
+            (int)failure.Code,
+            failure.Message);
+    }
+
+    internal static SessionDiagnostic FromPreflight(PreflightResult preflight)
+    {
+        ArgumentNullException.ThrowIfNull(preflight);
+
+        return new SessionDiagnostic(
+            SessionFailureStage.SshPreflight,
+            GetMessageKey(preflight.FailureCode, "ErrorPreflightFailed"),
+            preflight.FailureCode is null ? null : (int)preflight.FailureCode.Value,
+            preflight.Message);
+    }
+
+    internal static SessionDiagnostic CreateGatewayFailure(string? detail, string messageKey = "ErrorConnectionFailed")
+    {
+        return new SessionDiagnostic(SessionFailureStage.SshGateway, messageKey, null, detail);
+    }
+
+    internal static SessionDiagnostic CreatePreflightFailure(
+        string messageKey,
+        string? detail,
+        SshFailureCode? code = null)
+    {
+        return new SessionDiagnostic(
+            SessionFailureStage.SshPreflight,
+            messageKey,
+            code is null ? null : (int)code.Value,
+            detail);
+    }
+
+    internal static SessionDiagnostic CreatePlinkFallbackFailure(
+        string messageKey,
+        string? detail,
+        SshFailureCode? code = null)
+    {
+        return new SessionDiagnostic(
+            SessionFailureStage.SshPlinkFallback,
+            messageKey,
+            code is null ? null : (int)code.Value,
+            detail);
+    }
+
+    internal static SessionDiagnostic CreatePipeModeFailure(string? detail)
+    {
+        return new SessionDiagnostic(
+            SessionFailureStage.SshPipeMode,
+            "ErrorConnectionFailed",
+            null,
+            detail);
+    }
+
+    internal static SessionDiagnostic CreateGenericFailure(string messageKey, string? detail)
+    {
+        return new SessionDiagnostic(
+            SessionFailureStage.GenericFailure,
+            messageKey,
+            null,
+            detail);
+    }
+
+    internal static SessionFailureStage MapStage(SshFailureCode? code)
+    {
+        return code switch
+        {
+            SshFailureCode.AuthRejected
+                or SshFailureCode.KeyRejected
+                or SshFailureCode.PasswordRejected
+                or SshFailureCode.NoSupportedAuth
+                or SshFailureCode.TooManyAuthFailures
+                or SshFailureCode.KeyboardInteractiveNoPassword
+                or SshFailureCode.AuthTimeout
+                => SessionFailureStage.SshAuth,
+
+            SshFailureCode.HostKeyMismatch
+                => SessionFailureStage.SshHostKey,
+
+            SshFailureCode.ForwardingFailed
+                or SshFailureCode.PortInUse
+                or SshFailureCode.TunnelBroken
+                or SshFailureCode.ChainDepthExceeded
+                or SshFailureCode.CircularChainDependency
+                => SessionFailureStage.SshGateway,
+
+            SshFailureCode.PageantKeyUnavailable
+                or SshFailureCode.PageantNoIdentities
+                or SshFailureCode.PassphraseRequired
+                or SshFailureCode.KeyFileInvalid
+                or SshFailureCode.KeyFileNotFound
+                => SessionFailureStage.SshPreflight,
+
+            _ => SessionFailureStage.GenericFailure,
+        };
+    }
+
+    internal static string GetMessageKey(SshFailureCode? code, string fallbackKey)
+    {
+        return code is null
+            ? fallbackKey
+            : $"ErrorSsh{code.Value}";
+    }
+}
