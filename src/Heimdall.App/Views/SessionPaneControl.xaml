@@ -134,17 +134,22 @@
                                    Margin="0,6,0,0"/>
                     </Grid>
                 </Expander>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <WrapPanel HorizontalAlignment="Center">
                     <Button x:Name="ReconnectButton"
-                            AutomationProperties.Name="{loc:Translate A11yReconnectPane}"
-                            Content="{Binding DataContext.ReconnectSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Margin="0,0,8,0"
-                            Padding="16,6"/>
+                            AutomationProperties.Name="{loc:Translate SplitReconnectSecondary}"
+                            Content="{loc:Translate SessionPaneBtnReconnectShort}"
+                            ToolTip="{loc:Translate SplitReconnectSecondary}"
+                            Margin="3,3"
+                            MinWidth="108"
+                            Padding="10,5"/>
                     <Button x:Name="ClosePaneButton"
-                            AutomationProperties.Name="{loc:Translate A11yClosePane}"
-                            Content="{Binding DataContext.CloseSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Padding="16,6"/>
-                </StackPanel>
+                            AutomationProperties.Name="{loc:Translate SplitCloseSecondary}"
+                            Content="{loc:Translate SessionPaneBtnCloseShort}"
+                            ToolTip="{loc:Translate SplitCloseSecondary}"
+                            Margin="3,3"
+                            MinWidth="108"
+                            Padding="10,5"/>
+                </WrapPanel>
             </StackPanel>
         </Border>
     </Grid>

@@ -2562,6 +2562,8 @@
   "SplitToggleOrientation": "Toggle Split Orientation",
   "SplitCloseSecondary": "Close Secondary Pane",
   "SplitReconnectSecondary": "Reconnect Secondary",
+  "SessionPaneBtnCloseShort": "Close",
+  "SessionPaneBtnReconnectShort": "Reconnect",
   "SplitSecondaryDisconnected": "Session disconnected",
   "SplitSecondaryConnecting": "Connecting...",
   "SplitDropToMerge": "Drop to split",
