@@ -110,6 +110,7 @@ public partial class NotesToolView : UserControl, IToolView
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         StartInitializationIfNeeded(fromLoadedEvent: true);
+        Dispatcher.BeginInvoke(UpdateResponsiveLayout, DispatcherPriority.Loaded);
     }
 
     private async void StartInitializationIfNeeded(bool fromLoadedEvent = false)
@@ -1517,7 +1518,7 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        if (ActualWidth >= 1100 && _responsiveSidebarHidden)
+        if (_responsiveSidebarHidden)
         {
             _responsiveSidebarHidden = false;
             SetSidebarVisibility(true, persistWidth: false);
