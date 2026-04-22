@@ -78,10 +78,6 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
                                AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DetailTextBlock"
-                               Visibility="Collapsed"
-                               FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </DockPanel>
         </Border>

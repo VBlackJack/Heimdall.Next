@@ -2310,6 +2310,8 @@
   "RdpDisconnectPasswordExpired": "Le mot de passe a expir\u00e9 et doit \u00eatre chang\u00e9 avant la connexion.",
   "RdpDisconnectCredSspPolicyError": "La strat\u00e9gie CredSSP emp\u00eache l'envoi des identifiants \u00e0 l'ordinateur distant.",
   "RdpDisconnectResolutionChangeTimeout": "La session a \u00e9t\u00e9 d\u00e9connect\u00e9e apr\u00e8s un changement de r\u00e9solution.",
+  "RdpDisconnectUnknownCode": "La session Bureau \u00e0 distance s'est termin\u00e9e avec un code de d\u00e9connexion inconnu.",
+  "RdpFatalError": "Le Bureau \u00e0 distance a signal\u00e9 une erreur fatale.",
 
   "BtnDisconnectSession": "D\u00e9connecter",
   "BtnReconnectSession": "Reconnecter",
@@ -3886,6 +3888,7 @@
   "SessionFailureStageRdpCredentialWrite": "\u00c9criture identifiants RDP",
   "SessionFailureStageRdpFileWrite": "\u00c9criture fichier RDP",
   "SessionFailureStageRdpLaunch": "Lancement RDP",
+  "SessionFailureStageRdpActiveXDisconnect": "D\u00e9connexion RDP",
   "SessionFailureStageGeneric": "\u00c9chec g\u00e9n\u00e9rique",
   "ToolNetMapStatusEnriching": "Enrichissement de {0} : {1}",
   "ToolNetMapTipIp": "IP",
