@@ -62,6 +62,7 @@ public sealed class AppSettings
     public int DefaultSshTunnelPort { get; set; } = DefaultPorts.SshTunnel;
     public int EphemeralHttpPort { get; set; } = 8080;
     public int EphemeralTftpPort { get; set; } = 69;
+    public bool FileShareEnableTftp { get; set; }
 
     // Logging
     public bool EnableLogging { get; set; } = true;

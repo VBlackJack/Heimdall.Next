@@ -16,7 +16,10 @@
 
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using Heimdall.App.Services;
 
 namespace Heimdall.App.Tests;
@@ -65,6 +68,21 @@ public class EphemeralFileServerTests : IDisposable
     private static bool IsPortException(Exception ex) =>
         ex is HttpListenerException or SocketException;
 
+    private static int GetFreeTcpPort()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        try
+        {
+            return ((IPEndPoint)listener.LocalEndpoint).Port;
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
     // ── Initial state ─────────────────────────────────────────────────
 
     [Fact]
@@ -78,6 +96,13 @@ public class EphemeralFileServerTests : IDisposable
     public void NewInstance_ServingDirectory_Is_Empty()
     {
         Assert.Equal(string.Empty, _server.ServingDirectory);
+    }
+
+    [Fact]
+    public void NewInstance_Generates_Url_Safe_AccessToken()
+    {
+        Assert.Matches(new Regex("^[A-Za-z0-9_-]+$"), _server.AccessToken);
+        Assert.True(_server.AccessToken.Length >= 40);
     }
 
     [Fact]
@@ -163,6 +188,109 @@ public class EphemeralFileServerTests : IDisposable
         }
 
         Assert.True(_server.IsHttpRunning);
+    }
+
+    [Fact]
+    public async Task Http_Request_Without_Token_Returns_Unauthorized()
+    {
+        var httpPort = GetFreeTcpPort();
+
+        try
+        {
+            await _server.StartHttpServerAsync(_testDir, httpPort);
+        }
+        catch (Exception ex) when (IsPortException(ex))
+        {
+            return; // skip — port unavailable in this environment
+        }
+
+        await Task.Delay(50);
+
+        using var client = new HttpClient();
+        using var response = await client.GetAsync($"http://localhost:{httpPort}/");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Http_Request_With_Valid_Header_Token_Returns_Ok()
+    {
+        var httpPort = GetFreeTcpPort();
+        var filePath = Path.Combine(_testDir, "header-token.txt");
+        await File.WriteAllTextAsync(filePath, "header-ok");
+
+        try
+        {
+            await _server.StartHttpServerAsync(_testDir, httpPort);
+        }
+        catch (Exception ex) when (IsPortException(ex))
+        {
+            return; // skip — port unavailable in this environment
+        }
+
+        await Task.Delay(50);
+
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:{httpPort}/header-token.txt");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _server.AccessToken);
+
+        using var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("header-ok", body);
+    }
+
+    [Fact]
+    public async Task Http_Request_With_Valid_Query_Token_Returns_Ok()
+    {
+        var httpPort = GetFreeTcpPort();
+        var filePath = Path.Combine(_testDir, "query-token.txt");
+        await File.WriteAllTextAsync(filePath, "query-ok");
+
+        try
+        {
+            await _server.StartHttpServerAsync(_testDir, httpPort);
+        }
+        catch (Exception ex) when (IsPortException(ex))
+        {
+            return; // skip — port unavailable in this environment
+        }
+
+        await Task.Delay(50);
+
+        using var client = new HttpClient();
+        using var response = await client.GetAsync(
+            $"http://localhost:{httpPort}/query-token.txt?token={_server.AccessToken}");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("query-ok", body);
+    }
+
+    [Fact]
+    public async Task Http_Request_With_Wrong_Token_Returns_Unauthorized()
+    {
+        var httpPort = GetFreeTcpPort();
+
+        try
+        {
+            await _server.StartHttpServerAsync(_testDir, httpPort);
+        }
+        catch (Exception ex) when (IsPortException(ex))
+        {
+            return; // skip — port unavailable in this environment
+        }
+
+        await Task.Delay(50);
+
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:{httpPort}/");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "wrong-token");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     // ── TFTP lifecycle ────────────────────────────────────────────────

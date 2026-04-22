@@ -44,6 +44,13 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabContextCallbacks
 {
+    public static readonly DependencyProperty IsFileShareTftpEnabledProperty =
+        DependencyProperty.Register(
+            nameof(IsFileShareTftpEnabled),
+            typeof(bool),
+            typeof(MainWindow),
+            new PropertyMetadata(false));
+
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -80,9 +87,16 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private bool _closeConfirmed;
     private bool _suppressSidebarLaunch;
     private bool _isRdpImportDragActive;
+    private bool _suppressFileShareStartDialog;
     private OnboardingFlowViewModel? _onboardingVm;
 
     public FileShareService FileShareService => _fileShareService;
+
+    public bool IsFileShareTftpEnabled
+    {
+        get => (bool)GetValue(IsFileShareTftpEnabledProperty);
+        set => SetValue(IsFileShareTftpEnabledProperty, value);
+    }
 
     // Stored delegate references so the long-lived service/ViewModel events
     // wired in the constructor can be unsubscribed in OnClosed. Without this,
@@ -212,6 +226,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             if (viewModel.CurrentSettings is { } loadedSettings)
             {
                 RestoreWindowBounds(loadedSettings);
+                IsFileShareTftpEnabled = loadedSettings.FileShareEnableTftp;
             }
             PopulateAboutSection();
 
@@ -2065,6 +2080,43 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         await _fileShareService.StartAsync(dialog.SelectedPath, vm.CurrentSettings);
     }
 
+    private async void OnEnableTftpShareClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || vm.CurrentSettings is null)
+        {
+            return;
+        }
+
+        var previousValue = vm.CurrentSettings.FileShareEnableTftp;
+        var enableTftp = IsFileShareTftpEnabled;
+
+        try
+        {
+            vm.CurrentSettings.FileShareEnableTftp = enableTftp;
+            await vm.ConfigManager.MergeSettingAsync(settings => settings.FileShareEnableTftp = enableTftp);
+
+            if (_fileShareService.IsSharing && _fileShareService.CurrentDirectory is { } currentDirectory)
+            {
+                _suppressFileShareStartDialog = true;
+                try
+                {
+                    await _fileShareService.StopAsync();
+                    await _fileShareService.StartAsync(currentDirectory, vm.CurrentSettings);
+                }
+                finally
+                {
+                    _suppressFileShareStartDialog = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"[MainWindow] Failed to update TFTP file share setting: {ex.Message}");
+            vm.CurrentSettings.FileShareEnableTftp = previousValue;
+            IsFileShareTftpEnabled = previousValue;
+        }
+    }
+
     // ── IContextMenuCallbacks ─────────────────────────────────────────
     // Window-layer callbacks surfaced to ContextMenuFactory for actions that
     // require DataContext access, modal dialog ownership, or window-local state.
@@ -2163,26 +2215,46 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         if (DataContext is not MainViewModel vm) return;
 
         Mw_SharingStatus.Text = e.BaseUrl;
-        Mw_SharingStatus.Visibility = Visibility.Visible;
+        Mw_SharingStatusPanel.Visibility = Visibility.Visible;
+        Mw_TftpCommandText.Text = e.TftpCommand ?? string.Empty;
+        Mw_TftpTemplatePanel.Visibility = e.IsTftpEnabled && !string.IsNullOrWhiteSpace(e.TftpCommand)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        Mw_TftpDisabledHint.Visibility = !e.IsTftpEnabled
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
-        try { Clipboard.SetText(e.BaseUrl); }
-        catch { /* clipboard may fail in some RDP sessions */ }
+        if (!_suppressFileShareStartDialog)
+        {
+            try { Clipboard.SetText(e.BaseUrl); }
+            catch { /* clipboard may fail in some RDP sessions */ }
+        }
 
         var helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
-            e.FolderName, e.BaseUrl, e.WgetCommand, e.CurlCommand, e.TftpCommand);
+            e.FolderName,
+            e.BaseUrl,
+            e.WgetCommand,
+            e.CurlCommand,
+            e.TftpCommand ?? vm.Localize("LblTftpDisabledHint"));
 
         vm.StatusText = string.Format(vm.Localize("ToolsSharingReady"), e.BaseUrl);
 
-        MessageBox.Show(helpMessage,
-            vm.Localize("ToolsSharingHelpTitle"),
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        if (!_suppressFileShareStartDialog)
+        {
+            MessageBox.Show(helpMessage,
+                vm.Localize("ToolsSharingHelpTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
     }
 
     private void OnFileShareSharingStopped(object? sender, EventArgs e)
     {
-        Mw_SharingStatus.Visibility = Visibility.Collapsed;
+        Mw_SharingStatusPanel.Visibility = Visibility.Collapsed;
         Mw_SharingStatus.Text = string.Empty;
+        Mw_TftpCommandText.Text = string.Empty;
+        Mw_TftpTemplatePanel.Visibility = Visibility.Collapsed;
+        Mw_TftpDisabledHint.Visibility = Visibility.Collapsed;
 
         if (DataContext is MainViewModel vm)
         {
@@ -2200,6 +2272,28 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 fileName,
                 _fileShareService.BaseUrl);
         });
+    }
+
+    private void OnCopyShareUrlClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_fileShareService.BaseUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(_fileShareService.BaseUrl);
+
+            if (DataContext is MainViewModel vm)
+            {
+                vm.StatusText = string.Format(vm.Localize("StatusCopiedToClipboard"), _fileShareService.BaseUrl);
+            }
+        }
+        catch
+        {
+            // Clipboard access may fail in some remote desktop contexts.
+        }
     }
 
     private void RestoreWindowBounds(Heimdall.Core.Configuration.AppSettings settings)

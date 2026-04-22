@@ -39,7 +39,7 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
     /// <summary>True while either the HTTP or TFTP listener is running.</summary>
     public bool IsSharing => _server is { IsHttpRunning: true } or { IsTftpRunning: true };
 
-    /// <summary>Base URL of the running HTTP listener, or <c>null</c> when stopped.</summary>
+    /// <summary>Tokenized base URL of the running HTTP listener, or <c>null</c> when stopped.</summary>
     public string? BaseUrl { get; private set; }
 
     /// <summary>Filesystem directory currently being shared, or <c>null</c> when stopped.</summary>
@@ -94,6 +94,7 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
 
         var httpPort = settings?.EphemeralHttpPort ?? 8080;
         var tftpPort = settings?.EphemeralTftpPort ?? 69;
+        var enableTftp = settings?.FileShareEnableTftp ?? false;
 
         try
         {
@@ -104,13 +105,16 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
             FileLogger.Error($"Failed to start HTTP server: {ex.Message}");
         }
 
-        try
+        if (enableTftp)
         {
-            await server.StartTftpServerAsync(directory, tftpPort).ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
+            try
+            {
+                await server.StartTftpServerAsync(directory, tftpPort).ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
+            }
         }
 
         if (!server.IsHttpRunning && !server.IsTftpRunning)
@@ -120,8 +124,12 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
         }
 
         var localIp = EphemeralFileServer.GetLocalIpAddress();
-        var baseUrl = $"http://{localIp}:{httpPort}";
+        var httpHost = server.IsHttpLocalOnly ? "localhost" : localIp;
+        var publishedBaseUrl = $"http://{httpHost}:{httpPort}";
+        var baseUrl = server.BuildUrl(publishedBaseUrl);
         var folderName = Path.GetFileName(directory);
+        var wgetUrl = server.BuildUrl(publishedBaseUrl, "<filename>");
+        var curlUrl = $"{publishedBaseUrl}/<filename>";
 
         server.FileServed += OnInnerFileServed;
 
@@ -130,7 +138,9 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
         BaseUrl = baseUrl;
         NotifyShareStateChanged();
 
-        FileLogger.Info($"[FileShareService] Sharing {directory} at {baseUrl}");
+        FileLogger.Info(
+            $"[FileShareService] Sharing {directory} at {publishedBaseUrl}"
+            + (server.IsHttpLocalOnly ? " (localhost-only fallback)" : ""));
 
         SharingStarted?.Invoke(this, new FileShareStartedEventArgs
         {
@@ -140,9 +150,10 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
             LocalIpAddress = localIp,
             HttpPort = httpPort,
             TftpPort = tftpPort,
-            WgetCommand = $"wget {baseUrl}/<filename>",
-            CurlCommand = $"curl -O {baseUrl}/<filename>",
-            TftpCommand = $"tftp {localIp} -c get <filename>"
+            WgetCommand = $"wget \"{wgetUrl}\"",
+            CurlCommand = $"curl -H \"Authorization: Bearer {server.AccessToken}\" -O \"{curlUrl}\"",
+            TftpCommand = server.IsTftpRunning ? $"tftp {localIp} -c get <filename>" : null,
+            IsTftpEnabled = server.IsTftpRunning
         });
 
         return true;
@@ -209,7 +220,7 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
 /// </summary>
 public sealed class FileShareStartedEventArgs : EventArgs
 {
-    /// <summary>Base URL of the HTTP listener, e.g. <c>http://192.168.1.10:8080</c>.</summary>
+    /// <summary>Tokenized base URL of the HTTP listener, e.g. <c>http://192.168.1.10:8080/?token=...</c>.</summary>
     public required string BaseUrl { get; init; }
 
     /// <summary>Absolute filesystem path that is being shared.</summary>
@@ -233,6 +244,9 @@ public sealed class FileShareStartedEventArgs : EventArgs
     /// <summary>Pre-formatted <c>curl</c> command template with a <c>&lt;filename&gt;</c> placeholder.</summary>
     public required string CurlCommand { get; init; }
 
-    /// <summary>Pre-formatted <c>tftp</c> command template with a <c>&lt;filename&gt;</c> placeholder.</summary>
-    public required string TftpCommand { get; init; }
+    /// <summary>Pre-formatted <c>tftp</c> command template when the unauthenticated listener is enabled.</summary>
+    public string? TftpCommand { get; init; }
+
+    /// <summary>Whether the TFTP listener was explicitly enabled and started for this share.</summary>
+    public required bool IsTftpEnabled { get; init; }
 }

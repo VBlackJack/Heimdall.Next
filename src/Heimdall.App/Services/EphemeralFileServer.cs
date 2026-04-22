@@ -17,7 +17,9 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 using Heimdall.Core.Models;
 using Heimdall.Core.Utilities;
@@ -49,10 +51,17 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     private CancellationTokenSource? _tftpCts;
     private Task? _tftpTask;
 
+    private readonly byte[] _accessTokenComparisonBytes;
     private string _servingDirectory = string.Empty;
+
+    /// <summary>Per-instance HTTP access token required for every request.</summary>
+    public string AccessToken { get; }
 
     /// <summary>Whether the HTTP server is currently running.</summary>
     public bool IsHttpRunning { get; private set; }
+
+    /// <summary>Whether the HTTP listener had to fall back to a localhost-only prefix.</summary>
+    public bool IsHttpLocalOnly { get; private set; }
 
     /// <summary>Whether the TFTP server is currently running.</summary>
     public bool IsTftpRunning { get; private set; }
@@ -65,6 +74,12 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
     /// <summary>Raised when a file is served (downloaded) by either server.</summary>
     public event Action<string>? FileServed;
+
+    public EphemeralFileServer()
+    {
+        AccessToken = GenerateAccessToken();
+        _accessTokenComparisonBytes = Encoding.UTF8.GetBytes(AccessToken);
+    }
 
     /// <summary>
     /// Starts the HTTP file server on the specified directory and port.
@@ -79,13 +94,13 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         _httpCts = new CancellationTokenSource();
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add($"http://+:{port}/");
+        IsHttpLocalOnly = false;
 
         try
         {
             _httpListener.Start();
-            Core.Logging.FileLogger.Warn(
-                $"HTTP file server listening on ALL interfaces (port {port}). " +
-                "Directory is exposed to the local network without authentication.");
+            Core.Logging.FileLogger.Info(
+                $"HTTP file server listening on ALL interfaces (port {port}) with bearer token authentication.");
         }
         catch (HttpListenerException)
         {
@@ -94,6 +109,9 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
             _httpListener = new HttpListener();
             _httpListener.Prefixes.Add($"http://localhost:{port}/");
             _httpListener.Start();
+            IsHttpLocalOnly = true;
+            Core.Logging.FileLogger.Warn(
+                $"HTTP file server fell back to localhost-only prefix on port {port}.");
         }
 
         IsHttpRunning = true;
@@ -101,6 +119,21 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
         var token = _httpCts.Token;
         _httpTask = Task.Run(() => HttpListenLoop(token), token);
+    }
+
+    /// <summary>
+    /// Builds a tokenized URL for the served HTTP endpoint using the provided base URL.
+    /// </summary>
+    public string BuildUrl(string baseUrl, string relativePath = "/")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var normalizedBaseUrl = baseUrl.TrimEnd('/');
+        var normalizedPath = string.IsNullOrWhiteSpace(relativePath) || relativePath == "/"
+            ? "/"
+            : "/" + relativePath.TrimStart('/');
+
+        return AppendTokenToUrl($"{normalizedBaseUrl}{normalizedPath}");
     }
 
     /// <summary>Stops the HTTP file server.</summary>
@@ -123,6 +156,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         _httpCts = null;
         _httpTask = null;
         IsHttpRunning = false;
+        IsHttpLocalOnly = false;
 
         Core.Logging.FileLogger.Info("HTTP file server stopped");
     }
@@ -193,6 +227,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         _httpCts = null;
         _tftpCts = null;
         IsHttpRunning = false;
+        IsHttpLocalOnly = false;
         IsTftpRunning = false;
     }
 
@@ -254,6 +289,20 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         var request = context.Request;
         var response = context.Response;
 
+        if (!IsAuthorized(request))
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[EphemeralFileServer] Unauthorized HTTP request: {RedactToken(request.Url?.ToString() ?? request.RawUrl ?? "/")}");
+
+            response.StatusCode = 401;
+            var unauthorized = Encoding.UTF8.GetBytes("Unauthorized");
+            response.ContentType = "text/plain; charset=utf-8";
+            response.ContentLength64 = unauthorized.Length;
+            await response.OutputStream.WriteAsync(unauthorized);
+            response.Close();
+            return;
+        }
+
         if (!string.Equals(request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
         {
             response.StatusCode = 405;
@@ -313,7 +362,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         if (!string.IsNullOrEmpty(relativePath))
         {
             var parent = Path.GetDirectoryName(relativePath.TrimEnd(Path.DirectorySeparatorChar)) ?? "";
-            sb.Append($"<tr><td><a href=\"/{parent}\">..</a></td><td></td><td></td></tr>");
+            sb.Append($"<tr><td><a href=\"{AppendTokenToRelativeUrl($"/{parent}")}\">..</a></td><td></td><td></td></tr>");
         }
 
         // Directories
@@ -323,7 +372,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
             var href = string.IsNullOrEmpty(relativePath)
                 ? $"/{HttpUtility.UrlEncode(name)}"
                 : $"/{HttpUtility.UrlEncode(relativePath.Replace(Path.DirectorySeparatorChar, '/'))}/{HttpUtility.UrlEncode(name)}";
-            sb.Append($"<tr><td><a href=\"{href}\">{HttpUtility.HtmlEncode(name)}/</a></td><td>-</td><td></td></tr>");
+            sb.Append($"<tr><td><a href=\"{AppendTokenToRelativeUrl(href)}\">{HttpUtility.HtmlEncode(name)}/</a></td><td>-</td><td></td></tr>");
         }
 
         // Files
@@ -334,7 +383,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
             var href = string.IsNullOrEmpty(relativePath)
                 ? $"/{HttpUtility.UrlEncode(name)}"
                 : $"/{HttpUtility.UrlEncode(relativePath.Replace(Path.DirectorySeparatorChar, '/'))}/{HttpUtility.UrlEncode(name)}";
-            sb.Append($"<tr><td><a href=\"{href}\">{HttpUtility.HtmlEncode(name)}</a></td>");
+            sb.Append($"<tr><td><a href=\"{AppendTokenToRelativeUrl(href)}\">{HttpUtility.HtmlEncode(name)}</a></td>");
             sb.Append($"<td>{FormatFileSize(info.Length)}</td>");
             sb.Append($"<td>{info.LastWriteTime:yyyy-MM-dd HH:mm}</td></tr>");
         }
@@ -527,6 +576,70 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     }
 
     // ── Helpers ───────────────────────────────────────────────────────
+
+    private static string GenerateAccessToken()
+    {
+        Span<byte> bytes = stackalloc byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToBase64String(bytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    private bool IsAuthorized(HttpListenerRequest request)
+    {
+        var candidateToken = TryGetBearerToken(request.Headers["Authorization"])
+            ?? request.QueryString["token"];
+
+        return FixedTimeEqualsAccessToken(candidateToken);
+    }
+
+    private bool FixedTimeEqualsAccessToken(string? candidateToken)
+    {
+        var candidateBytes = string.IsNullOrEmpty(candidateToken)
+            ? Array.Empty<byte>()
+            : Encoding.UTF8.GetBytes(candidateToken);
+
+        if (candidateBytes.Length != _accessTokenComparisonBytes.Length)
+        {
+            CryptographicOperations.FixedTimeEquals(
+                _accessTokenComparisonBytes,
+                new byte[_accessTokenComparisonBytes.Length]);
+            return false;
+        }
+
+        return CryptographicOperations.FixedTimeEquals(_accessTokenComparisonBytes, candidateBytes);
+    }
+
+    private static string? TryGetBearerToken(string? authorizationHeader)
+    {
+        if (string.IsNullOrWhiteSpace(authorizationHeader))
+        {
+            return null;
+        }
+
+        const string bearerPrefix = "Bearer ";
+        return authorizationHeader.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+            ? authorizationHeader[bearerPrefix.Length..].Trim()
+            : null;
+    }
+
+    private string AppendTokenToRelativeUrl(string relativeUrl)
+    {
+        return AppendTokenToUrl(relativeUrl);
+    }
+
+    private string AppendTokenToUrl(string url)
+    {
+        var separator = url.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+        return $"{url}{separator}token={AccessToken}";
+    }
+
+    private static string RedactToken(string url)
+    {
+        return Regex.Replace(url, @"(?i)([?&]token=)[^&]*", "$1<redacted>");
+    }
 
     private static string FormatFileSize(long bytes) => FileSize.Format(bytes);
 

@@ -70,11 +70,11 @@
     <Grid>
         <Grid.RowDefinitions>
             <!-- Toolbar -->
-            <RowDefinition x:Name="ToolbarRow" Height="48"/>
+            <RowDefinition x:Name="ToolbarRow" Height="Auto"/>
             <!-- Main content -->
             <RowDefinition Height="*"/>
             <!-- Status bar -->
-            <RowDefinition x:Name="StatusBarRow" Height="36"/>
+            <RowDefinition x:Name="StatusBarRow" Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- TOOLBAR -->
@@ -147,51 +147,71 @@
                 </StackPanel>
 
                 <!-- Right: Search box + Share Folder -->
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                <StackPanel DockPanel.Dock="Right"
+                            HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <!-- Share Folder toggle -->
-                    <Button x:Name="ShareFolderButton"
-                            Click="OnShareFolderClick"
-                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="6,4" FontSize="{StaticResource FontSizeBody}"
-                            Margin="0,0,4,0"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name="{loc:Translate A11yShareFolder}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock x:Name="Mw_ShareFolderLabel" FontSize="{StaticResource FontSizeBody}"
-                                       VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
-                                        <Binding Path="FileShareService.IsSharing"
-                                                 RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                        <Binding Source="{x:Static loc:LocalizationSource.Instance}"
-                                                 Path="[ToolsShareFolder]"/>
-                                        <Binding Source="{x:Static loc:LocalizationSource.Instance}"
-                                                 Path="[ToolsStopSharing]"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-                        </StackPanel>
-                    </Button>
-                    <!-- Quick Connect shortcut button -->
-                    <Button x:Name="QuickConnectButton"
-                            Click="OnQuickConnectButtonClick"
-                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,4" FontSize="{StaticResource FontSizeCaption}"
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            ToolTip="{loc:Translate QuickConnectShortcut}"
-                            AutomationProperties.Name="{loc:Translate QuickConnectShortcut}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="Mw_QuickConnectLabel" Text="{loc:Translate QuickConnectShortcut}"
-                                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <!-- Share Folder toggle -->
+                        <Button x:Name="ShareFolderButton"
+                                Click="OnShareFolderClick"
+                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                Padding="6,4" FontSize="{StaticResource FontSizeBody}"
+                                Margin="0,0,4,0"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="{loc:Translate A11yShareFolder}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock x:Name="Mw_ShareFolderLabel" FontSize="{StaticResource FontSizeBody}"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
+                                            <Binding Path="FileShareService.IsSharing"
+                                                     RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                            <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                                     Path="[ToolsShareFolder]"/>
+                                            <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                                     Path="[ToolsStopSharing]"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <!-- Quick Connect shortcut button -->
+                        <Button x:Name="QuickConnectButton"
+                                Click="OnQuickConnectButtonClick"
+                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                Padding="8,4" FontSize="{StaticResource FontSizeCaption}"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                ToolTip="{loc:Translate QuickConnectShortcut}"
+                                AutomationProperties.Name="{loc:Translate QuickConnectShortcut}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="Mw_QuickConnectLabel" Text="{loc:Translate QuickConnectShortcut}"
+                                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,8,4"
+                                HorizontalAlignment="Right">
+                        <CheckBox x:Name="Mw_EnableTftpShareCheckBox"
+                                  Click="OnEnableTftpShareClick"
+                                  IsChecked="{Binding IsFileShareTftpEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                  Content="{loc:Translate CbxEnableTftpShare}"
+                                  Foreground="{DynamicResource TextSecondaryBrush}"
+                                  FontSize="{StaticResource FontSizeCaption}"/>
+                        <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
+                                   Margin="20,2,0,0"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -2509,11 +2529,44 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
                     <!-- File sharing status -->
-                    <TextBlock x:Name="Mw_SharingStatus"
-                               FontSize="{StaticResource FontSizeCaption}" Margin="0,0,12,0"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource SuccessTextBrush}"
-                               Visibility="Collapsed"/>
+                    <StackPanel x:Name="Mw_SharingStatusPanel"
+                                Margin="0,4,12,4"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <TextBlock x:Name="Mw_SharingStatus"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SuccessTextBrush}"/>
+                            <Button x:Name="Mw_CopyShareUrlButton"
+                                    Click="OnCopyShareUrlClick"
+                                    Margin="8,0,0,0"
+                                    Padding="4,2"
+                                    VerticalAlignment="Center"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    ToolTip="{loc:Translate CtxMenuCopy}"
+                                    AutomationProperties.Name="{loc:Translate CtxMenuCopy}">
+                                <TextBlock Text="&#xE8C8;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="{StaticResource FontSizeCaption}"/>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel x:Name="Mw_TftpTemplatePanel"
+                                    Margin="0,2,0,0"
+                                    Orientation="Horizontal"
+                                    Visibility="Collapsed">
+                            <TextBlock x:Name="Mw_TftpCommandText"
+                                       FontSize="{StaticResource FontSizeSmallCaption}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="Mw_TftpDisabledHint"
+                                   Margin="0,2,0,0"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                   Text="{loc:Translate LblTftpDisabledHint}"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
                     <!-- Tunnel panel toggle badge -->
                     <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding Tunnels.TogglePanelCommand}"
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
