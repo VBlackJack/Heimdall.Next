@@ -61,4 +61,23 @@ public sealed class SshSessionDiagnosticFactoryTests
         Assert.Null(diagnostic.Code);
         Assert.Equal("Gateway tunnel failed.", diagnostic.Detail);
     }
+
+    [Theory]
+    [InlineData(SshFailureCode.NetworkRefused)]
+    [InlineData(SshFailureCode.NetworkTimedOut)]
+    [InlineData(SshFailureCode.NetworkReset)]
+    [InlineData(SshFailureCode.NetworkUnreachable)]
+    public void FromClassifiedFailure_ForNetworkFailures_UsesGatewayStage(SshFailureCode code)
+    {
+        var diagnostic = SshSessionDiagnosticFactory.FromClassifiedFailure(
+            new SshFailureInfo(
+                code,
+                "Network failure.",
+                true));
+
+        Assert.Equal(SessionFailureStage.SshGateway, diagnostic.Stage);
+        Assert.Equal($"ErrorSsh{code}", diagnostic.MessageKey);
+        Assert.Equal((int)code, diagnostic.Code);
+        Assert.Equal("Network failure.", diagnostic.Detail);
+    }
 }

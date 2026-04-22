@@ -109,7 +109,11 @@ internal static class SshSessionDiagnosticFactory
             SshFailureCode.HostKeyMismatch
                 => SessionFailureStage.SshHostKey,
 
-            SshFailureCode.ForwardingFailed
+            SshFailureCode.NetworkRefused
+                or SshFailureCode.NetworkTimedOut
+                or SshFailureCode.NetworkReset
+                or SshFailureCode.NetworkUnreachable
+                or SshFailureCode.ForwardingFailed
                 or SshFailureCode.PortInUse
                 or SshFailureCode.TunnelBroken
                 or SshFailureCode.ChainDepthExceeded
