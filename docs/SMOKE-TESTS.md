@@ -49,6 +49,8 @@ Each script prints a JSON report and returns a non-zero exit code on failure.
 
 Run them sequentially. They launch and stop the same desktop app and temporarily mutate the same `settings.json`; the tree/favorites scripts also back up and restore `servers.json` when they need to seed or inspect persisted state.
 
+If you include build and test runs, keep them strictly sequential as well: `kill -> build -> test`. Running build and test in parallel can leave `testhost.exe` locking outputs and trigger `MSB3026`.
+
 ## Coverage
 
 `settings-smoke.ps1` covers:
@@ -110,6 +112,10 @@ These are still better as manual smokes:
 - session-tab drag reorder / merge / detach
 - drag cancel by `Escape`
 - visual drop-target highlight confirmation
+- SSH failure disclosure (`Stage` / `Code` / `Detail`) on auth, gateway, and network errors
+- RDP pre-tab failure disclosure (tunnel / credential / `.rdp` write / launch) when an easy repro is available
+- RDP mid-session pane-scoped disclosure and clear-on-reconnect behavior when a test server is available
+- split-pane correctness for per-pane diagnostics (disconnect only one pane, verify the sibling stays clean)
 - session-tree drag cursor / no-group drop-zone affordance
 - sidebar tool ContextMenu pin/unpin flows and right-click no-launch behavior
 - command palette close on cross-process foreground change
