@@ -25,6 +25,7 @@ using Heimdall.App.Services.SessionSnapshot;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.Onboarding;
+using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
@@ -326,6 +327,10 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IIpConverterToolService, IpConverterToolService>();
         services.AddSingleton<IJsonFormatterToolService, JsonFormatterToolService>();
         services.AddSingleton<IArpTableReader, DefaultArpTableReader>();
+        services.AddSingleton<NotesStorageService>(sp =>
+            new NotesStorageService(ResolveNotesStoragePath(sp.GetRequiredService<IConfigManager>())));
+        services.AddSingleton<INotesStorageService>(sp =>
+            sp.GetRequiredService<NotesStorageService>());
         services.AddSingleton<IRegexTesterToolService, RegexTesterToolService>();
         services.AddSingleton<ITextDiffToolService, TextDiffToolService>();
         services.AddSingleton<IUuidGeneratorToolService, UuidGeneratorToolService>();
@@ -358,10 +363,25 @@ public partial class App : System.Windows.Application
         services.AddTransient<ImportOpenSshConfigDialogViewModel>();
         services.AddTransient<ImportPuttySessionsDialogViewModel>();
         services.AddTransient<ImportKnownHostsDialogViewModel>();
+        services.AddTransient<NotesToolViewModel>();
         services.AddTransient<OnboardingFlowViewModel>();
 
         // Windows
         services.AddTransient<MainWindow>();
+    }
+
+    private static string ResolveNotesStoragePath(IConfigManager configManager)
+    {
+        var basePath = AppDomain.CurrentDomain.BaseDirectory;
+        var settings = configManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        if (!string.IsNullOrWhiteSpace(settings.NotesDirectory))
+        {
+            return Path.IsPathRooted(settings.NotesDirectory)
+                ? settings.NotesDirectory
+                : Path.Combine(basePath, settings.NotesDirectory);
+        }
+
+        return Path.Combine(basePath, "config", "notes");
     }
 
     /// <summary>
