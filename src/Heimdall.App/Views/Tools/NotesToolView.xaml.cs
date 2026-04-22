@@ -96,8 +96,6 @@ public partial class NotesToolView : UserControl, IToolView
         _context = context;
         _localizer = localizer;
         _vm.SetContext(context);
-
-        ApplyLocalization();
         _initializeRequested = true;
         StartInitializationIfNeeded();
     }
@@ -456,73 +454,6 @@ public partial class NotesToolView : UserControl, IToolView
     {
         // Content is synced via ContentChanged events; use the last known value
         return Task.FromResult(_lastMilkdownContent);
-    }
-
-    private void ApplyLocalization()
-    {
-        HeaderTitle.Text = L("ToolNotesTitle");
-        BtnNewNote.Content = L("ToolNotesBtnNew");
-        BtnOpenFolder.Content = L("ToolNotesBtnOpenFolder");
-        BtnNoteActions.Content = L("ToolNotesTplActions");
-        BtnCopyConfluence.Content = L("ToolNotesBtnCopyConfluence");
-        BtnExportConfluence.Content = L("ToolNotesBtnExportConfluence");
-        BtnExportHtml.Content = L("ToolNotesBtnExportHtml");
-        TxtUnsaved.Text = L("ToolNotesUnsaved");
-
-        SearchTextBox.Tag = L("ToolNotesSearchPlaceholder");
-        SortLabelText.Text = L("ToolNotesSortLabel");
-        SortNewestFirstItem.Content = L("ToolNotesSortDateDesc");
-        SortOldestFirstItem.Content = L("ToolNotesSortDateAsc");
-        SortNameAscItem.Content = L("ToolNotesSortNameAsc");
-        SortNameDescItem.Content = L("ToolNotesSortNameDesc");
-        TagsLabelText.Text = L("ToolNotesTagsLabel");
-
-        EditorEmptyTitleText.Text = L("ToolNotesEmptyTitle");
-        EditorEmptyBodyText.Text = L("ToolNotesEmptyBody");
-
-        BtnMarkdownHelp.Content = L("ToolNotesMarkdownHelpBtn");
-
-        // Tooltips for icon-only buttons
-        BtnHelp.ToolTip = L("ToolHelpTooltip");
-        BtnMarkdownHelp.ToolTip = L("TooltipMarkdownHelp");
-        BtnOpenFolder.ToolTip = L("TooltipOpenNotesFolder");
-        BtnToggleSidebar.ToolTip = L("TooltipToggleSidebar");
-        BtnCollapseAll.ToolTip = L("TooltipCollapseAll");
-        BtnExpandAll.ToolTip = L("TooltipExpandAll");
-        BtnNewNote.ToolTip = L("TooltipNewNote");
-        BtnNavBack.ToolTip = L("TooltipNavBack");
-        BtnNavForward.ToolTip = L("TooltipNavForward");
-        BtnNoteActions.ToolTip = L("ToolNotesTplActions");
-        BtnCopyConfluence.ToolTip = L("TooltipCopyConfluence");
-        BtnExportConfluence.ToolTip = L("TooltipExportConfluence");
-        BtnExportHtml.ToolTip = L("TooltipExportHtml");
-
-        // Accessibility
-        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseAll, L("TooltipCollapseAll"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExpandAll, L("TooltipExpandAll"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnMarkdownHelp, L("TooltipMarkdownHelp"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("TooltipOpenNotesFolder"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("TooltipNewNote"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNoteActions, L("ToolNotesTplActions"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyConfluence, L("TooltipCopyConfluence"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportConfluence, L("TooltipExportConfluence"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportHtml, L("TooltipExportHtml"));
-        System.Windows.Automation.AutomationProperties.SetName(SearchTextBox, L("ToolNotesSearchPlaceholder"));
-        System.Windows.Automation.AutomationProperties.SetName(SortOrderComboBox, L("ToolNotesSortLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(NotesTreeView, L("ToolNotesListTitle"));
-        System.Windows.Automation.AutomationProperties.SetName(TagFilterWrapPanel, L("ToolNotesTagsLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNavBack, L("TooltipNavBack"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNavForward, L("TooltipNavForward"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggleSidebar, L("TooltipToggleSidebar"));
-
-        UpdateSortOrderSelection();
-        RebuildTagFilterButtons();
-    }
-
-    private void UpdateSortOrderSelection()
-    {
     }
 
     private void UpdateSelectionState()
