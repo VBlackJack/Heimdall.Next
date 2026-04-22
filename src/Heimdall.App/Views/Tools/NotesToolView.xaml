@@ -72,18 +72,26 @@
                         Width="24"
                         Height="24"
                         Margin="4,0,0,0"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.AutomationId="NotesTool.Help"
                         TabIndex="16"/>
                 <Button x:Name="BtnMarkdownHelp"
                         DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolNotesMarkdownHelpBtn}"
                         Click="OnMarkdownHelpClick"
                         Style="{StaticResource NotesToolbarButtonStyle}"
+                        ToolTip="{loc:Translate TooltipMarkdownHelp}"
+                        AutomationProperties.Name="{loc:Translate TooltipMarkdownHelp}"
                         AutomationProperties.AutomationId="NotesTool.MarkdownHelp"
                         TabIndex="15"/>
                 <Button x:Name="BtnOpenFolder"
                         DockPanel.Dock="Right"
+                        Content="{loc:Translate ToolNotesBtnOpenFolder}"
                         Click="OnOpenFolderClick"
                         Style="{StaticResource NotesToolbarButtonStyle}"
+                        ToolTip="{loc:Translate TooltipOpenNotesFolder}"
+                        AutomationProperties.Name="{loc:Translate TooltipOpenNotesFolder}"
                         AutomationProperties.AutomationId="NotesTool.OpenFolder"
                         TabIndex="14"/>
                 <Button x:Name="BtnToggleSidebar"
@@ -93,16 +101,19 @@
                         FontFamily="{StaticResource FontFamilyMonospace}"
                         FontSize="{StaticResource FontSizeCaption}"
                         Content="&#x2630;"
+                        ToolTip="{loc:Translate TooltipToggleSidebar}"
+                        AutomationProperties.Name="{loc:Translate TooltipToggleSidebar}"
                         AutomationProperties.AutomationId="NotesTool.ToggleSidebar"
                         TabIndex="0"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="HeaderTitle"
+                               Text="{loc:Translate ToolNotesTitle}"
                                FontSize="{StaticResource FontSizeBodyLarge}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock x:Name="TxtUnsaved"
-                               Text=""
+                               Text="{loc:Translate ToolNotesUnsaved}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource WarningBrush}"
                                VerticalAlignment="Center"
@@ -126,6 +137,7 @@
                         VerticalAlignment="Top"
                         Width="24"
                         Height="24"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         AutomationProperties.AutomationId="NotesTool.CloseHelp"
                         TabIndex="17"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
@@ -175,6 +187,7 @@
                                  Style="{StaticResource WatermarkTextBoxStyle}"
                                  Padding="10,5"
                                  MinHeight="30"
+                                 Tag="{loc:Translate ToolNotesSearchPlaceholder}"
                                  Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Background="{DynamicResource SurfaceBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
@@ -190,18 +203,25 @@
                                     Click="OnCollapseAllClick"
                                     Style="{StaticResource NotesIconButtonStyle}"
                                     Content="&#x25B2;"
+                                    ToolTip="{loc:Translate TooltipCollapseAll}"
+                                    AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"
                                     AutomationProperties.AutomationId="NotesTool.CollapseAll"
                                     TabIndex="2"/>
                             <Button x:Name="BtnExpandAll"
                                     Click="OnExpandAllClick"
                                     Style="{StaticResource NotesIconButtonStyle}"
                                     Content="&#x25BC;"
+                                    ToolTip="{loc:Translate TooltipExpandAll}"
+                                    AutomationProperties.Name="{loc:Translate TooltipExpandAll}"
                                     AutomationProperties.AutomationId="NotesTool.ExpandAll"
                                     TabIndex="3"/>
                             <Button x:Name="BtnNewNote"
+                                    Content="{loc:Translate ToolNotesBtnNew}"
                                     Click="OnNewNoteClick"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     Padding="12,4"
+                                    ToolTip="{loc:Translate TooltipNewNote}"
+                                    AutomationProperties.Name="{loc:Translate TooltipNewNote}"
                                     AutomationProperties.AutomationId="NotesTool.NewNote"
                                     TabIndex="4"/>
                         </WrapPanel>
@@ -210,6 +230,7 @@
                     <StackPanel Grid.Row="1" Margin="0,0,0,6">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
                             <TextBlock x:Name="SortLabelText"
+                                       Text="{loc:Translate ToolNotesSortLabel}"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="{StaticResource FontSizeCaption}"
@@ -231,14 +252,15 @@
                                       AutomationProperties.AutomationId="NotesTool.SortOrder"
                                       AutomationProperties.Name="{loc:Translate ToolNotesSortLabel}"
                                       TabIndex="5">
-                                <ComboBoxItem x:Name="SortNewestFirstItem" Tag="{x:Static services:NoteSortOrder.DateDescending}"/>
-                                <ComboBoxItem x:Name="SortOldestFirstItem" Tag="{x:Static services:NoteSortOrder.DateAscending}"/>
-                                <ComboBoxItem x:Name="SortNameAscItem" Tag="{x:Static services:NoteSortOrder.NameAscending}"/>
-                                <ComboBoxItem x:Name="SortNameDescItem" Tag="{x:Static services:NoteSortOrder.NameDescending}"/>
+                                <ComboBoxItem x:Name="SortNewestFirstItem" Content="{loc:Translate ToolNotesSortDateDesc}" Tag="{x:Static services:NoteSortOrder.DateDescending}"/>
+                                <ComboBoxItem x:Name="SortOldestFirstItem" Content="{loc:Translate ToolNotesSortDateAsc}" Tag="{x:Static services:NoteSortOrder.DateAscending}"/>
+                                <ComboBoxItem x:Name="SortNameAscItem" Content="{loc:Translate ToolNotesSortNameAsc}" Tag="{x:Static services:NoteSortOrder.NameAscending}"/>
+                                <ComboBoxItem x:Name="SortNameDescItem" Content="{loc:Translate ToolNotesSortNameDesc}" Tag="{x:Static services:NoteSortOrder.NameDescending}"/>
                             </ComboBox>
                         </StackPanel>
 
                         <TextBlock x:Name="TagsLabelText"
+                                   Text="{loc:Translate ToolNotesTagsLabel}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Visibility="Collapsed"
@@ -472,6 +494,8 @@
                                     Style="{StaticResource NotesIconButtonStyle}"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     IsEnabled="{Binding CanGoBack}"
+                                    ToolTip="{loc:Translate TooltipNavBack}"
+                                    AutomationProperties.Name="{loc:Translate TooltipNavBack}"
                                     AutomationProperties.AutomationId="NotesTool.NavBack"
                                     TabIndex="7"/>
                             <Button x:Name="BtnNavForward"
@@ -480,30 +504,44 @@
                                     Style="{StaticResource NotesIconButtonStyle}"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     IsEnabled="{Binding CanGoForward}"
+                                    ToolTip="{loc:Translate TooltipNavForward}"
+                                    AutomationProperties.Name="{loc:Translate TooltipNavForward}"
                                     AutomationProperties.AutomationId="NotesTool.NavForward"
                                     TabIndex="8"/>
                             <Button x:Name="BtnNoteActions"
+                                    Content="{loc:Translate ToolNotesTplActions}"
                                     Click="OnNoteActionsClick"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    ToolTip="{loc:Translate ToolNotesTplActions}"
+                                    AutomationProperties.Name="{loc:Translate ToolNotesTplActions}"
                                     AutomationProperties.AutomationId="NotesTool.NoteActions"
                                     TabIndex="9"/>
                             <Button x:Name="BtnCopyConfluence"
+                                    Content="{loc:Translate ToolNotesBtnCopyConfluence}"
                                     Click="OnCopyConfluenceClick"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    ToolTip="{loc:Translate TooltipCopyConfluence}"
+                                    AutomationProperties.Name="{loc:Translate TooltipCopyConfluence}"
                                     AutomationProperties.AutomationId="NotesTool.CopyConfluence"
                                     TabIndex="10"/>
                             <Button x:Name="BtnExportConfluence"
+                                    Content="{loc:Translate ToolNotesBtnExportConfluence}"
                                     Click="OnExportConfluenceClick"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    ToolTip="{loc:Translate TooltipExportConfluence}"
+                                    AutomationProperties.Name="{loc:Translate TooltipExportConfluence}"
                                     AutomationProperties.AutomationId="NotesTool.ExportConfluence"
                                     TabIndex="11"/>
                             <Button x:Name="BtnExportHtml"
+                                    Content="{loc:Translate ToolNotesBtnExportHtml}"
                                     Click="OnExportHtmlClick"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    ToolTip="{loc:Translate TooltipExportHtml}"
+                                    AutomationProperties.Name="{loc:Translate TooltipExportHtml}"
                                     AutomationProperties.AutomationId="NotesTool.ExportHtml"
                                     TabIndex="12"/>
                         </WrapPanel>
@@ -550,11 +588,13 @@
                                 CornerRadius="{StaticResource CornerRadiusMd}">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="280">
                                 <TextBlock x:Name="EditorEmptyTitleText"
+                                           Text="{loc:Translate ToolNotesEmptyTitle}"
                                            FontSize="{StaticResource FontSizeBodyLarge}"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            TextAlignment="Center"/>
                                 <TextBlock x:Name="EditorEmptyBodyText"
+                                           Text="{loc:Translate ToolNotesEmptyBody}"
                                            Margin="0,10,0,0"
                                            FontSize="{StaticResource FontSizeBody}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
