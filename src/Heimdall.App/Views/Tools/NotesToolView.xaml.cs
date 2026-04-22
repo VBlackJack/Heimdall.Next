@@ -805,15 +805,55 @@ public partial class NotesToolView : UserControl, IToolView
         }
     }
 
-    private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
+    private static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
     {
-        var current = System.Windows.Media.VisualTreeHelper.GetParent(child);
+        var current = GetParentObject(child);
         while (current is not null)
         {
             if (current is T target) return target;
-            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            current = GetParentObject(current);
         }
         return null;
+    }
+
+    private static TreeViewItem? FindParentFolderTreeViewItem(DependencyObject? current)
+    {
+        while (current is not null)
+        {
+            if (current is TreeViewItem item && item.DataContext is NoteTreeNode { IsFolder: true })
+            {
+                return item;
+            }
+
+            current = GetParentObject(current);
+        }
+
+        return null;
+    }
+
+    private static DependencyObject? GetParentObject(DependencyObject? current)
+    {
+        if (current is null)
+        {
+            return null;
+        }
+
+        if (current is FrameworkContentElement frameworkContentElement)
+        {
+            return frameworkContentElement.Parent;
+        }
+
+        if (current is ContentElement contentElement)
+        {
+            return ContentOperations.GetParent(contentElement);
+        }
+
+        if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+        {
+            return VisualTreeHelper.GetParent(current);
+        }
+
+        return LogicalTreeHelper.GetParent(current);
     }
 
     private void OnTreeViewContextMenuOpening(object sender, ContextMenuEventArgs e)
@@ -961,7 +1001,8 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        if (NotesTreeView.SelectedItem is not NoteTreeNode { FilePath: not null } sourceNode)
+        var treeViewItem = FindParent<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (treeViewItem?.DataContext is not NoteTreeNode { FilePath: not null } sourceNode)
         {
             return;
         }
@@ -970,7 +1011,7 @@ public partial class NotesToolView : UserControl, IToolView
         try
         {
             var data = new System.Windows.DataObject("NoteTreeNode", sourceNode);
-            DragDrop.DoDragDrop(NotesTreeView, data, System.Windows.DragDropEffects.Move);
+            DragDrop.DoDragDrop(treeViewItem, data, System.Windows.DragDropEffects.Move);
         }
         finally
         {
@@ -987,7 +1028,7 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        var target = GetTreeNodeAtPoint(e);
+        var target = GetFolderNodeAtPoint(e);
         if (target is { IsFolder: true })
         {
             e.Effects = System.Windows.DragDropEffects.Move;
@@ -1004,7 +1045,7 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         var sourceNode = e.Data.GetData("NoteTreeNode") as NoteTreeNode;
-        var targetNode = GetTreeNodeAtPoint(e);
+        var targetNode = GetFolderNodeAtPoint(e);
 
         if (sourceNode?.FilePath is null || targetNode?.FolderPath is null)
         {
@@ -1033,14 +1074,14 @@ public partial class NotesToolView : UserControl, IToolView
         e.Handled = true;
     }
 
-    private NoteTreeNode? GetTreeNodeAtPoint(System.Windows.DragEventArgs e)
+    private NoteTreeNode? GetFolderNodeAtPoint(System.Windows.DragEventArgs e)
     {
         if (e.OriginalSource is not DependencyObject source)
         {
             return null;
         }
 
-        var treeViewItem = FindParent<TreeViewItem>(source);
+        var treeViewItem = FindParentFolderTreeViewItem(source);
         return treeViewItem?.DataContext as NoteTreeNode;
     }
 
