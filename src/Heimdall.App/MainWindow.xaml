@@ -56,9 +56,13 @@
                 </Border>
             </Grid>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding HostControl}" Value="{x:Null}">
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding HostControl}" Value="{x:Null}"/>
+                        <Condition Binding="{Binding HasFailureDetails}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
                     <Setter TargetName="SessionLoadingOverlay" Property="Visibility" Value="Visible"/>
-                </DataTrigger>
+                </MultiDataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
     </Window.Resources>
