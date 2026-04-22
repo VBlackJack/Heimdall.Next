@@ -166,22 +166,47 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             };
 
             // Edit in embedded editor: swap file browser with AvalonEdit editor
-            fileBrowser.EditInEditorRequested += async (path) =>
+            var isEditInEditorHandlerAttached = false;
+            Action<string> editInEditorRequestedHandler = OnEditInEditorRequested;
+
+            fileBrowser.Loaded += OnFileBrowserLoaded;
+            fileBrowser.Unloaded += OnFileBrowserUnloaded;
+            AttachEditInEditorHandler();
+
+            async void OnEditInEditorRequested(string path)
             {
                 var editorView = new Views.EmbeddedEditorView();
                 await editorView.OpenFile(path);
 
                 // When editor closes, restore the file browser
-                editorView.CloseRequested += () =>
+                editorView.Unloaded += OnEditorUnloaded;
+                editorView.CloseRequested += OnEditorCloseRequested;
+
+                void OnEditorCloseRequested()
                 {
+                    DetachEditorCloseRequestedHandler();
+
                     var browserPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
                         sessionTab.RootContent, editorView);
                     if (browserPane is not null)
                     {
                         browserPane.HostControl = fileBrowser;
                     }
+
                     fileBrowser.RefreshCurrentDirectory();
-                };
+                }
+
+                void OnEditorUnloaded(object? sender, RoutedEventArgs e)
+                {
+                    DetachEditorCloseRequestedHandler();
+                }
+
+                void DetachEditorCloseRequestedHandler()
+                {
+                    editorView.Unloaded -= OnEditorUnloaded;
+                    // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
+                    editorView.CloseRequested -= OnEditorCloseRequested;
+                }
 
                 var editorPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
                     sessionTab.RootContent, fileBrowser);
@@ -189,7 +214,40 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 {
                     editorPane.HostControl = editorView;
                 }
-            };
+            }
+
+            void OnFileBrowserLoaded(object? sender, RoutedEventArgs e)
+            {
+                AttachEditInEditorHandler();
+            }
+
+            void OnFileBrowserUnloaded(object? sender, RoutedEventArgs e)
+            {
+                DetachEditInEditorHandler();
+            }
+
+            void AttachEditInEditorHandler()
+            {
+                if (isEditInEditorHandlerAttached)
+                {
+                    return;
+                }
+
+                fileBrowser.EditInEditorRequested += editInEditorRequestedHandler;
+                isEditInEditorHandlerAttached = true;
+            }
+
+            void DetachEditInEditorHandler()
+            {
+                if (!isEditInEditorHandlerAttached)
+                {
+                    return;
+                }
+
+                // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
+                fileBrowser.EditInEditorRequested -= editInEditorRequestedHandler;
+                isEditInEditorHandlerAttached = false;
+            }
 
             // Wrap the terminal view's pane with a file browser in a vertical split
             var fileBrowserPane = new Heimdall.Core.Models.SessionPaneModel
