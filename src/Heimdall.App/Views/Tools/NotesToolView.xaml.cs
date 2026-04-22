@@ -648,12 +648,23 @@ public partial class NotesToolView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
-    private async Task CreateNoteAsync(NoteTemplateKind templateKind)
+    private async Task CreateNoteAsync(NoteTemplateKind templateKind, NoteTreeNode? contextNode = null)
     {
         try
         {
             await FlushPendingChangesAsync().ConfigureAwait(true);
             await _vm.NewNoteFromTemplateCommand.ExecuteAsync(templateKind.ToString()).ConfigureAwait(true);
+
+            var targetFolder = contextNode?.FolderPath
+                ?? (contextNode?.FilePath is not null ? Path.GetDirectoryName(contextNode.FilePath) : null);
+
+            if (!string.IsNullOrWhiteSpace(targetFolder)
+                && _vm.CurrentNotePath is not null
+                && !string.Equals(targetFolder, Path.GetDirectoryName(_vm.CurrentNotePath), StringComparison.OrdinalIgnoreCase))
+            {
+                await _vm.MoveNoteToFolderAsync(_vm.CurrentNotePath, targetFolder).ConfigureAwait(true);
+            }
+
             EnsureNoteHostFocused();
         }
         catch (Exception ex)
@@ -664,6 +675,8 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnNewNoteClick(object sender, RoutedEventArgs e)
     {
+        var currentContext = NotesTreeView.SelectedItem as NoteTreeNode;
+
         var menu = new ContextMenu
         {
             PlacementTarget = BtnNewNote,
@@ -672,19 +685,19 @@ public partial class NotesToolView : UserControl, IToolView
         };
 
         var newBlank = new MenuItem { Header = L("ToolNotesBtnNew") };
-        newBlank.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Blank).ConfigureAwait(true);
+        newBlank.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Blank, currentContext).ConfigureAwait(true);
         menu.Items.Add(newBlank);
 
         var newDaily = new MenuItem { Header = L("ToolNotesBtnDaily") };
-        newDaily.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Daily).ConfigureAwait(true);
+        newDaily.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Daily, currentContext).ConfigureAwait(true);
         menu.Items.Add(newDaily);
 
         var newIncident = new MenuItem { Header = L("ToolNotesBtnIncident") };
-        newIncident.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Incident).ConfigureAwait(true);
+        newIncident.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Incident, currentContext).ConfigureAwait(true);
         menu.Items.Add(newIncident);
 
         var newProcedure = new MenuItem { Header = L("ToolNotesBtnProcedure") };
-        newProcedure.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Procedure).ConfigureAwait(true);
+        newProcedure.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Procedure, currentContext).ConfigureAwait(true);
         menu.Items.Add(newProcedure);
 
         menu.Items.Add(new Separator());
@@ -811,19 +824,19 @@ public partial class NotesToolView : UserControl, IToolView
 
         // ── Create ──
         var newBlank = new MenuItem { Header = L("ToolNotesBtnNew") };
-        newBlank.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Blank).ConfigureAwait(true);
+        newBlank.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Blank, treeItem).ConfigureAwait(true);
         TreeContextMenu.Items.Add(newBlank);
 
         var newDaily = new MenuItem { Header = L("ToolNotesBtnDaily") };
-        newDaily.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Daily).ConfigureAwait(true);
+        newDaily.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Daily, treeItem).ConfigureAwait(true);
         TreeContextMenu.Items.Add(newDaily);
 
         var newIncident = new MenuItem { Header = L("ToolNotesBtnIncident") };
-        newIncident.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Incident).ConfigureAwait(true);
+        newIncident.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Incident, treeItem).ConfigureAwait(true);
         TreeContextMenu.Items.Add(newIncident);
 
         var newProcedure = new MenuItem { Header = L("ToolNotesBtnProcedure") };
-        newProcedure.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Procedure).ConfigureAwait(true);
+        newProcedure.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Procedure, treeItem).ConfigureAwait(true);
         TreeContextMenu.Items.Add(newProcedure);
 
         TreeContextMenu.Items.Add(new Separator());
@@ -923,6 +936,15 @@ public partial class NotesToolView : UserControl, IToolView
     private void OnTreeViewPreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         _dragStartPoint = e.GetPosition(NotesTreeView);
+
+        if (e.OriginalSource is DependencyObject source)
+        {
+            var treeViewItem = FindParent<TreeViewItem>(source);
+            if (treeViewItem is not null)
+            {
+                treeViewItem.IsSelected = true;
+            }
+        }
     }
 
     private void OnTreeViewPreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -1446,7 +1468,8 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         if (e.PropertyName is nameof(NotesToolViewModel.CurrentNotePath)
-            or nameof(NotesToolViewModel.HasSelection))
+            or nameof(NotesToolViewModel.HasSelection)
+            or nameof(NotesToolViewModel.SelectedNote))
         {
             ApplyViewModelSelection();
         }
@@ -1462,6 +1485,7 @@ public partial class NotesToolView : UserControl, IToolView
         try
         {
             UpdateSelectionState();
+            SynchronizeTreeSelection();
 
             var content = _vm.CurrentMarkdown ?? string.Empty;
             _lastMilkdownContent = content;
@@ -1489,6 +1513,67 @@ public partial class NotesToolView : UserControl, IToolView
         {
             _isLoadingNote = false;
         }
+    }
+
+    private void SynchronizeTreeSelection()
+    {
+        if (_vm.SelectedNote is null)
+        {
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+        {
+            _suppressSelectionChanged = true;
+            try
+            {
+                SelectTreeNode(NotesTreeView, _vm.SelectedNote);
+            }
+            finally
+            {
+                _suppressSelectionChanged = false;
+            }
+        }));
+    }
+
+    private static bool SelectTreeNode(ItemsControl parent, NoteTreeNode target)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (item is not NoteTreeNode node)
+            {
+                continue;
+            }
+
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is not TreeViewItem treeViewItem)
+            {
+                continue;
+            }
+
+            if (ReferenceEquals(node, target))
+            {
+                treeViewItem.IsSelected = true;
+                treeViewItem.BringIntoView();
+                return true;
+            }
+
+            if (node.Children.Count == 0)
+            {
+                continue;
+            }
+
+            var wasExpanded = treeViewItem.IsExpanded;
+            treeViewItem.IsExpanded = true;
+            treeViewItem.UpdateLayout();
+            if (SelectTreeNode(treeViewItem, target))
+            {
+                return true;
+            }
+
+            treeViewItem.IsExpanded = wasExpanded;
+        }
+
+        return false;
     }
 
     private void EnsureNoteHostFocused()

@@ -530,11 +530,11 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
             }
 
             var content = await _storage.LoadNoteAsync(filePath).ConfigureAwait(true);
-            CurrentNotePath = filePath;
             CurrentMarkdown = content;
             IsDirty = false;
-            HasSelection = true;
             SelectedNote = FindNodeByPath(Notes, filePath);
+            CurrentNotePath = filePath;
+            HasSelection = true;
             UpdateSelectionMetadata();
             SetStatus(string.Format(L("ToolNotesStatusOpened"), _storage.GetRelativePath(filePath)));
         }
@@ -550,11 +550,11 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
 
     private Task ClearCurrentNoteAsync()
     {
-        CurrentNotePath = null;
         CurrentMarkdown = string.Empty;
         IsDirty = false;
-        HasSelection = false;
         SelectedNote = null;
+        CurrentNotePath = null;
+        HasSelection = false;
         SelectedNoteTitle = L("ToolNotesNoSelection");
         SelectedNotePathDisplay = _storage.NotesRootPath;
         return Task.CompletedTask;
