@@ -17,9 +17,37 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              xmlns:services="clr-namespace:Heimdall.App.Services"
              xmlns:tools="clr-namespace:Heimdall.App.Views.Tools"
              Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <Style x:Key="NotesToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="MinWidth" Value="30"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        </Style>
+
+        <Style x:Key="NotesIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        </Style>
+
+        <Style x:Key="NotesMetaLineTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+            <Setter Property="Opacity" Value="0.74"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -27,61 +55,83 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="0"
+                Padding="10,6"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                <Button x:Name="BtnHelp"
+                        DockPanel.Dock="Right"
+                        Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="16"/>
-                <Button x:Name="BtnMarkdownHelp" DockPanel.Dock="Right"
-                        Click="OnMarkdownHelpClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="15"/>
-                <Button x:Name="BtnOpenFolder" DockPanel.Dock="Right"
-                        Click="OnOpenFolderClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="14"/>
-                <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
-                        Click="OnToggleSidebarClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineSm}"
-                        FontFamily="{StaticResource FontFamilyMonospace}"
+                        Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold"
+                        Width="24"
+                        Height="24"
+                        Margin="4,0,0,0"
+                        AutomationProperties.AutomationId="NotesTool.Help"
+                        TabIndex="16"/>
+                <Button x:Name="BtnMarkdownHelp"
+                        DockPanel.Dock="Right"
+                        Click="OnMarkdownHelpClick"
+                        Style="{StaticResource NotesToolbarButtonStyle}"
+                        AutomationProperties.AutomationId="NotesTool.MarkdownHelp"
+                        TabIndex="15"/>
+                <Button x:Name="BtnOpenFolder"
+                        DockPanel.Dock="Right"
+                        Click="OnOpenFolderClick"
+                        Style="{StaticResource NotesToolbarButtonStyle}"
+                        AutomationProperties.AutomationId="NotesTool.OpenFolder"
+                        TabIndex="14"/>
+                <Button x:Name="BtnToggleSidebar"
+                        DockPanel.Dock="Left"
+                        Click="OnToggleSidebarClick"
+                        Style="{StaticResource NotesIconButtonStyle}"
+                        FontFamily="{StaticResource FontFamilyMonospace}"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Content="&#x2630;"
+                        AutomationProperties.AutomationId="NotesTool.ToggleSidebar"
                         TabIndex="0"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="HeaderTitle"
-                               FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtUnsaved" Text=""
+                    <TextBlock x:Name="TxtUnsaved"
+                               Text=""
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource WarningBrush}"
                                VerticalAlignment="Center"
                                Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"
-                               Margin="{StaticResource MarginInlineControl}"/>
+                               Margin="8,0,0,0"
+                               Opacity="0.85"
+                               AutomationProperties.AutomationId="NotesTool.UnsavedIndicator"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- Help panel -->
         <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
-                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                <Button x:Name="BtnCloseHelp"
+                        DockPanel.Dock="Right"
+                        Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
+                        VerticalAlignment="Top"
+                        Width="24"
+                        Height="24"
+                        AutomationProperties.AutomationId="NotesTool.CloseHelp"
                         TabIndex="17"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                    <TextBlock x:Name="TxtHelpContent"
+                               Text=""
+                               TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -91,17 +141,18 @@
 
         <Grid x:Name="NotesLayoutGrid" Grid.Row="2" Margin="{StaticResource ContentAreaMargin}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="248" MinWidth="180"/>
-                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="240" MinWidth="176"/>
+                <ColumnDefinition Width="4"/>
                 <ColumnDefinition Width="*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
 
-            <Border x:Name="SidebarBorder" Grid.Column="0"
+            <Border x:Name="SidebarBorder"
+                    Grid.Column="0"
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}"
-                    Padding="{StaticResource SpacingMd}"
+                    Padding="8"
                     AllowDrop="True"
                     DragOver="OnDragOver"
                     Drop="OnDrop">
@@ -113,57 +164,72 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Compact toolbar: search + buttons -->
-                    <Grid Margin="{StaticResource MarginStackItem}">
+                    <Grid Margin="0,0,0,8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
+
                         <TextBox x:Name="SearchTextBox"
                                  Grid.Row="0"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Padding="{StaticResource PaddingInput}"
+                                 Padding="10,5"
+                                 MinHeight="30"
                                  Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Background="{DynamicResource SurfaceBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
+                                 AutomationProperties.AutomationId="NotesTool.Search"
+                                 AutomationProperties.Name="{loc:Translate ToolNotesSearchPlaceholder}"
                                  TabIndex="1"/>
-                        <WrapPanel Grid.Row="1" Margin="{StaticResource MarginSubsectionTop}" HorizontalAlignment="Right">
+
+                        <WrapPanel Grid.Row="1"
+                                   Margin="0,8,0,0"
+                                   HorizontalAlignment="Right">
                             <Button x:Name="BtnCollapseAll"
                                     Click="OnCollapseAllClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineStart}"
-                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Style="{StaticResource NotesIconButtonStyle}"
                                     Content="&#x25B2;"
+                                    AutomationProperties.AutomationId="NotesTool.CollapseAll"
                                     TabIndex="2"/>
                             <Button x:Name="BtnExpandAll"
                                     Click="OnExpandAllClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineStart}"
-                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Style="{StaticResource NotesIconButtonStyle}"
                                     Content="&#x25BC;"
+                                    AutomationProperties.AutomationId="NotesTool.ExpandAll"
                                     TabIndex="3"/>
                             <Button x:Name="BtnNewNote"
                                     Click="OnNewNoteClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
-                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Style="{StaticResource NotesToolbarButtonStyle}"
+                                    Padding="12,4"
+                                    AutomationProperties.AutomationId="NotesTool.NewNote"
                                     TabIndex="4"/>
                         </WrapPanel>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Margin="{StaticResource MarginLabelBottom}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource MarginStackItem}">
+                    <StackPanel Grid.Row="1" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
                             <TextBlock x:Name="SortLabelText"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                       FontSize="{StaticResource FontSizeCaption}"/>
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Visibility="Collapsed"
+                                       Opacity="0.7"/>
+                            <TextBlock Text="&#xE8D4;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"/>
                             <ComboBox x:Name="SortOrderComboBox"
-                                      Margin="{StaticResource MarginInlineControl}"
-                                      Width="160"
+                                      Width="156"
                                       HorizontalAlignment="Left"
                                       SelectedValuePath="Tag"
                                       SelectedValue="{Binding SortOrder, Mode=TwoWay}"
+                                      Padding="8,2"
+                                      MinHeight="28"
+                                      AutomationProperties.AutomationId="NotesTool.SortOrder"
+                                      AutomationProperties.Name="{loc:Translate ToolNotesSortLabel}"
                                       TabIndex="5">
                                 <ComboBoxItem x:Name="SortNewestFirstItem" Tag="{x:Static services:NoteSortOrder.DateDescending}"/>
                                 <ComboBoxItem x:Name="SortOldestFirstItem" Tag="{x:Static services:NoteSortOrder.DateAscending}"/>
@@ -171,20 +237,40 @@
                                 <ComboBoxItem x:Name="SortNameDescItem" Tag="{x:Static services:NoteSortOrder.NameDescending}"/>
                             </ComboBox>
                         </StackPanel>
+
                         <TextBlock x:Name="TagsLabelText"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}"
-                                   Margin="{StaticResource MarginLabelBottom}"
-                                   Visibility="Collapsed"/>
+                                   Visibility="Collapsed"
+                                   Opacity="0"
+                                   Height="0"
+                                   Margin="0"
+                                   IsHitTestVisible="False"/>
+
                         <WrapPanel x:Name="TagFilterWrapPanel"
-                                   Visibility="Collapsed"/>
+                                   Margin="0,0,0,6"
+                                   Visibility="Collapsed"
+                                   AutomationProperties.AutomationId="NotesTool.TagFilters"
+                                   AutomationProperties.Name="{loc:Translate ToolNotesTagsLabel}">
+                            <WrapPanel.Resources>
+                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                    <Setter Property="MinHeight" Value="24"/>
+                                    <Setter Property="Padding" Value="8,2"/>
+                                    <Setter Property="Margin" Value="0,0,4,4"/>
+                                    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+                                </Style>
+                            </WrapPanel.Resources>
+                        </WrapPanel>
                     </StackPanel>
 
-                    <TreeView x:Name="NotesTreeView" Grid.Row="2"
+                    <TreeView x:Name="NotesTreeView"
+                              Grid.Row="2"
                               Background="Transparent"
                               BorderThickness="0"
                               AllowDrop="True"
                               ItemsSource="{Binding Notes}"
+                              AutomationProperties.AutomationId="NotesTool.TreeView"
+                              AutomationProperties.Name="{loc:Translate ToolNotesListTitle}"
                               SelectedItemChanged="OnNotesTreeSelectionChanged"
                               ContextMenuOpening="OnTreeViewContextMenuOpening"
                               PreviewKeyDown="OnTreeViewPreviewKeyDown"
@@ -199,94 +285,168 @@
                         <TreeView.ContextMenu>
                             <ContextMenu x:Name="TreeContextMenu"/>
                         </TreeView.ContextMenu>
+
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                <Grid Margin="2,1,6,1">
-                                    <StackPanel x:Name="FolderPanel"
-                                                Orientation="Horizontal"
-                                                Margin="0,1,0,1"
-                                                Visibility="Collapsed">
-                                        <TextBlock Text="{Binding Icon}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding Name}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="{StaticResource FontSizeBody}"
-                                                   FontWeight="SemiBold"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
+                                <Border x:Name="ItemChrome"
+                                        Margin="0,1,2,1"
+                                        Padding="6,4"
+                                        CornerRadius="{StaticResource CornerRadiusMd}"
+                                        Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <StackPanel x:Name="NotePanel"
-                                                Margin="0,1,0,1"
-                                                ToolTip="{Binding DisplaySummary}">
-                                        <TextBlock Text="{Binding DisplayTitle}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="{StaticResource FontSizeBody}"
-                                                   FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <DockPanel Margin="0,1,0,0"
-                                                   LastChildFill="False">
-                                            <TextBlock x:Name="NoteMetaText"
-                                                       Text="{Binding DisplayMeta}"
-                                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                        <StackPanel x:Name="FolderPanel"
+                                                    Grid.ColumnSpan="2"
+                                                    Orientation="Horizontal"
+                                                    Visibility="Collapsed">
+                                            <TextBlock Text="{Binding Icon}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                       Opacity="0.78"
+                                                       Margin="0,0,6,0"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="FolderTitleText"
+                                                       Text="{Binding Name}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock x:Name="NoteTagsText"
-                                                       DockPanel.Dock="Right"
-                                                       Text="{Binding DisplayTags}"
-                                                       Margin="8,0,0,0"
-                                                       Foreground="{DynamicResource InfoBrush}"
-                                                       FontSize="{StaticResource FontSizeCaption}"
+                                        </StackPanel>
+
+                                        <TextBlock x:Name="NoteGlyph"
+                                                   Grid.Column="0"
+                                                   Text="&#xE8A5;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="11"
+                                                   Opacity="0.72"
+                                                   Margin="0,1,6,0"
+                                                   VerticalAlignment="Top"/>
+
+                                        <StackPanel x:Name="NotePanel"
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    ToolTipService.ShowDuration="20000">
+                                            <StackPanel.ToolTip>
+                                                <ToolTip Background="{DynamicResource SurfaceBrush}"
+                                                         BorderBrush="{DynamicResource BorderBrush}"
+                                                         Padding="10,8">
+                                                    <StackPanel MaxWidth="320">
+                                                        <TextBlock Text="{Binding DisplayTitle}"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding DisplaySummary}"
+                                                                   Margin="0,6,0,0"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </StackPanel.ToolTip>
+
+                                            <TextBlock x:Name="NoteTitleText"
+                                                       Text="{Binding DisplayTitle}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="SemiBold"
                                                        TextTrimming="CharacterEllipsis"/>
-                                        </DockPanel>
-                                    </StackPanel>
-                                </Grid>
+                                            <StackPanel x:Name="MetaLinePanel"
+                                                        Orientation="Horizontal"
+                                                        Margin="0,1,0,0">
+                                                <TextBlock x:Name="NoteMetaText"
+                                                           Text="{Binding DisplayMeta}"
+                                                           Style="{StaticResource NotesMetaLineTextStyle}"/>
+                                                <TextBlock x:Name="MetaSeparator"
+                                                           Text="·"
+                                                           Margin="4,0"
+                                                           Style="{StaticResource NotesMetaLineTextStyle}"/>
+                                                <TextBlock x:Name="NoteTagsText"
+                                                           Text="{Binding DisplayTags}"
+                                                           Style="{StaticResource NotesMetaLineTextStyle}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
                                 <HierarchicalDataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsFolder}" Value="True">
                                         <Setter TargetName="FolderPanel" Property="Visibility" Value="Visible"/>
                                         <Setter TargetName="NotePanel" Property="Visibility" Value="Collapsed"/>
+                                        <Setter TargetName="NoteGlyph" Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                        <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                        <Setter TargetName="ItemChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter TargetName="FolderTitleText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter TargetName="NoteTitleText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter TargetName="NoteGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                        <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding DisplayMeta}" Value="">
                                         <Setter TargetName="NoteMetaText" Property="Visibility" Value="Collapsed"/>
+                                        <Setter TargetName="MetaSeparator" Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding DisplayTags}" Value="">
                                         <Setter TargetName="NoteTagsText" Property="Visibility" Value="Collapsed"/>
+                                        <Setter TargetName="MetaSeparator" Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding DisplayMeta}" Value=""/>
+                                            <Condition Binding="{Binding DisplayTags}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="MetaLinePanel" Property="Visibility" Value="Collapsed"/>
+                                    </MultiDataTrigger>
                                 </HierarchicalDataTemplate.Triggers>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
+
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                 <Setter Property="AllowDrop" Value="True"/>
                                 <Setter Property="IsExpanded" Value="True"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Setter Property="Padding" Value="1"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </TreeView.ItemContainerStyle>
                     </TreeView>
 
-                    <TextBlock x:Name="ListFooterText" Grid.Row="3"
-                               Margin="0,10,0,0"
+                    <TextBlock x:Name="ListFooterText"
+                               Grid.Row="3"
+                               Margin="2,8,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding ListFooterText}"
-                               FontSize="{StaticResource FontSizeCaption}"/>
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Opacity="0.62"/>
                 </Grid>
             </Border>
 
-            <GridSplitter x:Name="EditorSplitter" Grid.Column="1"
-                          Width="6"
+            <GridSplitter x:Name="EditorSplitter"
+                          Grid.Column="1"
+                          Width="4"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          Background="{DynamicResource BorderBrush}"/>
+                          Background="{DynamicResource BorderBrush}"
+                          Opacity="0.45"
+                          AutomationProperties.AutomationId="NotesTool.EditorSplitter"/>
 
             <Border Grid.Column="2"
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}"
-                    Padding="{StaticResource SpacingMd}">
+                    Padding="10">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -299,67 +459,72 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <WrapPanel Grid.Row="1" Margin="{StaticResource MarginSubsectionTop}" HorizontalAlignment="Right">
-                            <Button x:Name="BtnNavBack" Content="&#x2190;"
+
+                        <WrapPanel Grid.Row="1" Margin="0,8,0,0" HorizontalAlignment="Right">
+                            <Button x:Name="BtnNavBack"
+                                    Content="&#x2190;"
                                     Command="{Binding GoBackCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}"
-                                    FontSize="{StaticResource FontSizeBody}"
+                                    Style="{StaticResource NotesIconButtonStyle}"
+                                    FontSize="{StaticResource FontSizeCaption}"
                                     IsEnabled="{Binding CanGoBack}"
+                                    AutomationProperties.AutomationId="NotesTool.NavBack"
                                     TabIndex="7"/>
-                            <Button x:Name="BtnNavForward" Content="&#x2192;"
+                            <Button x:Name="BtnNavForward"
+                                    Content="&#x2192;"
                                     Command="{Binding GoForwardCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineSm}"
-                                    FontSize="{StaticResource FontSizeBody}"
+                                    Style="{StaticResource NotesIconButtonStyle}"
+                                    FontSize="{StaticResource FontSizeCaption}"
                                     IsEnabled="{Binding CanGoForward}"
+                                    AutomationProperties.AutomationId="NotesTool.NavForward"
                                     TabIndex="8"/>
                             <Button x:Name="BtnNoteActions"
                                     Click="OnNoteActionsClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
+                                    Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    AutomationProperties.AutomationId="NotesTool.NoteActions"
                                     TabIndex="9"/>
                             <Button x:Name="BtnCopyConfluence"
                                     Click="OnCopyConfluenceClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
+                                    Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    AutomationProperties.AutomationId="NotesTool.CopyConfluence"
                                     TabIndex="10"/>
                             <Button x:Name="BtnExportConfluence"
                                     Click="OnExportConfluenceClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
+                                    Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    AutomationProperties.AutomationId="NotesTool.ExportConfluence"
                                     TabIndex="11"/>
                             <Button x:Name="BtnExportHtml"
                                     Click="OnExportHtmlClick"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
+                                    AutomationProperties.AutomationId="NotesTool.ExportHtml"
                                     TabIndex="12"/>
                         </WrapPanel>
+
                         <StackPanel Grid.Row="0">
                             <TextBlock x:Name="SelectedNoteTitleText"
                                        Text="{Binding SelectedNoteTitle}"
-                                       FontSize="{StaticResource FontSizeSubtitle}"
+                                       FontSize="{StaticResource FontSizeBodyLarge}"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                             <TextBlock x:Name="SelectedNotePathText"
                                        Text="{Binding SelectedNotePathDisplay}"
-                                       Margin="0,4,0,0"
+                                       Margin="0,3,0,0"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                       FontSize="{StaticResource FontSizeCaption}"/>
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       FontFamily="{StaticResource FontFamilyMonospace}"
+                                       Opacity="0.78"/>
                         </StackPanel>
                     </Grid>
 
-                    <Grid Grid.Row="1" Margin="{StaticResource MarginSectionTop}">
-                        <!-- Milkdown (primary) — hidden until ready or if WebView2 unavailable -->
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
                         <tools:MilkdownEditorControl x:Name="MilkdownEditor"
+                                                     AutomationProperties.AutomationId="NotesTool.MilkdownEditor"
                                                      TabIndex="13"
                                                      Visibility="Collapsed"/>
 
-                        <!-- AvalonEdit (fallback) -->
                         <avalon:TextEditor x:Name="Editor"
                                            FontFamily="{StaticResource FontFamilyMonospace}"
                                            FontSize="{StaticResource FontSizeBodyLarge}"
@@ -369,6 +534,7 @@
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalScrollBarVisibility="Auto"
                                            VerticalScrollBarVisibility="Auto"
+                                           AutomationProperties.AutomationId="NotesTool.AvalonEditor"
                                            TabIndex="13"/>
 
                         <Border x:Name="EditorEmptyStatePanel"
@@ -393,16 +559,19 @@
                         </Border>
                     </Grid>
 
-                    <TextBlock x:Name="StatusText" Grid.Row="2"
+                    <TextBlock x:Name="StatusText"
+                               Grid.Row="2"
                                Text="{Binding StatusMessage}"
-                                Margin="0,10,0,0"
+                               Margin="0,8,0,0"
                                FontSize="{StaticResource FontSizeCaption}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                <Setter Property="Opacity" Value="0.72"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding StatusIsError}" Value="True">
                                         <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                        <Setter Property="Opacity" Value="1"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -410,7 +579,6 @@
                     </TextBlock>
                 </Grid>
             </Border>
-
         </Grid>
     </Grid>
 </UserControl>
