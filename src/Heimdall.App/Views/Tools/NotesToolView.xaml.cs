@@ -27,6 +27,7 @@ using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +56,7 @@ public partial class NotesToolView : UserControl, IToolView
     private bool _suppressSelectionChanged = false;
     private bool _sidebarVisible = true;
     private bool _responsiveSidebarHidden;
+    private string? _lastDragOverDiagnostic;
     private GridLength _savedSidebarWidth = new(LoadSidebarWidth());
 
     public NotesToolView()
@@ -985,6 +987,8 @@ public partial class NotesToolView : UserControl, IToolView
                 treeViewItem.IsSelected = true;
             }
         }
+
+        FileLogger.Debug($"[NotesTool][DragDrop] mouse-down selected={DescribeNode(NotesTreeView.SelectedItem as NoteTreeNode)}");
     }
 
     private void OnTreeViewPreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -1010,8 +1014,11 @@ public partial class NotesToolView : UserControl, IToolView
         _isDragging = true;
         try
         {
+            _lastDragOverDiagnostic = null;
             var data = new System.Windows.DataObject("NoteTreeNode", sourceNode);
-            DragDrop.DoDragDrop(treeViewItem, data, System.Windows.DragDropEffects.Move);
+            FileLogger.Info($"[NotesTool][DragDrop] start source={DescribeNode(sourceNode)}");
+            var result = DragDrop.DoDragDrop(treeViewItem, data, System.Windows.DragDropEffects.Move);
+            FileLogger.Info($"[NotesTool][DragDrop] complete source={DescribeNode(sourceNode)} result={result}");
         }
         finally
         {
@@ -1023,17 +1030,24 @@ public partial class NotesToolView : UserControl, IToolView
     {
         e.Effects = System.Windows.DragDropEffects.None;
 
-        if (!e.Data.GetDataPresent("NoteTreeNode"))
+        var sourceNode = e.Data.GetDataPresent("NoteTreeNode")
+            ? e.Data.GetData("NoteTreeNode") as NoteTreeNode
+            : null;
+
+        if (sourceNode is null)
         {
+            LogDragOverOnce($"no-source target={DescribeNode(GetFolderNodeAtPoint(e))}");
             return;
         }
 
         var target = GetFolderNodeAtPoint(e);
-        if (target is { IsFolder: true })
+        if (target is { IsFolder: true }
+            && !string.Equals(Path.GetDirectoryName(sourceNode.FilePath), target.FolderPath, StringComparison.OrdinalIgnoreCase))
         {
             e.Effects = System.Windows.DragDropEffects.Move;
         }
 
+        LogDragOverOnce($"source={DescribeNode(sourceNode)} target={DescribeNode(target)} effect={e.Effects}");
         e.Handled = true;
     }
 
@@ -1041,6 +1055,7 @@ public partial class NotesToolView : UserControl, IToolView
     {
         if (!e.Data.GetDataPresent("NoteTreeNode"))
         {
+            FileLogger.Warn("[NotesTool][DragDrop] drop rejected: missing NoteTreeNode payload");
             return;
         }
 
@@ -1049,6 +1064,7 @@ public partial class NotesToolView : UserControl, IToolView
 
         if (sourceNode?.FilePath is null || targetNode?.FolderPath is null)
         {
+            FileLogger.Warn($"[NotesTool][DragDrop] drop rejected: source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
             return;
         }
 
@@ -1057,18 +1073,22 @@ public partial class NotesToolView : UserControl, IToolView
             targetNode.FolderPath,
             StringComparison.OrdinalIgnoreCase))
         {
+            FileLogger.Info($"[NotesTool][DragDrop] drop skipped: source already in target folder source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
             return;
         }
 
         try
         {
+            FileLogger.Info($"[NotesTool][DragDrop] move source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
             var newPath = await _vm.MoveNoteToFolderAsync(sourceNode.FilePath, targetNode.FolderPath)
                 .ConfigureAwait(true);
             SetStatus(string.Format(L("ToolNotesStatusMoved"), Path.GetFileName(newPath)));
+            FileLogger.Info($"[NotesTool][DragDrop] move completed newPath={newPath}");
         }
         catch (Exception ex)
         {
             _vm.SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
+            FileLogger.Error($"[NotesTool][DragDrop] move failed source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}", ex);
         }
 
         e.Handled = true;
@@ -1083,6 +1103,32 @@ public partial class NotesToolView : UserControl, IToolView
 
         var treeViewItem = FindParentFolderTreeViewItem(source);
         return treeViewItem?.DataContext as NoteTreeNode;
+    }
+
+    private void LogDragOverOnce(string message)
+    {
+        if (string.Equals(_lastDragOverDiagnostic, message, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastDragOverDiagnostic = message;
+        FileLogger.Debug($"[NotesTool][DragDrop] over {message}");
+    }
+
+    private static string DescribeNode(NoteTreeNode? node)
+    {
+        if (node is null)
+        {
+            return "<null>";
+        }
+
+        if (node.IsFolder)
+        {
+            return $"folder:{node.FolderPath ?? node.Name}";
+        }
+
+        return $"note:{node.FilePath}";
     }
 
     private void OnEditorTextChanged(object? sender, EventArgs e)
