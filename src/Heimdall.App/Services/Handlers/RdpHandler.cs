@@ -62,7 +62,11 @@ internal sealed class RdpHandler : IProtocolHandler
 
         if (!tunnelOk)
         {
-            return new ConnectionResult(false, tunnelError, null);
+            return new ConnectionResult(
+                false,
+                tunnelError,
+                null,
+                RdpSessionDiagnosticFactory.CreateTunnelFailure(tunnelError));
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp);
@@ -85,26 +89,29 @@ internal sealed class RdpHandler : IProtocolHandler
             if (!string.IsNullOrEmpty(server.RdpUsername) &&
                 !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
             {
-                try
+                rdpPassword = ConnectionHelpers.DecryptPassword(server.RdpPasswordEncrypted);
+                if (rdpPassword is null)
                 {
-                    rdpPassword = ConnectionHelpers.DecryptPassword(server.RdpPasswordEncrypted);
-                    if (rdpPassword is null)
-                    {
-                        throw new InvalidOperationException("Failed to decrypt RDP password.");
-                    }
+                    throw new InvalidOperationException("Failed to decrypt RDP password.");
+                }
 
-                    var credTarget = $"TERMSRV/{rdpHost}";
-                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(
-                        credTarget,
-                        server.RdpUsername,
-                        rdpPassword,
-                        out _);
-                    Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
-                }
-                catch (Exception credEx)
+                var credTarget = $"TERMSRV/{rdpHost}";
+                if (!Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(
+                    credTarget,
+                    server.RdpUsername,
+                    rdpPassword,
+                    out var credError))
                 {
-                    Core.Logging.FileLogger.Warn($"Failed to store RDP credentials: {credEx.Message}");
+                    Core.Logging.FileLogger.Warn(
+                        $"Failed to store RDP credentials: {credError ?? "unknown error"}");
+                    return new ConnectionResult(
+                        false,
+                        "Failed to store RDP credentials.",
+                        null,
+                        RdpSessionDiagnosticFactory.FromCredentialWriteFailure(credError));
                 }
+
+                Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
             }
 
             var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
@@ -149,7 +156,20 @@ internal sealed class RdpHandler : IProtocolHandler
                 {
                     Core.Logging.FileLogger.Error(
                         $"Atomic ACL write failed for .rdp file, falling back to unprotected write: {swEx.Message}");
-                    await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+                    try
+                    {
+                        await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+                    }
+                    catch (Exception writeEx)
+                    {
+                        Core.Logging.FileLogger.Error("Failed to write .rdp file", writeEx);
+                        return new ConnectionResult(
+                            false,
+                            writeEx.Message,
+                            null,
+                            RdpSessionDiagnosticFactory.FromRdpFileWriteException(writeEx));
+                    }
+
                     try
                     {
                         Heimdall.Core.Security.AclEnforcer.SetFileAcl(rdpFile);
@@ -163,16 +183,53 @@ internal sealed class RdpHandler : IProtocolHandler
             }
             else
             {
-                await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+                try
+                {
+                    await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+                }
+                catch (Exception writeEx)
+                {
+                    Core.Logging.FileLogger.Error("Failed to write .rdp file", writeEx);
+                    return new ConnectionResult(
+                        false,
+                        writeEx.Message,
+                        null,
+                        RdpSessionDiagnosticFactory.FromRdpFileWriteException(writeEx));
+                }
             }
 
-            using var mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            System.Diagnostics.Process? mstscProcess;
+            try
             {
-                FileName = "mstsc.exe",
-                Arguments = $"\"{rdpFile}\"",
-                UseShellExecute = false
-            });
+                mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "mstsc.exe",
+                    Arguments = $"\"{rdpFile}\"",
+                    UseShellExecute = false
+                });
+            }
+            catch (Exception launchEx)
+            {
+                Core.Logging.FileLogger.Error("RDP launch failed", launchEx);
+                return new ConnectionResult(
+                    false,
+                    launchEx.Message,
+                    null,
+                    RdpSessionDiagnosticFactory.FromMstscLaunchException(launchEx));
+            }
 
+            if (mstscProcess is null)
+            {
+                var launchEx = new InvalidOperationException("mstsc.exe did not start.");
+                Core.Logging.FileLogger.Error("RDP launch failed", launchEx);
+                return new ConnectionResult(
+                    false,
+                    launchEx.Message,
+                    null,
+                    RdpSessionDiagnosticFactory.FromMstscLaunchException(launchEx));
+            }
+
+            using var launchedMstscProcess = mstscProcess;
             var mstscPid = mstscProcess?.Id ?? 0;
             Core.Logging.FileLogger.Info(
                 $"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
@@ -231,7 +288,11 @@ internal sealed class RdpHandler : IProtocolHandler
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Error("RDP launch failed", ex);
-            return new ConnectionResult(false, ex.Message, null);
+            return new ConnectionResult(
+                false,
+                ex.Message,
+                null,
+                RdpSessionDiagnosticFactory.FromGenericException(ex));
         }
         finally
         {
