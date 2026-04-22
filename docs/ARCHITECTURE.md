@@ -10,14 +10,14 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,855 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,775 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,102 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 4,201 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
 ```
 Heimdall.slnx (8 projects)
 ├── src/
-│   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n, network scanner, utilities
+│   ├── Heimdall.Core          net10.0         Models, session diagnostics, security, config, state machine, i18n, network scanner, utilities
 │   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier, health monitor
 │   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
 │   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
@@ -35,7 +35,8 @@ Heimdall.slnx (8 projects)
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
-    └── Heimdall.App.Tests     SplitService, NotesStorage, ThemeService, Migration, EphemeralFileServer, tool coherence
+    ├── Heimdall.App.Tests     SplitService, SessionDiagnostic, NotesStorage, ThemeService, Migration, EphemeralFileServer, tool coherence
+    └── Heimdall.App.UiTests   Desktop UIAutomation smoke and accessibility coverage
 ```
 
 ## Dependency Graph
@@ -261,7 +262,7 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 
 ```
 ISplitContent (marker interface)
-├── SessionPaneModel     Leaf: PaneId (GUID), HostControl, ServerId, OriginalServerId, Title, Status, ...
+├── SessionPaneModel     Leaf: PaneId (GUID), HostControl, ServerId, OriginalServerId, Title, Status, FailureDetails, ...
 └── SplitContainerModel  Branch: First, Second (ISplitContent), Orientation, SplitRatio
                          Constants: MinRatio (0.1), MaxRatio (0.9), DefaultRatio (0.5), SplitterThickness (4)
                          Auto-clamping: SplitRatio setter clamps to [MinRatio, MaxRatio] BEFORE PropertyChanged
@@ -271,7 +272,7 @@ ISplitContent (marker interface)
 - `ServerId` (session-scoped): assigned AFTER successful connection; used as state machine key and tunnel tracking key. Empty during connection phase.
 - `OriginalServerId` (stable): set at pane creation from server inventory ID; never changes. Used for reconnect lookups, disconnect history, and `SplitLayoutMemory` pairing. Set early in `SplitSessionWithServerAsync` for proper cleanup if the pane is closed during connection.
 
-`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindPaneByServerId`, `FindPaneByHostControl`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match.
+`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindPaneByServerId`, `FindPaneByHostControl`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match. Pane-scoped failure diagnostics now live on `SessionPaneModel` (`FailureDetails` plus derived visibility helpers), so SSH/RDP failure disclosure remains attached to the correct pane even when tabs are split.
 
 **SplitService** (extracted from MainViewModel): All split/merge orchestration lives in `Heimdall.App.Services.SplitService`, a singleton DI service that owns:
 - `SplitSessionWithServerAsync` — async connection + tree insertion with CancellationToken propagated to protocol handlers
@@ -687,7 +688,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 4162 tests across the four test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 4156 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 4201 tests across the four test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 4195 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 

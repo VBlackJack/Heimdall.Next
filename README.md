@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4156%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4195%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-49%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -173,6 +173,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Unsplit restores panes as independent tabs with all metadata preserved
 - **Dedicated SplitService**: split/merge orchestration in a dedicated service with per-session cancellation tokens (deferred CTS dispose), CancellationToken propagated to all protocol handlers, centralized `CloseAllPanes` tab teardown
 - Per-pane disconnect overlay with Reconnect and Close buttons (accessible labels for screen readers)
+- Pane-scoped failure disclosure for SSH and RDP with structured stage/code/detail diagnostics
 - Loading overlay with spinner during pane connection
 - **Minimum pane size enforcement**: 120×80px prevents splitter from collapsing panes to unusable size
 - **Double-click splitter** resets ratio to 50/50; hover border on panes for better active pane feedback
@@ -209,7 +210,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~4,855 i18n keys)
+- Bilingual interface: English and French (~5,102 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 

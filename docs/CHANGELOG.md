@@ -11,6 +11,13 @@
 # Changelog
 
 All notable changes to Heimdall.Next are documented in this file.
+## 2026-04-22 — sessions diagnostics, NotesTool cleanup, and docs sync
+- Introduced a shared `SessionDiagnostic` / `SessionFailureStage` contract and surfaced pane-scoped SSH failure diagnostics end-to-end, including a `Details` disclosure in `SessionPaneControl`.
+- Wired RDP diagnostics on both pre-tab failure branches (`RdpHandler`) and mid-session host events (`RdpActiveXHost.Disconnected` / `FatalError`) while retiring the legacy local detail text block in `EmbeddedRdpView`.
+- Kept failed-session panes interactive by suppressing the tab-loading overlay when diagnostics already exist, and compacted the failure-overlay Reconnect / Close buttons for narrow panes.
+- Modernized `NotesTool` with `{loc:Translate}` migration, ViewModel-owned Confluence/HTML export payload generation, declarative tag-chip binding via `ItemsControl`, and a denser Obsidian-like explorer presentation.
+- Refreshed README / architecture / smoke documentation to match the current gate (**4195 passing + 6 skipped**, `4201` discovered) and locale catalog size (**5,102 keys per locale**).
+
 ## 2026-04-21 — release 2026.042102 — ARP Monitor refactor + locale/parser fixes
 - Version bump from 2026.042101 to 2026.042102 (`InformationalVersion`).
 - Fixes the JWT Parser locale-switch crash by marshaling `OnLocaleChanged` back to the WPF dispatcher when locale changes originate from a non-UI thread.
