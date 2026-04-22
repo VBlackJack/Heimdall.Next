@@ -40,9 +40,9 @@
         </Style>
 
         <Style x:Key="NotesMetaLineTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
-            <Setter Property="Opacity" Value="0.74"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Opacity" Value="0.92"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
@@ -289,27 +289,29 @@
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <Border x:Name="ItemChrome"
-                                        Margin="0,1,2,1"
-                                        Padding="6,4"
+                                        Margin="0,0,1,0"
+                                        Padding="4,2,4,2"
                                         CornerRadius="{StaticResource CornerRadiusMd}"
                                         Background="Transparent"
                                         BorderBrush="Transparent"
-                                        BorderThickness="1">
+                                        BorderThickness="0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel x:Name="FolderPanel"
+                                                    Grid.Column="1"
                                                     Grid.ColumnSpan="2"
                                                     Orientation="Horizontal"
                                                     Visibility="Collapsed">
                                             <TextBlock Text="{Binding Icon}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Opacity="0.78"
-                                                       Margin="0,0,6,0"
+                                                       FontSize="11"
+                                                       Opacity="0.88"
+                                                       Margin="0,0,4,0"
                                                        VerticalAlignment="Center"/>
                                             <TextBlock x:Name="FolderTitleText"
                                                        Text="{Binding Name}"
@@ -320,18 +322,19 @@
                                                        TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
 
-                                        <TextBlock x:Name="NoteGlyph"
-                                                   Grid.Column="0"
-                                                   Text="&#xE8A5;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="11"
-                                                   Opacity="0.72"
-                                                   Margin="0,1,6,0"
-                                                   VerticalAlignment="Top"/>
+                                        <Path x:Name="NoteGlyph"
+                                              Grid.Column="1"
+                                              Data="{StaticResource Geo.Tool.Notes}"
+                                              Fill="{DynamicResource TextSecondaryBrush}"
+                                              Width="12"
+                                              Height="12"
+                                              Stretch="Uniform"
+                                              Opacity="0.8"
+                                              Margin="0,1,5,0"
+                                              VerticalAlignment="Top"/>
 
                                         <StackPanel x:Name="NotePanel"
-                                                    Grid.Column="1"
+                                                    Grid.Column="2"
                                                     VerticalAlignment="Center"
                                                     ToolTipService.ShowDuration="20000">
                                             <StackPanel.ToolTip>
@@ -355,11 +358,11 @@
                                                        Text="{Binding DisplayTitle}"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        FontSize="{StaticResource FontSizeBody}"
-                                                       FontWeight="SemiBold"
+                                                       FontWeight="Normal"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <StackPanel x:Name="MetaLinePanel"
                                                         Orientation="Horizontal"
-                                                        Margin="0,1,0,0">
+                                                        Margin="0,0,0,0">
                                                 <TextBlock x:Name="NoteMetaText"
                                                            Text="{Binding DisplayMeta}"
                                                            Style="{StaticResource NotesMetaLineTextStyle}"/>
@@ -384,9 +387,10 @@
                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
                                         <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                                         <Setter TargetName="ItemChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter TargetName="ItemChrome" Property="BorderThickness" Value="3,0,0,0"/>
                                         <Setter TargetName="FolderTitleText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                         <Setter TargetName="NoteTitleText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                        <Setter TargetName="NoteGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter TargetName="NoteGlyph" Property="Fill" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
                                         <Setter TargetName="ItemChrome" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
@@ -417,6 +421,7 @@
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                 <Setter Property="Padding" Value="0"/>
                                 <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </TreeView.ItemContainerStyle>
