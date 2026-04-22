@@ -43,9 +43,12 @@ public partial class App : System.Windows.Application
 {
     private ServiceProvider? _serviceProvider;
     private MainViewModel? _mainViewModel;
+    private string? _notesStoragePath;
 
     public IServiceProvider? Services => _serviceProvider;
 
+    // WPF's startup hook is event-like. Keeping async void here lets the splash
+    // stay visible while awaited initialization completes on the dispatcher.
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -72,24 +75,7 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += (_, args) =>
         {
             Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
-            var errorTitle = "Heimdall Error";
-            var errorBody = $"{args.Exception.Message}\n\n{args.Exception.StackTrace}";
-            try
-            {
-                var loc = _serviceProvider?.GetService<LocalizationManager>();
-                if (loc is not null)
-                {
-                    errorTitle = loc["ErrorUnhandledTitle"];
-                    errorBody = loc.Format("ErrorUnhandledMessage",
-                        args.Exception.Message, args.Exception.StackTrace ?? "");
-                }
-            }
-            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] localization lookup: {ex.Message}"); }
-            MessageBox.Show(
-                errorBody,
-                errorTitle,
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            ShowUnhandledException(args.Exception);
             args.Handled = true;
         };
 
@@ -98,6 +84,15 @@ public partial class App : System.Windows.Application
             Heimdall.Core.Logging.FileLogger.Error(
                 "Unobserved task exception", args.Exception.InnerException ?? args.Exception);
             args.SetObserved();
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Error("AppDomain unhandled exception", ex);
+                Dispatcher.Invoke(() => ShowUnhandledException(ex));
+            }
         };
 
         // Initialize file logger
@@ -109,107 +104,114 @@ public partial class App : System.Windows.Application
         // Register Windows-1252 codepage for MobaXterm .ini import
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        _serviceProvider = services.BuildServiceProvider();
-
-        // Initialize core services
-        var configManager = _serviceProvider.GetRequiredService<IConfigManager>();
-        await configManager.InitializeAsync();
-
-        var localization = _serviceProvider.GetRequiredService<LocalizationManager>();
-        var settings = await configManager.LoadSettingsAsync();
-        await localization.LoadAsync(
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
-            settings.DefaultLocale);
-
-        // Bridge the DI LocalizationManager to the WPF binding system
-        // so that {loc:Translate} markup extensions can resolve keys
-        LocalizationSource.Instance.Initialize(localization);
-
-        // Apply sleep prevention setting
-        SleepPrevention.Enabled = settings.PreventSleepDuringSession;
-        SleepPrevention.IntervalSeconds = settings.SleepPreventionIntervalSeconds;
-        Heimdall.Sftp.RemoteFileEditor.UploadDebounceInterval =
-            TimeSpan.FromMilliseconds(settings.SftpUploadDebounceMs);
-
-        // Initialize TwinShell command library (DB + seed on first launch).
-        // Awaited to ensure seed completes before tools can be opened.
-        await Task.Run(() => TwinShellBootstrapper.InitializeAsync(_serviceProvider));
-
-        // Pre-warm RDP COM/DLL chain and WinForms runtime on a background STA thread.
-        // Forces loading of mstscax.dll + 22 static dependencies (~300-500ms) at startup
-        // instead of on the first RDP connection.
-        PreWarmRdpRuntime();
-
-        // Respect Windows "Show animations" accessibility setting (WCAG 2.1 § 2.3.3).
-        // When disabled, override animation durations to zero for instant state transitions.
-        if (!SystemParameters.MenuAnimation)
+        try
         {
-            Resources["AnimationFast"] = new Duration(TimeSpan.Zero);
-            Resources["AnimationMedium"] = new Duration(TimeSpan.Zero);
-        }
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            _serviceProvider = services.BuildServiceProvider();
 
-        // Initialize HMAC key for credential protection
-        await InitializeHmacKeyAsync(configManager, settings);
+            // Initialize core services
+            var configManager = _serviceProvider.GetRequiredService<IConfigManager>();
+            await configManager.InitializeAsync();
 
-        // Load trusted SSH host keys into the TOFU store
-        var hostKeyStore = _serviceProvider.GetRequiredService<HostKeyStore>();
-        if (settings.TrustedHostKeys.Count > 0)
-        {
-            var entries = settings.TrustedHostKeys.Select(kvp =>
+            var localization = _serviceProvider.GetRequiredService<LocalizationManager>();
+            var settings = await configManager.LoadSettingsAsync();
+            _notesStoragePath = ResolveNotesStoragePath(settings, AppDomain.CurrentDomain.BaseDirectory);
+
+            await localization.LoadAsync(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
+                settings.DefaultLocale);
+
+            // Bridge the DI LocalizationManager to the WPF binding system
+            // so that {loc:Translate} markup extensions can resolve keys
+            LocalizationSource.Instance.Initialize(localization);
+
+            // Apply sleep prevention setting
+            SleepPrevention.Enabled = settings.PreventSleepDuringSession;
+            SleepPrevention.IntervalSeconds = settings.SleepPreventionIntervalSeconds;
+            Heimdall.Sftp.RemoteFileEditor.UploadDebounceInterval =
+                TimeSpan.FromMilliseconds(settings.SftpUploadDebounceMs);
+
+            // Initialize TwinShell command library (DB + seed on first launch).
+            // Awaited to ensure seed completes before tools can be opened.
+            await TwinShellBootstrapper.InitializeAsync(_serviceProvider);
+
+            // Pre-warm RDP COM/DLL chain and WinForms runtime on a background STA thread.
+            // Forces loading of mstscax.dll + 22 static dependencies (~300-500ms) at startup
+            // instead of on the first RDP connection.
+            PreWarmRdpRuntime();
+
+            // Respect Windows "Show animations" accessibility setting (WCAG 2.1 § 2.3.3).
+            // When disabled, override animation durations to zero for instant state transitions.
+            if (!SystemParameters.MenuAnimation)
             {
-                ParseHostKeyEntry(kvp.Key, out var host, out var port);
-                return (host, port, (string?)kvp.Value);
-            });
-            hostKeyStore.LoadFromConfig(entries);
-        }
-
-        // Persist newly trusted host keys back to settings via transactional merge.
-        // MergeHostKeyAsync holds the write lock across load+mutate+save,
-        // preventing concurrent TOFU events from overwriting each other.
-        hostKeyStore.HostKeyEvent += (key, fingerprint, trusted) =>
-        {
-            if (!trusted)
-            {
-                return;
+                Resources["AnimationFast"] = new Duration(TimeSpan.Zero);
+                Resources["AnimationMedium"] = new Duration(TimeSpan.Zero);
             }
 
-            _ = Task.Run(async () =>
+            // Initialize HMAC key for credential protection
+            await InitializeHmacKeyAsync(configManager, settings);
+
+            // Load trusted SSH host keys into the TOFU store
+            var hostKeyStore = _serviceProvider.GetRequiredService<HostKeyStore>();
+            if (settings.TrustedHostKeys.Count > 0)
             {
-                try
+                var entries = settings.TrustedHostKeys.Select(kvp =>
                 {
-                    await configManager.MergeHostKeyAsync(key, fingerprint);
-                }
-                catch (Exception ex)
+                    ParseHostKeyEntry(kvp.Key, out var host, out var port);
+                    return (host, port, (string?)kvp.Value);
+                });
+                hostKeyStore.LoadFromConfig(entries);
+            }
+
+            // Persist newly trusted host keys back to settings via transactional merge.
+            // Fire-and-forget on purpose: TOFU acceptance must not block the caller path.
+            hostKeyStore.HostKeyEvent += (key, fingerprint, trusted) =>
+            {
+                if (!trusted)
                 {
-                    Heimdall.Core.Logging.FileLogger.Warn(
-                        $"Failed to persist host key for {key}: {ex.Message}");
+                    return;
                 }
-            });
-        };
 
-        // Subscribe to runtime settings changes for logging and theme updates
-        configManager.SettingsChanged += OnSettingsChanged;
+                _ = PersistTrustedHostKeyAsync(configManager, key, fingerprint);
+            };
 
-        // Apply the saved theme before showing any window
-        _serviceProvider.GetRequiredService<ThemeService>().ApplyTheme(settings.DefaultTheme);
+            // Subscribe to runtime settings changes for logging and theme updates
+            configManager.SettingsChanged += OnSettingsChanged;
 
-        // Check for legacy Heimdall installation and offer migration on first run
-        await TryMigrateLegacyAsync(configManager, localization);
+            // Apply the saved theme before showing any window
+            _serviceProvider.GetRequiredService<ThemeService>().ApplyTheme(settings.DefaultTheme);
 
-        // Scan for external tools (NirSoft, Sysinternals) on a background thread.
-        // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
-        _ = Task.Run(() => ScanExternalTools(settings));
+            // Check for legacy Heimdall installation and offer migration on first run
+            await TryMigrateLegacyAsync(configManager, localization);
 
-        // Close splash before showing main window
-        splash.Close();
+            // Scan for external tools (NirSoft, Sysinternals) on a background thread.
+            // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
+            _ = Task.Run(() => ScanExternalTools(settings));
 
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        _mainViewModel = mainWindow.DataContext as MainViewModel;
-        MainWindow = mainWindow;
-        ShutdownMode = ShutdownMode.OnMainWindowClose;
-        mainWindow.Show();
+            // Close splash before showing main window
+            splash.Close();
+
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            _mainViewModel = mainWindow.DataContext as MainViewModel;
+            MainWindow = mainWindow;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                splash.Close();
+            }
+            catch
+            {
+                // Best-effort splash cleanup during fatal startup failure.
+            }
+
+            ShowUnhandledException(ex);
+            Shutdown(-1);
+        }
     }
 
     /// <summary>
@@ -268,7 +270,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private void ConfigureServices(IServiceCollection services)
     {
         // Core services
         services.AddSingleton<IConfigManager>(_ => new ConfigManager(
@@ -328,7 +330,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IJsonFormatterToolService, JsonFormatterToolService>();
         services.AddSingleton<IArpTableReader, DefaultArpTableReader>();
         services.AddSingleton<NotesStorageService>(sp =>
-            new NotesStorageService(ResolveNotesStoragePath(sp.GetRequiredService<IConfigManager>())));
+            new NotesStorageService(GetNotesStoragePath()));
         services.AddSingleton<INotesStorageService>(sp =>
             sp.GetRequiredService<NotesStorageService>());
         services.AddSingleton<IRegexTesterToolService, RegexTesterToolService>();
@@ -370,10 +372,11 @@ public partial class App : System.Windows.Application
         services.AddTransient<MainWindow>();
     }
 
-    private static string ResolveNotesStoragePath(IConfigManager configManager)
+    internal static string ResolveNotesStoragePath(AppSettings settings, string basePath)
     {
-        var basePath = AppDomain.CurrentDomain.BaseDirectory;
-        var settings = configManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentException.ThrowIfNullOrWhiteSpace(basePath);
+
         if (!string.IsNullOrWhiteSpace(settings.NotesDirectory))
         {
             return Path.IsPathRooted(settings.NotesDirectory)
@@ -382,6 +385,22 @@ public partial class App : System.Windows.Application
         }
 
         return Path.Combine(basePath, "config", "notes");
+    }
+
+    internal static async Task PersistTrustedHostKeyAsync(
+        IConfigManager configManager,
+        string key,
+        string fingerprint)
+    {
+        try
+        {
+            await configManager.MergeHostKeyAsync(key, fingerprint);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"Failed to persist host key for {key}: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -570,6 +589,7 @@ public partial class App : System.Windows.Application
     {
         // Update logging state
         Core.Logging.FileLogger.SetEnabled(newSettings.EnableLogging);
+        _notesStoragePath = ResolveNotesStoragePath(newSettings, AppDomain.CurrentDomain.BaseDirectory);
 
         // Delegate theme swap to the centralized service on the UI thread.
         // Idempotent: ThemeService skips the swap when the theme is unchanged.
@@ -578,6 +598,41 @@ public partial class App : System.Windows.Application
         {
             Dispatcher.InvokeAsync(() => themeService.ApplyTheme(newSettings.DefaultTheme));
         }
+    }
+
+    private string GetNotesStoragePath()
+    {
+        return _notesStoragePath
+            ?? ResolveNotesStoragePath(new AppSettings(), AppDomain.CurrentDomain.BaseDirectory);
+    }
+
+    private void ShowUnhandledException(Exception exception)
+    {
+        var errorTitle = "Heimdall Error";
+        var errorBody = $"{exception.Message}\n\n{exception.StackTrace}";
+
+        try
+        {
+            var loc = _serviceProvider?.GetService<LocalizationManager>();
+            if (loc is not null)
+            {
+                errorTitle = loc["ErrorUnhandledTitle"];
+                errorBody = loc.Format(
+                    "ErrorUnhandledMessage",
+                    exception.Message,
+                    exception.StackTrace ?? "");
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[App] localization lookup: {ex.Message}");
+        }
+
+        MessageBox.Show(
+            errorBody,
+            errorTitle,
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
     }
 
     protected override async void OnExit(ExitEventArgs e)
