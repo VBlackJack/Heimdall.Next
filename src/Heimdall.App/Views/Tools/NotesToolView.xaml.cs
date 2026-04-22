@@ -818,11 +818,11 @@ public partial class NotesToolView : UserControl, IToolView
         return null;
     }
 
-    private static TreeViewItem? FindParentFolderTreeViewItem(DependencyObject? current)
+    private static TreeViewItem? FindParentTreeViewItem(DependencyObject? current)
     {
         while (current is not null)
         {
-            if (current is TreeViewItem item && item.DataContext is NoteTreeNode { IsFolder: true })
+            if (current is TreeViewItem item)
             {
                 return item;
             }
@@ -1033,21 +1033,21 @@ public partial class NotesToolView : UserControl, IToolView
         var sourceNode = e.Data.GetDataPresent("NoteTreeNode")
             ? e.Data.GetData("NoteTreeNode") as NoteTreeNode
             : null;
+        var targetFolderPath = GetDropTargetFolderPath(e);
 
         if (sourceNode is null)
         {
-            LogDragOverOnce($"no-source target={DescribeNode(GetFolderNodeAtPoint(e))}");
+            LogDragOverOnce($"no-source target={DescribeFolderPath(targetFolderPath)}");
             return;
         }
 
-        var target = GetFolderNodeAtPoint(e);
-        if (target is { IsFolder: true }
-            && !string.Equals(Path.GetDirectoryName(sourceNode.FilePath), target.FolderPath, StringComparison.OrdinalIgnoreCase))
+        if (targetFolderPath is not null
+            && !string.Equals(Path.GetDirectoryName(sourceNode.FilePath), targetFolderPath, StringComparison.OrdinalIgnoreCase))
         {
             e.Effects = System.Windows.DragDropEffects.Move;
         }
 
-        LogDragOverOnce($"source={DescribeNode(sourceNode)} target={DescribeNode(target)} effect={e.Effects}");
+        LogDragOverOnce($"source={DescribeNode(sourceNode)} target={DescribeFolderPath(targetFolderPath)} effect={e.Effects}");
         e.Handled = true;
     }
 
@@ -1060,27 +1060,27 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         var sourceNode = e.Data.GetData("NoteTreeNode") as NoteTreeNode;
-        var targetNode = GetFolderNodeAtPoint(e);
+        var targetFolderPath = GetDropTargetFolderPath(e);
 
-        if (sourceNode?.FilePath is null || targetNode?.FolderPath is null)
+        if (sourceNode?.FilePath is null || targetFolderPath is null)
         {
-            FileLogger.Warn($"[NotesTool][DragDrop] drop rejected: source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
+            FileLogger.Warn($"[NotesTool][DragDrop] drop rejected: source={DescribeNode(sourceNode)} target={DescribeFolderPath(targetFolderPath)}");
             return;
         }
 
         if (string.Equals(
             Path.GetDirectoryName(sourceNode.FilePath),
-            targetNode.FolderPath,
+            targetFolderPath,
             StringComparison.OrdinalIgnoreCase))
         {
-            FileLogger.Info($"[NotesTool][DragDrop] drop skipped: source already in target folder source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
+            FileLogger.Info($"[NotesTool][DragDrop] drop skipped: source already in target folder source={DescribeNode(sourceNode)} target={DescribeFolderPath(targetFolderPath)}");
             return;
         }
 
         try
         {
-            FileLogger.Info($"[NotesTool][DragDrop] move source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}");
-            var newPath = await _vm.MoveNoteToFolderAsync(sourceNode.FilePath, targetNode.FolderPath)
+            FileLogger.Info($"[NotesTool][DragDrop] move source={DescribeNode(sourceNode)} target={DescribeFolderPath(targetFolderPath)}");
+            var newPath = await _vm.MoveNoteToFolderAsync(sourceNode.FilePath, targetFolderPath)
                 .ConfigureAwait(true);
             SetStatus(string.Format(L("ToolNotesStatusMoved"), Path.GetFileName(newPath)));
             FileLogger.Info($"[NotesTool][DragDrop] move completed newPath={newPath}");
@@ -1088,31 +1088,53 @@ public partial class NotesToolView : UserControl, IToolView
         catch (Exception ex)
         {
             _vm.SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
-            FileLogger.Error($"[NotesTool][DragDrop] move failed source={DescribeNode(sourceNode)} target={DescribeNode(targetNode)}", ex);
+            FileLogger.Error($"[NotesTool][DragDrop] move failed source={DescribeNode(sourceNode)} target={DescribeFolderPath(targetFolderPath)}", ex);
         }
 
         e.Handled = true;
     }
 
-    private NoteTreeNode? GetFolderNodeAtPoint(System.Windows.DragEventArgs e)
+    private string GetDropTargetFolderPath(System.Windows.DragEventArgs e)
     {
         var point = e.GetPosition(NotesTreeView);
         if (NotesTreeView.InputHitTest(point) is DependencyObject hit)
         {
-            var hitTreeViewItem = FindParentFolderTreeViewItem(hit);
-            if (hitTreeViewItem?.DataContext is NoteTreeNode hitNode)
+            var hitTreeViewItem = FindParentTreeViewItem(hit);
+            var hitTarget = TryResolveDropTarget(hitTreeViewItem?.DataContext as NoteTreeNode);
+            if (hitTarget is not null)
             {
-                return hitNode;
+                return hitTarget;
             }
         }
 
-        if (e.OriginalSource is not DependencyObject source)
+        if (e.OriginalSource is DependencyObject source)
+        {
+            var treeViewItem = FindParentTreeViewItem(source);
+            var originalTarget = TryResolveDropTarget(treeViewItem?.DataContext as NoteTreeNode);
+            if (originalTarget is not null)
+            {
+                return originalTarget;
+            }
+        }
+
+        return _vm.NotesRootPath;
+    }
+
+    private string? TryResolveDropTarget(NoteTreeNode? node)
+    {
+        if (node is null)
         {
             return null;
         }
 
-        var treeViewItem = FindParentFolderTreeViewItem(source);
-        return treeViewItem?.DataContext as NoteTreeNode;
+        if (node.IsFolder)
+        {
+            return node.FolderPath;
+        }
+
+        return node.FilePath is null
+            ? null
+            : Path.GetDirectoryName(node.FilePath) ?? _vm.NotesRootPath;
     }
 
     private void LogDragOverOnce(string message)
@@ -1139,6 +1161,18 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         return $"note:{node.FilePath}";
+    }
+
+    private string DescribeFolderPath(string? folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath))
+        {
+            return "<null>";
+        }
+
+        return string.Equals(folderPath, _vm.NotesRootPath, StringComparison.OrdinalIgnoreCase)
+            ? $"root:{folderPath}"
+            : $"folder:{folderPath}";
     }
 
     private void OnEditorTextChanged(object? sender, EventArgs e)
