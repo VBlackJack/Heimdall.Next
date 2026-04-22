@@ -17,6 +17,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using Heimdall.App.ViewModels;
+using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -215,6 +216,10 @@ public sealed class SplitService : ISplitService
                 result.Session, settings);
 
             newPane.HostControl = hostControl;
+            if (hostControl is EmbeddedRdpView rdpView)
+            {
+                rdpView.SetOwningPane(newPane);
+            }
             newPane.ServerId = serverDto.Id;
             newPane.Status = "Connected";
 
@@ -563,6 +568,10 @@ public sealed class SplitService : ISplitService
                 result.Session, settings);
 
             pane.HostControl = hostControl;
+            if (hostControl is EmbeddedRdpView rdpView)
+            {
+                rdpView.SetOwningPane(pane);
+            }
             pane.ServerId = serverDto.Id;
             pane.Status = "Connected";
 

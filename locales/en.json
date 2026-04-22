@@ -2314,6 +2314,8 @@
   "RdpDisconnectPasswordExpired": "The password has expired and must be changed before connecting.",
   "RdpDisconnectCredSspPolicyError": "CredSSP policy prevents sending credentials to the remote computer.",
   "RdpDisconnectResolutionChangeTimeout": "The session was disconnected after a display resolution change.",
+  "RdpDisconnectUnknownCode": "The Remote Desktop session ended with an unknown disconnect code.",
+  "RdpFatalError": "Remote Desktop reported a fatal error.",
 
   "BtnDisconnectSession": "Disconnect",
   "BtnReconnectSession": "Reconnect",
@@ -3887,6 +3889,7 @@
   "SessionFailureStageRdpCredentialWrite": "RDP credential write",
   "SessionFailureStageRdpFileWrite": "RDP file write",
   "SessionFailureStageRdpLaunch": "RDP launch",
+  "SessionFailureStageRdpActiveXDisconnect": "RDP disconnect",
   "SessionFailureStageGeneric": "Generic failure",
   "ToolNetMapStatusEnriching": "Enriching {0}: {1}",
   "ToolNetMapTipIp": "IP",

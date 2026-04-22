@@ -22,9 +22,11 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using Heimdall.App.Views.EmbeddedRdp;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
+using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Rdp;
 using Heimdall.Rdp.ActiveX;
 using WinForms = System.Windows.Forms;
@@ -48,6 +50,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private DispatcherTimer? _antiIdleTimer;
     private RdpActiveXHost? _rdpHost;
     private ServerProfileDto? _server;
+    private SessionPaneModel? _ownerPane;
     private SessionTabViewModel? _sessionTab;
 
     private Core.Localization.LocalizationManager? _localizer;
@@ -153,7 +156,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         CreateHostControl();
-        UpdateSessionState("Connecting", L("RdpStatusPreparing"));
+        UpdateSessionStatus("Connecting");
+    }
+
+    public void SetOwningPane(SessionPaneModel pane)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        _ownerPane = pane;
     }
 
     public void Dispose()
@@ -246,7 +255,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _allowResolutionUpdates = false;
-            UpdateSessionState("Disconnecting", L("RdpStatusDisconnecting"));
+            UpdateSessionStatus("Disconnecting");
             _rdpHost.Disconnect();
         }
         catch (Exception ex)
@@ -399,7 +408,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             // Post-connect flush removed: layout is already stable after pre-connect + post-handle flushes.
             // The third flush added ~50-150ms latency with no airspace benefit since Connect() is async.
-            UpdateSessionState("Connecting", L("RdpStatusWaiting"));
+            UpdateSessionStatus("Connecting");
 
             if (!string.IsNullOrWhiteSpace(password))
             {
@@ -455,7 +464,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             _connectedAtUtc = DateTime.UtcNow;
             _allowResolutionUpdates = false;
-            UpdateSessionState("Connected", L("RdpStatusConnectedDetail"));
+            ClearPaneDiagnostic();
+            UpdateSessionStatus("Connected");
             FlushLayoutPipeline("on-connected");
 
             if (_server is not null && _server.RdpAntiIdle && _antiIdleIntervalSeconds > 0)
@@ -507,14 +517,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             StopAntiIdleTimer();
             ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
-
-            var reasonKey = RdpActiveXHost.GetDisconnectReasonKey(reason);
-            var message = reasonKey is not null
-                ? (_localizer?[$"RdpDisconnect{reasonKey}"] ?? $"Remote Desktop disconnected with code {reason}.")
-                : (_localizer?.Format("RdpStatusDisconnectedDetail", reason)
-                    ?? $"Remote Desktop disconnected with code {reason}.");
-
-            UpdateSessionState("Disconnected", message);
+            SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(reason));
+            UpdateSessionStatus("Disconnected");
             ShowReconnectOverlay();
         });
     }
@@ -531,10 +535,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             CancelAutofill();
             _allowResolutionUpdates = false;
-            UpdateSessionState(
-                "Error",
-                _localizer?.Format("RdpStatusFatalErrorDetail", errorCode)
-                    ?? $"Remote Desktop reported a fatal error ({errorCode}).");
+            SetPaneDiagnostic(RdpHostDiagnosticFactory.FromFatalError(errorCode));
+            UpdateSessionStatus("Error");
             ShowReconnectOverlay();
         });
     }
@@ -559,10 +561,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             _allowResolutionUpdates = false;
-            UpdateSessionState(
-                "Reconnecting",
-                _localizer?.Format("RdpStatusReconnecting", attemptCount)
-                    ?? $"Reconnecting (attempt {attemptCount})...");
+            UpdateSessionStatus("Reconnecting");
         });
     }
 
@@ -573,7 +572,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         Dispatcher.Invoke(() =>
         {
-            UpdateSessionState("Connected", L("RdpStatusConnectedDetail"));
+            ClearPaneDiagnostic();
+            UpdateSessionStatus("Connected");
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
@@ -683,7 +683,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    private void UpdateSessionState(string status, string detail)
+    private void UpdateSessionStatus(string status)
     {
         if (_sessionTab is not null)
         {
@@ -691,7 +691,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         StatusTextBlock.Text = status;
-        DetailTextBlock.Text = detail;
 
         var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
         RdpLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
@@ -711,9 +710,29 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         Core.Logging.FileLogger.Error(message, ex);
         _allowResolutionUpdates = false;
-        UpdateSessionState("Error",
-            _localizer?.Format("RdpStatusErrorDetail", message, ex.Message)
-                ?? $"{message} {ex.Message}");
+        UpdateSessionStatus("Error");
+        StatusTextBlock.Text = _localizer?.Format("RdpStatusErrorDetail", message, ex.Message)
+            ?? $"{message} {ex.Message}";
+    }
+
+    private void SetPaneDiagnostic(SessionDiagnostic diagnostic)
+    {
+        ArgumentNullException.ThrowIfNull(diagnostic);
+
+        var pane = _ownerPane ?? _sessionTab?.PrimaryPane;
+        if (pane is not null)
+        {
+            pane.FailureDetails = diagnostic;
+        }
+    }
+
+    private void ClearPaneDiagnostic()
+    {
+        var pane = _ownerPane ?? _sessionTab?.PrimaryPane;
+        if (pane is not null)
+        {
+            pane.FailureDetails = null;
+        }
     }
 
     /// <summary>

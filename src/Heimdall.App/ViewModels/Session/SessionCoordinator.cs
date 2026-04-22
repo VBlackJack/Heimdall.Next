@@ -225,6 +225,10 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             connectionType,
             session,
             _main.CurrentSettings);
+        if (tab.HostControl is EmbeddedRdpView rdpView)
+        {
+            rdpView.SetOwningPane(tab.PrimaryPane);
+        }
         tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
             ? _localizer["StatusConnectingProgress"]
             : _localizer["StatusConnected"];

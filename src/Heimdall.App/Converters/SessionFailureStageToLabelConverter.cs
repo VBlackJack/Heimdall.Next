@@ -47,6 +47,7 @@ public sealed class SessionFailureStageToLabelConverter : IValueConverter
             SessionFailureStage.RdpCredentialWrite => "SessionFailureStageRdpCredentialWrite",
             SessionFailureStage.RdpFileWrite => "SessionFailureStageRdpFileWrite",
             SessionFailureStage.RdpLaunch => "SessionFailureStageRdpLaunch",
+            SessionFailureStage.RdpActiveXDisconnect => "SessionFailureStageRdpActiveXDisconnect",
             SessionFailureStage.SshGateway => "SessionFailureStageSshGateway",
             SessionFailureStage.SshPreflight => "SessionFailureStageSshPreflight",
             SessionFailureStage.SshAuth => "SessionFailureStageSshAuth",

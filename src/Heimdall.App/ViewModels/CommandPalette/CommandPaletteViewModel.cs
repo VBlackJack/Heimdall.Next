@@ -18,6 +18,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
@@ -395,6 +396,10 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             var tab = _main.Connection.AddSession(dto.Id, dto.DisplayName, connType);
             tab.HostControl = _embeddedSessionManager.CreateHostControl(
                 tab, dto.DisplayName, connType, result.Session, settings);
+            if (tab.HostControl is EmbeddedRdpView rdpView)
+            {
+                rdpView.SetOwningPane(tab.PrimaryPane);
+            }
             tab.Status = _localizer["StatusConnected"];
             _main.StatusText = _localizer.Format("StatusConnected",
                 !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
