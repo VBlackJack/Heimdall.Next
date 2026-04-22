@@ -91,7 +91,7 @@
 
         <Grid x:Name="NotesLayoutGrid" Grid.Row="2" Margin="{StaticResource ContentAreaMargin}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition Width="248" MinWidth="180"/>
                 <ColumnDefinition Width="6"/>
                 <ColumnDefinition Width="*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
@@ -199,44 +199,46 @@
                         </TreeView.ContextMenu>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                <Grid Margin="2,3,8,3">
+                                <Grid Margin="2,1,6,1">
                                     <StackPanel x:Name="FolderPanel"
                                                 Orientation="Horizontal"
+                                                Margin="0,1,0,1"
                                                 Visibility="Collapsed">
                                         <TextBlock Text="{Binding Icon}"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="{StaticResource FontSizeBody}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
                                                    VerticalAlignment="Center"/>
                                         <TextBlock Text="{Binding Name}"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    FontSize="{StaticResource FontSizeBody}"
+                                                   FontWeight="SemiBold"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
 
-                                    <StackPanel x:Name="NotePanel">
+                                    <StackPanel x:Name="NotePanel"
+                                                Margin="0,1,0,1"
+                                                ToolTip="{Binding DisplaySummary}">
                                         <TextBlock Text="{Binding DisplayTitle}"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    FontSize="{StaticResource FontSizeBody}"
                                                    FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="NoteSummaryText"
-                                                   Text="{Binding DisplaySummary}"
-                                                   Margin="0,2,0,0"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding DisplayMeta}"
-                                                   Margin="0,4,0,0"
-                                                   Foreground="{DynamicResource TextTertiaryBrush}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="NoteTagsText"
-                                                   Text="{Binding DisplayTags}"
-                                                   Margin="0,4,0,0"
-                                                   Foreground="{DynamicResource InfoBrush}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   TextTrimming="CharacterEllipsis"/>
+                                        <DockPanel Margin="0,1,0,0"
+                                                   LastChildFill="False">
+                                            <TextBlock x:Name="NoteMetaText"
+                                                       Text="{Binding DisplayMeta}"
+                                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock x:Name="NoteTagsText"
+                                                       DockPanel.Dock="Right"
+                                                       Text="{Binding DisplayTags}"
+                                                       Margin="8,0,0,0"
+                                                       Foreground="{DynamicResource InfoBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
                                     </StackPanel>
                                 </Grid>
                                 <HierarchicalDataTemplate.Triggers>
@@ -244,8 +246,8 @@
                                         <Setter TargetName="FolderPanel" Property="Visibility" Value="Visible"/>
                                         <Setter TargetName="NotePanel" Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding DisplaySummary}" Value="">
-                                        <Setter TargetName="NoteSummaryText" Property="Visibility" Value="Collapsed"/>
+                                    <DataTrigger Binding="{Binding DisplayMeta}" Value="">
+                                        <Setter TargetName="NoteMetaText" Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding DisplayTags}" Value="">
                                         <Setter TargetName="NoteTagsText" Property="Visibility" Value="Collapsed"/>
@@ -257,7 +259,7 @@
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                 <Setter Property="IsExpanded" Value="True"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Setter Property="Padding" Value="2"/>
+                                <Setter Property="Padding" Value="1"/>
                             </Style>
                         </TreeView.ItemContainerStyle>
                     </TreeView>
