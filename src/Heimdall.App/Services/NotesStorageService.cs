@@ -130,7 +130,7 @@ public sealed class NoteTreeNode
     }
 }
 
-public sealed class NotesStorageService
+public sealed class NotesStorageService : INotesStorageService
 {
     private sealed record NoteLookupCandidate(
         string FilePath,
