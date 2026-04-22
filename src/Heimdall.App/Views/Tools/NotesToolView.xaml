@@ -191,6 +191,8 @@
                               PreviewMouseRightButtonDown="OnTreeViewPreviewRightClick"
                               PreviewMouseLeftButtonDown="OnTreeViewPreviewMouseLeftButtonDown"
                               PreviewMouseMove="OnTreeViewPreviewMouseMove"
+                              PreviewDragOver="OnTreeViewInternalDragOver"
+                              PreviewDrop="OnTreeViewInternalDrop"
                               DragOver="OnTreeViewInternalDragOver"
                               Drop="OnTreeViewInternalDrop"
                               TabIndex="6">
@@ -257,6 +259,7 @@
                         </TreeView.ItemTemplate>
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="AllowDrop" Value="True"/>
                                 <Setter Property="IsExpanded" Value="True"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                 <Setter Property="Padding" Value="1"/>

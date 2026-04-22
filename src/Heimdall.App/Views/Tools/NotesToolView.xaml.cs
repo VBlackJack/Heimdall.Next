@@ -1096,6 +1096,16 @@ public partial class NotesToolView : UserControl, IToolView
 
     private NoteTreeNode? GetFolderNodeAtPoint(System.Windows.DragEventArgs e)
     {
+        var point = e.GetPosition(NotesTreeView);
+        if (NotesTreeView.InputHitTest(point) is DependencyObject hit)
+        {
+            var hitTreeViewItem = FindParentFolderTreeViewItem(hit);
+            if (hitTreeViewItem?.DataContext is NoteTreeNode hitNode)
+            {
+                return hitNode;
+            }
+        }
+
         if (e.OriginalSource is not DependencyObject source)
         {
             return null;
@@ -1232,6 +1242,13 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnDragOver(object sender, System.Windows.DragEventArgs e)
     {
+        if (e.Data.GetDataPresent("NoteTreeNode"))
+        {
+            FileLogger.Debug("[NotesTool][DragDrop] sidebar drag-over routed to internal note handler");
+            OnTreeViewInternalDragOver(sender, e);
+            return;
+        }
+
         if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop)
             && e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] files
             && files.Any(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
@@ -1248,6 +1265,13 @@ public partial class NotesToolView : UserControl, IToolView
 
     private async void OnDrop(object sender, System.Windows.DragEventArgs e)
     {
+        if (e.Data.GetDataPresent("NoteTreeNode"))
+        {
+            FileLogger.Debug("[NotesTool][DragDrop] sidebar drop routed to internal note handler");
+            OnTreeViewInternalDrop(sender, e);
+            return;
+        }
+
         if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is not string[] files)
         {
             return;
