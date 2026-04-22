@@ -58,17 +58,18 @@ public partial class NotesToolView : UserControl, IToolView
     private bool _sidebarVisible = true;
     private bool _responsiveSidebarHidden;
     private string? _lastDragOverDiagnostic;
+    private bool _vmOutputHandlersAttached;
     private GridLength _savedSidebarWidth = new(LoadSidebarWidth());
 
     public NotesToolView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         SizeChanged += OnViewSizeChanged;
 
         _vm = ResolveViewModel();
         _vm.PropertyChanged += OnViewModelPropertyChanged;
-        _vm.AvailableTags.CollectionChanged += OnAvailableTagsChanged;
         DataContext = _vm;
 
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(850) };
@@ -108,8 +109,14 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        AttachVmOutputHandlers();
         StartInitializationIfNeeded(fromLoadedEvent: true);
         Dispatcher.BeginInvoke(UpdateResponsiveLayout, DispatcherPriority.Loaded);
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        DetachVmOutputHandlers();
     }
 
     private async void StartInitializationIfNeeded(bool fromLoadedEvent = false)
@@ -280,45 +287,6 @@ public partial class NotesToolView : UserControl, IToolView
         {
             _vm.SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
         }
-    }
-
-    private void RebuildTagFilterButtons()
-    {
-        var hasTags = _vm.AvailableTags.Count > 0;
-        TagsLabelText.Visibility = hasTags ? Visibility.Visible : Visibility.Collapsed;
-        TagFilterWrapPanel.Visibility = hasTags ? Visibility.Visible : Visibility.Collapsed;
-        TagFilterWrapPanel.Children.Clear();
-
-        if (!hasTags)
-        {
-            return;
-        }
-
-        AddTagFilterButton(null, L("ToolNotesAllTags"));
-        foreach (var tag in _vm.AvailableTags)
-        {
-            AddTagFilterButton(tag, tag);
-        }
-    }
-
-    private void AddTagFilterButton(string? tag, string label)
-    {
-        var isSelected = string.IsNullOrWhiteSpace(tag)
-            ? string.IsNullOrWhiteSpace(_vm.SelectedTag)
-            : string.Equals(tag, _vm.SelectedTag, StringComparison.OrdinalIgnoreCase);
-
-        var button = new Button
-        {
-            Content = label,
-            Tag = tag,
-            Style = (Style)FindResource(isSelected ? "PrimaryButtonStyle" : "SecondaryButtonStyle"),
-            Padding = new Thickness(10, 4, 10, 4),
-            Margin = new Thickness(0, 0, 8, 8)
-        };
-        button.Click += OnTagFilterClick;
-        System.Windows.Automation.AutomationProperties.SetName(button, label);
-
-        TagFilterWrapPanel.Children.Add(button);
     }
 
     private async Task DeleteCurrentNoteAsync()
@@ -892,17 +860,6 @@ public partial class NotesToolView : UserControl, IToolView
         }
     }
 
-    private void OnTagFilterClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button)
-        {
-            return;
-        }
-
-        _vm.SelectedTag = button.Tag as string;
-        RebuildTagFilterButtons();
-    }
-
     // ── TreeView internal drag & drop ─────────────────────────────
 
     private System.Windows.Point _dragStartPoint;
@@ -1143,66 +1100,6 @@ public partial class NotesToolView : UserControl, IToolView
             ? Path.GetDirectoryName(_vm.CurrentNotePath) ?? _vm.NotesRootPath
             : _vm.NotesRootPath;
         OpenFolder(path);
-    }
-
-    private void OnCopyConfluenceClick(object sender, RoutedEventArgs e)
-    {
-        if (_vm.CurrentNotePath is null)
-        {
-            return;
-        }
-
-        var content = _useMilkdown ? _lastMilkdownContent : (Editor.Text ?? string.Empty);
-        try { Clipboard.SetText(ConfluenceStorageConverter.Convert(content)); }
-        catch (System.Runtime.InteropServices.ExternalException) { return; }
-        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-    }
-
-    private void OnExportConfluenceClick(object sender, RoutedEventArgs e)
-    {
-        if (_vm.CurrentNotePath is null)
-        {
-            return;
-        }
-
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = L("ToolNotesExportConfluenceFilter"),
-            FileName = $"{Path.GetFileNameWithoutExtension(_vm.CurrentNotePath)}.storage.xml"
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var content = _useMilkdown ? _lastMilkdownContent : (Editor.Text ?? string.Empty);
-        File.WriteAllText(dialog.FileName, ConfluenceStorageConverter.Convert(content));
-        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
-    }
-
-    private void OnExportHtmlClick(object sender, RoutedEventArgs e)
-    {
-        if (_vm.CurrentNotePath is null)
-        {
-            return;
-        }
-
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = L("ToolNotesExportHtmlFilter"),
-            FileName = $"{Path.GetFileNameWithoutExtension(_vm.CurrentNotePath)}.html"
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var content = _useMilkdown ? _lastMilkdownContent : (Editor.Text ?? string.Empty);
-        var html = MarkdownPreviewBuilder.BuildHtmlDocument(content, _vm.SelectedNoteTitle);
-        File.WriteAllText(dialog.FileName, html);
-        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
     }
 
     // ── Drag & drop ─────────────────────────────────────────────────
@@ -1533,11 +1430,6 @@ public partial class NotesToolView : UserControl, IToolView
         HelpPanel.Visibility = Visibility.Visible;
     }
 
-    private void OnAvailableTagsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-    {
-        RebuildTagFilterButtons();
-    }
-
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (_disposed)
@@ -1550,10 +1442,6 @@ public partial class NotesToolView : UserControl, IToolView
             or nameof(NotesToolViewModel.SelectedNote))
         {
             ApplyViewModelSelection();
-        }
-        else if (e.PropertyName == nameof(NotesToolViewModel.SelectedTag))
-        {
-            RebuildTagFilterButtons();
         }
     }
 
@@ -1670,6 +1558,80 @@ public partial class NotesToolView : UserControl, IToolView
         });
     }
 
+    private void AttachVmOutputHandlers()
+    {
+        if (_vmOutputHandlersAttached)
+        {
+            return;
+        }
+
+        _vm.CopyConfluenceRequested += OnCopyConfluenceRequested;
+        _vm.ExportConfluenceRequested += OnExportConfluenceRequested;
+        _vm.ExportHtmlRequested += OnExportHtmlRequested;
+        _vmOutputHandlersAttached = true;
+    }
+
+    private void DetachVmOutputHandlers()
+    {
+        if (!_vmOutputHandlersAttached)
+        {
+            return;
+        }
+
+        _vm.CopyConfluenceRequested -= OnCopyConfluenceRequested;
+        _vm.ExportConfluenceRequested -= OnExportConfluenceRequested;
+        _vm.ExportHtmlRequested -= OnExportHtmlRequested;
+        _vmOutputHandlersAttached = false;
+    }
+
+    private void OnCopyConfluenceRequested(object? sender, string payload)
+    {
+        try
+        {
+            Clipboard.SetText(payload);
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            return;
+        }
+
+        CopyFeedbackHelper.ShowCopyFeedback(BtnCopyConfluence);
+    }
+
+    private void OnExportConfluenceRequested(object? sender, string payload)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = L("ToolNotesExportConfluenceFilter"),
+            FileName = $"{Path.GetFileNameWithoutExtension(_vm.CurrentNotePath)}.storage.xml"
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        File.WriteAllText(dialog.FileName, payload);
+        CopyFeedbackHelper.ShowCopyFeedback(BtnExportConfluence);
+    }
+
+    private void OnExportHtmlRequested(object? sender, string payload)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = L("ToolNotesExportHtmlFilter"),
+            FileName = $"{Path.GetFileNameWithoutExtension(_vm.CurrentNotePath)}.html"
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        File.WriteAllText(dialog.FileName, payload);
+        CopyFeedbackHelper.ShowCopyFeedback(BtnExportHtml);
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -1679,11 +1641,12 @@ public partial class NotesToolView : UserControl, IToolView
 
         _disposed = true;
         Loaded -= OnLoaded;
+        Unloaded -= OnUnloaded;
         SizeChanged -= OnViewSizeChanged;
         _saveTimer.Tick -= OnSaveTimerTick;
         _saveTimer.Stop();
+        DetachVmOutputHandlers();
         _vm.PropertyChanged -= OnViewModelPropertyChanged;
-        _vm.AvailableTags.CollectionChanged -= OnAvailableTagsChanged;
         Editor.TextChanged -= OnEditorTextChanged;
         Editor.TextArea.TextEntered -= OnTextAreaTextEntered;
         Editor.TextArea.PreviewMouseDown -= OnEditorPreviewMouseDown;

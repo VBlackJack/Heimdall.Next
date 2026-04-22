@@ -46,6 +46,21 @@
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+
+        <Style x:Key="NotesTagFilterButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="0,0,4,4"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -269,20 +284,27 @@
                                    Margin="0"
                                    IsHitTestVisible="False"/>
 
-                        <WrapPanel x:Name="TagFilterWrapPanel"
-                                   Margin="0,0,0,6"
-                                   Visibility="Collapsed"
-                                   AutomationProperties.AutomationId="NotesTool.TagFilters"
-                                   AutomationProperties.Name="{loc:Translate ToolNotesTagsLabel}">
-                            <WrapPanel.Resources>
-                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-                                    <Setter Property="MinHeight" Value="24"/>
-                                    <Setter Property="Padding" Value="8,2"/>
-                                    <Setter Property="Margin" Value="0,0,4,4"/>
-                                    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
-                                </Style>
-                            </WrapPanel.Resources>
-                        </WrapPanel>
+                        <ItemsControl x:Name="TagFilterWrapPanel"
+                                      Margin="0,0,0,6"
+                                      ItemsSource="{Binding TagFilters}"
+                                      Visibility="{Binding HasTagFilters, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      AutomationProperties.AutomationId="NotesTool.TagFilters"
+                                      AutomationProperties.Name="{loc:Translate ToolNotesTagsLabel}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding DisplayLabel}"
+                                            Command="{Binding DataContext.SelectTagCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding Value}"
+                                            Style="{StaticResource NotesTagFilterButtonStyle}"
+                                            AutomationProperties.Name="{Binding DisplayLabel}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
 
                     <TreeView x:Name="NotesTreeView"
@@ -519,7 +541,7 @@
                                     TabIndex="9"/>
                             <Button x:Name="BtnCopyConfluence"
                                     Content="{loc:Translate ToolNotesBtnCopyConfluence}"
-                                    Click="OnCopyConfluenceClick"
+                                    Command="{Binding CopyConfluenceCommand}"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
                                     ToolTip="{loc:Translate TooltipCopyConfluence}"
@@ -528,7 +550,7 @@
                                     TabIndex="10"/>
                             <Button x:Name="BtnExportConfluence"
                                     Content="{loc:Translate ToolNotesBtnExportConfluence}"
-                                    Click="OnExportConfluenceClick"
+                                    Command="{Binding ExportConfluenceCommand}"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
                                     ToolTip="{loc:Translate TooltipExportConfluence}"
@@ -537,7 +559,7 @@
                                     TabIndex="11"/>
                             <Button x:Name="BtnExportHtml"
                                     Content="{loc:Translate ToolNotesBtnExportHtml}"
-                                    Click="OnExportHtmlClick"
+                                    Command="{Binding ExportHtmlCommand}"
                                     Style="{StaticResource NotesToolbarButtonStyle}"
                                     IsEnabled="{Binding HasSelection}"
                                     ToolTip="{loc:Translate TooltipExportHtml}"
