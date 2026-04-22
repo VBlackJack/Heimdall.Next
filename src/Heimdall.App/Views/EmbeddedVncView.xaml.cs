@@ -150,18 +150,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
                 CoreWebView2HostResourceAccessKind.Allow);
 
             // Block all navigation away from the VNC virtual host
-            core.NavigationStarting += (_, navArgs) =>
-            {
-                if (navArgs.Uri is not null
-                    && !navArgs.Uri.StartsWith($"https://{VncVirtualHost}", StringComparison.OrdinalIgnoreCase)
-                    && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
-                    && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-                {
-                    navArgs.Cancel = true;
-                    Core.Logging.FileLogger.Warn(
-                        $"EmbeddedVNC blocked navigation to: {navArgs.Uri}");
-                }
-            };
+            core.NavigationStarting += OnWebViewNavigationStarting;
 
             // Load the VNC HTML page via virtual host mapping
             var htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "vnc.html");
@@ -312,6 +301,19 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         }
     }
 
+    private void OnWebViewNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs navArgs)
+    {
+        if (navArgs.Uri is not null
+            && !navArgs.Uri.StartsWith($"https://{VncVirtualHost}", StringComparison.OrdinalIgnoreCase)
+            && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
+            && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            navArgs.Cancel = true;
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedVNC blocked navigation to: {navArgs.Uri}");
+        }
+    }
+
     private void SendConnectCommand()
     {
         if (_proxy is null || !_webViewReady)
@@ -412,6 +414,8 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         if (VncWebView.CoreWebView2 is not null)
         {
             VncWebView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
+            // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
+            VncWebView.CoreWebView2.NavigationStarting -= OnWebViewNavigationStarting;
         }
 
         _proxy?.Dispose();

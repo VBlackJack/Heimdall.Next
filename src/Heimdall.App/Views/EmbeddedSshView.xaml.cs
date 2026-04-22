@@ -338,6 +338,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             TerminalWebView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
             TerminalWebView.CoreWebView2.ProcessFailed -= OnWebViewProcessFailed;
+            // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
+            TerminalWebView.CoreWebView2.NavigationStarting -= OnWebViewNavigationStarting;
         }
 
         if (_session is not null)
@@ -637,18 +639,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             core.ProcessFailed += OnWebViewProcessFailed;
 
             // Block all navigation away from the inline terminal page
-            core.NavigationStarting += (_, navArgs) =>
-            {
-                // Allow the initial NavigateToString (about:blank origin)
-                if (navArgs.Uri is not null
-                    && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
-                    && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-                {
-                    navArgs.Cancel = true;
-                    Core.Logging.FileLogger.Warn(
-                        $"EmbeddedSSH blocked navigation to: {navArgs.Uri}");
-                }
-            };
+            core.NavigationStarting += OnWebViewNavigationStarting;
 
             core.NavigateToString(GetTerminalHtml());
             _webViewInitialized = true;
@@ -666,6 +657,19 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     {
         Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 process failed: {e.ProcessFailedKind}");
         ShowWebViewUnavailable(_localizer?["ErrorTerminalRendererCrashed"] ?? "The embedded terminal renderer crashed.");
+    }
+
+    private void OnWebViewNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs navArgs)
+    {
+        // Allow the initial NavigateToString (about:blank origin)
+        if (navArgs.Uri is not null
+            && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
+            && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            navArgs.Cancel = true;
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSSH blocked navigation to: {navArgs.Uri}");
+        }
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
