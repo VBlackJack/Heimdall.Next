@@ -43,6 +43,10 @@ public sealed class SessionFailureStageToLabelConverter : IValueConverter
     {
         return stage switch
         {
+            SessionFailureStage.RdpTunnel => "SessionFailureStageRdpTunnel",
+            SessionFailureStage.RdpCredentialWrite => "SessionFailureStageRdpCredentialWrite",
+            SessionFailureStage.RdpFileWrite => "SessionFailureStageRdpFileWrite",
+            SessionFailureStage.RdpLaunch => "SessionFailureStageRdpLaunch",
             SessionFailureStage.SshGateway => "SessionFailureStageSshGateway",
             SessionFailureStage.SshPreflight => "SessionFailureStageSshPreflight",
             SessionFailureStage.SshAuth => "SessionFailureStageSshAuth",
