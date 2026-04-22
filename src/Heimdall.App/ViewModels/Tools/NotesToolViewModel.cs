@@ -52,12 +52,18 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _canGoBack;
     [ObservableProperty] private bool _canGoForward;
     [ObservableProperty] private bool _hasSelection;
+    [ObservableProperty] private bool _hasTagFilters;
     [ObservableProperty] private string _selectedNoteTitle = string.Empty;
     [ObservableProperty] private string _selectedNotePathDisplay = string.Empty;
     [ObservableProperty] private string _listFooterText = string.Empty;
 
     public ObservableCollection<string> AvailableTags { get; } = [];
+    public ObservableCollection<NoteTagFilterChip> TagFilters { get; } = [];
     public ObservableCollection<NoteTreeNode> Notes { get; } = [];
+
+    public event EventHandler<string>? CopyConfluenceRequested;
+    public event EventHandler<string>? ExportConfluenceRequested;
+    public event EventHandler<string>? ExportHtmlRequested;
 
     public NotesToolViewModel(INotesStorageService storage, LocalizationManager localizer)
     {
@@ -362,6 +368,63 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private async Task CopyConfluenceAsync()
+    {
+        ThrowIfDisposed();
+
+        if (!TryBuildConfluencePayload(out var payload))
+        {
+            return;
+        }
+
+        await RunBusyAsync(() =>
+        {
+            CopyConfluenceRequested?.Invoke(this, payload);
+            return Task.CompletedTask;
+        }).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task ExportConfluenceAsync()
+    {
+        ThrowIfDisposed();
+
+        if (!TryBuildConfluencePayload(out var payload))
+        {
+            return;
+        }
+
+        await RunBusyAsync(() =>
+        {
+            ExportConfluenceRequested?.Invoke(this, payload);
+            return Task.CompletedTask;
+        }).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task ExportHtmlAsync()
+    {
+        ThrowIfDisposed();
+
+        if (!TryBuildHtmlPayload(out var payload))
+        {
+            return;
+        }
+
+        await RunBusyAsync(() =>
+        {
+            ExportHtmlRequested?.Invoke(this, payload);
+            return Task.CompletedTask;
+        }).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private void SelectTag(string? tag)
+    {
+        SelectedTag = string.IsNullOrWhiteSpace(tag) ? null : tag;
+    }
+
+    [RelayCommand]
     private async Task GoBack()
     {
         ThrowIfDisposed();
@@ -423,6 +486,8 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedTagChanged(string? value)
     {
+        RebuildTagFilters();
+
         if (_initialized && !_suppressTagReload)
         {
             _ = RefreshVisibleNotesAsync(
@@ -497,6 +562,30 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
         }
 
         ReplaceCollection(AvailableTags, availableTags);
+        RebuildTagFilters();
+    }
+
+    private void RebuildTagFilters()
+    {
+        HasTagFilters = AvailableTags.Count > 0;
+        if (!HasTagFilters)
+        {
+            TagFilters.Clear();
+            return;
+        }
+
+        var tagFilters = new List<NoteTagFilterChip>
+        {
+            new(null, L("ToolNotesAllTags"), string.IsNullOrWhiteSpace(SelectedTag))
+        };
+
+        tagFilters.AddRange(AvailableTags.Select(tag =>
+            new NoteTagFilterChip(
+                tag,
+                tag,
+                string.Equals(tag, SelectedTag, StringComparison.OrdinalIgnoreCase))));
+
+        ReplaceCollection(TagFilters, tagFilters);
     }
 
     private async Task OpenNoteCoreAsync(string filePath, bool pushCurrentToBackStack)
@@ -636,5 +725,52 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
+    private bool TryBuildConfluencePayload(out string payload)
+    {
+        payload = string.Empty;
+
+        if (!HasSelection || CurrentNotePath is null)
+        {
+            SetStatus(string.Format(L("ToolNotesStatusError"), L("ToolNotesNoSelection")), isError: true);
+            return false;
+        }
+
+        payload = ConfluenceStorageConverter.Convert(CurrentMarkdown ?? string.Empty);
+        return true;
+    }
+
+    private bool TryBuildHtmlPayload(out string payload)
+    {
+        payload = string.Empty;
+
+        if (!HasSelection || CurrentNotePath is null)
+        {
+            SetStatus(string.Format(L("ToolNotesStatusError"), L("ToolNotesNoSelection")), isError: true);
+            return false;
+        }
+
+        payload = MarkdownPreviewBuilder.BuildHtmlDocument(CurrentMarkdown ?? string.Empty, SelectedNoteTitle);
+        return true;
+    }
+
+    private async Task RunBusyAsync(Func<Task> action)
+    {
+        try
+        {
+            IsBusy = true;
+            await action().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private string L(string key) => _localizer[key];
 }
+
+internal sealed record NoteTagFilterChip(string? Value, string DisplayLabel, bool IsSelected);

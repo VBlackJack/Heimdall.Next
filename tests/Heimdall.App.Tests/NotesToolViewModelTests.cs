@@ -256,6 +256,105 @@ public sealed class NotesToolViewModelTests
         Assert.False(vm.CanGoForward);
     }
 
+    [Fact]
+    public async Task ExportHtmlCommand_WhenNoteLoaded_RaisesExportHtmlRequestedWithHtmlPayload()
+    {
+        var storage = CreateStorage(Seed("alpha.md", "# Alpha\nalpha body"));
+        var vm = await CreateViewModelAsync(storage);
+        var path = storage.Paths.Single();
+        var payloads = new List<string>();
+        vm.ExportHtmlRequested += (_, payload) => payloads.Add(payload);
+
+        await vm.ReloadAsync(path);
+        await vm.ExportHtmlCommand.ExecuteAsync(null);
+
+        var payload = Assert.Single(payloads);
+        Assert.StartsWith("<!DOCTYPE html>", payload, StringComparison.Ordinal);
+        Assert.Contains("Alpha", payload, StringComparison.Ordinal);
+        Assert.False(vm.StatusIsError);
+    }
+
+    [Fact]
+    public async Task CopyConfluenceCommand_WhenNoteLoaded_RaisesCopyConfluenceRequestedWithStoragePayload()
+    {
+        var storage = CreateStorage(Seed("alpha.md", "# Alpha\nalpha body"));
+        var vm = await CreateViewModelAsync(storage);
+        var path = storage.Paths.Single();
+        var payloads = new List<string>();
+        vm.CopyConfluenceRequested += (_, payload) => payloads.Add(payload);
+
+        await vm.ReloadAsync(path);
+        await vm.CopyConfluenceCommand.ExecuteAsync(null);
+
+        var payload = Assert.Single(payloads);
+        Assert.Contains("xmlns:ac=", payload, StringComparison.Ordinal);
+        Assert.Contains("<div", payload, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExportConfluenceCommand_WhenNoteLoaded_RaisesExportConfluenceRequestedWithStoragePayload()
+    {
+        var storage = CreateStorage(Seed("alpha.md", "# Alpha\nalpha body"));
+        var vm = await CreateViewModelAsync(storage);
+        var path = storage.Paths.Single();
+        var payloads = new List<string>();
+        vm.ExportConfluenceRequested += (_, payload) => payloads.Add(payload);
+
+        await vm.ReloadAsync(path);
+        await vm.ExportConfluenceCommand.ExecuteAsync(null);
+
+        var payload = Assert.Single(payloads);
+        Assert.Contains("xmlns:ac=", payload, StringComparison.Ordinal);
+        Assert.Contains("<div", payload, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExportHtmlCommand_WhenNoNoteLoaded_DoesNotRaiseAndSetsStatus()
+    {
+        var vm = await CreateViewModelAsync(Seed("alpha.md", "# Alpha\nalpha body"));
+        var payloads = new List<string>();
+        vm.ExportHtmlRequested += (_, payload) => payloads.Add(payload);
+
+        await vm.ExportHtmlCommand.ExecuteAsync(null);
+
+        Assert.Empty(payloads);
+        Assert.True(vm.StatusIsError);
+        Assert.Contains("No note selected", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SelectTagCommand_UpdatesSelectedTag()
+    {
+        var vm = await CreateViewModelAsync(
+            Seed("alpha.md", "# Alpha\nalpha #ops"),
+            Seed("beta.md", "# Beta\nbeta #infra"));
+
+        await vm.ReloadAsync();
+        vm.SelectTagCommand.Execute("ops");
+        await WaitUntilAsync(() => vm.SelectedTag == "ops");
+
+        Assert.Equal("ops", vm.SelectedTag);
+        Assert.Contains(vm.TagFilters, chip => chip.Value == "ops" && chip.IsSelected);
+    }
+
+    [Fact]
+    public async Task SelectTagCommand_PassingNull_ClearsSelectedTag()
+    {
+        var vm = await CreateViewModelAsync(
+            Seed("alpha.md", "# Alpha\nalpha #ops"),
+            Seed("beta.md", "# Beta\nbeta #infra"));
+
+        await vm.ReloadAsync();
+        vm.SelectTagCommand.Execute("ops");
+        await WaitUntilAsync(() => vm.SelectedTag == "ops");
+
+        vm.SelectTagCommand.Execute(null);
+        await WaitUntilAsync(() => vm.SelectedTag is null);
+
+        Assert.Null(vm.SelectedTag);
+        Assert.Contains(vm.TagFilters, chip => chip.Value is null && chip.IsSelected);
+    }
+
     private static async Task<NotesToolViewModel> CreateViewModelAsync(params FakeNoteSeed[] notes)
         => await CreateViewModelAsync(CreateStorage(notes));
 
