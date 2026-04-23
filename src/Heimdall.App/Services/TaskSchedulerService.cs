@@ -33,6 +33,7 @@ public sealed class TaskSchedulerService : IDisposable
 
     private readonly System.Threading.Timer _timer;
     private readonly SemaphoreSlim _tickGuard = new(1, 1);
+    private readonly IUiDispatcher _uiDispatcher;
     private bool _disposed;
 
     /// <summary>
@@ -51,8 +52,9 @@ public sealed class TaskSchedulerService : IDisposable
     /// </summary>
     public Func<IReadOnlyList<ScheduledTaskDto>>? TasksProvider { get; set; }
 
-    public TaskSchedulerService()
+    public TaskSchedulerService(IUiDispatcher uiDispatcher)
     {
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
         _timer = new System.Threading.Timer(OnTick, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
     }
 
@@ -126,23 +128,18 @@ public sealed class TaskSchedulerService : IDisposable
                     {
                         if (TaskDueCallback is not null)
                         {
-                            // Dispatch to UI thread and fully await the async callback
-                            // before releasing the tick guard
-                            var tcs = new TaskCompletionSource();
-                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                            // Awaited fully — tick guard releases only after persistence completes.
+                            await _uiDispatcher.InvokeAsync(async () =>
                             {
                                 try
                                 {
                                     await TaskDueCallback(task);
-                                    tcs.TrySetResult();
                                 }
                                 catch (Exception ex)
                                 {
                                     FileLogger.Error($"Scheduled task callback failed for '{task.ServerName}': {ex.Message}");
-                                    tcs.TrySetResult();
                                 }
                             });
-                            await tcs.Task;
                         }
                     }
                     catch (Exception ex)
@@ -155,13 +152,11 @@ public sealed class TaskSchedulerService : IDisposable
                     {
                         if (PersistCallback is not null)
                         {
-                            var persistTcs = new TaskCompletionSource();
-                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                            // Awaited fully — tick guard releases only after persistence completes.
+                            await _uiDispatcher.InvokeAsync(async () =>
                             {
-                                try { await PersistCallback(); }
-                                finally { persistTcs.TrySetResult(); }
+                                await PersistCallback();
                             });
-                            await persistTcs.Task;
                         }
                     }
                     catch (Exception ex)

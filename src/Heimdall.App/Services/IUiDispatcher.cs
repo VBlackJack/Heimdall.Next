@@ -37,6 +37,14 @@ public interface IUiDispatcher
     Task InvokeAsync(Action action);
 
     /// <summary>
+    /// Executes the asynchronous action on the UI thread and completes only
+    /// after the full inner async chain has completed.
+    /// Callers that need fire-and-forget behavior should keep using
+    /// <see cref="InvokeAsync(Action)"/>.
+    /// </summary>
+    Task InvokeAsync(Func<Task> action);
+
+    /// <summary>
     /// Returns whether the current thread already has UI access.
     /// </summary>
     bool CheckAccess();

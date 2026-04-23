@@ -62,14 +62,15 @@ public sealed partial class ScheduledTasksViewModel : ObservableObject, IDisposa
         MainViewModel main,
         LocalizationManager localizer,
         IDialogService dialogService,
-        IConfigManager configManager)
+        IConfigManager configManager,
+        IUiDispatcher uiDispatcher)
     {
         _main = main;
         _localizer = localizer;
         _dialogService = dialogService;
         _configManager = configManager;
 
-        _taskScheduler = new TaskSchedulerService
+        _taskScheduler = new TaskSchedulerService(uiDispatcher)
         {
             TasksProvider = () => Tasks.ToList(),
             TaskDueCallback = OnTaskDueAsync,
