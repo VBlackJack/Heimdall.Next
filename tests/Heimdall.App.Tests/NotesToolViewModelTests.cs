@@ -25,6 +25,28 @@ namespace Heimdall.App.Tests;
 public sealed class NotesToolViewModelTests
 {
     [Fact]
+    public async Task ReloadAsync_OnUiThread_DoesNotPostToDispatcher()
+    {
+        var dispatcher = new FakeUiDispatcher(checkAccess: true);
+        var vm = await CreateViewModelAsync(CreateStorage(Seed("alpha.md", "# Alpha\nalpha")), dispatcher);
+
+        await vm.ReloadAsync();
+
+        Assert.Equal(0, dispatcher.InvokeAsyncCalls);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_OffUiThread_PostsToDispatcher()
+    {
+        var dispatcher = new FakeUiDispatcher(checkAccess: false);
+        var vm = await CreateViewModelAsync(CreateStorage(Seed("alpha.md", "# Alpha\nalpha")), dispatcher);
+
+        await vm.ReloadAsync();
+
+        Assert.True(dispatcher.InvokeAsyncCalls > 0);
+    }
+
+    [Fact]
     public async Task ReloadAsync_PopulatesNotesAndAvailableTags()
     {
         var vm = await CreateViewModelAsync(
@@ -356,11 +378,16 @@ public sealed class NotesToolViewModelTests
     }
 
     private static async Task<NotesToolViewModel> CreateViewModelAsync(params FakeNoteSeed[] notes)
-        => await CreateViewModelAsync(CreateStorage(notes));
+        => await CreateViewModelAsync(CreateStorage(notes), new FakeUiDispatcher());
 
     private static async Task<NotesToolViewModel> CreateViewModelAsync(FakeNotesStorage storage)
+        => await CreateViewModelAsync(storage, new FakeUiDispatcher());
+
+    private static async Task<NotesToolViewModel> CreateViewModelAsync(
+        FakeNotesStorage storage,
+        FakeUiDispatcher dispatcher)
     {
-        var vm = new NotesToolViewModel(storage, await CreateLocalizerAsync("en"));
+        var vm = new NotesToolViewModel(storage, await CreateLocalizerAsync("en"), dispatcher);
         await vm.InitializeAsync();
         return vm;
     }

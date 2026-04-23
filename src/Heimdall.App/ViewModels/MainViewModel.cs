@@ -324,7 +324,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
-        Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation, toolContextProvider);
+        Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation, toolContextProvider, _uiDispatcher);
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);

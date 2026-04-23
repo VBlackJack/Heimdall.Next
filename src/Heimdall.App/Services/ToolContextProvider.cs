@@ -29,6 +29,7 @@ namespace Heimdall.App.Services;
 public sealed class ToolContextProvider : ObservableObject, IToolContextProvider
 {
     private readonly LocalizationManager _localizer;
+    private readonly IUiDispatcher _uiDispatcher;
     private string? _targetHost;
     private string _contextLabel = string.Empty;
     private string _contextTooltip = string.Empty;
@@ -37,9 +38,10 @@ public sealed class ToolContextProvider : ObservableObject, IToolContextProvider
     /// <summary>
     /// Initializes a new <see cref="ToolContextProvider"/>.
     /// </summary>
-    public ToolContextProvider(LocalizationManager localizer)
+    public ToolContextProvider(LocalizationManager localizer, IUiDispatcher uiDispatcher)
     {
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
         _localizer.LocaleChanged += OnLocaleChanged;
         RefreshLocalizedText();
     }
@@ -107,12 +109,11 @@ public sealed class ToolContextProvider : ObservableObject, IToolContextProvider
         return host.Trim();
     }
 
-    private void OnLocaleChanged(string _)
+    private void OnLocaleChanged(string _locale)
     {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is not null && !dispatcher.CheckAccess())
+        if (!_uiDispatcher.CheckAccess())
         {
-            dispatcher.BeginInvoke((Action)RefreshLocalizedText);
+            _ = _uiDispatcher.InvokeAsync(RefreshLocalizedText);
             return;
         }
 

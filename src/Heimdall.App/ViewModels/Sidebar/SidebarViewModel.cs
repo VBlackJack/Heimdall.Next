@@ -54,6 +54,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
     private readonly IConfigManager _configManager;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private readonly IToolContextProvider _toolContext;
+    private readonly IUiDispatcher _uiDispatcher;
 
     private bool _isToolsPopulated;
     private bool _persistenceEnabled;
@@ -68,13 +69,15 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         LocalizationManager localizer,
         IConfigManager configManager,
         ToolsTabPopulationService toolsTabPopulation,
-        IToolContextProvider toolContext)
+        IToolContextProvider toolContext,
+        IUiDispatcher uiDispatcher)
     {
         _main = main;
         _localizer = localizer;
         _configManager = configManager;
         _toolsTabPopulation = toolsTabPopulation;
         _toolContext = toolContext;
+        _uiDispatcher = uiDispatcher;
         _toolContext.PropertyChanged += OnToolContextPropertyChanged;
         _main.FavoritesChanged += OnFavoritesChanged;
     }
@@ -261,10 +264,9 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
 
     private void OnFavoritesChanged(string toolId)
     {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is not null && !dispatcher.CheckAccess())
+        if (!_uiDispatcher.CheckAccess())
         {
-            _ = dispatcher.InvokeAsync(() => OnFavoritesChanged(toolId));
+            _ = _uiDispatcher.InvokeAsync(() => OnFavoritesChanged(toolId));
             return;
         }
 

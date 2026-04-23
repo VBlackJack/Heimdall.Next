@@ -29,6 +29,7 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
 {
     private readonly INotesStorageService _storage;
     private readonly LocalizationManager _localizer;
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly Stack<string> _backStack = new();
     private readonly Stack<string> _forwardStack = new();
     private IReadOnlyList<NoteListItem> _allNotes = Array.Empty<NoteListItem>();
@@ -65,10 +66,14 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
     public event EventHandler<string>? ExportConfluenceRequested;
     public event EventHandler<string>? ExportHtmlRequested;
 
-    public NotesToolViewModel(INotesStorageService storage, LocalizationManager localizer)
+    public NotesToolViewModel(
+        INotesStorageService storage,
+        LocalizationManager localizer,
+        IUiDispatcher uiDispatcher)
     {
         _storage = storage;
         _localizer = localizer;
+        _uiDispatcher = uiDispatcher;
         SelectedNoteTitle = L("ToolNotesNoSelection");
         SelectedNotePathDisplay = storage.NotesRootPath;
         ListFooterText = string.Format(L("ToolNotesCount"), 0);
@@ -710,14 +715,13 @@ internal sealed partial class NotesToolViewModel : ObservableObject, IDisposable
 
     private async Task RunOnUiAsync(Action action)
     {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
+        if (_uiDispatcher.CheckAccess())
         {
             action();
             return;
         }
 
-        await dispatcher.InvokeAsync(action);
+        await _uiDispatcher.InvokeAsync(action);
     }
 
     private void ThrowIfDisposed()

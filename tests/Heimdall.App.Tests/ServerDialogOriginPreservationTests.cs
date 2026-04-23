@@ -67,16 +67,50 @@ public sealed class ServerDialogOriginPreservationTests
         Assert.Equal(ProfileOrigin.Manual, server.Origin);
     }
 
+    [Fact]
+    public async Task ServerListViewModel_OnConnectionStateChanged_PostsViaDispatcher()
+    {
+        await using var fixture = await ServerListFixture.CreateAsync(new ServerProfileDto
+        {
+            DisplayName = "Imported via dialog",
+            RemoteServer = "manual.example.com",
+            ConnectionType = "SSH",
+            Origin = ProfileOrigin.ImportPutty
+        });
+
+        fixture.ViewModel.LoadServers(
+            [
+                new ServerProfileDto
+                {
+                    Id = "alpha",
+                    DisplayName = "Alpha",
+                    RemoteServer = "alpha.example.com",
+                    ConnectionType = "SSH"
+                }
+            ],
+            new AppSettings());
+
+        var transitioned = fixture.StateMachine.TryTransition("alpha", ConnectionState.Initializing);
+
+        Assert.True(transitioned);
+        Assert.Equal(1, fixture.Dispatcher.InvokeAsyncCalls);
+        Assert.Equal(ConnectionState.Initializing.ToString(), Assert.Single(fixture.ViewModel.Servers).ConnectionState);
+    }
+
     private sealed class ServerListFixture : IAsyncDisposable
     {
         private ServerListFixture(
             string rootPath,
             ConfigManager configManager,
-            ServerListViewModel viewModel)
+            ServerListViewModel viewModel,
+            ConnectionStateMachine stateMachine,
+            FakeUiDispatcher dispatcher)
         {
             RootPath = rootPath;
             ConfigManager = configManager;
             ViewModel = viewModel;
+            StateMachine = stateMachine;
+            Dispatcher = dispatcher;
         }
 
         public string RootPath { get; }
@@ -84,6 +118,10 @@ public sealed class ServerDialogOriginPreservationTests
         public ConfigManager ConfigManager { get; }
 
         public ServerListViewModel ViewModel { get; }
+
+        public ConnectionStateMachine StateMachine { get; }
+
+        public FakeUiDispatcher Dispatcher { get; }
 
         public static async Task<ServerListFixture> CreateAsync(ServerProfileDto dialogServer)
         {
@@ -103,9 +141,11 @@ public sealed class ServerDialogOriginPreservationTests
             var dialogService = new DialogServiceStub(dialogServer);
             var puttyImporter = new PuttySessionImporter(new FakePuttySessionRegistrySource([]), configManager);
             var knownHostsImporter = new KnownHostsImporter(configManager, new HostKeyStore());
+            var uiDispatcher = new FakeUiDispatcher();
             var viewModel = new ServerListViewModel(
                 configManager,
                 localizer,
+                uiDispatcher,
                 stateMachine,
                 connectionService,
                 dialogService,
@@ -113,7 +153,7 @@ public sealed class ServerDialogOriginPreservationTests
                 puttyImporter,
                 knownHostsImporter);
 
-            return new ServerListFixture(rootPath, configManager, viewModel);
+            return new ServerListFixture(rootPath, configManager, viewModel, stateMachine, uiDispatcher);
         }
 
         public ValueTask DisposeAsync()

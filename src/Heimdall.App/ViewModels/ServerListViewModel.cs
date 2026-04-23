@@ -41,6 +41,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 {
     private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ConnectionService _connectionService;
     private readonly IRdpImportService _rdpImportService;
@@ -124,6 +125,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     public ServerListViewModel(
         IConfigManager configManager,
         LocalizationManager localizer,
+        IUiDispatcher uiDispatcher,
         ConnectionStateMachine connectionSm,
         ConnectionService connectionService,
         IDialogService dialogService,
@@ -133,6 +135,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     {
         _configManager = configManager;
         _localizer = localizer;
+        _uiDispatcher = uiDispatcher;
         _connectionSm = connectionSm;
         _connectionService = connectionService;
         _dialogService = dialogService;
@@ -1705,8 +1708,9 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         Heimdall.Core.Models.ConnectionState newState,
         string? error)
     {
-        // State machine events may fire from background threads; marshal to UI thread
-        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        // State machine events may fire from background threads; marshal to UI thread.
+        // Always queued; direct fast-path would re-enter selection / binding updates.
+        _ = _uiDispatcher.InvokeAsync(() =>
         {
             var server = _allServers.FirstOrDefault(s =>
                 string.Equals(s.Id, serverId, StringComparison.Ordinal));
