@@ -15,7 +15,9 @@
  */
 
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Ssh.Plink;
 
@@ -104,20 +106,19 @@ public sealed class PlinkTunnelRunner : IDisposable
             return new PlinkTunnelResult(false, $"Plink executable not found: {plinkPath}", SshFailureCode.Unknown);
         }
 
-        // Build argument list
-        var args = BuildArguments(gatewayHost, gatewayPort, username, keyPath, password,
-            remoteHost, remotePort, localPort, hostKeyFingerprint);
-
-        var startInfo = new ProcessStartInfo
+        List<string> args;
+        ProcessStartInfo startInfo;
+        try
         {
-            FileName = plinkPath,
-            Arguments = string.Join(' ', args),
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardError = true,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = false
-        };
+            // Build argument list
+            args = BuildArguments(gatewayHost, gatewayPort, username, keyPath, password,
+                remoteHost, remotePort, localPort, hostKeyFingerprint);
+            startInfo = CreateStartInfo(plinkPath, args);
+        }
+        catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or ArgumentOutOfRangeException)
+        {
+            return new PlinkTunnelResult(false, ex.Message, SshFailureCode.Unknown);
+        }
 
         try
         {
@@ -241,6 +242,8 @@ public sealed class PlinkTunnelRunner : IDisposable
         int localPort,
         string? hostKeyFingerprint = null)
     {
+        ValidateConnectionInputs(gatewayHost, gatewayPort, username, keyPath, remoteHost, remotePort, localPort);
+
         var args = new List<string>
         {
             "-ssh",
@@ -254,13 +257,13 @@ public sealed class PlinkTunnelRunner : IDisposable
         if (!string.IsNullOrEmpty(hostKeyFingerprint))
         {
             args.Add("-hostkey");
-            args.Add($"\"{hostKeyFingerprint}\"");
+            args.Add(hostKeyFingerprint);
         }
 
         if (!string.IsNullOrEmpty(keyPath))
         {
             args.Add("-i");
-            args.Add($"\"{keyPath}\"");
+            args.Add(keyPath);
         }
 
         if (!string.IsNullOrEmpty(password))
@@ -293,12 +296,103 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
 
             args.Add("-pwfile");
-            args.Add($"\"{_pwFilePath}\"");
+            args.Add(_pwFilePath);
         }
 
         args.Add($"{username}@{gatewayHost}");
 
         return args;
+    }
+
+    internal static void ValidateConnectionInputs(
+        string gatewayHost,
+        int gatewayPort,
+        string username,
+        string? keyPath,
+        string remoteHost,
+        int remotePort,
+        int localPort)
+    {
+        if (!IsValidHost(gatewayHost))
+        {
+            throw new ArgumentException($"Invalid gateway host: {gatewayHost}", nameof(gatewayHost));
+        }
+
+        if (!InputValidator.Validate(username, "SshUser"))
+        {
+            throw new ArgumentException($"Invalid SSH username: {username}", nameof(username));
+        }
+
+        if (!IsValidHost(remoteHost))
+        {
+            throw new ArgumentException($"Invalid remote host: {remoteHost}", nameof(remoteHost));
+        }
+
+        if (!InputValidator.ValidatePortRange(gatewayPort))
+        {
+            throw new ArgumentOutOfRangeException(nameof(gatewayPort));
+        }
+
+        if (!InputValidator.ValidatePortRange(remotePort))
+        {
+            throw new ArgumentOutOfRangeException(nameof(remotePort));
+        }
+
+        if (!InputValidator.ValidatePortRange(localPort))
+        {
+            throw new ArgumentOutOfRangeException(nameof(localPort));
+        }
+
+        ValidateKeyPath(keyPath);
+    }
+
+    internal static void ValidateKeyPath(string? keyPath)
+    {
+        if (string.IsNullOrWhiteSpace(keyPath))
+        {
+            return;
+        }
+
+        if (keyPath.Contains('\0') || keyPath.Contains('"'))
+        {
+            throw new ArgumentException($"Invalid SSH key path: {keyPath}", nameof(keyPath));
+        }
+
+        if (!Path.IsPathRooted(keyPath))
+        {
+            throw new ArgumentException($"SSH key path must be absolute: {keyPath}", nameof(keyPath));
+        }
+
+        if (!File.Exists(keyPath))
+        {
+            throw new FileNotFoundException($"SSH key file not found: {keyPath}", keyPath);
+        }
+    }
+
+    internal ProcessStartInfo CreateStartInfo(string plinkPath, IReadOnlyList<string> args)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = plinkPath,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = false
+        };
+
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
+
+        return startInfo;
+    }
+
+    private static bool IsValidHost(string host)
+    {
+        return !string.IsNullOrWhiteSpace(host)
+            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 
     /// <summary>

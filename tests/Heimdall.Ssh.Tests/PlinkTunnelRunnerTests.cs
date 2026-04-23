@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using Heimdall.Ssh.Plink;
 
 namespace Heimdall.Ssh.Tests;
@@ -51,13 +52,22 @@ public class PlinkTunnelRunnerTests : IDisposable
     [Fact]
     public void BuildArguments_WithKeyPath_IncludesKeyFlag()
     {
-        var args = _runner.BuildArguments(
-            "gw.test", 2222, "user", @"C:\keys\id_rsa.ppk", null,
-            "remote", 22, 10022);
+        var keyPath = Path.GetTempFileName();
 
-        Assert.Contains("-i", args);
-        int keyIndex = args.IndexOf("-i");
-        Assert.Contains(@"C:\keys\id_rsa.ppk", args[keyIndex + 1]);
+        try
+        {
+            var args = _runner.BuildArguments(
+                "gw.test", 2222, "user", keyPath, null,
+                "remote", 22, 10022);
+
+            Assert.Contains("-i", args);
+            int keyIndex = args.IndexOf("-i");
+            Assert.Equal(keyPath, args[keyIndex + 1]);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
     }
 
     [Fact]
@@ -89,11 +99,20 @@ public class PlinkTunnelRunnerTests : IDisposable
         // -batch prevents interactive prompts; safe because -hostkey is
         // passed from TOFU store for known hosts, and unknown hosts fail
         // deterministically instead of hanging.
-        var args = _runner.BuildArguments(
-            "gw.test", 22, "user", @"C:\key.ppk", "pass",
-            "remote", 22, 10022);
+        var keyPath = Path.GetTempFileName();
 
-        Assert.Contains("-batch", args);
+        try
+        {
+            var args = _runner.BuildArguments(
+                "gw.test", 22, "user", keyPath, "pass",
+                "remote", 22, 10022);
+
+            Assert.Contains("-batch", args);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
     }
 
     [Fact]
@@ -105,7 +124,7 @@ public class PlinkTunnelRunnerTests : IDisposable
 
         Assert.Contains("-hostkey", args);
         var idx = args.IndexOf("-hostkey");
-        Assert.Equal("\"SHA256:abc123\"", args[idx + 1]);
+        Assert.Equal("SHA256:abc123", args[idx + 1]);
     }
 
     [Fact]
@@ -161,6 +180,60 @@ public class PlinkTunnelRunnerTests : IDisposable
 
         Assert.False(result.Success);
         Assert.Contains("not found", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void BuildArguments_RejectsKeyPathWithQuoteInjection()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => _runner.BuildArguments(
+            "gw.test", 22, "user", "C:\\keys\\id\" --corrupt.ppk", null,
+            "remote", 22, 10022));
+
+        Assert.Contains("Invalid SSH key path", ex.Message);
+    }
+
+    [Fact]
+    public void BuildArguments_RejectsRelativeKeyPath()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => _runner.BuildArguments(
+            "gw.test", 22, "user", "id.ppk", null,
+            "remote", 22, 10022));
+
+        Assert.Contains("must be absolute", ex.Message);
+    }
+
+    [Fact]
+    public void BuildArguments_RejectsMissingKeyPath()
+    {
+        var ex = Assert.Throws<FileNotFoundException>(() => _runner.BuildArguments(
+            "gw.test", 22, "user", @"C:\nope\does-not-exist.ppk", null,
+            "remote", 22, 10022));
+
+        Assert.Contains("SSH key file not found", ex.Message);
+    }
+
+    [Fact]
+    public void CreateStartInfo_UsesArgumentListForValidInputs()
+    {
+        var keyPath = Path.GetTempFileName();
+
+        try
+        {
+            var args = _runner.BuildArguments(
+                "gateway.example.com", 22, "user", keyPath, null,
+                "target.internal", 3389, 13389, "SHA256:abc123");
+            var psi = _runner.CreateStartInfo(@"C:\tools\plink.exe", args);
+
+            Assert.Equal(@"C:\tools\plink.exe", psi.FileName);
+            Assert.Contains("-i", psi.ArgumentList);
+            Assert.Contains(keyPath, psi.ArgumentList);
+            Assert.Contains("-hostkey", psi.ArgumentList);
+            Assert.Contains("SHA256:abc123", psi.ArgumentList);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
     }
 
     [Fact]

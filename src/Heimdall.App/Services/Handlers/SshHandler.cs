@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using System.Net;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -198,7 +199,7 @@ internal sealed class SshHandler : IProtocolHandler
                 SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidSshUsername", msg));
         }
 
-        if (!InputValidator.Validate(targetHost, "Address"))
+        if (!IsValidSshHost(targetHost))
         {
             var msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
@@ -209,42 +210,37 @@ internal sealed class SshHandler : IProtocolHandler
                 SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidTargetHost", msg));
         }
 
-        var args = new List<string> { "-ssh" };
-        if (!string.IsNullOrEmpty(server.SshKeyPath))
+        if (!InputValidator.ValidatePortRange(targetPort))
         {
-            args.Add("-i");
-            args.Add($"\"{server.SshKeyPath}\"");
+            const string msg = "Invalid SSH target port.";
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorConnectionFailed", msg));
         }
-        if (server.SshCompression)
+
+        if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
         {
-            args.Add("-C");
+            _connectionSm.SetError(server.Id, keyPathError);
+            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorConnectionFailed", keyPathError));
         }
-        if (server.SshAgentForwarding)
-        {
-            args.Add("-A");
-        }
-        if (server.SshX11Forwarding)
-        {
-            args.Add("-X");
-        }
-        args.Add("-P");
-        args.Add(targetPort.ToString());
+
         var target = !string.IsNullOrEmpty(server.SshUsername)
             ? $"{server.SshUsername}@{targetHost}"
             : targetHost;
-        args.Add(target);
 
         try
         {
-            var arguments = string.Join(' ', args);
+            var psi = BuildPuttyStartInfo(
+                puttyPath,
+                server.SshKeyPath,
+                server.SshCompression,
+                server.SshAgentForwarding,
+                server.SshX11Forwarding,
+                targetPort,
+                target);
+            var arguments = string.Join(' ', psi.ArgumentList);
             Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} {arguments}");
 
-            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = puttyPath,
-                Arguments = arguments,
-                UseShellExecute = false
-            });
+            using var process = System.Diagnostics.Process.Start(psi);
 
             Core.Logging.FileLogger.Info(
                 $"Launched putty.exe PID={process?.Id ?? 0} for {server.DisplayName} ({targetHost}:{targetPort})");
@@ -304,7 +300,7 @@ internal sealed class SshHandler : IProtocolHandler
                 SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidSshUsername", msg));
         }
 
-        if (!InputValidator.Validate(targetHost, "Address"))
+        if (!IsValidSshHost(targetHost))
         {
             var msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
@@ -315,32 +311,22 @@ internal sealed class SshHandler : IProtocolHandler
                 SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidTargetHost", msg));
         }
 
-        var argParts = new List<string> { "-ssh", "-t", "-no-antispoof" };
-        if (!string.IsNullOrEmpty(server.SshKeyPath))
+        if (!InputValidator.ValidatePortRange(targetPort))
         {
-            argParts.Add("-i");
-            argParts.Add($"\"{server.SshKeyPath}\"");
+            const string msg = "Invalid SSH target port.";
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorConnectionFailed", msg));
         }
-        if (server.SshCompression)
+
+        if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
         {
-            argParts.Add("-C");
+            _connectionSm.SetError(server.Id, keyPathError);
+            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorConnectionFailed", keyPathError));
         }
-        if (server.SshAgentForwarding)
-        {
-            argParts.Add("-A");
-        }
-        if (server.SshX11Forwarding)
-        {
-            argParts.Add("-X");
-        }
-        argParts.Add("-P");
-        argParts.Add(targetPort.ToString());
+
         var target = !string.IsNullOrEmpty(server.SshUsername)
             ? $"{server.SshUsername}@{targetHost}"
             : targetHost;
-        argParts.Add(target);
-
-        var args = new System.Text.StringBuilder(string.Join(' ', argParts));
 
         var hostKeyArg = await ProbeHostKeyFingerprintAsync(
                 plinkPath,
@@ -351,10 +337,14 @@ internal sealed class SshHandler : IProtocolHandler
                 ct)
             .ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(hostKeyArg))
-        {
-            args.Append($" -hostkey \"{hostKeyArg}\"");
-        }
+        var args = BuildPipeModeArguments(
+            server.SshKeyPath,
+            server.SshCompression,
+            server.SshAgentForwarding,
+            server.SshX11Forwarding,
+            targetPort,
+            target,
+            hostKeyArg);
 
         Core.Logging.FileLogger.Info($"SSH via Plink (pipe mode): {plinkPath} {args}");
 
@@ -400,21 +390,19 @@ internal sealed class SshHandler : IProtocolHandler
                 return null;
             }
 
-            if (!InputValidator.Validate(host, "Address"))
+            if (!IsValidSshHost(host))
+            {
+                return null;
+            }
+
+            if (!InputValidator.ValidatePortRange(port))
             {
                 return null;
             }
 
             var userPrefix = string.IsNullOrWhiteSpace(username) ? string.Empty : $"{username}@";
-            var probeParts = new List<string>
-            {
-                "-v",
-                "-batch",
-                "-ssh",
-                "-P",
-                port.ToString(),
-                $"{userPrefix}{host}"
-            };
+            var probeTarget = $"{userPrefix}{host}";
+            var probeParts = new[] { "-v", "-batch", "-ssh", "-P", port.ToString(), probeTarget };
             var probeArgs = string.Join(' ', probeParts);
 
             Core.Logging.FileLogger.Info($"Host key probe: {plinkPath} {probeArgs}");
@@ -422,13 +410,16 @@ internal sealed class SshHandler : IProtocolHandler
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = plinkPath,
-                Arguments = probeArgs,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 RedirectStandardInput = true
             };
+            foreach (var part in probeParts)
+            {
+                psi.ArgumentList.Add(part);
+            }
 
             using var process = new System.Diagnostics.Process { StartInfo = psi };
             process.Start();
@@ -495,5 +486,128 @@ internal sealed class SshHandler : IProtocolHandler
             Core.Logging.FileLogger.Warn($"Host key probe failed: {ex.Message}");
             return null;
         }
+    }
+
+    internal static System.Diagnostics.ProcessStartInfo BuildPuttyStartInfo(
+        string puttyPath,
+        string? keyPath,
+        bool compression,
+        bool agentForwarding,
+        bool x11Forwarding,
+        int port,
+        string target)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = puttyPath,
+            UseShellExecute = false
+        };
+
+        psi.ArgumentList.Add("-ssh");
+        if (!string.IsNullOrWhiteSpace(keyPath))
+        {
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(keyPath);
+        }
+
+        if (compression)
+        {
+            psi.ArgumentList.Add("-C");
+        }
+
+        if (agentForwarding)
+        {
+            psi.ArgumentList.Add("-A");
+        }
+
+        if (x11Forwarding)
+        {
+            psi.ArgumentList.Add("-X");
+        }
+
+        psi.ArgumentList.Add("-P");
+        psi.ArgumentList.Add(port.ToString());
+        psi.ArgumentList.Add(target);
+        return psi;
+    }
+
+    internal static string BuildPipeModeArguments(
+        string? keyPath,
+        bool compression,
+        bool agentForwarding,
+        bool x11Forwarding,
+        int port,
+        string target,
+        string? hostKeyFingerprint)
+    {
+        var argParts = new List<string> { "-ssh", "-t", "-no-antispoof" };
+        if (!string.IsNullOrWhiteSpace(keyPath))
+        {
+            argParts.Add("-i");
+            argParts.Add($"\"{InputValidator.EscapeForDoubleQuotedString(keyPath)}\"");
+        }
+
+        if (compression)
+        {
+            argParts.Add("-C");
+        }
+
+        if (agentForwarding)
+        {
+            argParts.Add("-A");
+        }
+
+        if (x11Forwarding)
+        {
+            argParts.Add("-X");
+        }
+
+        argParts.Add("-P");
+        argParts.Add(port.ToString());
+        argParts.Add(target);
+
+        if (!string.IsNullOrWhiteSpace(hostKeyFingerprint))
+        {
+            argParts.Add("-hostkey");
+            argParts.Add($"\"{InputValidator.EscapeForDoubleQuotedString(hostKeyFingerprint)}\"");
+        }
+
+        return string.Join(' ', argParts);
+    }
+
+    internal static bool TryValidateKeyPath(string? keyPath, out string errorMessage)
+    {
+        if (string.IsNullOrWhiteSpace(keyPath))
+        {
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        if (keyPath.Contains('\0') || keyPath.Contains('"'))
+        {
+            errorMessage = $"Invalid SSH key path: {keyPath}";
+            return false;
+        }
+
+        if (!Path.IsPathRooted(keyPath))
+        {
+            errorMessage = $"SSH key path must be absolute: {keyPath}";
+            return false;
+        }
+
+        if (!File.Exists(keyPath))
+        {
+            errorMessage = $"SSH key file not found: {keyPath}";
+            return false;
+        }
+
+        errorMessage = string.Empty;
+        return true;
+    }
+
+    private static bool IsValidSshHost(string host)
+    {
+        return !string.IsNullOrWhiteSpace(host)
+            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 }
