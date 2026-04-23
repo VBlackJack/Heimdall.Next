@@ -129,7 +129,7 @@ public sealed class TcpPingViewModelTests
         vm.Count = "1";
 
         vm.StartCommand.Execute(null);
-        await WaitUntilAsync(() => !vm.IsBusy && vm.HasResults);
+        await WaitUntilAsync(() => !vm.IsBusy && vm.HasResults, 4000);
 
         Assert.Equal("[1/1] example.com:443 — 12.5 ms" + Environment.NewLine, vm.Results);
         Assert.Contains("Lost: 0/1", vm.SummaryText, StringComparison.Ordinal);
