@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Text;
 using Heimdall.Core.Configuration;
@@ -40,6 +41,16 @@ public interface IDnsSecurityService
 public sealed class DnsSecurityService : IDnsSecurityService
 {
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(8);
+    private static readonly FrozenSet<string> AllowedRecordTypes =
+        FrozenSet.ToFrozenSet(
+        [
+            "TXT",
+            "CAA",
+            "DNSKEY",
+            "RRSIG",
+            "MX"
+        ],
+        StringComparer.OrdinalIgnoreCase);
     private readonly Func<string, string, CancellationToken, Task<string>> _localQuery;
     private readonly Func<SshGatewayDto, string, string, CancellationToken, Task<string>> _tunnelQuery;
     private SshGatewayDto? _gateway;
@@ -90,9 +101,14 @@ public sealed class DnsSecurityService : IDnsSecurityService
     }
 
     private Task<string> QueryDnsAsync(string type, string domain, CancellationToken ct)
-        => _gateway is null
-            ? _localQuery(type, domain, ct)
-            : _tunnelQuery(_gateway, type, domain, ct);
+    {
+        var validatedRecordType = ValidateRecordType(type);
+        var validatedDomain = ValidateLookupDomain(domain);
+
+        return _gateway is null
+            ? _localQuery(validatedRecordType, validatedDomain, ct)
+            : _tunnelQuery(_gateway, validatedRecordType, validatedDomain, ct);
+    }
 
     private async Task<DnsCheckResult> CheckSpfAsync(string domain, CancellationToken ct)
     {
@@ -214,16 +230,7 @@ public sealed class DnsSecurityService : IDnsSecurityService
 
     private static async Task<string> QueryDnsLocalAsync(string type, string domain, CancellationToken ct)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "nslookup",
-            Arguments = $"-type={type} {domain}",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-        };
+        var psi = CreateNslookupStartInfo(domain, type);
 
         using var process = new Process { StartInfo = psi };
         process.Start();
@@ -255,6 +262,26 @@ public sealed class DnsSecurityService : IDnsSecurityService
         }
     }
 
+    internal static ProcessStartInfo CreateNslookupStartInfo(string domain, string recordType)
+    {
+        var validatedDomain = ValidateLookupDomain(domain);
+        var validatedRecordType = ValidateRecordType(recordType);
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "nslookup",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+        };
+
+        psi.ArgumentList.Add($"-type={validatedRecordType}");
+        psi.ArgumentList.Add(validatedDomain);
+        return psi;
+    }
+
     private static async Task<string> QueryDnsViaTunnelAsync(
         SshGatewayDto gateway,
         string type,
@@ -267,9 +294,7 @@ public sealed class DnsSecurityService : IDnsSecurityService
 
             try
             {
-                var escapedDomain = InputValidator.EscapeShellArg(domain);
-
-                using var digCommand = client.CreateCommand($"dig {type} {escapedDomain} +short 2>/dev/null");
+                using var digCommand = client.CreateCommand(CreateDigTunnelCommand(type, domain));
                 digCommand.CommandTimeout = CommandTimeout;
                 var digResult = digCommand.Execute()?.Trim();
                 if (!string.IsNullOrWhiteSpace(digResult))
@@ -277,7 +302,7 @@ public sealed class DnsSecurityService : IDnsSecurityService
                     return digResult;
                 }
 
-                using var nslookupCommand = client.CreateCommand($"nslookup -type={type} {escapedDomain} 2>&1");
+                using var nslookupCommand = client.CreateCommand(CreateNslookupTunnelCommand(type, domain));
                 nslookupCommand.CommandTimeout = CommandTimeout;
                 return nslookupCommand.Execute()?.Trim() ?? string.Empty;
             }
@@ -293,5 +318,98 @@ public sealed class DnsSecurityService : IDnsSecurityService
                 }
             }
         }, ct).ConfigureAwait(false);
+    }
+
+    internal static string CreateDigTunnelCommand(string recordType, string domain)
+    {
+        var escapedRecordType = InputValidator.EscapeShellArg(ValidateRecordType(recordType));
+        var escapedDomain = InputValidator.EscapeShellArg(ValidateLookupDomain(domain));
+        return $"dig {escapedRecordType} {escapedDomain} +short 2>/dev/null";
+    }
+
+    internal static string CreateNslookupTunnelCommand(string recordType, string domain)
+    {
+        var escapedRecordType = InputValidator.EscapeShellArg(ValidateRecordType(recordType));
+        var escapedDomain = InputValidator.EscapeShellArg(ValidateLookupDomain(domain));
+        return $"nslookup -type={escapedRecordType} {escapedDomain} 2>&1";
+    }
+
+    internal static string ValidateRecordType(string recordType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(recordType);
+
+        var normalized = recordType.Trim().ToUpperInvariant();
+        if (!AllowedRecordTypes.Contains(normalized))
+        {
+            throw new ArgumentException(
+                $"Unsupported DNS record type '{recordType}'. Allowed values: {string.Join(", ", AllowedRecordTypes.Order(StringComparer.Ordinal))}.",
+                nameof(recordType));
+        }
+
+        return normalized;
+    }
+
+    internal static string ValidateLookupDomain(string domain)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(domain);
+
+        var normalized = domain.Trim();
+        if (normalized.IndexOf('\0') >= 0 || !IsValidLookupDomain(normalized))
+        {
+            throw new ArgumentException($"Invalid DNS lookup domain: {domain}", nameof(domain));
+        }
+
+        return normalized;
+    }
+
+    private static bool IsValidLookupDomain(string domain)
+    {
+        if (InputValidator.ValidateDomain(domain))
+        {
+            return true;
+        }
+
+        var trimmed = domain.Trim().TrimStart('*', '.');
+        if (string.IsNullOrEmpty(trimmed) || trimmed.Length > 255)
+        {
+            return false;
+        }
+
+        if (trimmed.Contains("..", StringComparison.Ordinal)
+            || trimmed.Contains(".-", StringComparison.Ordinal)
+            || trimmed.Contains("-.", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var labels = trimmed.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (labels.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var label in labels)
+        {
+            if (label.Length is 0 or > 63)
+            {
+                return false;
+            }
+
+            if (label.StartsWith("-", StringComparison.Ordinal)
+                || label.EndsWith("-", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            foreach (var c in label)
+            {
+                if (!char.IsLetterOrDigit(c) && c is not '-' and not '_')
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
