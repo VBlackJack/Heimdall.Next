@@ -15,7 +15,7 @@
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-4195%20passing-brightgreen.svg)]()
-[![Tools](https://img.shields.io/badge/tools-49%20sysops-blue.svg)]()
+[![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
@@ -150,7 +150,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
-### Built-in Sysops Toolbox (49 tools)
+### Built-in Sysops Toolbox (59 tools)
 
 All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **dedicated Tools tab**, **Ctrl+K** palette, the **sidebar Tools tab** (Sessions/Tools toggle at the top of the left panel, **Ctrl+Shift+T**), or **"+" → Add Tool** menu. The tabbed sidebar hosts the session `TreeView` and a full-height tool browser side by side — the Tools tab displays a collapsible `TreeView` of categories (Network, Security, Encoding, System, External) populated from `ToolRegistry`, with a filter box matching on name + aliases and an always-present **Favorites** section at the top. Right-click any sidebar tool leaf to pin or unpin it without launching the tool; the same persisted `FavoriteToolIds` feed both the sidebar Favorites section and the dedicated Tools tab, while favorites stay sorted alphabetically by localized display name and filtered like every other category. Tools can be saved in the session `TreeView` alongside real sessions. Centralized `ToolRegistry` with vector icons, categories, and command aliases. **Favorites** (pin/unpin with persistence) and **recently used** tools remain available on the dedicated Tools tab as well. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector). **First-launch onboarding** overlay with guided introduction.
 
@@ -205,7 +205,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty states: tool views show guidance before first query, welcome panel with import CTA
-- Built-in help button ("?") on all 49 tools with localized usage instructions
+- Built-in help button ("?") on all 59 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
@@ -358,7 +358,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
 | Testing | xUnit (1,775 tests) |
-| Built-in Tools | 49 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
+| Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
 ---

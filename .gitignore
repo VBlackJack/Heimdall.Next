@@ -48,5 +48,11 @@ audit_report_detailed.*
 .dotnet-home/
 .dotnet-home-audit/
 TestResults/
+**/TestResults/
+**/TestResults/**
+**/*.trx
+**/coverage.cobertura.xml
+**/.coverage
+**/TestResults.*.xml
 
 CLAUDE.md

@@ -93,6 +93,10 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         _servingDirectory = Path.GetFullPath(directory);
         _httpCts = new CancellationTokenSource();
         _httpListener = new HttpListener();
+        // Intentional wildcard bind: tightening to a specific IP (for example the detected LAN address)
+        // would require a Windows URL ACL (`netsh http add urlacl`) or admin elevation, breaking the
+        // File Share toggle UX for non-admin users. The bearer token enforced on every request is the
+        // actual security boundary here.
         _httpListener.Prefixes.Add($"http://+:{port}/");
         IsHttpLocalOnly = false;
 
