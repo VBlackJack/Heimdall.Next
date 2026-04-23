@@ -104,8 +104,12 @@ public sealed class PostConnectSequenceRunner : IPostConnectSequenceRunner
                 Report(progress, step, index, steps.Count, PostConnectStepStatus.Cancelled);
                 return Finish(stepsExecuted, stepsSkippedDisabled, stepsFailed, stepsBroken, wasCancelled: true, wasStoppedByFailurePolicy: false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log and honor the per-step failure policy so later hooks still run when allowed.
+                FileLogger.Error(
+                    $"Post-connect: step '{Summarize(GetDisplayText(step))}' failed at {index + 1}/{steps.Count} ({ex.GetType().Name})",
+                    ex);
                 Report(progress, step, index, steps.Count, PostConnectStepStatus.Failed);
                 stepsFailed++;
                 if (step.OnFailure == PostConnectFailurePolicy.Stop)

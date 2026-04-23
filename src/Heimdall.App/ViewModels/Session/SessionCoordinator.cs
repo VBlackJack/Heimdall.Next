@@ -63,6 +63,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly IPostConnectSequenceRunner _postConnectSequenceRunner;
     private readonly IPostConnectStepResolver _postConnectStepResolver;
+    private readonly IUiDispatcher _uiDispatcher;
     private bool _disposed;
 
     /// <summary>
@@ -75,7 +76,42 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         IConfigManager configManager,
         IEmbeddedSessionManager embeddedSessionManager,
         IPostConnectSequenceRunner postConnectSequenceRunner,
-        IPostConnectStepResolver postConnectStepResolver)
+        IPostConnectStepResolver postConnectStepResolver,
+        IUiDispatcher uiDispatcher)
+        : this(
+            main,
+            localizer,
+            configManager,
+            embeddedSessionManager,
+            postConnectSequenceRunner,
+            postConnectStepResolver,
+            uiDispatcher,
+            wireUpCallbacks: true)
+    {
+    }
+
+    internal static SessionCoordinator CreateForTests(IUiDispatcher uiDispatcher)
+    {
+        return new SessionCoordinator(
+            main: null!,
+            localizer: null!,
+            configManager: null!,
+            embeddedSessionManager: null!,
+            postConnectSequenceRunner: null!,
+            postConnectStepResolver: null!,
+            uiDispatcher,
+            wireUpCallbacks: false);
+    }
+
+    private SessionCoordinator(
+        MainViewModel main,
+        LocalizationManager localizer,
+        IConfigManager configManager,
+        IEmbeddedSessionManager embeddedSessionManager,
+        IPostConnectSequenceRunner postConnectSequenceRunner,
+        IPostConnectStepResolver postConnectStepResolver,
+        IUiDispatcher uiDispatcher,
+        bool wireUpCallbacks)
     {
         _main = main;
         _localizer = localizer;
@@ -83,6 +119,12 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _embeddedSessionManager = embeddedSessionManager;
         _postConnectSequenceRunner = postConnectSequenceRunner;
         _postConnectStepResolver = postConnectStepResolver;
+        _uiDispatcher = uiDispatcher;
+
+        if (!wireUpCallbacks)
+        {
+            return;
+        }
 
         // Wire SplitService callbacks for access to session tab state
         _main.Split.ActiveSessionsProvider = () => _main.Connection.ActiveSessions;
@@ -356,13 +398,13 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             {
                 FileLogger.Warn(
                     $"SFTP auto-open failed for {serverId}: {sftpResult.ErrorMessage}");
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                InvokeOnUi(() =>
                     _main.StatusText = _localizer.Format("StatusSftpAutoOpenFailed", sftpResult.ErrorMessage ?? ""));
                 return;
             }
 
             // Create the SFTP host control on the UI thread and wrap root in a split container
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            InvokeOnUi(() =>
             {
                 var sftpPane = new SessionPaneModel
                 {
@@ -459,8 +501,14 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         }
         finally
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(tab.ClearPostConnectState);
+            ClearPostConnectStateOnUiThread(tab);
         }
+    }
+
+    internal void ClearPostConnectStateOnUiThread(SessionTabViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+        InvokeOnUi(tab.ClearPostConnectState);
     }
 
     private string LocalizePostConnectStatus(PostConnectStepStatus status)
@@ -490,6 +538,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         {
             FileLogger.Error($"Fire-and-forget task failed: {ex.Message}", ex);
         }
+    }
+
+    private void InvokeOnUi(Action action)
+    {
+        _uiDispatcher.Invoke(action);
     }
 
     // ── IDisposable ──────────────────────────────────────────────────
