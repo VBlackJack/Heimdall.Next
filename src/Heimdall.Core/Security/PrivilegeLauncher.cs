@@ -19,7 +19,10 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
+using Heimdall.Core.Logging;
 
 namespace Heimdall.Core.Security;
 
@@ -79,6 +82,16 @@ public static class PrivilegeLauncher
 
     private const int MAX_SERVICE_WAIT_MS = 10_000;
     private const int SERVICE_POLL_INTERVAL_MS = 250;
+    private const string PrivLaunchArg = "--privlaunch";
+    private const string PayloadArg = "--payload";
+
+    private sealed class PrivilegeLaunchPayloadDto
+    {
+        public string? Exe { get; init; }
+        public string[]? Args { get; init; }
+    }
+
+    internal sealed record PrivilegeLaunchPayload(string Exe, string[] Args);
 
     // ── Win32 structures ──────────────────────────────────────────────
 
@@ -217,7 +230,11 @@ public static class PrivilegeLauncher
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr hObject);
 
-    private const string PrivLaunchArg = "--privlaunch";
+    [DllImport("shell32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr CommandLineToArgvW(string lpCmdLine, out int pNumArgs);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr LocalFree(IntPtr hMem);
 
     // ── Public API ────────────────────────────────────────────────────
 
@@ -229,28 +246,48 @@ public static class PrivilegeLauncher
     /// </summary>
     public static PrivilegeLaunchResult Launch(string executablePath, string? arguments, PrivilegeLevel level)
     {
-        if (string.IsNullOrWhiteSpace(executablePath))
-            return PrivilegeLaunchResult.Failed("Executable path is required.");
+        try
+        {
+            return Launch(executablePath, ParseArguments(arguments), level);
+        }
+        catch (Exception ex)
+        {
+            return PrivilegeLaunchResult.Failed(ex.Message);
+        }
+    }
 
-        if (!System.IO.File.Exists(executablePath))
-            return PrivilegeLaunchResult.Failed($"File not found: {executablePath}");
+    /// <summary>
+    /// Launches a process under the specified privilege level with structured
+    /// argument tokens that preserve the target argv across elevation hops.
+    /// </summary>
+    public static PrivilegeLaunchResult Launch(
+        string executablePath,
+        IReadOnlyList<string>? arguments,
+        PrivilegeLevel level)
+    {
+        var payload = new PrivilegeLaunchPayload(
+            executablePath,
+            arguments?.ToArray() ?? []);
+
+        if (!TryValidateLaunchPayload(payload, out var validationError))
+            return PrivilegeLaunchResult.Failed(validationError);
 
         // UAC elevation is handled by ShellExecute directly
         if (level == PrivilegeLevel.CurrentUserElevated)
-            return LaunchElevated(executablePath, arguments);
+            return LaunchElevated(payload.Exe, payload.Args);
 
         // For SYSTEM/TI: if already elevated, do in-process; otherwise self-elevate
         if (IsCurrentProcessElevated())
         {
             return level switch
             {
-                PrivilegeLevel.System => LaunchWithTokenProbe(executablePath, arguments, SystemProcessCandidates),
-                PrivilegeLevel.TrustedInstaller => LaunchAsTrustedInstaller(executablePath, arguments),
+                PrivilegeLevel.System => LaunchWithTokenProbe(payload.Exe, payload.Args, SystemProcessCandidates),
+                PrivilegeLevel.TrustedInstaller => LaunchAsTrustedInstaller(payload.Exe, payload.Args),
                 _ => PrivilegeLaunchResult.Failed($"Unknown privilege level: {level}")
             };
         }
 
-        return LaunchViaSelfElevation(executablePath, arguments, level);
+        return LaunchViaSelfElevation(payload.Exe, payload.Args, level);
     }
 
     /// <summary>
@@ -270,16 +307,44 @@ public static class PrivilegeLauncher
     /// </summary>
     public static int? HandlePrivilegeLaunchArgs(string[] args)
     {
-        // Expected: --privlaunch <level> <exe> [arguments...]
-        if (args.Length < 3 || !string.Equals(args[0], PrivLaunchArg, StringComparison.OrdinalIgnoreCase))
+        if (args.Length == 0 || !string.Equals(args[0], PrivLaunchArg, StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var levelStr = args[1];
-        var exe = args[2];
-        var childArgs = args.Length > 3 ? string.Join(" ", args[3..]) : null;
-
-        if (!Enum.TryParse<PrivilegeLevel>(levelStr, ignoreCase: true, out var level))
+        if (args.Length != 4 || !string.Equals(args[2], PayloadArg, StringComparison.Ordinal))
+        {
+            FileLogger.Warn("[PrivilegeLauncher] Rejected malformed self-elevation command line.");
             return 1;
+        }
+
+        var levelStr = args[1];
+        if (!Enum.TryParse<PrivilegeLevel>(levelStr, ignoreCase: true, out var level))
+        {
+            FileLogger.Warn($"[PrivilegeLauncher] Rejected self-elevation request with invalid level '{levelStr}'.");
+            return 1;
+        }
+
+        if (level == PrivilegeLevel.CurrentUserElevated)
+        {
+            FileLogger.Warn("[PrivilegeLauncher] Rejected self-elevation request for unsupported CurrentUserElevated level.");
+            return 1;
+        }
+
+        PrivilegeLaunchPayload payload;
+        try
+        {
+            payload = DecodeLaunchPayload(args[3]);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[PrivilegeLauncher] Rejected self-elevation payload decode: {ex.Message}");
+            return 1;
+        }
+
+        if (!TryValidateLaunchPayload(payload, out var validationError))
+        {
+            FileLogger.Warn($"[PrivilegeLauncher] Rejected self-elevation payload validation: {validationError}");
+            return 1;
+        }
 
         // We are now elevated — do the actual token work
         PrivilegeLaunchResult result;
@@ -287,8 +352,8 @@ public static class PrivilegeLauncher
         {
             result = level switch
             {
-                PrivilegeLevel.System => LaunchWithTokenProbe(exe, childArgs, SystemProcessCandidates),
-                PrivilegeLevel.TrustedInstaller => LaunchAsTrustedInstaller(exe, childArgs),
+                PrivilegeLevel.System => LaunchWithTokenProbe(payload.Exe, payload.Args, SystemProcessCandidates),
+                PrivilegeLevel.TrustedInstaller => LaunchAsTrustedInstaller(payload.Exe, payload.Args),
                 _ => PrivilegeLaunchResult.Failed($"Unsupported level for self-elevation: {level}")
             };
         }
@@ -302,14 +367,14 @@ public static class PrivilegeLauncher
 
     // ── Elevated (UAC) ────────────────────────────────────────────────
 
-    private static PrivilegeLaunchResult LaunchElevated(string exe, string? args)
+    private static PrivilegeLaunchResult LaunchElevated(string exe, IReadOnlyList<string> args)
     {
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = exe,
-                Arguments = args ?? string.Empty,
+                Arguments = BuildArgumentsString(args),
                 UseShellExecute = true,
                 Verb = "runas"
             };
@@ -332,7 +397,7 @@ public static class PrivilegeLauncher
     // ── Self-elevation (re-launch as admin via UAC) ─────────────────
 
     private static PrivilegeLaunchResult LaunchViaSelfElevation(
-        string exe, string? args, PrivilegeLevel level)
+        string exe, IReadOnlyList<string> args, PrivilegeLevel level)
     {
         try
         {
@@ -343,10 +408,12 @@ public static class PrivilegeLauncher
             if (string.IsNullOrEmpty(selfExe))
                 return PrivilegeLaunchResult.Failed("Cannot determine current executable path.");
 
-            // Build argument string: [dotnet-prefix] --privlaunch <level> "<exe>" <args>
-            var childArguments = $"{selfPrefix}{PrivLaunchArg} {level} \"{exe}\"";
-            if (!string.IsNullOrWhiteSpace(args))
-                childArguments += $" {args}";
+            var payload = EncodeLaunchPayload(exe, args);
+
+            // Verb="runas" requires UseShellExecute=true, so the UAC hop still
+            // uses a raw Arguments string. The payload is base64-encoded JSON,
+            // which keeps token boundaries stable across this relaunch.
+            var childArguments = BuildSelfElevationArguments(level, payload, selfPrefix);
 
             var psi = new ProcessStartInfo
             {
@@ -467,7 +534,7 @@ public static class PrivilegeLauncher
 
     // ── TrustedInstaller ──────────────────────────────────────────────
 
-    private static PrivilegeLaunchResult LaunchAsTrustedInstaller(string exe, string? args)
+    private static PrivilegeLaunchResult LaunchAsTrustedInstaller(string exe, IReadOnlyList<string> args)
     {
         // Step 1: Ensure TrustedInstaller service is running
         var serviceResult = EnsureTrustedInstallerServiceRunning();
@@ -537,7 +604,7 @@ public static class PrivilegeLauncher
     /// duplicates it, and creates the target process under that token.
     /// </summary>
     private static PrivilegeLaunchResult LaunchWithTokenProbe(
-        string exe, string? args, string[] processCandidates)
+        string exe, IReadOnlyList<string> args, string[] processCandidates)
     {
         try
         {
@@ -549,9 +616,7 @@ public static class PrivilegeLauncher
                     $"No accessible token found. Probed: {string.Join(", ", processCandidates)}. " +
                     "Ensure Heimdall is running as administrator.");
 
-            var commandLine = string.IsNullOrWhiteSpace(args)
-                ? $"\"{exe}\""
-                : $"\"{exe}\" {args}";
+            var commandLine = BuildCommandLine(exe, args);
 
             var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
 
@@ -571,6 +636,209 @@ public static class PrivilegeLauncher
         {
             return PrivilegeLaunchResult.Failed(ex.Message);
         }
+    }
+
+    internal static string EncodeLaunchPayload(string executablePath, IReadOnlyList<string>? arguments)
+    {
+        var payload = new PrivilegeLaunchPayloadDto
+        {
+            Exe = executablePath,
+            Args = arguments?.ToArray() ?? []
+        };
+
+        var json = JsonSerializer.Serialize(payload);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+    }
+
+    internal static PrivilegeLaunchPayload DecodeLaunchPayload(string encodedPayload)
+    {
+        if (string.IsNullOrWhiteSpace(encodedPayload))
+            throw new FormatException("Privilege launch payload is missing.");
+
+        byte[] payloadBytes;
+        try
+        {
+            payloadBytes = Convert.FromBase64String(encodedPayload);
+        }
+        catch (FormatException ex)
+        {
+            throw new FormatException("Privilege launch payload is not valid base64.", ex);
+        }
+
+        PrivilegeLaunchPayloadDto? payload;
+        try
+        {
+            payload = JsonSerializer.Deserialize<PrivilegeLaunchPayloadDto>(payloadBytes);
+        }
+        catch (JsonException ex)
+        {
+            throw new FormatException("Privilege launch payload is not valid JSON.", ex);
+        }
+
+        if (payload?.Args is null)
+            throw new FormatException("Privilege launch payload is missing its args array.");
+
+        if (payload.Args.Any(arg => arg is null))
+            throw new FormatException("Privilege launch payload contains a null argument.");
+
+        return new PrivilegeLaunchPayload(payload.Exe ?? string.Empty, payload.Args);
+    }
+
+    internal static bool TryValidateLaunchPayload(
+        PrivilegeLaunchPayload? payload,
+        out string errorMessage)
+    {
+        if (payload is null)
+        {
+            errorMessage = "Privilege launch payload is missing.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(payload.Exe))
+        {
+            errorMessage = "Executable path is required.";
+            return false;
+        }
+
+        if (payload.Exe.IndexOf('\0') >= 0)
+        {
+            errorMessage = "Executable path contains an embedded null byte.";
+            return false;
+        }
+
+        if (payload.Args.Any(arg => arg is null))
+        {
+            errorMessage = "Privilege launch payload contains a null argument.";
+            return false;
+        }
+
+        if (Path.IsPathFullyQualified(payload.Exe) && !File.Exists(payload.Exe))
+        {
+            errorMessage = $"File not found: {payload.Exe}";
+            return false;
+        }
+
+        errorMessage = string.Empty;
+        return true;
+    }
+
+    internal static string[] ParseArguments(string? arguments)
+    {
+        if (string.IsNullOrWhiteSpace(arguments))
+            return [];
+
+        var commandLine = "heimdall.exe " + arguments;
+        var argv = CommandLineToArgvW(commandLine, out var argc);
+        if (argv == IntPtr.Zero)
+            throw new Win32Exception(
+                Marshal.GetLastPInvokeError(),
+                "Failed to parse command-line arguments.");
+
+        try
+        {
+            if (argc <= 1)
+                return [];
+
+            var parsedArgs = new string[argc - 1];
+            for (var i = 1; i < argc; i++)
+            {
+                var argPtr = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
+                parsedArgs[i - 1] = Marshal.PtrToStringUni(argPtr) ?? string.Empty;
+            }
+
+            return parsedArgs;
+        }
+        finally
+        {
+            _ = LocalFree(argv);
+        }
+    }
+
+    internal static string BuildSelfElevationArguments(
+        PrivilegeLevel level,
+        string encodedPayload,
+        string selfPrefix)
+    {
+        ArgumentNullException.ThrowIfNull(encodedPayload);
+        ArgumentNullException.ThrowIfNull(selfPrefix);
+
+        return string.Concat(
+            selfPrefix,
+            BuildArgumentsString([PrivLaunchArg, level.ToString(), PayloadArg, encodedPayload]));
+    }
+
+    internal static string BuildCommandLine(
+        string executablePath,
+        IReadOnlyList<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(executablePath);
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        var tokens = new string[arguments.Count + 1];
+        tokens[0] = QuoteWindowsArgument(executablePath);
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            tokens[i + 1] = QuoteWindowsArgument(arguments[i]);
+        }
+
+        return string.Join(" ", tokens);
+    }
+
+    private static string BuildArgumentsString(IReadOnlyList<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        if (arguments.Count == 0)
+            return string.Empty;
+
+        return string.Join(" ", arguments.Select(QuoteWindowsArgument));
+    }
+
+    private static string QuoteWindowsArgument(string argument)
+    {
+        ArgumentNullException.ThrowIfNull(argument);
+
+        if (argument.Length == 0)
+            return "\"\"";
+
+        var needsQuotes = argument.Any(ch => char.IsWhiteSpace(ch) || ch == '"');
+        if (!needsQuotes)
+            return argument;
+
+        var builder = new StringBuilder(argument.Length + 2);
+        builder.Append('"');
+
+        var backslashCount = 0;
+        foreach (var ch in argument)
+        {
+            if (ch == '\\')
+            {
+                backslashCount++;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                builder.Append('\\', (backslashCount * 2) + 1);
+                builder.Append('"');
+                backslashCount = 0;
+                continue;
+            }
+
+            if (backslashCount > 0)
+            {
+                builder.Append('\\', backslashCount);
+                backslashCount = 0;
+            }
+
+            builder.Append(ch);
+        }
+
+        if (backslashCount > 0)
+            builder.Append('\\', backslashCount * 2);
+
+        builder.Append('"');
+        return builder.ToString();
     }
 
     private static void EnableDebugPrivilege()
