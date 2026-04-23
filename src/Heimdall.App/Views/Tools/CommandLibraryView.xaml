@@ -264,6 +264,7 @@
                 <DataTemplate>
                     <DockPanel>
                         <!-- Favorite toggle -->
+                        <!-- 24x24 kept intentionally: dense list-row context, favorite toggling rides a larger row hit area. -->
                         <Button DockPanel.Dock="Right"
                                 Content="{Binding FavoriteIcon}"
                                 Command="{Binding DataContext.ToggleFavoriteByIdCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

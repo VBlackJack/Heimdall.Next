@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Heimdall.App.Services;
 
@@ -83,6 +84,17 @@ public class EphemeralFileServerTests : IDisposable
         }
     }
 
+    private static string InvokeRedactToken(string url)
+    {
+        var redactToken = typeof(EphemeralFileServer).GetMethod(
+            "RedactToken",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(redactToken);
+
+        return (string)redactToken!.Invoke(null, [url])!;
+    }
+
     // ── Initial state ─────────────────────────────────────────────────
 
     [Fact]
@@ -103,6 +115,38 @@ public class EphemeralFileServerTests : IDisposable
     {
         Assert.Matches(new Regex("^[A-Za-z0-9_-]+$"), _server.AccessToken);
         Assert.True(_server.AccessToken.Length >= 40);
+    }
+
+    [Fact]
+    public void RedactToken_ReplacesTokenValue_InQueryString()
+    {
+        var redacted = InvokeRedactToken("http://localhost:8080/?token=abc123");
+
+        Assert.Equal("http://localhost:8080/?token=<redacted>", redacted);
+    }
+
+    [Fact]
+    public void RedactToken_IsCaseInsensitive_OnKey()
+    {
+        var redacted = InvokeRedactToken("http://localhost:8080/?TOKEN=abc123");
+
+        Assert.Equal("http://localhost:8080/?TOKEN=<redacted>", redacted);
+    }
+
+    [Fact]
+    public void RedactToken_LeavesOtherQueryParams_Intact()
+    {
+        var redacted = InvokeRedactToken("http://localhost:8080/?foo=bar&token=abc123&baz=qux");
+
+        Assert.Equal("http://localhost:8080/?foo=bar&token=<redacted>&baz=qux", redacted);
+    }
+
+    [Fact]
+    public void RedactToken_HandlesNoQueryString()
+    {
+        var url = "http://localhost:8080/path";
+
+        Assert.Equal(url, InvokeRedactToken(url));
     }
 
     [Fact]
