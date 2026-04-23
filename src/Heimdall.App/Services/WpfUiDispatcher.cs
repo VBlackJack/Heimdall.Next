@@ -49,5 +49,13 @@ public sealed class WpfUiDispatcher : IUiDispatcher
     }
 
     /// <inheritdoc />
+    public async Task InvokeAsync(Func<Task> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var innerTask = await CurrentDispatcher.InvokeAsync(action);
+        await innerTask;
+    }
+
+    /// <inheritdoc />
     public bool CheckAccess() => CurrentDispatcher.CheckAccess();
 }

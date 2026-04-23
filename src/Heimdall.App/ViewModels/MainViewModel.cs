@@ -329,7 +329,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
-        Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager);
+        Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager, _uiDispatcher);
         Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver, _uiDispatcher);
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;

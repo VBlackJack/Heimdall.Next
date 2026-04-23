@@ -26,7 +26,11 @@ internal sealed class FakeUiDispatcher(bool checkAccess = true) : IUiDispatcher
 
     public int InvokeAsyncCalls { get; private set; }
 
+    public int InvokeAsyncFuncCalls { get; private set; }
+
     public bool CheckAccessResult { get; set; } = checkAccess;
+
+    public Func<Func<Task>, Task>? InvokeAsyncFuncHandler { get; set; }
 
     public void Invoke(Action action)
     {
@@ -48,6 +52,19 @@ internal sealed class FakeUiDispatcher(bool checkAccess = true) : IUiDispatcher
         InvokeAsyncCalls++;
         ExecuteOnUiThread(action);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Executes the asynchronous action immediately on the fake UI thread and
+    /// returns a task that completes when the inner async work completes.
+    /// Tests can override <see cref="InvokeAsyncFuncHandler"/> to delay or wrap
+    /// the inner task for sequencing assertions.
+    /// </summary>
+    public Task InvokeAsync(Func<Task> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        InvokeAsyncFuncCalls++;
+        return ExecuteOnUiThreadAsync(() => InvokeAsyncFuncHandler?.Invoke(action) ?? action());
     }
 
     public bool CheckAccess() => _isExecutingOnUiThread || CheckAccessResult;
@@ -73,6 +90,20 @@ internal sealed class FakeUiDispatcher(bool checkAccess = true) : IUiDispatcher
         try
         {
             return func();
+        }
+        finally
+        {
+            _isExecutingOnUiThread = previous;
+        }
+    }
+
+    private async Task ExecuteOnUiThreadAsync(Func<Task> func)
+    {
+        var previous = _isExecutingOnUiThread;
+        _isExecutingOnUiThread = true;
+        try
+        {
+            await func();
         }
         finally
         {
