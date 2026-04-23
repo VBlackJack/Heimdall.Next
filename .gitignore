@@ -22,6 +22,7 @@ Thumbs.db
 
 ## Claude Code
 .claude/
+# Local-only assistant instructions (never committed by project convention)
 CLAUDE.md
 
 # Local architect scratchpad (never committed)
@@ -54,5 +55,3 @@ TestResults/
 **/coverage.cobertura.xml
 **/.coverage
 **/TestResults.*.xml
-
-CLAUDE.md

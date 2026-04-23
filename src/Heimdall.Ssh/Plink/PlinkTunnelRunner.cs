@@ -17,6 +17,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Ssh.Plink;
@@ -147,7 +148,7 @@ public sealed class PlinkTunnelRunner : IDisposable
                     if (line is null) break;
                     if (!string.IsNullOrWhiteSpace(line))
                     {
-                        Core.Logging.FileLogger.Info($"Plink stderr (port {localPort}): {line}");
+                        Core.Logging.FileLogger.Info($"Plink stderr (port {localPort}, untrusted): {SanitizeForLog(line)}");
                     }
                 }
             }
@@ -387,6 +388,36 @@ public sealed class PlinkTunnelRunner : IDisposable
         }
 
         return startInfo;
+    }
+
+    internal static string SanitizeForLog(string? line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder(line.Length);
+        foreach (var c in line)
+        {
+            // Replace non-tab control characters to preserve log readability and structure.
+            if ((c < 32 && c != '\t') || c == 127)
+            {
+                builder.Append('?');
+            }
+            else
+            {
+                builder.Append(c);
+            }
+        }
+
+        const int maxLength = 256;
+        if (builder.Length <= maxLength)
+        {
+            return builder.ToString();
+        }
+
+        return $"{builder.ToString(0, maxLength)} [...]";
     }
 
     private static bool IsValidHost(string host)

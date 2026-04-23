@@ -103,9 +103,6 @@ public partial class PortScannerView : UserControl, IToolView
         BtnScan.Content = L("ToolPortScanBtnStart");
         BtnStop.Content = L("ToolPortScanBtnStop");
         BtnCopy.Content = L("ToolPortScanBtnCopy");
-        LblOpen.Text = L("ToolPortScanOpen");
-        LblClosed.Text = L("ToolPortScanClosed");
-        LblTotal.Text = L("ToolPortScanTotal");
 
         ColPort.Header = L("ToolPortScanColPort");
         ColStatus.Header = L("ToolPortScanColStatus");
@@ -249,9 +246,9 @@ public partial class PortScannerView : UserControl, IToolView
         TxtProgressPercent.Text = "0%";
         TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
         ProgressPanel.Visibility = Visibility.Visible;
-        TxtOpen.Text = "0";
-        TxtClosed.Text = "0";
-        TxtTotal.Text = ports.Count.ToString();
+        TxtOpen.Text = FormatStat("ToolPortScanOpen", 0);
+        TxtClosed.Text = FormatStat("ToolPortScanClosed", 0);
+        TxtTotal.Text = FormatStat("ToolPortScanTotal", ports.Count);
         UpdateResultsSurface();
 
         await _vm.ScanAsync(host, ports);
@@ -558,9 +555,9 @@ public partial class PortScannerView : UserControl, IToolView
         ScanProgress.Value = Math.Min(_vm.Completed, ScanProgress.Maximum);
         TxtProgressPercent.Text = $"{_vm.ProgressPercent}%";
         TxtProgressCount.Text = _vm.ProgressCountText;
-        TxtOpen.Text = _vm.OpenCount.ToString();
-        TxtClosed.Text = _vm.ClosedCount.ToString();
-        TxtTotal.Text = _vm.Total.ToString();
+        TxtOpen.Text = FormatStat("ToolPortScanOpen", _vm.OpenCount);
+        TxtClosed.Text = FormatStat("ToolPortScanClosed", _vm.ClosedCount);
+        TxtTotal.Text = FormatStat("ToolPortScanTotal", _vm.Total);
         ProgressPanel.Visibility = _vm.IsScanning ? Visibility.Visible : Visibility.Collapsed;
         _setBusy?.Invoke(_vm.IsScanning);
         BtnScan.Visibility = _vm.IsScanning ? Visibility.Collapsed : Visibility.Visible;
@@ -570,6 +567,8 @@ public partial class PortScannerView : UserControl, IToolView
     }
 
     private string L(string key) => _localizer?[key] ?? key;
+
+    private string FormatStat(string key, int value) => $"{L(key)}: {value}";
 
     private Func<string, string> CreateLocalize() => key => _localizer?[key] ?? key;
 

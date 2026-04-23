@@ -92,6 +92,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              TextChanged="OnScopeTextChanged"/>
+                    <!-- Retained non-token 4px offset: no CommonControls token matches a top-only caption gap here. -->
                     <TextBlock x:Name="TxtDetected" Text="" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,4,0,0"/>
@@ -108,6 +109,7 @@
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"/>
 
+                        <!-- Retained non-token 16px inline offsets: existing spacing tokens do not cover this asymmetric WrapPanel layout exactly. -->
                         <CheckBox x:Name="ChkNetwork" IsChecked="True"
                                   TabIndex="2"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -125,6 +127,7 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"/>
 
+                        <!-- Retained mixed 16px/4px inline spacing: no exact token matches the route label + selector alignment. -->
                         <TextBlock x:Name="LblRouteVia" Text=""
                                    FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="16,0,4,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -153,6 +156,7 @@
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
                          Background="{DynamicResource SurfaceBrush}"/>
+            <!-- Retained non-token asymmetric dock spacing: no exact CommonControls token maps to 12,2,12,4. -->
             <DockPanel Margin="12,2,12,4">
                 <TextBlock x:Name="TxtPhase" Text="" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -162,6 +166,7 @@
             </DockPanel>
         </StackPanel>
 
+        <!-- Retained non-token inline error spacing: ToolInlineErrorTextStyle does not expose a matching top/bottom token. -->
         <TextBlock x:Name="TxtError" Grid.Row="4" Text=""
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,8,12,0"/>
@@ -184,6 +189,7 @@
                                VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- Retained non-token trailing 12px gaps: no exact token matches this horizontal metric summary spacing. -->
                     <TextBlock x:Name="TxtPassCount" Text="" FontSize="{StaticResource FontSizeBody}"
                                Margin="0,0,12,0" AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock x:Name="TxtWarnCount" Text="" FontSize="{StaticResource FontSizeBody}"

@@ -269,7 +269,12 @@ if ($Mode -eq 'Release') {
     if (-not (Test-Path $installerDir)) { New-Item -ItemType Directory -Path $installerDir -Force | Out-Null }
 
     $issFile = Join-Path $ProjectRoot 'installer\innosetup.iss'
-    $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+    $defaultIscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+    $iscc = if ([string]::IsNullOrWhiteSpace($env:HEIMDALL_ISCC_PATH)) {
+        $defaultIscc
+    } else {
+        $env:HEIMDALL_ISCC_PATH
+    }
     if ((Test-Path $issFile) -and (Test-Path $iscc)) {
         foreach ($o in $outputs) {
             Write-Host "  Building Inno Setup installer ($($o.Name))..." -ForegroundColor DarkGray
@@ -281,7 +286,9 @@ if ($Mode -eq 'Release') {
             }
         }
     } else {
-        Write-Host "  [!] Inno Setup not found - skipping .exe installer" -ForegroundColor DarkYellow
+        Write-Host "  [!] Inno Setup compiler not found - skipping .exe installer generation" -ForegroundColor DarkYellow
+        Write-Host "      Install Inno Setup 6, or set `$env:HEIMDALL_ISCC_PATH if ISCC.exe is installed elsewhere." -ForegroundColor Yellow
+        Write-Host "      Checked: $iscc" -ForegroundColor DarkYellow
     }
 
     Write-Host "[$step/$totalSteps] Installers done" -ForegroundColor Green
