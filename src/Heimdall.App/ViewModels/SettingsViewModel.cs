@@ -733,6 +733,8 @@ public partial class SettingsViewModel : ObservableValidator
                 return;
             }
 
+            ImportedProfileSanitizer.Sanitize(imported);
+
             var confirmMessage = ext is ".mxtsessions" or ".ini" or ".mobaconf"
                 ? _localizer.Format("ConfirmImportMobaXtermMessage", imported.Count)
                 : _localizer.Format("ConfirmImportMessage", imported.Count);

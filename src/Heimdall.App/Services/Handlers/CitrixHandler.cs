@@ -82,6 +82,17 @@ internal sealed class CitrixHandler : IProtocolHandler
                 Core.Logging.FileLogger.Info(
                     $"Citrix launch (SelfService cache): {selfServicePath} {server.CitrixLaunchCommandLine}");
 
+                /*
+                 * CitrixLaunchCommandLine is treated as an opaque launch blob produced by
+                 * CitrixCacheScanner. ImportedProfileSanitizer.Sanitize is the live gate
+                 * that strips this field from externally imported profiles before they are
+                 * persisted into configuration. Manual servers.json edits still bypass that
+                 * gate; wiring SchemaValidator into the ConfigManager load path with an
+                 * explicit failure policy is tracked as follow-up backlog work.
+                 *
+                 * Keep the launch path narrow here and avoid introducing a second ad-hoc
+                 * string sanitizer with rules that could drift from the import boundary.
+                 */
                 process = Process.Start(new ProcessStartInfo
                 {
                     FileName = selfServicePath,
@@ -102,6 +113,13 @@ internal sealed class CitrixHandler : IProtocolHandler
             else if (!string.IsNullOrWhiteSpace(server.CitrixStoreFrontUrl) &&
                      !string.IsNullOrWhiteSpace(server.CitrixAppName))
             {
+                if (!TryValidateStoreFrontUrl(server.CitrixStoreFrontUrl, out var validatedStoreFrontUrl))
+                {
+                    var msg = _localizer["CitrixInvalidStoreFrontUrl"];
+                    _connectionSm.SetError(server.Id, msg);
+                    return Task.FromResult(new ConnectionResult(false, msg, null));
+                }
+
                 var launcher = ResolveCitrixLauncher();
                 if (launcher is null)
                 {
@@ -110,31 +128,16 @@ internal sealed class CitrixHandler : IProtocolHandler
                     return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
-                if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0 ||
-                    server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
-                {
-                    var msg = _localizer["CitrixNoConnectionConfigured"];
-                    _connectionSm.SetError(server.Id, msg);
-                    return Task.FromResult(new ConnectionResult(false, msg, null));
-                }
+                var startInfo = CreateStoreFrontStartInfo(
+                    launcher,
+                    server.CitrixAppName,
+                    validatedStoreFrontUrl,
+                    server.CitrixUseSso);
 
-                var argParts = new List<string> { "-L" };
-                if (server.CitrixUseSso)
-                {
-                    argParts.Add("-S");
-                }
-                argParts.Add($"\"{server.CitrixAppName}\"");
-                argParts.Add($"\"{server.CitrixStoreFrontUrl}\"");
-                var args = string.Join(' ', argParts);
-                Core.Logging.FileLogger.Info($"Citrix launch: {launcher} {args}");
+                Core.Logging.FileLogger.Info(
+                    $"Citrix launch (StoreFront): launcher={launcher} app={server.CitrixAppName} store={validatedStoreFrontUrl} sso={server.CitrixUseSso}");
 
-                process = Process.Start(new ProcessStartInfo
-                {
-                    FileName = launcher,
-                    Arguments = args,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
+                process = Process.Start(startInfo);
             }
             else
             {
@@ -215,5 +218,54 @@ internal sealed class CitrixHandler : IProtocolHandler
         }
 
         return ConnectionHelpers.FindInPath("SelfService.exe");
+    }
+
+    internal static bool TryValidateStoreFrontUrl(string? rawUrl, out string validatedUrl)
+    {
+        validatedUrl = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(rawUrl) ||
+            !Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return false;
+        }
+
+        validatedUrl = uri.AbsoluteUri;
+        return true;
+    }
+
+    internal static ProcessStartInfo CreateStoreFrontStartInfo(
+        string launcher,
+        string appName,
+        string storeFrontUrl,
+        bool useSso)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(launcher);
+        ArgumentException.ThrowIfNullOrWhiteSpace(appName);
+
+        if (!TryValidateStoreFrontUrl(storeFrontUrl, out var validatedStoreFrontUrl))
+        {
+            throw new ArgumentException(
+                "StoreFront URL must be an absolute HTTP or HTTPS URI.",
+                nameof(storeFrontUrl));
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = launcher,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("-L");
+        if (useSso)
+        {
+            startInfo.ArgumentList.Add("-S");
+        }
+
+        startInfo.ArgumentList.Add(appName);
+        startInfo.ArgumentList.Add(validatedStoreFrontUrl);
+        return startInfo;
     }
 }
