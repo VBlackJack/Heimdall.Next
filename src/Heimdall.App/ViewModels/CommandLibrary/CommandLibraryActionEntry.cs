@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TwinShell.Core.Enums;
 using ActionModel = TwinShell.Core.Models.Action;
@@ -81,13 +80,13 @@ public sealed partial class CommandLibraryActionEntry : ObservableObject
         _ => _viewModel.LocalizeKey("ToolCmdLibPlatformLabelBoth")
     };
 
-    /// <summary>Brush representing the action's risk level.</summary>
-    public Brush RiskBrush => Source.Level switch
+    /// <summary>Theme resource key representing the action's risk level.</summary>
+    public string RiskBrushKey => Source.Level switch
     {
-        CriticalityLevel.Info => ResolveBrush("TextSecondaryBrush", Brushes.Gray),
-        CriticalityLevel.Run => ResolveBrush("WarningBrush", Brushes.Orange),
-        CriticalityLevel.Dangerous => ResolveBrush("ErrorBrush", Brushes.Red),
-        _ => ResolveBrush("TextSecondaryBrush", Brushes.Gray)
+        CriticalityLevel.Info => "TextSecondaryBrush",
+        CriticalityLevel.Run => "WarningBrush",
+        CriticalityLevel.Dangerous => "ErrorBrush",
+        _ => "TextSecondaryBrush"
     };
 
     /// <summary>Localized long-form risk label, used for tooltips.</summary>
@@ -107,7 +106,4 @@ public sealed partial class CommandLibraryActionEntry : ObservableObject
         CriticalityLevel.Dangerous => _viewModel.LocalizeKey("ToolCmdLibRiskBadgeDanger"),
         _ => string.Empty
     };
-
-    private static Brush ResolveBrush(string resourceKey, Brush fallback)
-        => System.Windows.Application.Current?.TryFindResource(resourceKey) as Brush ?? fallback;
 }

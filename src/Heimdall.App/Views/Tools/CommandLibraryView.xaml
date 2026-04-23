@@ -276,10 +276,15 @@
                                 Foreground="{DynamicResource WarningBrush}"/>
                         <!-- Risk badge -->
                         <Border DockPanel.Dock="Left"
-                                Background="{Binding RiskBrush}"
                                 CornerRadius="{StaticResource CornerRadiusSm}" Padding="4,1"
                                 VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"
                                 ToolTip="{Binding RiskLabel}">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource ResourceKeyToBrushConverter}">
+                                    <Binding Path="RiskBrushKey"/>
+                                    <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                </MultiBinding>
+                            </Border.Background>
                             <TextBlock Text="{Binding RiskBadge}"
                                        FontSize="{StaticResource FontSizeSmallCaption}"
                                        FontWeight="Bold" Foreground="{DynamicResource BadgeTextBrush}"/>
