@@ -37,30 +37,4 @@ public sealed class SessionCoordinatorTests
         Assert.Equal(string.Empty, tab.PostConnectProgressText);
         Assert.Equal(string.Empty, tab.PostConnectTooltip);
     }
-
-    private sealed class FakeUiDispatcher : IUiDispatcher
-    {
-        public int InvokeCalls { get; private set; }
-
-        public void Invoke(Action action)
-        {
-            InvokeCalls++;
-            action();
-        }
-
-        public T Invoke<T>(Func<T> func)
-        {
-            InvokeCalls++;
-            return func();
-        }
-
-        public Task InvokeAsync(Action action)
-        {
-            InvokeCalls++;
-            action();
-            return Task.CompletedTask;
-        }
-
-        public bool CheckAccess() => true;
-    }
 }

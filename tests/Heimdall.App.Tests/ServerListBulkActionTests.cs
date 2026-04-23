@@ -1536,10 +1536,12 @@ public sealed class ServerListBulkActionTests
             var dialogService = new TrackingDialogService(confirmResult);
             var puttyImporter = new PuttySessionImporter(new FakePuttySessionRegistrySource([]), configManager);
             var knownHostsImporter = new KnownHostsImporter(configManager, new HostKeyStore());
+            var uiDispatcher = new FakeUiDispatcher();
 
             var viewModel = new ServerListViewModel(
                 configManager,
                 localizer,
+                uiDispatcher,
                 stateMachine,
                 connectionService,
                 dialogService,
