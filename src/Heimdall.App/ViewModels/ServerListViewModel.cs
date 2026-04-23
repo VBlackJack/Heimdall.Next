@@ -27,8 +27,8 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
-using Heimdall.Core.Ssh;
 using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Microsoft.Win32;
 
