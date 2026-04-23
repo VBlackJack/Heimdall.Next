@@ -358,6 +358,86 @@ public sealed class DnsLookupServiceTests
         Assert.True(result.ElapsedMs >= 0);
     }
 
+    [Fact]
+    public async Task LookupAsync_RejectsHostnameWithCommandInjection()
+    {
+        var nslookupCalls = 0;
+        var service = BuildService(
+            gateway: null,
+            hostEntryQuery: (_, _, _, _) => throw new Xunit.Sdk.XunitException("host-entry path must not fire for invalid hostname"),
+            nslookupQuery: (_, _, _, _) =>
+            {
+                nslookupCalls++;
+                return Task.FromResult(string.Empty);
+            },
+            tunnelQuery: (_, _, _, _, _) => throw new Xunit.Sdk.XunitException("tunnel path must not fire for invalid hostname"));
+
+        var request = new DnsLookupRequest("example.com && calc.exe", DnsRecordType.MX, null);
+        var result = await service.LookupAsync(request, Localize, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, nslookupCalls);
+        Assert.Contains("Invalid DNS hostname", result.ErrorArg);
+    }
+
+    [Fact]
+    public async Task LookupAsync_RejectsHostnameWithNullByte()
+    {
+        var nslookupCalls = 0;
+        var service = BuildService(
+            gateway: null,
+            hostEntryQuery: (_, _, _, _) => throw new Xunit.Sdk.XunitException("host-entry path must not fire for invalid hostname"),
+            nslookupQuery: (_, _, _, _) =>
+            {
+                nslookupCalls++;
+                return Task.FromResult(string.Empty);
+            },
+            tunnelQuery: (_, _, _, _, _) => throw new Xunit.Sdk.XunitException("tunnel path must not fire for invalid hostname"));
+
+        var request = new DnsLookupRequest("example.com\0oops", DnsRecordType.MX, null);
+        var result = await service.LookupAsync(request, Localize, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, nslookupCalls);
+        Assert.Contains("Invalid DNS hostname", result.ErrorArg);
+    }
+
+    [Fact]
+    public async Task LookupAsync_RejectsDnsServerWithGarbage()
+    {
+        var nslookupCalls = 0;
+        var service = BuildService(
+            gateway: null,
+            hostEntryQuery: (_, _, _, _) => throw new Xunit.Sdk.XunitException("host-entry path must not fire for invalid DNS server"),
+            nslookupQuery: (_, _, _, _) =>
+            {
+                nslookupCalls++;
+                return Task.FromResult(string.Empty);
+            },
+            tunnelQuery: (_, _, _, _, _) => throw new Xunit.Sdk.XunitException("tunnel path must not fire for invalid DNS server"));
+
+        var request = new DnsLookupRequest("example.com", DnsRecordType.MX, "dns server && calc");
+        var result = await service.LookupAsync(request, Localize, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, nslookupCalls);
+        Assert.Contains("Invalid DNS server", result.ErrorArg);
+    }
+
+    [Fact]
+    public void CreateLocalNslookupStartInfo_UsesArgumentListForValidInputs()
+    {
+        var psi = DnsLookupService.CreateLocalNslookupStartInfo("example.com", "MX", "8.8.8.8");
+
+        Assert.Equal("nslookup", psi.FileName);
+        Assert.Equal(3, psi.ArgumentList.Count);
+        Assert.Equal("-type=MX", psi.ArgumentList[0]);
+        Assert.Equal("example.com", psi.ArgumentList[1]);
+        Assert.Equal("8.8.8.8", psi.ArgumentList[2]);
+        Assert.True(psi.RedirectStandardOutput);
+        Assert.True(psi.RedirectStandardError);
+    }
+
     private static DnsLookupService BuildService(
         SshGatewayDto? gateway,
         Func<string, string, Func<string, string>, CancellationToken, Task<string>> hostEntryQuery,

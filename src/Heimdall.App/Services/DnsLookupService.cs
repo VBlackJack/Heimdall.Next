@@ -106,26 +106,33 @@ public sealed class DnsLookupService : IDnsLookupService
         ArgumentNullException.ThrowIfNull(localize);
         ct.ThrowIfCancellationRequested();
 
-        var hostname = request.Hostname ?? string.Empty;
+        var hostname = request.Hostname?.Trim() ?? string.Empty;
+        var dnsServer = string.IsNullOrWhiteSpace(request.DnsServer) ? null : request.DnsServer.Trim();
         var recordToken = request.RecordType.ToWireFormat();
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
+            if (!TryValidateLookupInputs(hostname, dnsServer, out var validationError))
+            {
+                stopwatch.Stop();
+                return DnsLookupResult.Error("ToolDnsErrorLookupFailed", stopwatch.ElapsedMilliseconds, validationError);
+            }
+
             string output;
 
             if (_gateway is not null)
             {
-                output = await _tunnelQuery(_gateway, hostname, recordToken, request.DnsServer, ct).ConfigureAwait(false);
+                output = await _tunnelQuery(_gateway, hostname, recordToken, dnsServer, ct).ConfigureAwait(false);
             }
-            else if (request.DnsServer is null && request.RecordType is DnsRecordType.A or DnsRecordType.AAAA)
+            else if (dnsServer is null && request.RecordType is DnsRecordType.A or DnsRecordType.AAAA)
             {
                 // Platform resolver path: preserves GetHostEntry behavior (aliases, IPv4/v6 split).
                 output = await _hostEntryQuery(hostname, recordToken, localize, ct).ConfigureAwait(false);
             }
             else
             {
-                output = await _localNslookupQuery(hostname, recordToken, request.DnsServer, ct).ConfigureAwait(false);
+                output = await _localNslookupQuery(hostname, recordToken, dnsServer, ct).ConfigureAwait(false);
             }
 
             stopwatch.Stop();
@@ -206,20 +213,7 @@ public sealed class DnsLookupService : IDnsLookupService
         string? dnsServer,
         CancellationToken ct)
     {
-        var arguments = dnsServer is not null
-            ? $"-type={recordType} {hostname} {dnsServer}"
-            : $"-type={recordType} {hostname}";
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = "nslookup",
-            Arguments = arguments,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-        };
+        var psi = CreateLocalNslookupStartInfo(hostname, recordType, dnsServer);
 
         using var process = new Process { StartInfo = psi };
         process.Start();
@@ -257,6 +251,61 @@ public sealed class DnsLookupService : IDnsLookupService
                 }
             }
         }
+    }
+
+    internal static ProcessStartInfo CreateLocalNslookupStartInfo(
+        string hostname,
+        string recordType,
+        string? dnsServer)
+    {
+        if (!TryValidateLookupInputs(hostname, dnsServer, out var validationError))
+        {
+            throw new ArgumentException(validationError);
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "nslookup",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+        };
+
+        psi.ArgumentList.Add($"-type={recordType}");
+        psi.ArgumentList.Add(hostname);
+        if (!string.IsNullOrWhiteSpace(dnsServer))
+        {
+            psi.ArgumentList.Add(dnsServer);
+        }
+
+        return psi;
+    }
+
+    internal static bool TryValidateLookupInputs(
+        string hostname,
+        string? dnsServer,
+        out string errorMessage)
+    {
+        if (string.IsNullOrWhiteSpace(hostname) || hostname.Contains('\0') || !InputValidator.ValidateDomain(hostname))
+        {
+            errorMessage = $"Invalid DNS hostname: {hostname}";
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dnsServer))
+        {
+            if (dnsServer.Contains('\0')
+                || (!InputValidator.ValidateDomain(dnsServer) && !IPAddress.TryParse(dnsServer, out _)))
+            {
+                errorMessage = $"Invalid DNS server: {dnsServer}";
+                return false;
+            }
+        }
+
+        errorMessage = string.Empty;
+        return true;
     }
 
     /// <summary>
