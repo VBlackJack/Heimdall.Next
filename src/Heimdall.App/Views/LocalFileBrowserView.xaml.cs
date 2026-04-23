@@ -23,6 +23,7 @@ using System.Windows.Input;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Security;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views;
@@ -335,24 +336,15 @@ public partial class LocalFileBrowserView : UserControl
             return;
         }
 
-        var editorPath = _viewModel.EditorPath;
-        if (string.IsNullOrWhiteSpace(editorPath))
+        if (!TryCreateEditorStartInfo(_viewModel.EditorPath, entry.FullPath, out var processStartInfo, out var rejectionKey))
         {
-            editorPath = Environment.ExpandEnvironmentVariables(@"%windir%\system32\notepad.exe");
-        }
-        else
-        {
-            editorPath = Environment.ExpandEnvironmentVariables(editorPath);
+            ShowEditorLaunchWarning(L10n(rejectionKey!));
+            return;
         }
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = editorPath,
-                Arguments = $"\"{entry.FullPath}\"",
-                UseShellExecute = false
-            })?.Dispose();
+            Process.Start(processStartInfo!)?.Dispose();
         }
         catch (Exception ex)
         {
@@ -401,6 +393,61 @@ public partial class LocalFileBrowserView : UserControl
         }
 
         await _viewModel.PasteFilesAsync(fileList.Cast<string>().ToList());
+    }
+
+    internal static bool TryCreateEditorStartInfo(
+        string? configuredEditorPath,
+        string filePath,
+        out ProcessStartInfo? processStartInfo,
+        out string? rejectionKey)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        var editorPath = ResolveEditorPath(configuredEditorPath);
+        if (InputValidator.IsShellTarget(editorPath))
+        {
+            processStartInfo = null;
+            rejectionKey = "EditorRejectedShellTarget";
+            return false;
+        }
+
+        processStartInfo = CreateEditorStartInfo(editorPath, filePath);
+        rejectionKey = null;
+        return true;
+    }
+
+    internal static string ResolveEditorPath(string? configuredEditorPath)
+    {
+        var editorPath = string.IsNullOrWhiteSpace(configuredEditorPath)
+            ? @"%windir%\system32\notepad.exe"
+            : configuredEditorPath;
+        return Environment.ExpandEnvironmentVariables(editorPath);
+    }
+
+    internal static ProcessStartInfo CreateEditorStartInfo(string editorPath, string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(editorPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = editorPath,
+            UseShellExecute = false
+        };
+        processStartInfo.ArgumentList.Add(filePath);
+        return processStartInfo;
+    }
+
+    private void ShowEditorLaunchWarning(string message)
+    {
+        var dialogService = (Application.Current as App)?.Services?.GetService<IDialogService>();
+        if (dialogService is not null)
+        {
+            dialogService.ShowWarning(L10n("FileBrowserCtxOpenInEditor"), message);
+            return;
+        }
+
+        Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] editor launch rejected: {message}");
     }
 
     private void OnCtxCopyPath(object sender, RoutedEventArgs e)

@@ -27,14 +27,8 @@ public sealed class PackageManagerService : IPackageManagerService
             return Array.Empty<PackageSearchResult>();
         }
 
-        // SECURITY: Validate searchTerm to prevent command injection
-        if (!ValidateSearchTerm(searchTerm))
-        {
-            _logger?.LogWarning("Invalid search term rejected: {SearchTerm}", searchTerm);
-            return Array.Empty<PackageSearchResult>();
-        }
-
-        var output = await ExecuteCommandAsync("winget", $"search \"{EscapeArgument(searchTerm)}\"");
+        var validatedSearchTerm = ValidatePackageArgument(searchTerm, nameof(searchTerm));
+        var output = await ExecuteCommandAsync("winget", BuildSearchArguments("winget", validatedSearchTerm));
         return ParseWingetSearchOutput(output);
     }
 
@@ -45,14 +39,8 @@ public sealed class PackageManagerService : IPackageManagerService
             return Array.Empty<PackageSearchResult>();
         }
 
-        // SECURITY: Validate searchTerm to prevent command injection
-        if (!ValidateSearchTerm(searchTerm))
-        {
-            _logger?.LogWarning("Invalid search term rejected: {SearchTerm}", searchTerm);
-            return Array.Empty<PackageSearchResult>();
-        }
-
-        var output = await ExecuteCommandAsync("choco", $"search \"{EscapeArgument(searchTerm)}\"");
+        var validatedSearchTerm = ValidatePackageArgument(searchTerm, nameof(searchTerm));
+        var output = await ExecuteCommandAsync("choco", BuildSearchArguments("choco", validatedSearchTerm));
         return ParseChocolateySearchOutput(output);
     }
 
@@ -63,15 +51,9 @@ public sealed class PackageManagerService : IPackageManagerService
             return null;
         }
 
-        // SECURITY: Validate packageId to prevent command injection
-        if (!ValidateSearchTerm(packageId))
-        {
-            _logger?.LogWarning("Invalid package ID rejected: {PackageId}", packageId);
-            return null;
-        }
-
-        var output = await ExecuteCommandAsync("winget", $"show \"{EscapeArgument(packageId)}\"");
-        return ParseWingetShowOutput(output, packageId);
+        var validatedPackageId = ValidatePackageArgument(packageId, nameof(packageId));
+        var output = await ExecuteCommandAsync("winget", BuildInfoArguments("winget", validatedPackageId));
+        return ParseWingetShowOutput(output, validatedPackageId);
     }
 
     public async Task<PackageInfo?> GetChocolateyPackageInfoAsync(string packageId)
@@ -81,26 +63,20 @@ public sealed class PackageManagerService : IPackageManagerService
             return null;
         }
 
-        // SECURITY: Validate packageId to prevent command injection
-        if (!ValidateSearchTerm(packageId))
-        {
-            _logger?.LogWarning("Invalid package ID rejected: {PackageId}", packageId);
-            return null;
-        }
-
-        var output = await ExecuteCommandAsync("choco", $"info \"{EscapeArgument(packageId)}\"");
-        return ParseChocolateyInfoOutput(output, packageId);
+        var validatedPackageId = ValidatePackageArgument(packageId, nameof(packageId));
+        var output = await ExecuteCommandAsync("choco", BuildInfoArguments("choco", validatedPackageId));
+        return ParseChocolateyInfoOutput(output, validatedPackageId);
     }
 
     public async Task<IEnumerable<PackageSearchResult>> ListWingetInstalledPackagesAsync()
     {
-        var output = await ExecuteCommandAsync("winget", "list");
+        var output = await ExecuteCommandAsync("winget", BuildListArguments("winget"));
         return ParseWingetListOutput(output);
     }
 
     public async Task<IEnumerable<PackageSearchResult>> ListChocolateyInstalledPackagesAsync()
     {
-        var output = await ExecuteCommandAsync("choco", "list --local-only");
+        var output = await ExecuteCommandAsync("choco", BuildListArguments("choco"));
         return ParseChocolateyListOutput(output);
     }
 
@@ -134,17 +110,14 @@ public sealed class PackageManagerService : IPackageManagerService
 
     private async Task<string> ExecuteCommandAsync(string command, string arguments, int timeoutSeconds = DefaultTimeoutSeconds)
     {
+        return await ExecuteCommandAsync(command, [arguments], timeoutSeconds).ConfigureAwait(false);
+    }
+
+    private async Task<string> ExecuteCommandAsync(string command, IReadOnlyList<string> arguments, int timeoutSeconds = DefaultTimeoutSeconds)
+    {
         try
         {
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = command,
-                Arguments = arguments,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            var processStartInfo = CreateProcessStartInfo(command, arguments);
 
             using var process = new Process { StartInfo = processStartInfo };
             process.Start();
@@ -156,7 +129,8 @@ public sealed class PackageManagerService : IPackageManagerService
             if (!process.WaitForExit((int)timeout.TotalMilliseconds))
             {
                 process.Kill();
-                throw new TimeoutException($"Command '{command} {arguments}' timed out after {timeoutSeconds} seconds");
+                throw new TimeoutException(
+                    $"Command '{FormatCommandForLog(command, arguments)}' timed out after {timeoutSeconds} seconds");
             }
 
             var output = await outputTask;
@@ -175,26 +149,102 @@ public sealed class PackageManagerService : IPackageManagerService
     /// <summary>
     /// Validates search term or package ID to prevent command injection
     /// </summary>
-    private static bool ValidateSearchTerm(string term)
+    private static string ValidatePackageArgument(string term, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(term))
-            return false;
+        {
+            throw new ArgumentException("Package query value cannot be empty.", parameterName);
+        }
 
-        // Limit length to reasonable value
-        if (term.Length > 200)
-            return false;
+        var normalized = term.Trim();
 
-        // Only allow alphanumeric, spaces, hyphens, underscores, and dots
-        return ValidSearchTermRegex.IsMatch(term);
+        if (normalized.Length > 200)
+        {
+            throw new ArgumentException("Package query value exceeds the 200 character limit.", parameterName);
+        }
+
+        var firstNonWhitespace = normalized[0];
+        if (firstNonWhitespace is '-' or '/')
+        {
+            throw new ArgumentException(
+                $"Option-shaped values are not allowed for {parameterName}: {PreviewValue(term)}",
+                parameterName);
+        }
+
+        if (!ValidSearchTermRegex.IsMatch(normalized))
+        {
+            throw new ArgumentException(
+                $"Package query value contains unsupported characters: {PreviewValue(term)}",
+                parameterName);
+        }
+
+        return normalized;
     }
 
-    /// <summary>
-    /// Escapes argument for command-line execution
-    /// </summary>
-    private static string EscapeArgument(string argument)
+    private static ProcessStartInfo CreateProcessStartInfo(string command, IReadOnlyList<string> arguments)
     {
-        // Replace any potentially dangerous characters
-        return argument.Replace("\"", "\\\"").Replace("$", "\\$");
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = command,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        foreach (var argument in arguments)
+        {
+            processStartInfo.ArgumentList.Add(argument);
+        }
+
+        return processStartInfo;
+    }
+
+    private static IReadOnlyList<string> BuildSearchArguments(string command, string searchTerm)
+    {
+        return command switch
+        {
+            "winget" => ["search", "--", searchTerm],
+            "choco" => ["search", "--", searchTerm],
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported package manager command.")
+        };
+    }
+
+    private static IReadOnlyList<string> BuildInfoArguments(string command, string packageId)
+    {
+        return command switch
+        {
+            "winget" => ["show", "--", packageId],
+            "choco" => ["info", "--", packageId],
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported package manager command.")
+        };
+    }
+
+    private static IReadOnlyList<string> BuildListArguments(string command)
+    {
+        return command switch
+        {
+            "winget" => ["list"],
+            "choco" => ["list", "--local-only"],
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported package manager command.")
+        };
+    }
+
+    private static string FormatCommandForLog(string command, IReadOnlyList<string> arguments)
+    {
+        return $"{command} {string.Join(" ", arguments)}".TrimEnd();
+    }
+
+    private static string PreviewValue(string value)
+    {
+        const int MaxPreviewLength = 32;
+        var preview = value.Trim();
+        if (preview.Length <= MaxPreviewLength)
+        {
+            return preview;
+        }
+
+        return preview[..MaxPreviewLength];
     }
 
     private IEnumerable<PackageSearchResult> ParseWingetSearchOutput(string output)

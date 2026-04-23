@@ -22,6 +22,47 @@ namespace Heimdall.App.Tests;
 
 public sealed class DnsSecurityServiceTests
 {
+    [Theory]
+    [InlineData("")]
+    [InlineData("bad domain")]
+    [InlineData("bad\u0000domain.example")]
+    public void CreateNslookupStartInfo_InvalidDomain_ThrowsArgumentException(string domain)
+    {
+        var ex = Assert.Throws<ArgumentException>(() => DnsSecurityService.CreateNslookupStartInfo(domain, "TXT"));
+
+        Assert.Equal("domain", ex.ParamName);
+    }
+
+    [Fact]
+    public void CreateNslookupStartInfo_InvalidRecordType_ThrowsArgumentException()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => DnsSecurityService.CreateNslookupStartInfo("example.com", "AAAA"));
+
+        Assert.Equal("recordType", ex.ParamName);
+    }
+
+    [Fact]
+    public void CreateNslookupStartInfo_UsesArgumentListForValidInputs()
+    {
+        var psi = DnsSecurityService.CreateNslookupStartInfo("example.com", "TXT");
+
+        Assert.Equal("nslookup", psi.FileName);
+        Assert.False(psi.UseShellExecute);
+        Assert.Equal(2, psi.ArgumentList.Count);
+        Assert.Equal("-type=TXT", psi.ArgumentList[0]);
+        Assert.Equal("example.com", psi.ArgumentList[1]);
+        Assert.Equal(string.Empty, psi.Arguments);
+    }
+
+    [Fact]
+    public void CreateNslookupTunnelCommand_EscapesDomainWithEscapeShellArg()
+    {
+        var command = DnsSecurityService.CreateNslookupTunnelCommand("TXT", "example.com");
+
+        Assert.Contains($" {InputValidator.EscapeShellArg("example.com")} ", command, StringComparison.Ordinal);
+        Assert.Contains($"-type={InputValidator.EscapeShellArg("TXT")}", command, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task RunAllChecksAsync_WithoutGateway_UsesLocalQueries()
     {
@@ -187,6 +228,36 @@ public sealed class DnsSecurityServiceTests
             });
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.RunAllChecksAsync("example.com", cts.Token));
+    }
+
+    [Fact]
+    public async Task RunAllChecksAsync_InvalidDomain_DoesNotInvokeQueryDelegates()
+    {
+        var localCalls = 0;
+        var tunnelCalls = 0;
+
+        var service = new DnsSecurityService(
+            gateway: null,
+            localQuery: (type, domain, ct) =>
+            {
+                localCalls++;
+                return Task.FromResult(string.Empty);
+            },
+            tunnelQuery: (_, _, _, _) =>
+            {
+                tunnelCalls++;
+                return Task.FromResult(string.Empty);
+            });
+
+        var results = await service.RunAllChecksAsync("bad domain", CancellationToken.None);
+
+        Assert.Equal(0, localCalls);
+        Assert.Equal(0, tunnelCalls);
+        Assert.Equal(6, results.Count);
+        Assert.All(results, result => Assert.Equal(DnsCheckStatus.Fail, result.Status));
+        Assert.All(
+            results,
+            result => Assert.Contains("Invalid DNS lookup domain", result.RawRecord ?? string.Empty, StringComparison.Ordinal));
     }
 
     private static string GetSuccessfulResponse(string type, string domain) => (type, domain) switch
