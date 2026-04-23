@@ -151,6 +151,22 @@ public class PortScanViewModelTests
     }
 
     [Fact]
+    public async Task Cancel_DoesNotShowError()
+    {
+        var service = new BlockingScanService();
+        var vm = new PortScanViewModel(service);
+        vm.Initialize(null);
+
+        var scanTask = vm.ScanAsync("10.0.0.1", [22]);
+        await Task.Delay(50);
+        vm.CancelScan();
+        await scanTask;
+
+        Assert.False(vm.ShowError);
+        Assert.True(string.IsNullOrWhiteSpace(vm.ErrorText));
+    }
+
+    [Fact]
     public void ParseAndValidatePorts_Empty_ReturnsErrorKey()
     {
         var vm = new PortScanViewModel();

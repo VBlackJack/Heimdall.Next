@@ -33,8 +33,8 @@
             <DockPanel>
                 <Button x:Name="BtnHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         TabIndex="8"
@@ -43,7 +43,7 @@
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.AutomationId="HmacGenerator.HelpButton"
                         AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"/>
                 <TextBlock Text="{loc:Translate ToolHmacTitle}"
@@ -60,13 +60,13 @@
             <DockPanel>
                 <Button x:Name="BtnCloseHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Content="&#xE711;"
                         Click="OnCloseHelpClick"
                         AutomationProperties.AutomationId="HmacGenerator.CloseHelpButton"
                         AutomationProperties.Name="{loc:Translate BtnClose}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
                         VerticalAlignment="Top"/>

@@ -31,10 +31,10 @@
                         Command="{Binding ToggleHelpCommand}"
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
-                        FontWeight="Bold" Width="24" Height="24"
+                        FontWeight="Bold"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="15"/>
                 <Button DockPanel.Dock="Right"
@@ -112,8 +112,8 @@
                         FontSize="{StaticResource FontSizeBody}"
                         Command="{Binding ToggleHelpCommand}"
                         AutomationProperties.Name="{loc:Translate BtnClose}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
+                        VerticalAlignment="Top"
                         TabIndex="16"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock Text="{Binding HelpContentText}" TextWrapping="Wrap"
