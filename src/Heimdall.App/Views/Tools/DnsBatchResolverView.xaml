@@ -45,15 +45,15 @@
             <DockPanel>
                 <Button x:Name="BtnHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         Content="?"
                         Command="{Binding ToggleHelpCommand}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         TabIndex="4"
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"/>
@@ -80,13 +80,13 @@
             <DockPanel>
                 <Button x:Name="BtnCloseHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Content="&#xE711;"
                         Command="{Binding ToggleHelpCommand}"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         TabIndex="5"
                         VerticalAlignment="Top"
                         AutomationProperties.Name="{loc:Translate BtnClose}"/>

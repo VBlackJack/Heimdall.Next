@@ -36,12 +36,12 @@
                         DockPanel.Dock="Right"
                         Content="?"
                         Command="{Binding ToggleHelpCommand}"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         ToolTip="{loc:Translate ToolHelpTooltip}"/>
                 <Button x:Name="BtnRefresh"
@@ -70,10 +70,10 @@
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
                         Command="{Binding ToggleHelpCommand}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         VerticalAlignment="Top"
-                        Width="24"
-                        Height="24"/>
+                       
+                       />
                 <ScrollViewer MaxHeight="200"
                               VerticalScrollBarVisibility="Auto">
                     <TextBlock Text="{Binding HelpText}"

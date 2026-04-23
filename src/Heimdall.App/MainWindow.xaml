@@ -1421,7 +1421,7 @@
                                                             ToolTip="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             VerticalAlignment="Center"
                                                             HorizontalAlignment="Center"
-                                                            AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                                                            AutomationProperties.Name="{loc:Translate A11yCloseTunnel}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -2207,7 +2207,7 @@
                                             <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.CmdLibGitSyncBranch, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}"/>
                                             <TextBlock x:Name="Mw_SettingsCmdLibSyncLblToken" Grid.Row="2" Grid.Column="0" Text="{loc:Translate SettingsCmdLibSyncToken}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                             <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
-                                                <Button x:Name="Mw_SettingsCmdLibSyncTokenClear" DockPanel.Dock="Right" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="OnCmdLibSyncTokenClear" Style="{DynamicResource ToolbarGhostButtonStyle}" FontSize="12" Width="24" Height="24" Margin="4,0,0,0" Visibility="Collapsed" ToolTip="{loc:Translate SettingsCmdLibSyncTokenClear}"/>
+                                                <Button x:Name="Mw_SettingsCmdLibSyncTokenClear" DockPanel.Dock="Right" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="OnCmdLibSyncTokenClear" Style="{DynamicResource ToolbarGhostButtonStyle}" FontSize="12" Width="24" Height="24" Margin="4,0,0,0" Visibility="Collapsed" ToolTip="{loc:Translate SettingsCmdLibSyncTokenClear}" AutomationProperties.Name="{loc:Translate SettingsCmdLibSyncTokenClear}"/>
                                                 <TextBlock x:Name="Mw_SettingsCmdLibSyncTokenStatus" DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SuccessBrush}" Margin="8,0,0,0"/>
                                                 <PasswordBox x:Name="Mw_SettingsCmdLibSyncToken" FontSize="{StaticResource FontSizeBody}" PasswordChanged="OnCmdLibSyncTokenChanged"/>
                                             </DockPanel>
@@ -2486,7 +2486,7 @@
                 Panel.ZIndex="200"
                 Margin="24"
                 CornerRadius="12"
-                Background="#AA1E1F29"
+                Background="{DynamicResource DragDropOverlayBackground}"
                 BorderBrush="{DynamicResource AccentBrush}"
                 BorderThickness="2"
                 Visibility="Collapsed"

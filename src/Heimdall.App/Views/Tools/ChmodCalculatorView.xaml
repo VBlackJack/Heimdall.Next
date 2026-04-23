@@ -42,8 +42,8 @@
                 <Button x:Name="BtnHelp"
                         DockPanel.Dock="Right"
                         AutomationProperties.AutomationId="Chmod.HelpButton"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         TabIndex="20"
@@ -51,7 +51,7 @@
                         Click="OnHelpClick"
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold" />
                 <TextBlock Text="{loc:Translate ToolChmodTitle}"
@@ -70,12 +70,12 @@
                 <Button x:Name="BtnCloseHelp"
                         DockPanel.Dock="Right"
                         AutomationProperties.AutomationId="Chmod.CloseHelpButton"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Content="&#xE711;"
                         Click="OnCloseHelpClick"
                         AutomationProperties.Name="{loc:Translate BtnClose}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
                         VerticalAlignment="Top" />

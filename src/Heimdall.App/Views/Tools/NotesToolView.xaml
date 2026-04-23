@@ -80,12 +80,12 @@
                         DockPanel.Dock="Right"
                         Content="?"
                         Click="OnHelpClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="4,0,0,0"
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
@@ -148,10 +148,10 @@
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         VerticalAlignment="Top"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         AutomationProperties.Name="{loc:Translate BtnClose}"
                         AutomationProperties.AutomationId="NotesTool.CloseHelp"
                         TabIndex="17"/>

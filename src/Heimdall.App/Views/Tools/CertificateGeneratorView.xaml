@@ -36,12 +36,12 @@
                         Content="?"
                         Command="{Binding ToggleHelpCommand}"
                         TabIndex="9"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         ToolTip="{loc:Translate ToolHelpTooltip}"
                         AutomationProperties.AutomationId="CertificateGenerator.HelpButton"
@@ -63,10 +63,10 @@
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
                         Command="{Binding ToggleHelpCommand}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         VerticalAlignment="Top"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         AutomationProperties.AutomationId="CertificateGenerator.CloseHelpButton"
                         AutomationProperties.Name="{loc:Translate BtnClose}"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">

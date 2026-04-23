@@ -40,15 +40,15 @@
             <DockPanel>
                 <Button x:Name="BtnHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Margin="{StaticResource MarginInlineControl}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         Content="?"
                         Click="OnHelpClick"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold"
-                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Style="{DynamicResource ToolHelpButtonStyle}"
                         TabIndex="5"/>
                 <TextBlock x:Name="HeaderTitle"
                            VerticalAlignment="Center"
@@ -64,13 +64,13 @@
             <DockPanel>
                 <Button x:Name="BtnCloseHelp"
                         DockPanel.Dock="Right"
-                        Width="24"
-                        Height="24"
+                       
+                       
                         Content="&#xE711;"
                         Click="OnCloseHelpClick"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
-                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         TabIndex="6"
                         VerticalAlignment="Top"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
@@ -189,7 +189,7 @@
                                 <DataTemplate>
                                     <DockPanel Margin="0,4">
                                         <TextBlock DockPanel.Dock="Left"
-                                                   Width="24"
+                                                  
                                                    VerticalAlignment="Top"
                                                    AutomationProperties.Name="{Binding Status, Converter={StaticResource HeaderStatusToTextConverter}}"
                                                    FontSize="{StaticResource FontSizeBodyLarge}"
@@ -238,7 +238,7 @@
                                 <DataTemplate>
                                     <DockPanel Margin="0,4">
                                         <TextBlock DockPanel.Dock="Left"
-                                                   Width="24"
+                                                  
                                                    VerticalAlignment="Top"
                                                    AutomationProperties.Name="{Binding Status, Converter={StaticResource HeaderStatusToTextConverter}}"
                                                    FontSize="{StaticResource FontSizeBodyLarge}"

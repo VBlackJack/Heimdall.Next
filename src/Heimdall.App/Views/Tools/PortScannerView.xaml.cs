@@ -101,6 +101,7 @@ public partial class PortScannerView : UserControl, IToolView
     {
         HeaderTitle.Text = L("ToolPortScanTitle");
         BtnScan.Content = L("ToolPortScanBtnStart");
+        BtnStop.Content = L("ToolPortScanBtnStop");
         BtnCopy.Content = L("ToolPortScanBtnCopy");
         LblOpen.Text = L("ToolPortScanOpen");
         LblClosed.Text = L("ToolPortScanClosed");
@@ -114,10 +115,12 @@ public partial class PortScannerView : UserControl, IToolView
         BtnExportCsv.Content = L("ToolPortScanBtnExportCsv");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnStop, L("ToolPortScanBtnStop"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolPortScanBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtHost, L("ToolPortScanHostLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtPorts, L("ToolPortScanPortsLabel"));
 
+        BtnStop.ToolTip = L("ToolPortScanBtnStop");
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         System.Windows.Automation.AutomationProperties.SetName(BtnExportCsv, L("ToolPortScanBtnExportCsv"));
 
@@ -185,6 +188,11 @@ public partial class PortScannerView : UserControl, IToolView
         ToggleScan();
     }
 
+    private void OnStopScanClick(object sender, RoutedEventArgs e)
+    {
+        StopScan();
+    }
+
     private void ToggleScan()
     {
         if (_vm.IsScanning)
@@ -235,10 +243,6 @@ public partial class PortScannerView : UserControl, IToolView
         TxtError.Text = string.Empty;
         TxtError.Visibility = Visibility.Collapsed;
 
-        BtnScan.Content = L("ToolPortScanBtnStop");
-        BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-        BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
         SetScanInputsEnabled(false);
         ScanProgress.IsIndeterminate = false;
         ScanProgress.Value = 0;
@@ -559,21 +563,8 @@ public partial class PortScannerView : UserControl, IToolView
         TxtTotal.Text = _vm.Total.ToString();
         ProgressPanel.Visibility = _vm.IsScanning ? Visibility.Visible : Visibility.Collapsed;
         _setBusy?.Invoke(_vm.IsScanning);
-
-        if (_vm.IsScanning)
-        {
-            BtnScan.Content = L("ToolPortScanBtnStop");
-            BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-            BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
-            System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
-        }
-        else
-        {
-            BtnScan.Content = L("ToolPortScanBtnStart");
-            BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
-            BtnScan.Style = (Style)FindResource("PrimaryButtonStyle");
-            System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
-        }
+        BtnScan.Visibility = _vm.IsScanning ? Visibility.Collapsed : Visibility.Visible;
+        System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
 
         UpdateResultsSurface();
     }
