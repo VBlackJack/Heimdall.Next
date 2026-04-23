@@ -2114,6 +2114,7 @@
   "CitrixSeamlessMode": "Mode transparent",
   "CitrixUseSso": "Utiliser le SSO (Kerberos)",
   "CitrixWorkspaceNotFound": "Citrix Workspace introuvable. Installez Citrix Workspace App.",
+  "CitrixInvalidStoreFrontUrl": "URL Citrix StoreFront invalide. Utilisez une URL HTTP ou HTTPS absolue.",
   "CitrixNoConnectionConfigured": "Aucune URL StoreFront Citrix ou fichier ICA configur\u00e9.",
   "CitrixScanTitle": "Applications Citrix",
   "CitrixNoAppsFound": "Aucune application Citrix trouv\u00e9e dans le cache local. Ouvrez Citrix Workspace et connectez-vous \u00e0 un magasin.",
