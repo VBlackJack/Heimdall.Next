@@ -120,6 +120,36 @@ public sealed class PostConnectSequenceRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_LogsAndContinues_WhenStepThrows()
+    {
+        var writes = new List<string>();
+        var recorder = new ProgressRecorder<PostConnectRunProgress>();
+
+        var result = await _runner.RunAsync(
+            [
+                new PostConnectStep { Input = "boom", DelayMs = 0, OnFailure = PostConnectFailurePolicy.Continue },
+                new PostConnectStep { Input = "hostname", DelayMs = 0 }
+            ],
+            input =>
+            {
+                if (input == "boom")
+                {
+                    throw new InvalidOperationException("broken");
+                }
+
+                writes.Add(input);
+            },
+            recorder,
+            CancellationToken.None);
+
+        Assert.Equal(["hostname"], writes);
+        Assert.Equal(1, result.StepsExecuted);
+        Assert.Equal(1, result.StepsFailed);
+        Assert.Contains(recorder.Items, item => item.Status == PostConnectStepStatus.Failed);
+        Assert.Contains(recorder.Items, item => item.Status == PostConnectStepStatus.Completed);
+    }
+
+    [Fact]
     public async Task RunAsync_CancelledDuringDelay_ReturnsCancelled()
     {
         using var cts = new CancellationTokenSource();

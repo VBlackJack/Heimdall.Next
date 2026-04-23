@@ -16,9 +16,15 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Media;
-
 namespace Heimdall.App.ViewModels.Tools;
+
+public enum ArpEntryState
+{
+    Stable,
+    New,
+    Changed,
+    Gone
+}
 
 /// <summary>
 /// Represents a single ARP table entry with change tracking and notification support.
@@ -30,7 +36,7 @@ internal sealed class ArpEntry : INotifyPropertyChanged
     private string _vendor = "";
     private string _status = "";
     private string _statusDisplay = "";
-    private Brush _statusBrush = Brushes.Transparent;
+    private ArpEntryState _state;
     private string _firstSeen = "";
     private string _lastSeen = "";
     private string _previousMac = "";
@@ -65,10 +71,10 @@ internal sealed class ArpEntry : INotifyPropertyChanged
         set { if (_statusDisplay != value) { _statusDisplay = value; OnPropertyChanged(); } }
     }
 
-    public Brush StatusBrush
+    public ArpEntryState State
     {
-        get => _statusBrush;
-        set { if (!ReferenceEquals(_statusBrush, value)) { _statusBrush = value; OnPropertyChanged(); } }
+        get => _state;
+        set { if (_state != value) { _state = value; OnPropertyChanged(); } }
     }
 
     public string FirstSeen

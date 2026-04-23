@@ -295,6 +295,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<ConnectionService>(sp =>
             (ConnectionService)sp.GetRequiredService<IConnectionService>());
+        services.AddSingleton<IUiDispatcher, WpfUiDispatcher>();
         services.AddSingleton<IProtocolHandler, RdpHandler>();
         services.AddSingleton<IProtocolHandler, SshHandler>();
         services.AddSingleton<IProtocolHandler, SftpHandler>();

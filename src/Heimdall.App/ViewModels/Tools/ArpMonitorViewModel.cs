@@ -17,7 +17,6 @@
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
@@ -202,10 +201,6 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
     private void ApplySnapshot(IReadOnlyDictionary<string, string> current, string now)
     {
         var seenIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var successBrush = ResolveBrush("SuccessBrush", Brushes.Green);
-        var stableBrush = ResolveBrush("TextSecondaryBrush", Brushes.Gray);
-        var warningBrush = ResolveBrush("WarningBrush", Brushes.Orange);
-        var errorBrush = ResolveBrush("ErrorBrush", Brushes.Red);
         string? alertIp = null;
         string? alertPreviousMac = null;
         string? alertNewMac = null;
@@ -224,7 +219,7 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
                     existing.Vendor = ArpOuiLookup.Lookup(mac);
                     existing.Status = "changed";
                     existing.StatusDisplay = L("ToolArpStatusChanged");
-                    existing.StatusBrush = warningBrush;
+                    existing.State = ArpEntryState.Changed;
                     existing.LastSeen = now;
                     alertIp = ip;
                     alertPreviousMac = previousMac;
@@ -234,7 +229,7 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
                 {
                     existing.Status = "stable";
                     existing.StatusDisplay = L("ToolArpStatusStable");
-                    existing.StatusBrush = stableBrush;
+                    existing.State = ArpEntryState.Stable;
                     existing.LastSeen = now;
                 }
             }
@@ -247,7 +242,7 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
                     Vendor = ArpOuiLookup.Lookup(mac),
                     Status = "new",
                     StatusDisplay = L("ToolArpStatusNew"),
-                    StatusBrush = successBrush,
+                    State = ArpEntryState.New,
                     FirstSeen = now,
                     LastSeen = now,
                     PreviousMac = ""
@@ -263,7 +258,7 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
             {
                 known.Status = "gone";
                 known.StatusDisplay = L("ToolArpStatusGone");
-                known.StatusBrush = errorBrush;
+                known.State = ArpEntryState.Gone;
             }
         }
 
@@ -302,19 +297,19 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
             {
                 case "new":
                     entry.StatusDisplay = L("ToolArpStatusNew");
-                    entry.StatusBrush = ResolveBrush("SuccessBrush", Brushes.Green);
+                    entry.State = ArpEntryState.New;
                     break;
                 case "changed":
                     entry.StatusDisplay = L("ToolArpStatusChanged");
-                    entry.StatusBrush = ResolveBrush("WarningBrush", Brushes.Orange);
+                    entry.State = ArpEntryState.Changed;
                     break;
                 case "gone":
                     entry.StatusDisplay = L("ToolArpStatusGone");
-                    entry.StatusBrush = ResolveBrush("ErrorBrush", Brushes.Red);
+                    entry.State = ArpEntryState.Gone;
                     break;
                 default:
                     entry.StatusDisplay = L("ToolArpStatusStable");
-                    entry.StatusBrush = ResolveBrush("TextSecondaryBrush", Brushes.Gray);
+                    entry.State = ArpEntryState.Stable;
                     break;
             }
         }
@@ -334,9 +329,6 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
         sb.AppendLine(string.Format(L("ToolArpTotal"), Entries.Count));
         return sb.ToString();
     }
-
-    private static Brush ResolveBrush(string resourceKey, Brush fallback)
-        => Application.Current?.TryFindResource(resourceKey) as Brush ?? fallback;
 
     private static Task RunOnUiAsync(Action action)
     {

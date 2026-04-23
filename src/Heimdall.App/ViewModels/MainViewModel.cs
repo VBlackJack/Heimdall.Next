@@ -50,6 +50,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly ThemeService _themeService;
     private readonly ISessionSnapshotService _sessionSnapshotService;
+    private readonly IUiDispatcher _uiDispatcher;
 
     private bool _disposed;
     private Action? _onConfigurationChanged;
@@ -304,6 +305,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ExternalToolLaunchService externalToolLaunchService,
         ToolsTabPopulationService toolsTabPopulation,
         IToolContextProvider toolContextProvider,
+        IUiDispatcher uiDispatcher,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -316,6 +318,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _embeddedSessionManager = embeddedSessionManager;
         _themeService = themeService;
         _sessionSnapshotService = sessionSnapshotService;
+        _uiDispatcher = uiDispatcher;
         ToolRegistry = toolRegistry;
         Split = splitService;
         ServerList = serverList;
@@ -327,7 +330,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
         Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager);
-        Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver);
+        Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver, _uiDispatcher);
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
 

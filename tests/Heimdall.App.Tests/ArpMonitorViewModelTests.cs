@@ -37,6 +37,7 @@ public sealed class ArpMonitorViewModelTests
         Assert.Equal("00-50-56-AA-BB-CC", entry.Mac);
         Assert.Equal("new", entry.Status);
         Assert.Equal("New", entry.StatusDisplay);
+        Assert.Equal(ArpEntryState.New, entry.State);
         Assert.True(vm.HasResults);
         Assert.False(vm.HasError);
     }
@@ -55,6 +56,7 @@ public sealed class ArpMonitorViewModelTests
         var entry = Assert.Single(vm.Entries);
         Assert.Equal("stable", entry.Status);
         Assert.Equal("Stable", entry.StatusDisplay);
+        Assert.Equal(ArpEntryState.Stable, entry.State);
     }
 
     [Fact]
@@ -72,6 +74,7 @@ public sealed class ArpMonitorViewModelTests
         var entry = Assert.Single(vm.Entries);
         Assert.Equal("changed", entry.Status);
         Assert.Equal("Changed", entry.StatusDisplay);
+        Assert.Equal(ArpEntryState.Changed, entry.State);
         Assert.Equal("00-50-56-AA-BB-CC", entry.PreviousMac);
         Assert.True(vm.IsAlertVisible);
         Assert.Equal(localizer["ToolArpAlertTitle"], vm.AlertTitle);
@@ -94,6 +97,7 @@ public sealed class ArpMonitorViewModelTests
         var entry = Assert.Single(vm.Entries);
         Assert.Equal("gone", entry.Status);
         Assert.Equal("Gone", entry.StatusDisplay);
+        Assert.Equal(ArpEntryState.Gone, entry.State);
     }
 
     [Fact]
