@@ -1,0 +1,144 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.Core.Security;
+using System.Runtime.Versioning;
+
+namespace Heimdall.Core.Tests;
+
+[SupportedOSPlatform("windows")]
+public sealed class PrivilegeLauncherTests
+{
+    [Fact]
+    public void EncodeDecodeLaunchPayload_RoundTripsArgumentsWithSpacesQuotesAndDashes()
+    {
+        string[] originalArgs =
+        [
+            "arg with spaces",
+            "he said \"hello\"",
+            "arg ",
+            "--key=value",
+            "-Force"
+        ];
+
+        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", originalArgs);
+        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+
+        Assert.Equal("notepad.exe", decoded.Exe);
+        Assert.Equal(originalArgs, decoded.Args);
+    }
+
+    [Fact]
+    public void EncodeDecodeLaunchPayload_RoundTripsEmptyArgsArray()
+    {
+        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", []);
+        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+
+        Assert.Equal("notepad.exe", decoded.Exe);
+        Assert.Empty(decoded.Args);
+    }
+
+    [Fact]
+    public void EncodeDecodeLaunchPayload_RoundTripsSingleArgument()
+    {
+        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", ["single"]);
+        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+
+        Assert.Equal("notepad.exe", decoded.Exe);
+        Assert.Equal(["single"], decoded.Args);
+    }
+
+    [Fact]
+    public void ParseArguments_PreservesQuotedArguments()
+    {
+        var parsed = PrivilegeLauncher.ParseArguments(
+            "\"arg with spaces\" \"he said \\\"hello\\\"\" \"arg \" --key=value -Force");
+
+        Assert.Equal(
+            ["arg with spaces", "he said \"hello\"", "arg ", "--key=value", "-Force"],
+            parsed);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_RejectsNullExe()
+    {
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload(null!, []),
+            out var errorMessage);
+
+        Assert.False(isValid);
+        Assert.Contains("Executable path is required", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_RejectsEmptyExe()
+    {
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("", []),
+            out var errorMessage);
+
+        Assert.False(isValid);
+        Assert.Contains("Executable path is required", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_RejectsExeContainingNullByte()
+    {
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("bad\0exe.exe", []),
+            out var errorMessage);
+
+        Assert.False(isValid);
+        Assert.Contains("null byte", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_RejectsMissingFullyQualifiedExe()
+    {
+        var missingExePath = Path.Combine(Path.GetTempPath(), $"heimdall-missing-{Guid.NewGuid():N}.exe");
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload(missingExePath, []),
+            out var errorMessage);
+
+        Assert.False(isValid);
+        Assert.Contains("File not found", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_AcceptsBareExeName()
+    {
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("notepad.exe", ["arg with spaces"]),
+            out var errorMessage);
+
+        Assert.True(isValid);
+        Assert.Equal(string.Empty, errorMessage);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_AcceptsExistingFullyQualifiedExe()
+    {
+        var comspec = Environment.GetEnvironmentVariable("COMSPEC");
+        Assert.False(string.IsNullOrWhiteSpace(comspec));
+
+        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload(comspec!, []),
+            out var errorMessage);
+
+        Assert.True(isValid);
+        Assert.Equal(string.Empty, errorMessage);
+    }
+}
