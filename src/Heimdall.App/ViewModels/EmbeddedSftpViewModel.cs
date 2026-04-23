@@ -18,8 +18,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Windows;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
@@ -38,7 +36,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private readonly Stack<string> _navigationHistory = new();
-    private readonly Dispatcher _uiDispatcher;
+    private readonly IUiDispatcher _uiDispatcher;
     private IRemoteBrowser? _browser;
     private SshConnectionParams? _sshParams;
     private HostKeyStore? _hostKeyStore;
@@ -49,9 +47,9 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Initializes a new instance of the <see cref="EmbeddedSftpViewModel"/> class.
     /// </summary>
-    public EmbeddedSftpViewModel()
+    public EmbeddedSftpViewModel(IUiDispatcher uiDispatcher)
     {
-        _uiDispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
         Files = [];
         Bookmarks = [];
         UnfilteredEntries = [];
@@ -1013,7 +1011,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private Task RunOnUiAsync(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        return _uiDispatcher.InvokeAsync(action).Task;
+        return _uiDispatcher.InvokeAsync(action);
     }
 
     private string L10n(string key) => _localizer?.GetString(key) ?? key;

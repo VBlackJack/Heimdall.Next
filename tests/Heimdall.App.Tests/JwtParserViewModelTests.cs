@@ -226,6 +226,36 @@ public sealed class JwtParserViewModelTests
     }
 
     [Fact]
+    public async Task LocaleChanged_OnUiThread_RunsInline()
+    {
+        var dispatcher = new FakeUiDispatcher(checkAccess: true);
+        var localizer = await CreateLocalizerAsync("en");
+        var vm = CreateViewModel(dispatcher);
+        vm.Initialize(localizer);
+        vm.InputText = CreateJwt("HS256", $$"""{"sub":"john","exp":{{DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()}}}""", "secret");
+        vm.ParseCommand.Execute(null);
+
+        await localizer.SwitchLocaleAsync("fr");
+
+        Assert.Equal(0, dispatcher.InvokeAsyncCalls);
+    }
+
+    [Fact]
+    public async Task LocaleChanged_OffUiThread_PostsToDispatcher()
+    {
+        var dispatcher = new FakeUiDispatcher(checkAccess: false);
+        var localizer = await CreateLocalizerAsync("en");
+        var vm = CreateViewModel(dispatcher);
+        vm.Initialize(localizer);
+        vm.InputText = CreateJwt("HS256", $$"""{"sub":"john","exp":{{DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()}}}""", "secret");
+        vm.ParseCommand.Execute(null);
+
+        await localizer.SwitchLocaleAsync("fr");
+
+        Assert.Equal(1, dispatcher.InvokeAsyncCalls);
+    }
+
+    [Fact]
     public void Dispose_CanBeCalledTwice()
     {
         var vm = CreateViewModel();
@@ -234,7 +264,10 @@ public sealed class JwtParserViewModelTests
         vm.Dispose();
     }
 
-    private static JwtParserViewModel CreateViewModel() => new(new JwtParserToolService());
+    private static JwtParserViewModel CreateViewModel() => CreateViewModel(new FakeUiDispatcher());
+
+    private static JwtParserViewModel CreateViewModel(FakeUiDispatcher dispatcher)
+        => new(dispatcher, new JwtParserToolService());
 
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {

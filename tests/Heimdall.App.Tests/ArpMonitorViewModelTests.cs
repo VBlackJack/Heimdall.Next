@@ -104,7 +104,9 @@ public sealed class ArpMonitorViewModelTests
     public async Task RefreshCommand_WhenReaderThrows_SetsErrorState()
     {
         var localizer = await CreateLocalizerAsync("en");
-        var vm = new ArpMonitorViewModel(new FakeArpTableReader(new InvalidOperationException("boom")));
+        var vm = new ArpMonitorViewModel(
+            new FakeUiDispatcher(),
+            new FakeArpTableReader(new InvalidOperationException("boom")));
         vm.Initialize(localizer);
 
         await vm.RefreshCommand.ExecuteAsync(null);
@@ -233,8 +235,23 @@ public sealed class ArpMonitorViewModelTests
         Assert.Null(payload);
     }
 
+    [Fact]
+    public async Task RefreshCommand_OffUiThread_PostsToDispatcher()
+    {
+        var dispatcher = new FakeUiDispatcher(checkAccess: false);
+        var vm = CreateViewModel(dispatcher, Map("192.168.1.10", "00-50-56-AA-BB-CC"));
+        vm.Initialize(await CreateLocalizerAsync("en"));
+
+        await vm.RefreshCommand.ExecuteAsync(null);
+
+        Assert.True(dispatcher.InvokeAsyncCalls > 0);
+    }
+
     private static ArpMonitorViewModel CreateViewModel(params IReadOnlyDictionary<string, string>[] snapshots)
-        => new(new FakeArpTableReader(snapshots));
+        => CreateViewModel(new FakeUiDispatcher(), snapshots);
+
+    private static ArpMonitorViewModel CreateViewModel(FakeUiDispatcher dispatcher, params IReadOnlyDictionary<string, string>[] snapshots)
+        => new(dispatcher, new FakeArpTableReader(snapshots));
 
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {

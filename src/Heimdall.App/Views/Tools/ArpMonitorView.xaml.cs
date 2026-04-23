@@ -41,9 +41,12 @@ public partial class ArpMonitorView : UserControl, IToolView
     public ArpMonitorView()
     {
         InitializeComponent();
-        var reader = (Application.Current as App)?.Services?.GetService<IArpTableReader>()
+        var services = (Application.Current as App)?.Services;
+        var reader = services?.GetService<IArpTableReader>()
             ?? new DefaultArpTableReader();
-        _vm = new ArpMonitorViewModel(reader);
+        var uiDispatcher = services?.GetRequiredService<IUiDispatcher>()
+            ?? throw new InvalidOperationException("IUiDispatcher is not registered.");
+        _vm = new ArpMonitorViewModel(uiDispatcher, reader);
         _vm.PropertyChanged += OnViewModelPropertyChanged;
         _vm.CopyResultsRequested += OnCopyResultsRequested;
         DataContext = _vm;
