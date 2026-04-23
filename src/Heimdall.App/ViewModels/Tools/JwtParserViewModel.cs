@@ -27,6 +27,7 @@ namespace Heimdall.App.ViewModels.Tools;
 public sealed partial class JwtParserViewModel : ObservableObject, IDisposable
 {
     private readonly IJwtParserToolService _service;
+    private readonly IUiDispatcher _uiDispatcher;
     private LocalizationManager? _localizer;
     private bool _disposed;
     private JwtDecoded? _decoded;
@@ -50,8 +51,9 @@ public sealed partial class JwtParserViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isVerifyResultValid;
     [ObservableProperty] private bool _isVerifyResultVisible;
 
-    public JwtParserViewModel(IJwtParserToolService? service = null)
+    public JwtParserViewModel(IUiDispatcher uiDispatcher, IJwtParserToolService? service = null)
     {
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
         _service = service ?? new JwtParserToolService();
     }
 
@@ -263,7 +265,7 @@ public sealed partial class JwtParserViewModel : ObservableObject, IDisposable
         VerifyCommand.NotifyCanExecuteChanged();
     }
 
-    private void OnLocaleChanged(string _)
+    private void OnLocaleChanged(string _locale)
     {
         void RefreshForLocaleChange()
         {
@@ -280,14 +282,13 @@ public sealed partial class JwtParserViewModel : ObservableObject, IDisposable
             }
         }
 
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
+        if (_uiDispatcher.CheckAccess())
         {
             RefreshForLocaleChange();
         }
         else
         {
-            dispatcher.BeginInvoke(new System.Action(RefreshForLocaleChange));
+            _ = _uiDispatcher.InvokeAsync(RefreshForLocaleChange);
         }
     }
 

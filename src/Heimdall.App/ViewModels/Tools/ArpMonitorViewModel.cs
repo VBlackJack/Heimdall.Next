@@ -16,7 +16,6 @@
 
 using System.Collections.ObjectModel;
 using System.Text;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
@@ -27,6 +26,7 @@ namespace Heimdall.App.ViewModels.Tools;
 internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposable
 {
     private readonly IArpTableReader _reader;
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly Dictionary<string, ArpEntry> _knownEntries = new(StringComparer.OrdinalIgnoreCase);
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _pollingCts;
@@ -50,8 +50,9 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
 
     public event EventHandler<string>? CopyResultsRequested;
 
-    public ArpMonitorViewModel(IArpTableReader? reader = null)
+    public ArpMonitorViewModel(IUiDispatcher uiDispatcher, IArpTableReader? reader = null)
     {
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
         _reader = reader ?? new DefaultArpTableReader();
     }
 
@@ -330,16 +331,15 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
         return sb.ToString();
     }
 
-    private static Task RunOnUiAsync(Action action)
+    private Task RunOnUiAsync(Action action)
     {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.CheckAccess())
+        if (_uiDispatcher.CheckAccess())
         {
             action();
             return Task.CompletedTask;
         }
 
-        return dispatcher.BeginInvoke(action).Task;
+        return _uiDispatcher.InvokeAsync(action);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

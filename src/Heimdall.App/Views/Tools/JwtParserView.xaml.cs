@@ -38,7 +38,12 @@ public partial class JwtParserView : UserControl, IToolView
     public JwtParserView()
     {
         InitializeComponent();
-        _vm = new JwtParserViewModel((Application.Current as App)?.Services?.GetService<IJwtParserToolService>());
+        var services = (Application.Current as App)?.Services;
+        var uiDispatcher = services?.GetRequiredService<IUiDispatcher>()
+            ?? throw new InvalidOperationException("IUiDispatcher is not registered.");
+        _vm = new JwtParserViewModel(
+            uiDispatcher,
+            services?.GetService<IJwtParserToolService>());
         _vm.PropertyChanged += OnViewModelPropertyChanged;
         DataContext = _vm;
         _debounceTimer.Tick += (_, _) => { _debounceTimer.Stop(); _vm.ParseCommand.Execute(null); };

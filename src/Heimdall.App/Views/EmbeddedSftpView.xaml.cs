@@ -25,6 +25,7 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Utilities;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 
 namespace Heimdall.App.Views;
@@ -38,7 +39,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 {
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan StatusResetDelay = TimeSpan.FromSeconds(5);
-    private readonly EmbeddedSftpViewModel _viewModel = new();
+    private readonly EmbeddedSftpViewModel _viewModel;
 
     private IRemoteBrowser? _browser;
     private RemoteFileEditor? _editor;
@@ -76,6 +77,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     public EmbeddedSftpView()
     {
         InitializeComponent();
+        var services = (Application.Current as App)?.Services;
+        var uiDispatcher = services?.GetRequiredService<IUiDispatcher>()
+            ?? throw new InvalidOperationException("IUiDispatcher is not registered.");
+        _viewModel = new EmbeddedSftpViewModel(uiDispatcher);
         DataContext = _viewModel;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
