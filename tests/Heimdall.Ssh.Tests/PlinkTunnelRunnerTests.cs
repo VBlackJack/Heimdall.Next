@@ -241,4 +241,37 @@ public class PlinkTunnelRunnerTests : IDisposable
     {
         _runner.Stop();
     }
+
+    [Fact]
+    public void SanitizeForLog_StripsControlChars_PreservesPrintable()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog($"banner\r\nok{(char)127}");
+
+        Assert.Equal("banner??ok?", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_TruncatesAtCap_AppendsEllipsis()
+    {
+        var line = new string('x', 260);
+
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(line);
+
+        Assert.Equal(new string('x', 256) + " [...]", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_PreservesTab()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog("left\tright");
+
+        Assert.Equal("left\tright", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_OnNullOrEmpty_ReturnsEmpty()
+    {
+        Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(null));
+        Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(string.Empty));
+    }
 }

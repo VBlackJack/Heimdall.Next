@@ -262,26 +262,23 @@
                 </Grid.RowDefinitions>
 
                 <WrapPanel Grid.Row="0" VerticalAlignment="Center">
-                    <TextBlock x:Name="LblOpen" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtOpen" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"
+                               Margin="{StaticResource MarginInlineXs}"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblClosed" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtClosed" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"
+                               Margin="{StaticResource MarginInlineXs}"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtTotal" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"
+                               Margin="{StaticResource MarginInlineXs}"/>
                 </WrapPanel>
 
                 <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="{StaticResource MarginSubsectionTop}">
