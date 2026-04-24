@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Linq;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -96,6 +97,29 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         get => (bool)GetValue(IsFileShareTftpEnabledProperty);
         set => SetValue(IsFileShareTftpEnabledProperty, value);
+    }
+
+    private void OnTrustedHostKeysSorting(object sender, DataGridSortingEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel || string.IsNullOrWhiteSpace(e.Column.SortMemberPath))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        viewModel.Settings.TrustedHostKeys.SortByCommand.Execute(e.Column.SortMemberPath);
+
+        if (sender is System.Windows.Controls.DataGrid grid)
+        {
+            foreach (var column in grid.Columns)
+            {
+                column.SortDirection = null;
+            }
+        }
+
+        e.Column.SortDirection = viewModel.Settings.TrustedHostKeys.SortAscending
+            ? ListSortDirection.Ascending
+            : ListSortDirection.Descending;
     }
 
     // Stored delegate references so the long-lived service/ViewModel events

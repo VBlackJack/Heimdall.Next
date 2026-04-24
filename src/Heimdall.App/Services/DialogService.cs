@@ -118,6 +118,18 @@ public interface IDialogService
     Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview);
 
     /// <summary>
+    /// Shows the trusted host key details dialog.
+    /// </summary>
+    Task ShowTrustedHostKeyDetailsAsync(TrustedHostKeyDetailsDialogViewModel viewModel);
+
+    /// <summary>
+    /// Shows known_hosts import conflicts and returns the user's resolution,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<ImportKnownHostsConflictResolution?> ShowImportKnownHostsConflictAsync(
+        ImportKnownHostsConflictDialogViewModel viewModel);
+
+    /// <summary>
     /// Shows the Command Library picker dialog and returns the selected action,
     /// or <c>null</c> when the dialog is cancelled.
     /// </summary>

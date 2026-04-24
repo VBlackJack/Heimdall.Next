@@ -24,6 +24,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.App.ViewModels.Settings;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
@@ -310,12 +311,16 @@ public partial class SettingsViewModel : ObservableValidator
     public SettingsViewModel(
         IConfigManager configManager,
         LocalizationManager localizer,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        TrustedHostKeysSettingsViewModel trustedHostKeys)
     {
         _configManager = configManager;
         _localizer = localizer;
         _dialogService = dialogService;
+        TrustedHostKeys = trustedHostKeys;
     }
+
+    public TrustedHostKeysSettingsViewModel TrustedHostKeys { get; }
 
     /// <summary>
     /// Applies the current <see cref="SshDefaultMode"/> to every server in the inventory.
@@ -501,6 +506,7 @@ public partial class SettingsViewModel : ObservableValidator
         _pendingProjects = settings.Projects.Select(CloneProject).ToList();
         _deletedProjectIds.Clear();
 
+        TrustedHostKeys.Refresh();
         IsDirty = false;
     }
 

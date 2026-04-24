@@ -1,0 +1,100 @@
+<Window x:Class="Heimdall.App.Views.Dialogs.TrustedHostKeyDetailsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:loc="clr-namespace:Heimdall.App.Localization"
+        mc:Ignorable="d"
+        Title="{Binding DialogTitle}"
+        Width="720"
+        Height="520"
+        MinWidth="640"
+        MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/DialogCommonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="{StaticResource SpacingLg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="{Binding DialogTitle}"
+                   FontSize="{StaticResource FontSizeBodyLarge}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+        <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeyHostPort}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding HostPort}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeyAlgorithm}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Algorithm}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeySource}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Source}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeyFirstSeen}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FirstSeen}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeyLastSeen}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding LastSeen}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="{loc:Translate ColTrustedHostKeyFingerprint}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1"
+                         Text="{Binding Fingerprint}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         Margin="0,0,0,8"
+                         AutomationProperties.Name="{loc:Translate ColTrustedHostKeyFingerprint}"/>
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="{loc:Translate LblTrustedHostKeyPublicKeyBase64}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,0"/>
+                <TextBox Grid.Row="6" Grid.Column="1"
+                         Text="{Binding PublicKeyBase64}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         MinHeight="120"
+                         VerticalScrollBarVisibility="Auto"
+                         AutomationProperties.Name="{loc:Translate LblTrustedHostKeyPublicKeyBase64}"/>
+            </Grid>
+        </ScrollViewer>
+
+        <Button Grid.Row="2"
+                Content="{Binding CloseLabel}"
+                IsDefault="True"
+                IsCancel="True"
+                MinWidth="110"
+                HorizontalAlignment="Right"
+                Margin="0,16,0,0"
+                Style="{DynamicResource PrimaryButtonStyle}"
+                AutomationProperties.Name="{Binding CloseLabel}"/>
+    </Grid>
+</Window>

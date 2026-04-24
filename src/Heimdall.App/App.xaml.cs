@@ -25,6 +25,7 @@ using Heimdall.App.Services.SessionSnapshot;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.Onboarding;
+using Heimdall.App.ViewModels.Settings;
 using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -33,6 +34,8 @@ using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
+using CoreKnownHostsExporter = Heimdall.Core.Ssh.KnownHostsExporter;
+using CoreKnownHostsImporter = Heimdall.Core.Ssh.KnownHostsImporter;
 using KnownHostsImporter = Heimdall.App.Services.Import.KnownHostsImporter;
 
 namespace Heimdall.App;
@@ -375,9 +378,14 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IPuttySessionRegistrySource, WindowsPuttyRegistrySource>();
         services.AddTransient<OpenSshConfigImporter>();
         services.AddTransient<PuttySessionImporter>();
-        services.AddTransient<KnownHostsImporter>();
+        services.AddTransient<KnownHostsImporter>(sp => new KnownHostsImporter(
+            sp.GetRequiredService<IConfigManager>(),
+            sp.GetRequiredService<IHostKeyTrustService>()));
+        services.AddTransient<CoreKnownHostsImporter>();
+        services.AddTransient<CoreKnownHostsExporter>();
         services.AddSingleton<IPostConnectSequenceRunner, PostConnectSequenceRunner>();
         services.AddSingleton<IPostConnectStepResolver, CommandLibraryStepResolver>();
+        services.AddSingleton<IClipboardService, WpfClipboardService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
         // TwinShell command library
@@ -388,10 +396,13 @@ public partial class App : System.Windows.Application
         services.AddTransient<ServerListViewModel>();
         services.AddTransient<ConnectionViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<TrustedHostKeysSettingsViewModel>();
         services.AddTransient<CommandLibraryViewModel>();
         services.AddTransient<ImportOpenSshConfigDialogViewModel>();
         services.AddTransient<ImportPuttySessionsDialogViewModel>();
         services.AddTransient<ImportKnownHostsDialogViewModel>();
+        services.AddTransient<ImportKnownHostsConflictDialogViewModel>();
+        services.AddTransient<TrustedHostKeyDetailsDialogViewModel>();
         services.AddTransient<NotesToolViewModel>();
         services.AddTransient<OnboardingFlowViewModel>();
 
