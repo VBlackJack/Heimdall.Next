@@ -16,8 +16,11 @@
 
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
+using Microsoft.Extensions.DependencyInjection;
 using Renci.SshNet;
+using System.Windows;
 
 namespace Heimdall.App.Services;
 
@@ -69,10 +72,15 @@ internal static class ToolGatewayConnector
 
         var connInfo = SshConnectionFactory.Create(connParams);
         var client = new SshClient(connInfo);
+        var (hostKeyStore, hostKeyVerifier) = ResolveHostKeyDependencies();
 
         // TOFU host key verification
         SshConnectionFactory.AttachHostKeyVerification(
-            client, gateway.Host, gateway.Port, s_hostKeyStore);
+            client,
+            gateway.Host,
+            gateway.Port,
+            hostKeyStore,
+            hostKeyVerifier);
 
         client.Connect();
 
@@ -80,5 +88,22 @@ internal static class ToolGatewayConnector
             $"Tool gateway connected: {gateway.Name} ({gateway.Host}:{gateway.Port})");
 
         return client;
+    }
+
+    private static (HostKeyStore HostKeyStore, IHostKeyVerifier HostKeyVerifier) ResolveHostKeyDependencies()
+    {
+        if ((Application.Current as App)?.Services is IServiceProvider services)
+        {
+            var hostKeyStore = services.GetService<HostKeyStore>() ?? s_hostKeyStore;
+            var verifier = services.GetService<IHostKeyVerifier>();
+            if (verifier is not null)
+            {
+                return (hostKeyStore, verifier);
+            }
+        }
+
+        Core.Logging.FileLogger.Warn(
+            "ToolGatewayConnector could not resolve IHostKeyVerifier from DI — falling back to auto-accept. This is unsafe and indicates a missing app host.");
+        return (s_hostKeyStore, AutoAcceptHostKeyVerifier.Instance);
     }
 }

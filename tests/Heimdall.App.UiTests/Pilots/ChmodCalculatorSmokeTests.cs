@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Definitions;
-using FlaUI.Core.Input;
 using Heimdall.App.UiTests.Infrastructure;
 using Heimdall.App.Views.Tools;
+using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace Heimdall.App.UiTests.Pilots;
 
@@ -85,10 +89,18 @@ public sealed class ChmodCalculatorSmokeTests : UiTestBase<ChmodCalculatorView>
     {
         using var session = OpenTool();
 
-        var symbolicInput = session.FindByAutomationId("Chmod.SymbolicInput").AsTextBox();
-        symbolicInput.Focus();
-        symbolicInput.Text = "u=rwx,g=rx,o=r";
-        Keyboard.Type(FlaUI.Core.WindowsAPI.VirtualKeyShort.RETURN);
+        session.InvokeOnUi(control =>
+        {
+            var symbolicInput = FindChildByAutomationId<WpfTextBox>(control, "Chmod.SymbolicInput");
+            symbolicInput.Focus();
+            symbolicInput.Text = "u=rwx,g=rx,o=r";
+
+            var enterBinding = Assert.Single(symbolicInput.InputBindings.OfType<KeyBinding>());
+            Assert.Equal(Key.Enter, enterBinding.Key);
+            Assert.NotNull(enterBinding.Command);
+            Assert.True(enterBinding.Command!.CanExecute(enterBinding.CommandParameter));
+            enterBinding.Command.Execute(enterBinding.CommandParameter);
+        });
 
         WaitHelpers.WaitUntilTextEquals(
             () => session.FindByAutomationId("Chmod.OctalInput").AsTextBox().Text,
@@ -144,5 +156,36 @@ public sealed class ChmodCalculatorSmokeTests : UiTestBase<ChmodCalculatorView>
             () => session.FindByAutomationId("Chmod.OwnerRead").Name,
             $"{WpfTestHost.Translate("ToolChmodOwner")} {WpfTestHost.Translate("ToolChmodRead")}",
             "chmod owner read name in en");
+    }
+
+    private static T FindChildByAutomationId<T>(DependencyObject root, string automationId)
+        where T : DependencyObject
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentException.ThrowIfNullOrWhiteSpace(automationId);
+
+        var queue = new Queue<DependencyObject>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current is T typed
+                && string.Equals(
+                    AutomationProperties.GetAutomationId(typed),
+                    automationId,
+                    StringComparison.Ordinal))
+            {
+                return typed;
+            }
+
+            var childCount = VisualTreeHelper.GetChildrenCount(current);
+            for (var i = 0; i < childCount; i++)
+            {
+                queue.Enqueue(VisualTreeHelper.GetChild(current, i));
+            }
+        }
+
+        throw new InvalidOperationException($"Could not find child '{automationId}' of type {typeof(T).Name}.");
     }
 }

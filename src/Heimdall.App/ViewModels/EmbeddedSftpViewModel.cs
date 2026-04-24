@@ -21,6 +21,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.Utilities;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
@@ -40,6 +41,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private IRemoteBrowser? _browser;
     private SshConnectionParams? _sshParams;
     private HostKeyStore? _hostKeyStore;
+    private IHostKeyVerifier? _hostKeyVerifier;
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private bool _disposed;
@@ -152,7 +154,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         LocalizationManager localizer,
         IDialogService dialogService,
         SshConnectionParams? sshParams = null,
-        HostKeyStore? hostKeyStore = null)
+        HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? hostKeyVerifier = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -166,6 +169,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         _dialogService = dialogService;
         _sshParams = sshParams;
         _hostKeyStore = hostKeyStore;
+        _hostKeyVerifier = hostKeyVerifier;
 
         if (firstInitialization)
         {
@@ -456,7 +460,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         if (_hostKeyStore is not null)
         {
             SshConnectionFactory.AttachHostKeyVerification(
-                ssh, _sshParams.Host, _sshParams.Port, _hostKeyStore);
+                ssh,
+                _sshParams.Host,
+                _sshParams.Port,
+                _hostKeyStore,
+                _hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
         }
 
         await Task.Run(() =>

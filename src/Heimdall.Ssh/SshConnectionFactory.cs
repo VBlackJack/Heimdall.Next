@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+using System.Buffers.Binary;
+using System.Text;
+using Heimdall.Core.Ssh;
 using Heimdall.Ssh.Pageant;
 using Renci.SshNet;
 
@@ -57,32 +60,98 @@ public static class SshConnectionFactory
     /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
     /// BEFORE calling <c>Connect()</c>.
     /// </summary>
+    [Obsolete("Use the overload that accepts IHostKeyVerifier", false)]
     public static void AttachHostKeyVerification(
         Renci.SshNet.BaseClient client,
         string host,
         int port,
         HostKeyStore hostKeyStore)
     {
+        AttachHostKeyVerification(
+            client,
+            host,
+            port,
+            hostKeyStore,
+            AutoAcceptHostKeyVerifier.Instance);
+    }
+
+    /// <summary>
+    /// Attaches verifier-driven host key verification to an SSH.NET client.
+    /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
+    /// BEFORE calling <c>Connect()</c>.
+    /// </summary>
+    public static void AttachHostKeyVerification(
+        Renci.SshNet.BaseClient client,
+        string host,
+        int port,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier)
+    {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
 
         client.HostKeyReceived += (sender, e) =>
         {
             var result = hostKeyStore.Verify(host, port, e.HostKey);
-            e.CanTrust = result.Trusted;
+            var algorithm = ExtractKeyAlgorithm(e.HostKeyName, e.HostKey);
 
-            if (result.FirstUse)
+            if (!result.FirstUse && result.Trusted)
+            {
+                e.CanTrust = true;
+                return;
+            }
+
+            var decision = verifier
+                .VerifyAsync(host, port, algorithm, result.Fingerprint, result.StoredFingerprint)
+                .GetAwaiter()
+                .GetResult();
+
+            if (decision == HostKeyDecision.Accept)
             {
                 hostKeyStore.Trust(host, port, result.Fingerprint);
-                Heimdall.Core.Logging.FileLogger.Info(
-                    $"TOFU: stored host key for {host}:{port} fingerprint={result.Fingerprint}");
+                e.CanTrust = true;
+                return;
             }
-            else if (!result.Trusted)
-            {
-                Heimdall.Core.Logging.FileLogger.Warn(
-                    $"HOST KEY MISMATCH for {host}:{port}! Expected={result.StoredFingerprint} Got={result.Fingerprint}");
-            }
+
+            e.CanTrust = false;
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"User rejected host key for {host}:{port} algorithm={algorithm} stored={result.StoredFingerprint ?? "<none>"} presented={result.Fingerprint}");
+            throw new HostKeyRejectedException(
+                host,
+                port,
+                algorithm,
+                result.Fingerprint,
+                result.StoredFingerprint);
         };
+    }
+
+    private static string ExtractKeyAlgorithm(string? hostKeyName, byte[] hostKey)
+    {
+        if (!string.IsNullOrWhiteSpace(hostKeyName))
+        {
+            return hostKeyName;
+        }
+
+        if (hostKey.Length < sizeof(uint))
+        {
+            return "unknown";
+        }
+
+        var nameLength = BinaryPrimitives.ReadUInt32BigEndian(hostKey);
+        if (nameLength == 0 || nameLength > hostKey.Length - sizeof(uint))
+        {
+            return "unknown";
+        }
+
+        try
+        {
+            return Encoding.ASCII.GetString(hostKey, sizeof(uint), (int)nameLength);
+        }
+        catch (DecoderFallbackException)
+        {
+            return "unknown";
+        }
     }
 
     /// <summary>

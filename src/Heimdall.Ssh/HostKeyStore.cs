@@ -42,7 +42,7 @@ public sealed class HostKeyStore
     private readonly ConcurrentDictionary<string, string> _trustedKeys = new();
 
     /// <summary>
-    /// Raised whenever a host key is verified.
+    /// Raised whenever a host key is explicitly trusted.
     /// Parameters: host:port key, fingerprint, whether it was trusted.
     /// </summary>
     public event Action<string, string, bool>? HostKeyEvent;
@@ -67,12 +67,10 @@ public sealed class HostKeyStore
         if (_trustedKeys.TryGetValue(key, out var stored))
         {
             var match = string.Equals(stored, fingerprint, StringComparison.Ordinal);
-            HostKeyEvent?.Invoke(key, fingerprint, match);
             return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored);
         }
 
         // First use: trusted by TOFU policy
-        HostKeyEvent?.Invoke(key, fingerprint, true);
         return new HostKeyVerifyResult(Trusted: true, FirstUse: true, fingerprint, StoredFingerprint: null);
     }
 
@@ -105,12 +103,16 @@ public sealed class HostKeyStore
 
     /// <summary>
     /// Manually trust a host key (e.g., after user confirmation dialog).
+    /// Trust uses upsert semantics and emits <see cref="HostKeyEvent"/> for persistence.
     /// </summary>
     public void Trust(string host, int port, string fingerprint)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(fingerprint);
-        _trustedKeys[HostKeyFormats.MakeKey(host, port)] = fingerprint;
+
+        var key = HostKeyFormats.MakeKey(host, port);
+        _trustedKeys[key] = fingerprint;
+        HostKeyEvent?.Invoke(key, fingerprint, true);
     }
 
     /// <summary>

@@ -15,7 +15,9 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
@@ -29,16 +31,22 @@ internal sealed class SftpHandler : IProtocolHandler
 {
     private readonly ITunnelService _tunnelService;
     private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
 
     public SftpHandler(
         ITunnelService tunnelService,
         ConnectionStateMachine connectionSm,
-        HostKeyStore hostKeyStore)
+        LocalizationManager localizer,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
+        _localizer = localizer;
         _hostKeyStore = hostKeyStore;
+        _hostKeyVerifier = hostKeyVerifier;
     }
 
     public string Protocol => "SFTP";
@@ -83,7 +91,38 @@ internal sealed class SftpHandler : IProtocolHandler
 
         try
         {
-            await browser.ConnectAsync(sshParams, _hostKeyStore, ct).ConfigureAwait(false);
+            await browser.ConnectAsync(sshParams, _hostKeyStore, _hostKeyVerifier, ct)
+                .ConfigureAwait(false);
+        }
+        catch (HostKeyRejectedException ex)
+        {
+            browser.Dispose();
+
+            if (ex.IsMismatch && !string.IsNullOrWhiteSpace(ex.StoredFingerprint))
+            {
+                var message = BuildHostKeyMismatchMessage(
+                    ex.StoredFingerprint,
+                    ex.PresentedFingerprint);
+                _connectionSm.SetError(server.Id, message);
+                return new ConnectionResult(
+                    false,
+                    message,
+                    null,
+                    SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
+                        ex.StoredFingerprint,
+                        ex.PresentedFingerprint,
+                        ex.Host,
+                        ex.Port));
+            }
+
+            var messageCancelled = BuildCancelledMessage();
+            _connectionSm.SetError(server.Id, messageCancelled);
+            return new ConnectionResult(
+                false,
+                messageCancelled,
+                null,
+                SshSessionDiagnosticFactory.FromClassifiedFailure(
+                    new SshFailureInfo(SshFailureCode.Cancelled, messageCancelled, false, ex)));
         }
         catch (Exception ex)
         {
@@ -96,5 +135,35 @@ internal sealed class SftpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new SftpSessionBundle(browser, sshParams));
+    }
+
+    private string BuildHostKeyMismatchMessage(
+        string storedFingerprint,
+        string presentedFingerprint)
+    {
+        var message = _localizer["ErrorHostKeyMismatch"];
+        if (string.Equals(message, "ErrorHostKeyMismatch", StringComparison.Ordinal))
+        {
+            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
+        }
+
+        var detail = _localizer.Format(
+            "ErrorHostKeyMismatchDetail",
+            storedFingerprint,
+            presentedFingerprint);
+        if (string.Equals(detail, "ErrorHostKeyMismatchDetail", StringComparison.Ordinal))
+        {
+            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
+        }
+
+        return $"{message} {detail}";
+    }
+
+    private string BuildCancelledMessage()
+    {
+        var message = _localizer["ErrorSshCancelled"];
+        return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
+            ? "Connection was cancelled."
+            : message;
     }
 }

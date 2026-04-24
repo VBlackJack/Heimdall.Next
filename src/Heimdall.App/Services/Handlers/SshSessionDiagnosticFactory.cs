@@ -84,6 +84,23 @@ internal static class SshSessionDiagnosticFactory
             detail);
     }
 
+    internal static SessionDiagnostic CreateHostKeyMismatchFailure(
+        string storedFingerprint,
+        string presentedFingerprint,
+        string host,
+        int port)
+    {
+        var detail =
+            $"SSH host key mismatch for {host}:{port}. " +
+            $"Stored={storedFingerprint}. Presented={presentedFingerprint}.";
+
+        return new SessionDiagnostic(
+            SessionFailureStage.SshHostKey,
+            "ErrorHostKeyMismatch",
+            (int)SshFailureCode.HostKeyMismatch,
+            detail);
+    }
+
     internal static SessionDiagnostic CreateGenericFailure(string messageKey, string? detail)
     {
         return new SessionDiagnostic(

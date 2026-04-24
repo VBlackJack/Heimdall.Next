@@ -16,6 +16,7 @@
 
 using System.Reflection;
 using System.Text;
+using Heimdall.Core.Ssh;
 using Renci.SshNet;
 
 namespace Heimdall.Ssh;
@@ -65,6 +66,7 @@ public sealed class SshShellSession : IDisposable
         int terminalColumns = 80,
         int terminalRows = 24,
         HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? hostKeyVerifier = null,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -81,7 +83,11 @@ public sealed class SshShellSession : IDisposable
         if (hostKeyStore is not null)
         {
             SshConnectionFactory.AttachHostKeyVerification(
-                _client, connectionParams.Host, connectionParams.Port, hostKeyStore);
+                _client,
+                connectionParams.Host,
+                connectionParams.Port,
+                hostKeyStore,
+                hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
         }
 
         await using var connectReg = cancellationToken.Register(
