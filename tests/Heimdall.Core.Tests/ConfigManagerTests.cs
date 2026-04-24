@@ -19,6 +19,7 @@ using System.Text;
 using System.Text.Json;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.Core.Tests;
 
@@ -308,6 +309,78 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal("proj1|Infra", loaded.EmptyGroups[0]);
         Assert.Single(loaded.TrustedHostKeys);
         Assert.Equal("SHA256:abc123", loaded.TrustedHostKeys["server1:22"]);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_WritesTrustedHostKeysV2Schema()
+    {
+        var settings = new AppSettings
+        {
+            TrustedHostKeysV2 = new Dictionary<string, HostKeyEntry>
+            {
+                ["server1:22"] = new(
+                    "SHA256:abc123",
+                    DateTimeOffset.Parse("2026-04-24T10:15:00Z"),
+                    DateTimeOffset.Parse("2026-04-24T10:16:00Z"),
+                    "ssh-ed25519",
+                    HostKeySource.UserConfirmed)
+            }
+        };
+
+        await _manager.SaveSettingsAsync(settings);
+
+        var json = await File.ReadAllTextAsync(_manager.SettingsPath);
+        using var document = JsonDocument.Parse(json);
+        var entry = document.RootElement
+            .GetProperty("trustedHostKeysV2")
+            .GetProperty("server1:22");
+
+        Assert.Equal("SHA256:abc123", entry.GetProperty("fingerprint").GetString());
+        Assert.Equal("ssh-ed25519", entry.GetProperty("algorithm").GetString());
+        Assert.Equal("UserConfirmed", entry.GetProperty("source").GetString());
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_MigratesLegacyTrustedHostKeysToV2()
+    {
+        Directory.CreateDirectory(Path.Combine(_tempDir, "config"));
+        await File.WriteAllTextAsync(
+            _manager.SettingsPath,
+            """
+            {
+              "trustedHostKeys": {
+                "legacy.example.com:22": "SHA256:legacy"
+              }
+            }
+            """);
+
+        var loaded = await _manager.LoadSettingsAsync();
+
+        var entry = Assert.Single(loaded.TrustedHostKeysV2);
+        Assert.Equal("legacy.example.com:22", entry.Key);
+        Assert.Equal("SHA256:legacy", entry.Value.Fingerprint);
+        Assert.Equal(DateTimeOffset.MinValue, entry.Value.FirstSeen);
+        Assert.Equal(DateTimeOffset.MinValue, entry.Value.LastSeen);
+        Assert.Equal("unknown", entry.Value.Algorithm);
+        Assert.Equal(HostKeySource.Unknown, entry.Value.Source);
+        Assert.Equal("SHA256:legacy", loaded.TrustedHostKeys["legacy.example.com:22"]);
+    }
+
+    [Fact]
+    public async Task MergeHostKeyAsync_WritesV2AndPreservesLegacyView()
+    {
+        var merged = await _manager.MergeHostKeyAsync("server1:22", "SHA256:abc123");
+
+        var loaded = await _manager.LoadSettingsAsync();
+        Assert.True(merged);
+        Assert.Equal("SHA256:abc123", loaded.TrustedHostKeys["server1:22"]);
+
+        var entry = loaded.TrustedHostKeysV2["server1:22"];
+        Assert.Equal("SHA256:abc123", entry.Fingerprint);
+        Assert.Equal("unknown", entry.Algorithm);
+        Assert.Equal(HostKeySource.UserConfirmed, entry.Source);
+        Assert.True(entry.FirstSeen > DateTimeOffset.MinValue);
+        Assert.True(entry.LastSeen > DateTimeOffset.MinValue);
     }
 
     // ── LoadServersAsync ───────────────────────────────────────────────

@@ -169,6 +169,10 @@ public sealed class AppSettings
     // Key: "host:port", Value: "SHA256:<base64-no-padding>"
     public Dictionary<string, string> TrustedHostKeys { get; set; } = new();
 
+    // SSH host key trust store v2 with metadata.
+    // Key: "host:port" or "[ipv6]:port"; Value: fingerprint + provenance.
+    public Dictionary<string, HostKeyEntry> TrustedHostKeysV2 { get; set; } = new();
+
     // Scheduled connections
     public List<ScheduledTaskDto> ScheduledTasks { get; set; } = new();
 

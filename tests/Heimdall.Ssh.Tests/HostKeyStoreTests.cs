@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Ssh;
+
 namespace Heimdall.Ssh.Tests;
 
 // The plink TOFU caller shells out to plink.exe and is not currently isolated
@@ -171,6 +173,24 @@ public class HostKeyStoreTests
         Assert.Null(_store.GetFingerprint("host.example.com", 22));
     }
 
+    [Fact]
+    public void LoadEntriesFromConfig_PopulatesMetadataStore()
+    {
+        var entry = new HostKeyEntry(
+            "SHA256:abc123",
+            DateTimeOffset.Parse("2026-04-24T10:15:00Z"),
+            DateTimeOffset.Parse("2026-04-24T10:16:00Z"),
+            "ssh-ed25519",
+            HostKeySource.ImportedKnownHosts);
+
+        _store.LoadEntriesFromConfig([("host.example.com", 2222, entry)]);
+
+        var stored = _store.GetEntry("host.example.com", 2222);
+        Assert.NotNull(stored);
+        Assert.Equal(entry, stored);
+        Assert.Equal("SHA256:abc123", _store.GetFingerprint("host.example.com", 2222));
+    }
+
     // ── Trust / Remove / GetFingerprint ────────────────────────────────
 
     [Fact]
@@ -179,6 +199,20 @@ public class HostKeyStoreTests
         _store.Trust("myhost", 22, "SHA256:test");
 
         Assert.Equal("SHA256:test", _store.GetFingerprint("myhost", 22));
+    }
+
+    [Fact]
+    public void Trust_WithMetadata_StoresEntry()
+    {
+        _store.Trust("myhost", 22, "SHA256:test", "ssh-ed25519", HostKeySource.UserConfirmed);
+
+        var entry = _store.GetEntry("myhost", 22);
+        Assert.NotNull(entry);
+        Assert.Equal("SHA256:test", entry.Fingerprint);
+        Assert.Equal("ssh-ed25519", entry.Algorithm);
+        Assert.Equal(HostKeySource.UserConfirmed, entry.Source);
+        Assert.True(entry.FirstSeen > DateTimeOffset.MinValue);
+        Assert.True(entry.LastSeen > DateTimeOffset.MinValue);
     }
 
     [Fact]
@@ -266,6 +300,19 @@ public class HostKeyStoreTests
         Assert.Equal(2, all.Count);
         Assert.Equal("SHA256:aaa", all["host1:22"]);
         Assert.Equal("SHA256:bbb", all["host2:2222"]);
+    }
+
+    [Fact]
+    public void GetAllEntries_ReturnsMetadataEntries()
+    {
+        _store.Trust("host1", 22, "SHA256:aaa", "ssh-ed25519", HostKeySource.UserConfirmed);
+
+        var all = _store.GetAllEntries();
+
+        var entry = Assert.Single(all);
+        Assert.Equal("host1:22", entry.Key);
+        Assert.Equal("SHA256:aaa", entry.Value.Fingerprint);
+        Assert.Equal("ssh-ed25519", entry.Value.Algorithm);
     }
 
     // ── ComputeFingerprint ─────────────────────────────────────────────
