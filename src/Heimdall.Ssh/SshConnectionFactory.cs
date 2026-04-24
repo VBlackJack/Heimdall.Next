@@ -309,7 +309,12 @@ public static class SshConnectionFactory
         ArgumentNullException.ThrowIfNull(hostKeyStore);
         ArgumentNullException.ThrowIfNull(verifier);
 
-        var result = hostKeyStore.Verify(verificationHost, verificationPort, presentation.HostKey);
+        var trustService = new HostKeyTrustService(hostKeyStore);
+        var result = trustService.Verify(
+            verificationHost,
+            verificationPort,
+            presentation.Fingerprint,
+            presentation.Algorithm);
         if (!result.FirstUse && result.Trusted)
         {
             return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
@@ -326,7 +331,12 @@ public static class SshConnectionFactory
 
         if (decision == HostKeyDecision.Accept)
         {
-            hostKeyStore.Trust(verificationHost, verificationPort, result.Fingerprint);
+            trustService.Trust(
+                verificationHost,
+                verificationPort,
+                result.Fingerprint,
+                presentation.Algorithm,
+                HostKeySource.UserConfirmed);
             return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
         }
 

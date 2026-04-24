@@ -20,19 +20,6 @@ using Heimdall.Core.Ssh;
 namespace Heimdall.Ssh;
 
 /// <summary>
-/// Verification result returned by <see cref="HostKeyStore.Verify"/>.
-/// </summary>
-/// <param name="Trusted">Whether the host key should be accepted.</param>
-/// <param name="FirstUse">Whether this is the first time seeing this host.</param>
-/// <param name="Fingerprint">SHA256 fingerprint of the presented host key.</param>
-/// <param name="StoredFingerprint">Previously stored fingerprint, if any.</param>
-public sealed record HostKeyVerifyResult(
-    bool Trusted,
-    bool FirstUse,
-    string Fingerprint,
-    string? StoredFingerprint);
-
-/// <summary>
 /// Trust-On-First-Use host key verification store.
 /// Stores host key entries per host:port, blocks on mismatch.
 /// Thread-safe via <see cref="ConcurrentDictionary{TKey, TValue}"/>.
@@ -199,6 +186,20 @@ public sealed class HostKeyStore
             static kvp => kvp.Key,
             static kvp => kvp.Value,
             StringComparer.Ordinal);
+
+    internal void SetEntry(string host, int port, HostKeyEntry entry, bool raiseEvent)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        var normalized = NormalizeEntry(entry);
+        var key = HostKeyFormats.MakeKey(host, port);
+        _trustedKeys[key] = normalized;
+        if (raiseEvent)
+        {
+            HostKeyEvent?.Invoke(key, normalized.Fingerprint, true);
+        }
+    }
 
     /// <summary>
     /// Compute a SHA256 fingerprint from raw host key bytes.

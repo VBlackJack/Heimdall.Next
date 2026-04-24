@@ -80,8 +80,8 @@ internal static class ToolGatewayConnector
 
         var connInfo = SshConnectionFactory.Create(connParams);
         var client = new SshClient(connInfo);
-        var (hostKeyStore, localizer) = ResolveHostKeyDependencies();
-        var fingerprint = hostKeyStore.GetFingerprint(gateway.Host, gateway.Port)
+        var (trustService, localizer) = ResolveHostKeyDependencies();
+        var fingerprint = trustService.GetEntry(gateway.Host, gateway.Port)?.Fingerprint
             ?? throw new InvalidOperationException(
                 localizer.Format("ErrorGatewayHostKeyNotTrusted", gateway.Host, gateway.Port));
 
@@ -100,14 +100,14 @@ internal static class ToolGatewayConnector
         return client;
     }
 
-    private static (HostKeyStore HostKeyStore, LocalizationManager Localizer) ResolveHostKeyDependencies()
+    private static (IHostKeyTrustService TrustService, LocalizationManager Localizer) ResolveHostKeyDependencies()
     {
         if ((Application.Current as App)?.Services is IServiceProvider services)
         {
-            if (services.GetService<HostKeyStore>() is { } hostKeyStore &&
+            if (services.GetService<IHostKeyTrustService>() is { } trustService &&
                 services.GetService<LocalizationManager>() is { } localizer)
             {
-                return (hostKeyStore, localizer);
+                return (trustService, localizer);
             }
         }
 
