@@ -194,6 +194,16 @@ public sealed class HostKeyStore
 
         var normalized = NormalizeEntry(entry);
         var key = HostKeyFormats.MakeKey(host, port);
+        SetEntry(key, normalized, raiseEvent);
+    }
+
+    internal void SetEntry(string hostPort, HostKeyEntry entry, bool raiseEvent)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostPort);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        var normalized = NormalizeEntry(entry);
+        var key = hostPort;
         _trustedKeys[key] = normalized;
         if (raiseEvent)
         {

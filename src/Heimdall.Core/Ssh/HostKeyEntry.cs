@@ -23,7 +23,10 @@ public sealed record HostKeyEntry(
     DateTimeOffset FirstSeen,
     DateTimeOffset LastSeen,
     string Algorithm,
-    HostKeySource Source);
+    HostKeySource Source)
+{
+    public string? PublicKeyBase64 { get; init; }
+}
 
 [JsonConverter(typeof(JsonStringEnumConverter<HostKeySource>))]
 public enum HostKeySource

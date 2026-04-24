@@ -20,6 +20,7 @@ using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services.Import;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Ssh;
+using KnownHostsImporter = Heimdall.App.Services.Import.KnownHostsImporter;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 

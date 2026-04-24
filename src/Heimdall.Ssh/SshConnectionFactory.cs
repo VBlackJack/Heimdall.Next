@@ -336,7 +336,8 @@ public static class SshConnectionFactory
                 verificationPort,
                 result.Fingerprint,
                 presentation.Algorithm,
-                HostKeySource.UserConfirmed);
+                HostKeySource.UserConfirmed,
+                Convert.ToBase64String(presentation.HostKey));
             return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
         }
 
