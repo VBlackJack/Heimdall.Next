@@ -10,18 +10,21 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,105 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 4,239 automated tests (4,233 passing + 6 known skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,118 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 4,324 automated tests (4,318 passing + 6 known skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
 ```
-Heimdall.slnx (8 projects)
+Heimdall.slnx (14 projects)
 ├── src/
 │   ├── Heimdall.Core          net10.0         Models, session diagnostics, security, config, state machine, i18n, network scanner, utilities
 │   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier, health monitor
 │   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
 │   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
 │   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY, Telnet)
+│   ├── TwinShell.Core         net10.0         Terminal emulator core abstractions
+│   ├── TwinShell.Persistence  net10.0         Terminal persistence primitives
+│   ├── TwinShell.Infrastructure net10.0       Terminal infrastructure services
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
 │       ├── Views: MainWindow, SessionPaneControl, SplitContainerControl,
 │       │          EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
@@ -36,6 +39,7 @@ Heimdall.slnx (8 projects)
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
     ├── Heimdall.App.Tests     SplitService, SessionDiagnostic, NotesStorage, ThemeService, Migration, EphemeralFileServer, tool coherence
+    ├── Heimdall.Rdp.Tests     RDP credential autofill and broker-selection tests
     └── Heimdall.App.UiTests   Desktop UIAutomation smoke and accessibility coverage
 ```
 
@@ -64,7 +68,7 @@ Heimdall.slnx (8 projects)
 - **Heimdall.Rdp** depends on Core (uses WPF + WinForms for ActiveX hosting; includes Citrix StoreBrowse integration)
 - **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory). `SftpSessionBundle` in ConnectionService bundles SftpClient + SshClient for sudo operations. `FtpBrowser` implements `IRemoteBrowser` for FTP connections
 - **Heimdall.Terminal** depends on Core (uses Win32 APIs for ConPTY + pipe mode + Telnet raw TCP)
-- **Heimdall.App** references all five libraries and owns the DI composition root
+- **Heimdall.App** references the Heimdall libraries and owns the DI composition root
 
 ## Key Design Decisions
 
@@ -170,7 +174,7 @@ Additional guards:
 
 ### 6. TOFU Host Key Verification
 
-SSH host key fingerprints are persisted in `HostKeyStore` and saved to `settings.json` (`TrustedHostKeys` dictionary). On first connection, the fingerprint is recorded and persisted via the `HostKeyEvent` callback. On subsequent connections (including after app restart), mismatches trigger `SshFailureCode.HostKeyMismatch` with a user-facing warning. Fingerprints are loaded from config at startup via `LoadFromConfig()`.
+SSH host key fingerprints are persisted in `HostKeyStore` and saved to `settings.json` (`TrustedHostKeys` dictionary). Both the SSH.NET path and the Plink fallback path route first-use and mismatch decisions through `IHostKeyVerifier`; the production implementation opens the themed `HostKeyPromptDialog` on the UI dispatcher. First-use acceptance calls `HostKeyStore.Trust()` and persists through `HostKeyEvent`. Steady-state matches proceed silently. Mismatches display stored and presented fingerprints side by side, allow deliberate replacement after out-of-band verification, and reject with `SshFailureCode.HostKeyMismatch` when the user declines. Plink sessions use the pinned fingerprint as `-hostkey` and never silently trust a newly probed key.
 
 ### 7. SSH Failure Classification
 
@@ -352,7 +356,7 @@ ISplitContent (marker interface)
 
 **Problem**: Sysadmins want at-a-glance health data (CPU, RAM, disk) for connected servers without opening a separate monitoring tool.
 
-**Solution**: `ServerHealthMonitor` in `Heimdall.Ssh` reuses the existing `SshClient` from an active shell session to run lightweight monitoring commands (`top -bn1`, `free -m`, `df -h /`) on a multiplexed SSH channel at a configurable interval (default 5 seconds). Results are parsed via compiled regex into a `ServerHealthData` record and surfaced in the UI.
+**Solution**: `ServerHealthMonitor` in `Heimdall.Ssh` reuses the existing `SshClient` from an active shell session to run lightweight monitoring commands (`top -bn1`, `free -m`, `df -h /`) on multiplexed SSH channels at a configurable interval (default 15 seconds). Commands execute through SSH.NET's APM surface (`BeginExecute`/`EndExecute`) wrapped with `Task.Factory.FromAsync`, and the three probes run concurrently with `Task.WhenAll`. Results are parsed via compiled regex into a `ServerHealthData` record and surfaced in the UI.
 
 ### 22. Macro Recorder (Keystroke Capture with Delays)
 
@@ -645,7 +649,7 @@ Error state reachable from Ready or Busy.
 | Temp file security | ACL enforcement on .rdp files, Plink -pwfile (atomic ACL, no fallback), SFTP edit directories |
 | XXE prevention | `DtdProcessing.Prohibit` + `XmlResolver = null` on all XML importers |
 | Citrix argument validation | Shell metacharacter check on `CitrixLaunchCommandLine` before `Process.Start` |
-| SSH host trust | TOFU fingerprints persisted to `settings.json`, loaded at startup |
+| SSH host trust | User-confirmed TOFU via `IHostKeyVerifier`; fingerprints persisted to `settings.json`, loaded at startup, and enforced on SSH.NET and Plink paths |
 | File writes | UTF-8 without BOM via `SecureFileWriter` |
 | Memory | Credentials cleared after COM injection, `SecureString` for handoff paths |
 | Exception handling | Global handlers registered before first await, unobserved task exceptions caught |
@@ -688,7 +692,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 4239 tests across the four test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 4233 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 4324 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 4318 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 

@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4233%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4318%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -50,7 +50,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Pipe mode transport for correct arrow keys, colors, and escape sequences
 - Pageant agent integration (native Win32 IPC with identity count verification)
 - SSH keepalive heartbeat (prevents TMOUT disconnects)
-- TOFU host key verification with persistent fingerprint store
+- User-confirmed TOFU host key verification with persistent fingerprint pinning
 - Multi-gateway tunnel chaining with circular dependency detection
 - Dynamic tunnel port allocation (no more port conflicts)
 - Tunnel ref-counting (shared tunnels survive individual session close)
@@ -118,7 +118,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### Server Health Monitoring
 - Collapsible sidebar panel showing CPU, RAM, and Disk usage
 - Multiplexed SSH channel (doesn't interfere with the terminal session)
-- Polls `top`, `free`, `df` every 5 seconds with progress bars
+- Polls `top`, `free`, `df` every 15 seconds with async SSH commands and progress bars
 
 ### Macro Recorder
 - Record terminal input with timing between keystrokes
@@ -210,7 +210,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,105 i18n keys)
+- Bilingual interface: English and French (~5,118 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -230,7 +230,10 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - XXE protection: DtdProcessing.Prohibit on all XML importers (mRemoteNG, RDCMan, Citrix cache)
 - Plink password file: atomic ACL creation on Windows, mode 0600 on Unix (no fallback)
 - Wake-on-LAN via UDP magic packet (right-click context menu)
-- TOFU host key fingerprints persisted across restarts
+- User-confirmed SSH host key first-use and mismatch handling across SSH.NET and Plink fallback paths
+- Plink fallback sessions enforce pinned `-hostkey` fingerprints from the shared `HostKeyStore`
+- Credential broker autofill requires an RDP host-title match before injecting passwords
+- Known security limitations and threat model notes are tracked in [SECURITY.md](SECURITY.md)
 - Session-scoped CredMan entries with deterministic cleanup
 
 ### Import and Migration
@@ -357,7 +360,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (4,239 tests across 4 projects) |
+| Testing | xUnit (4,324 tests across 5 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
@@ -365,7 +368,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 
 ## Architecture
 
-The solution is split into 6 projects with clear dependency boundaries:
+The solution is split into 9 source projects with clear dependency boundaries:
 
 ```
 Heimdall.App          WPF application (MVVM, views, themes, services)
@@ -374,9 +377,10 @@ Heimdall.App          WPF application (MVVM, views, themes, services)
   +-- Heimdall.Rdp      RDP + Citrix engine (ActiveX MsTscAx), credential autofill, StoreBrowse
   +-- Heimdall.Sftp     SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
   +-- Heimdall.Terminal  Terminal sessions (pipe mode, ConPTY, Telnet), smart paste guard
+  +-- TwinShell.*        Terminal emulator core, persistence, and infrastructure components
 ```
 
-Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.App.Tests`, `Heimdall.App.UiTests`.
+Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.App.Tests`, `Heimdall.App.UiTests`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design decisions and data flow diagrams.
 
