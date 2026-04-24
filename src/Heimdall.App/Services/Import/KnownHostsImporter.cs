@@ -19,16 +19,29 @@ using System.Text;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Services.Import;
 
 /// <summary>
 /// Reads, classifies, and imports trusted SSH host fingerprints from known_hosts.
 /// </summary>
-public sealed class KnownHostsImporter(IConfigManager config, HostKeyStore hostKeyStore)
+public sealed class KnownHostsImporter
 {
-    private readonly IConfigManager _config = config;
-    private readonly HostKeyStore _hostKeyStore = hostKeyStore;
+    private readonly IConfigManager _config;
+    private readonly IHostKeyTrustService _hostKeyTrustService;
+
+    [ActivatorUtilitiesConstructor]
+    public KnownHostsImporter(IConfigManager config, IHostKeyTrustService hostKeyTrustService)
+    {
+        _config = config;
+        _hostKeyTrustService = hostKeyTrustService;
+    }
+
+    public KnownHostsImporter(IConfigManager config, HostKeyStore hostKeyStore)
+        : this(config, new HostKeyTrustService(hostKeyStore))
+    {
+    }
 
     public async Task<KnownHostsParseResult> ParseFileAsync(string filePath, CancellationToken ct = default)
     {
@@ -57,6 +70,8 @@ public sealed class KnownHostsImporter(IConfigManager config, HostKeyStore hostK
                     Host = entry.Host,
                     Port = entry.Port,
                     Fingerprint = HostKeyFormats.ComputeSha256Fingerprint(entry.Base64Key),
+                    Algorithm = entry.KeyType,
+                    PublicKeyBase64 = Convert.ToBase64String(entry.Base64Key),
                     SourceLineNumber = entry.SourceLineNumber
                 }))
             .ToList();
@@ -174,19 +189,48 @@ public sealed class KnownHostsImporter(IConfigManager config, HostKeyStore hostK
                 .ConfigureAwait(false);
 
             var refreshedSettings = await _config.LoadSettingsAsync().ConfigureAwait(false);
+            var importedEntries = new List<(string Key, KnownHostsImportCandidate Candidate, DateTimeOffset ImportedAt)>();
             foreach (var item in toPersist)
             {
                 if (refreshedSettings.TrustedHostKeys.TryGetValue(item.Key, out var storedFingerprint))
                 {
                     if (string.Equals(storedFingerprint, item.Candidate.Fingerprint, StringComparison.Ordinal))
                     {
-                        _hostKeyStore.Trust(item.Candidate.Host, item.Candidate.Port, item.Candidate.Fingerprint);
+                        var importedAt = DateTimeOffset.UtcNow;
+                        _hostKeyTrustService.Import(
+                            item.Candidate.Host,
+                            item.Candidate.Port,
+                            item.Candidate.Fingerprint,
+                            item.Candidate.Algorithm,
+                            importedAt,
+                            item.Candidate.PublicKeyBase64);
+                        importedEntries.Add((item.Key, item.Candidate, importedAt));
                     }
                     else
                     {
                         skippedConflict++;
                     }
                 }
+            }
+
+            if (importedEntries.Count > 0)
+            {
+                await _config.MergeSettingAsync(settings =>
+                {
+                    foreach (var item in importedEntries)
+                    {
+                        settings.TrustedHostKeysV2[item.Key] = new HostKeyEntry(
+                            item.Candidate.Fingerprint,
+                            item.ImportedAt,
+                            item.ImportedAt,
+                            item.Candidate.Algorithm,
+                            HostKeySource.ImportedKnownHosts)
+                        {
+                            PublicKeyBase64 = item.Candidate.PublicKeyBase64
+                        };
+                        settings.TrustedHostKeys[item.Key] = item.Candidate.Fingerprint;
+                    }
+                }).ConfigureAwait(false);
             }
         }
 
