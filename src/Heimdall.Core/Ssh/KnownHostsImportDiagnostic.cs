@@ -29,6 +29,7 @@ public enum KnownHostsDiagnosticCode
     RevokedEntryNotSupported,
     UnsupportedHostPattern,
     UnsupportedKeyType,
+    LegacyKeyType,
     MalformedLine,
     DuplicateFingerprintInSourceMerged,
     IntraFileFingerprintConflict

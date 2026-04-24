@@ -26,6 +26,8 @@ public sealed record KnownHostsRawEntry
 
     public required int Port { get; init; }
 
+    public bool IsHashedHost { get; init; }
+
     public required string KeyType { get; init; }
 
     public required byte[] Base64Key { get; init; }
