@@ -79,4 +79,24 @@ public sealed class SshHandlerTests
         Assert.Contains("-hostkey \"SHA256:abc123\"", arguments);
         Assert.Contains("user@example.com", arguments);
     }
+
+    [Fact]
+    public void BuildPipeModeArguments_IncludesQuotedPasswordFilePath()
+    {
+        var passwordFilePath = @"C:\Temp\heimdall pw.txt";
+        var escapedPasswordFilePath = InputValidator.EscapeForDoubleQuotedString(passwordFilePath);
+
+        var arguments = SshHandler.BuildPipeModeArguments(
+            keyPath: null,
+            compression: false,
+            agentForwarding: false,
+            x11Forwarding: false,
+            port: 22,
+            target: "bastion@example.com",
+            hostKeyFingerprint: null,
+            passwordFilePath: passwordFilePath);
+
+        Assert.Contains($"-pwfile \"{escapedPasswordFilePath}\"", arguments);
+        Assert.DoesNotContain("secret", arguments, StringComparison.OrdinalIgnoreCase);
+    }
 }

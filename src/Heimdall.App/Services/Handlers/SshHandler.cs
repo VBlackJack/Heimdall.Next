@@ -523,6 +523,9 @@ internal sealed class SshHandler : IProtocolHandler
             }
         }
 
+        var passwordFilePath = CreatePlinkPasswordFile(
+            ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted));
+
         var args = BuildPipeModeArguments(
             server.SshKeyPath,
             server.SshCompression,
@@ -530,19 +533,28 @@ internal sealed class SshHandler : IProtocolHandler
             server.SshX11Forwarding,
             targetPort,
             target,
-            hostKeyArg);
+            hostKeyArg,
+            passwordFilePath);
 
         Core.Logging.FileLogger.Info($"SSH via Plink (pipe mode): {plinkPath} {args}");
 
         var pipeSession = new Heimdall.Terminal.PipeModeSession();
+        if (!string.IsNullOrEmpty(passwordFilePath))
+        {
+            var fileToDelete = passwordFilePath;
+            pipeSession.ProcessExited += _ => DeletePlinkPasswordFile(fileToDelete);
+        }
+
         try
         {
-            await pipeSession.StartAsync(plinkPath, args.ToString()).ConfigureAwait(false);
+            await pipeSession.StartAsync(plinkPath, args).ConfigureAwait(false);
             Core.Logging.FileLogger.Info($"Plink SSH pipe session started: PID={pipeSession.ProcessId}");
+            passwordFilePath = null;
         }
         catch (Exception ex)
         {
             pipeSession.Dispose();
+            DeletePlinkPasswordFile(passwordFilePath);
             Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
             _connectionSm.SetError(server.Id, ex.Message);
             return new ConnectionResult(
@@ -554,6 +566,58 @@ internal sealed class SshHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new TerminalSessionResult(pipeSession));
+    }
+
+    private static string? CreatePlinkPasswordFile(string? password)
+    {
+        if (string.IsNullOrEmpty(password))
+        {
+            return null;
+        }
+
+        var passwordFilePath = Path.Combine(Path.GetTempPath(), $"heimdall_ssh_pw_{Guid.NewGuid():N}");
+        if (OperatingSystem.IsWindows())
+        {
+            SecureFileWriter.WriteAndProtect(passwordFilePath, password);
+        }
+        else
+        {
+            File.WriteAllText(passwordFilePath, password);
+            try
+            {
+                File.SetUnixFileMode(
+                    passwordFilePath,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"[SshHandler] Unix file mode restriction failed for Plink password file: {ex.Message}");
+            }
+        }
+
+        return passwordFilePath;
+    }
+
+    private static void DeletePlinkPasswordFile(string? passwordFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(passwordFilePath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(passwordFilePath);
+        }
+        catch (IOException ex)
+        {
+            Core.Logging.FileLogger.Warn($"[SshHandler] DeletePlinkPasswordFile: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Core.Logging.FileLogger.Warn($"[SshHandler] DeletePlinkPasswordFile: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -627,7 +691,8 @@ internal sealed class SshHandler : IProtocolHandler
         bool x11Forwarding,
         int port,
         string target,
-        string? hostKeyFingerprint)
+        string? hostKeyFingerprint,
+        string? passwordFilePath = null)
     {
         var argParts = new List<string> { "-ssh", "-t", "-no-antispoof" };
         if (!string.IsNullOrWhiteSpace(keyPath))
@@ -659,6 +724,12 @@ internal sealed class SshHandler : IProtocolHandler
         {
             argParts.Add("-hostkey");
             argParts.Add($"\"{InputValidator.EscapeForDoubleQuotedString(hostKeyFingerprint)}\"");
+        }
+
+        if (!string.IsNullOrWhiteSpace(passwordFilePath))
+        {
+            argParts.Add("-pwfile");
+            argParts.Add($"\"{InputValidator.EscapeForDoubleQuotedString(passwordFilePath)}\"");
         }
 
         return string.Join(' ', argParts);
