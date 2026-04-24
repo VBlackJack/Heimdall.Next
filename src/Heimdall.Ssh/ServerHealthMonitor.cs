@@ -33,6 +33,45 @@ public sealed record ServerHealthData(
     string DiskTotal,
     int DiskPercent);
 
+internal interface IHealthCommandRunner
+{
+    Task<string> RunAsync(string command, CancellationToken cancellationToken);
+}
+
+internal sealed class SshHealthCommandRunner(SshClient client) : IHealthCommandRunner
+{
+    public async Task<string> RunAsync(string command, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using var sshCommand = client.CreateCommand(command);
+        var asyncResult = sshCommand.BeginExecute();
+        using var cancellationRegistration = cancellationToken.Register(static state =>
+        {
+            try
+            {
+                ((SshCommand)state!).CancelAsync();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Command already disposed during shutdown.
+            }
+            catch (InvalidOperationException)
+            {
+                // Command already completed or never fully started.
+            }
+        }, sshCommand);
+
+        var result = await Task<string>.Factory.FromAsync(
+                asyncResult,
+                sshCommand.EndExecute)
+            .ConfigureAwait(false);
+
+        return sshCommand.ExitStatus == 0 ? result : string.Empty;
+    }
+}
+
 /// <summary>
 /// Polls an SSH server for CPU, RAM, and disk usage at a configurable interval.
 /// Uses the existing <see cref="SshClient"/> from an active shell session to run
@@ -41,6 +80,9 @@ public sealed record ServerHealthData(
 public sealed class ServerHealthMonitor : IDisposable
 {
     private static readonly int DefaultPollIntervalSeconds = 15;
+    private const string CpuCommandText = "top -b -n 1 | head -5";
+    private const string MemoryCommandText = "free -m | grep Mem";
+    private const string DiskCommandText = "df -h / | tail -1";
 
     private static readonly Regex CpuIdleRegex = new(
         @"%?Cpu.*?:\s.*?(\d+[\.,]\d+)\s*id",
@@ -60,10 +102,22 @@ public sealed class ServerHealthMonitor : IDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _pollTask;
+    private readonly Func<SshClient, IHealthCommandRunner> _commandRunnerFactory;
     private bool _disposed;
 
     /// <summary>Raised on the thread pool when new health data is available.</summary>
     public event Action<ServerHealthData>? HealthUpdated;
+
+    public ServerHealthMonitor()
+        : this(static client => new SshHealthCommandRunner(client))
+    {
+    }
+
+    internal ServerHealthMonitor(Func<SshClient, IHealthCommandRunner> commandRunnerFactory)
+    {
+        _commandRunnerFactory = commandRunnerFactory
+            ?? throw new ArgumentNullException(nameof(commandRunnerFactory));
+    }
 
     /// <summary>
     /// Starts polling the remote server for health metrics.
@@ -81,7 +135,7 @@ public sealed class ServerHealthMonitor : IDisposable
         }
 
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _pollTask = Task.Run(() => PollLoopAsync(client, _cts.Token), _cts.Token);
+        _pollTask = PollLoopAsync(client, _commandRunnerFactory(client), _cts.Token);
 
         return Task.CompletedTask;
     }
@@ -155,7 +209,10 @@ public sealed class ServerHealthMonitor : IDisposable
         Stop();
     }
 
-    private async Task PollLoopAsync(SshClient client, CancellationToken ct)
+    private async Task PollLoopAsync(
+        SshClient client,
+        IHealthCommandRunner commandRunner,
+        CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -167,7 +224,7 @@ public sealed class ServerHealthMonitor : IDisposable
                     break;
                 }
 
-                var data = await CollectHealthDataAsync(client).ConfigureAwait(false);
+                var data = await CollectHealthDataAsync(commandRunner, ct).ConfigureAwait(false);
                 if (data is not null)
                 {
                     HealthUpdated?.Invoke(data);
@@ -194,57 +251,73 @@ public sealed class ServerHealthMonitor : IDisposable
         }
     }
 
-    private static async Task<ServerHealthData?> CollectHealthDataAsync(SshClient client)
+    private static async Task<ServerHealthData?> CollectHealthDataAsync(
+        IHealthCommandRunner commandRunner,
+        CancellationToken cancellationToken)
     {
         double cpuPercent = 0;
         long memTotal = 0, memUsed = 0, memFree = 0;
         string diskUsed = "?", diskTotal = "?";
         int diskPercent = 0;
 
-        // Run all 3 health queries in parallel via Task.Run to avoid
-        // blocking the poll loop on sequential SSH.NET RunCommand calls.
-        string? cpuResult = null, memResult = null, diskResult = null;
+        var cpuTask = RunHealthCommandAsync(
+            commandRunner,
+            CpuCommandText,
+            "CPU",
+            cancellationToken);
+        var memoryTask = RunHealthCommandAsync(
+            commandRunner,
+            MemoryCommandText,
+            "RAM",
+            cancellationToken);
+        var diskTask = RunHealthCommandAsync(
+            commandRunner,
+            DiskCommandText,
+            "disk",
+            cancellationToken);
 
-        await Task.WhenAll(
-            Task.Run(() =>
-            {
-                try
-                {
-                    using var cmd = client.RunCommand("top -b -n 1 | head -5");
-                    if (cmd.ExitStatus == 0) cpuResult = cmd.Result;
-                }
-                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor CPU command failed: {ex.Message}"); }
-            }),
-            Task.Run(() =>
-            {
-                try
-                {
-                    using var cmd = client.RunCommand("free -m | grep Mem");
-                    if (cmd.ExitStatus == 0) memResult = cmd.Result;
-                }
-                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor RAM command failed: {ex.Message}"); }
-            }),
-            Task.Run(() =>
-            {
-                try
-                {
-                    using var cmd = client.RunCommand("df -h / | tail -1");
-                    if (cmd.ExitStatus == 0) diskResult = cmd.Result;
-                }
-                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor disk command failed: {ex.Message}"); }
-            })
-        ).ConfigureAwait(false);
+        var results = await Task.WhenAll(cpuTask, memoryTask, diskTask).ConfigureAwait(false);
+        var cpuResult = results[0];
+        var memResult = results[1];
+        var diskResult = results[2];
 
         if (!string.IsNullOrWhiteSpace(cpuResult))
+        {
             cpuPercent = ParseCpuUsage(cpuResult);
+        }
 
         if (!string.IsNullOrWhiteSpace(memResult))
+        {
             ParseMemory(memResult, out memTotal, out memUsed, out memFree);
+        }
 
         if (!string.IsNullOrWhiteSpace(diskResult))
+        {
             ParseDisk(diskResult, out diskUsed, out diskTotal, out diskPercent);
+        }
 
         return new ServerHealthData(cpuPercent, memTotal, memUsed, memFree, diskUsed, diskTotal, diskPercent);
+    }
+
+    private static async Task<string> RunHealthCommandAsync(
+        IHealthCommandRunner commandRunner,
+        string commandText,
+        string metricName,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await commandRunner.RunAsync(commandText, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"ServerHealthMonitor {metricName} command failed: {ex.Message}");
+            return string.Empty;
+        }
     }
 
     internal static double ParseCpuUsage(string topOutput)
