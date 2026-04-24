@@ -17,7 +17,7 @@
 namespace Heimdall.Core.Ssh;
 
 /// <summary>
-/// Importer-ready known_hosts candidate reduced to host, port, and fingerprint.
+/// Importer-ready known_hosts candidate with enough metadata to preserve provenance.
 /// </summary>
 public sealed record KnownHostsImportCandidate
 {
@@ -26,6 +26,10 @@ public sealed record KnownHostsImportCandidate
     public required int Port { get; init; }
 
     public required string Fingerprint { get; init; }
+
+    public string Algorithm { get; init; } = "unknown";
+
+    public string? PublicKeyBase64 { get; init; }
 
     public required int SourceLineNumber { get; init; }
 }

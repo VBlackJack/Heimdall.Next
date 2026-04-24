@@ -115,6 +115,32 @@ public sealed class KnownHostsImporterTests
         Assert.Equal(1, outcome.SkippedExisting);
         Assert.Equal(0, outcome.SkippedConflict);
         Assert.Equal(newCandidate.Fingerprint, store.GetFingerprint("new-host", 22));
+        Assert.Equal(HostKeySource.ImportedKnownHosts, store.GetEntry("new-host", 22)?.Source);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_ImportedEntryPreservesKnownHostsMetadata()
+    {
+        var importer = CreateImporter(out var config, out var store);
+        var keyBytes = new byte[] { 0x0A, 0x0B, 0x0C };
+        var preview = await importer.BuildPreviewAsync(new KnownHostsParseResult(
+            [CreateRawEntry("metadata-host", 2222, keyBytes)],
+            []));
+        var candidate = Assert.Single(preview.Rows).Candidate;
+
+        var outcome = await importer.ImportSelectedAsync([candidate]);
+
+        var entry = store.GetEntry("metadata-host", 2222);
+        var settings = await config.LoadSettingsAsync();
+        var persisted = settings.TrustedHostKeysV2[HostKeyFormats.MakeKey("metadata-host", 2222)];
+        Assert.Equal(1, outcome.Imported);
+        Assert.NotNull(entry);
+        Assert.Equal(HostKeySource.ImportedKnownHosts, entry.Source);
+        Assert.Equal("ssh-ed25519", entry.Algorithm);
+        Assert.Equal(Convert.ToBase64String(keyBytes), entry.PublicKeyBase64);
+        Assert.Equal(HostKeySource.ImportedKnownHosts, persisted.Source);
+        Assert.Equal("ssh-ed25519", persisted.Algorithm);
+        Assert.Equal(Convert.ToBase64String(keyBytes), persisted.PublicKeyBase64);
     }
 
     private static KnownHostsImporter CreateImporter(out InMemoryConfigManager config, out HostKeyStore store)
