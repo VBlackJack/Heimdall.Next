@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Reflection;
 using System.Text;
 using Heimdall.Core.Ssh;
 using Renci.SshNet;
@@ -150,48 +149,19 @@ public sealed class SshShellSession : IDisposable
             throw new InvalidOperationException("Session is not connected.");
         }
 
-        // SSH.NET ShellStream does not expose window-change directly, but the
-        // underlying IChannelSession has SendWindowChangeRequest. Access it via
-        // reflection on the private _channel field.
-        //
-        // TODO: Remove reflection once SSH.NET exposes a public window-change API on ShellStream.
-        // Track: https://github.com/sshnet/SSH.NET/issues — search "window change" or "resize".
-        // If SSH.NET's internal field layout changes, this fails gracefully (logged as Warn,
-        // session continues — only terminal reflow is lost).
         try
         {
-            var channelField = _stream.GetType().GetField(
-                "_channel",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (channelField?.GetValue(_stream) is { } channel)
-            {
-                var method = channel.GetType().GetMethod(
-                    "SendWindowChangeRequest",
-                    BindingFlags.Public | BindingFlags.Instance,
-                    null,
-                    [typeof(uint), typeof(uint), typeof(uint), typeof(uint)],
-                    null);
-
-                if (method is null)
-                {
-                    Core.Logging.FileLogger.Warn(
-                        "SSH window-change: SendWindowChangeRequest not found — SSH.NET internal layout may have changed.");
-                    return;
-                }
-
-                method.Invoke(channel, [(uint)columns, (uint)rows, 0u, 0u]);
-            }
-            else
-            {
-                Core.Logging.FileLogger.Warn(
-                    "SSH window-change: _channel field is null on ShellStream — resize skipped.");
-            }
+            _stream.ChangeWindowSize((uint)columns, (uint)rows, 0u, 0u);
         }
-        catch (Exception ex)
+        catch (ObjectDisposedException ex)
         {
             Core.Logging.FileLogger.Warn(
-                $"SSH window-change request failed for {columns}x{rows}: {ex.InnerException?.Message ?? ex.Message}");
+                $"SSH window-change request skipped because the shell stream is disposed: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"SSH window-change request failed for {columns}x{rows}: {ex.Message}");
         }
     }
 
