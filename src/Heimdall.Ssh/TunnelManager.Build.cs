@@ -23,6 +23,9 @@ namespace Heimdall.Ssh;
 
 public sealed partial class TunnelManager
 {
+    private const int DefaultMaxStartAttempts = 3;
+    private const int DefaultRetryDelayMs = 50;
+
     private static async Task<PinnedFingerprintVerifier?> ResolvePinnedVerifierAsync(
         SshConnectionParams connectionParams,
         string verificationHost,
@@ -103,14 +106,14 @@ public sealed partial class TunnelManager
         }
 
         finalClient.AddForwardedPort(context.FinalPort);
-        context.FinalPort.Start();
+        StartForwardedPortWithRetry(context.FinalPort, $"local port {localPort}");
 
         var logSuffix = isChained ? " (chained tunnel)" : string.Empty;
         if (socksProxyPort > 0)
         {
             context.DynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
             finalClient.AddForwardedPort(context.DynamicPort);
-            context.DynamicPort.Start();
+            StartForwardedPortWithRetry(context.DynamicPort, $"SOCKS5 port {socksProxyPort}");
             Core.Logging.FileLogger.Info(
                 $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort}{logSuffix}");
         }
@@ -227,6 +230,58 @@ public sealed partial class TunnelManager
             Compression = nextGateway.Compression,
             ConnectTimeout = nextGateway.ConnectTimeout
         };
+    }
+
+    internal static void StartForwardedPortWithRetry(
+        ForwardedPort port,
+        string logContext,
+        int maxAttempts = DefaultMaxStartAttempts,
+        TimeSpan? retryDelay = null)
+    {
+        ArgumentNullException.ThrowIfNull(port);
+
+        ExecuteStartWithRetry(
+            port.Start,
+            logContext,
+            maxAttempts,
+            retryDelay ?? TimeSpan.FromMilliseconds(DefaultRetryDelayMs));
+    }
+
+    internal static void ExecuteStartWithRetry(
+        Action startAction,
+        string logContext,
+        int maxAttempts,
+        TimeSpan retryDelay,
+        Action<TimeSpan>? sleep = null)
+    {
+        ArgumentNullException.ThrowIfNull(startAction);
+
+        if (maxAttempts < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAttempts), maxAttempts, "Maximum attempts must be at least 1.");
+        }
+
+        sleep ??= Thread.Sleep;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                startAction();
+                return;
+            }
+            catch (SocketException ex) when (IsLocalBindAlreadyInUse(ex) && attempt < maxAttempts)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"Forwarded port {logContext} bind failed, retrying (attempt {attempt}/{maxAttempts}): {ex.Message}");
+                sleep(retryDelay);
+            }
+        }
+    }
+
+    private static bool IsLocalBindAlreadyInUse(SocketException ex)
+    {
+        return ex.SocketErrorCode == SocketError.AddressAlreadyInUse;
     }
 
     /// <summary>Classifies a SocketException into a structured failure code.</summary>

@@ -265,7 +265,7 @@ public sealed partial class TunnelManager : IDisposable
                     (uint)nextGateway.Port);
                 context.IntermediatePorts.Add(intermediatePort);
                 currentClient.AddForwardedPort(intermediatePort);
-                intermediatePort.Start();
+                StartForwardedPortWithRetry(intermediatePort, $"intermediate chain port {intermediateLocalPort}");
 
                 // Connect to the next gateway through the forwarded port
                 var hopParams = CreateLoopbackHopParams(nextGateway, intermediateLocalPort);
