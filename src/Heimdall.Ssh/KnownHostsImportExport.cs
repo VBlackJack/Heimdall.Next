@@ -1,0 +1,241 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Text;
+using Heimdall.Core.Logging;
+
+namespace Heimdall.Core.Ssh;
+
+public sealed record KnownHostsImportConflict(
+    string Host,
+    int Port,
+    string ExistingFingerprint,
+    string ImportedFingerprint,
+    string Algorithm,
+    int SourceLineNumber);
+
+public sealed record KnownHostsImportReport(
+    int Imported,
+    int Matched,
+    IReadOnlyList<KnownHostsImportConflict> Conflicts);
+
+public sealed record KnownHostsExportReport(
+    int Written,
+    int Preserved,
+    int SkippedWithoutPublicKey);
+
+public sealed class KnownHostsImporter(IHostKeyTrustService trustService)
+{
+    private readonly IHostKeyTrustService _trustService = trustService;
+
+    public KnownHostsImportReport ImportFile(string? path = null, DateTimeOffset? importedAt = null)
+    {
+        path ??= GetDefaultKnownHostsPath();
+        if (!File.Exists(path))
+        {
+            return new KnownHostsImportReport(0, 0, []);
+        }
+
+        var content = File.ReadAllText(path, Encoding.UTF8);
+        return Import(KnownHostsParser.Parse(content), importedAt ?? DateTimeOffset.UtcNow);
+    }
+
+    public KnownHostsImportReport Import(KnownHostsParseResult parseResult, DateTimeOffset importedAt)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+
+        var imported = 0;
+        var matched = 0;
+        var conflicts = new List<KnownHostsImportConflict>();
+
+        foreach (var diagnostic in parseResult.Diagnostics)
+        {
+            LogDiagnostic(diagnostic);
+        }
+
+        foreach (var entry in parseResult.Entries)
+        {
+            var fingerprint = HostKeyFormats.ComputeSha256Fingerprint(entry.Base64Key);
+            var existing = _trustService.GetEntry(entry.Host, entry.Port);
+            if (existing is null)
+            {
+                _trustService.Import(
+                    entry.Host,
+                    entry.Port,
+                    fingerprint,
+                    entry.KeyType,
+                    importedAt,
+                    Convert.ToBase64String(entry.Base64Key));
+                imported++;
+                continue;
+            }
+
+            if (string.Equals(existing.Fingerprint, fingerprint, StringComparison.Ordinal))
+            {
+                _trustService.Verify(entry.Host, entry.Port, fingerprint, entry.KeyType);
+                matched++;
+                FileLogger.Info($"known_hosts import matched existing trust entry for {entry.Host}:{entry.Port}");
+                continue;
+            }
+
+            conflicts.Add(new KnownHostsImportConflict(
+                entry.Host,
+                entry.Port,
+                existing.Fingerprint,
+                fingerprint,
+                entry.KeyType,
+                entry.SourceLineNumber));
+            FileLogger.Warn(
+                $"known_hosts import conflict for {entry.Host}:{entry.Port}: existing={existing.Fingerprint} imported={fingerprint}");
+        }
+
+        return new KnownHostsImportReport(imported, matched, conflicts);
+    }
+
+    public static string GetDefaultKnownHostsPath()
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(userProfile, ".ssh", "known_hosts");
+    }
+
+    private static void LogDiagnostic(KnownHostsImportDiagnostic diagnostic)
+    {
+        var message = $"known_hosts line {diagnostic.SourceLineNumber}: {diagnostic.Code}"
+            + (diagnostic.Context is null ? string.Empty : $" ({diagnostic.Context})");
+
+        if (diagnostic.Level == KnownHostsDiagnosticLevel.Warning)
+        {
+            FileLogger.Warn(message);
+        }
+        else
+        {
+            FileLogger.Info(message);
+        }
+    }
+}
+
+public sealed class KnownHostsExporter(
+    IHostKeyTrustService trustService,
+    Action<string, string>? writeAllText = null)
+{
+    private readonly IHostKeyTrustService _trustService = trustService;
+    private readonly Action<string, string> _writeAllText = writeAllText ?? ((path, content) => File.WriteAllText(path, content, Encoding.UTF8));
+
+    public KnownHostsExportReport ExportFile(string? path = null)
+    {
+        path ??= KnownHostsImporter.GetDefaultKnownHostsPath();
+        var existingLines = File.Exists(path)
+            ? File.ReadAllLines(path, Encoding.UTF8).ToList()
+            : [];
+
+        var entries = _trustService.GetAllEntries();
+        var writableEntries = entries
+            .Where(static entry => TryExportLine(entry.HostPort, entry.Entry, out _))
+            .ToDictionary(static entry => entry.HostPort, static entry => entry.Entry, StringComparer.Ordinal);
+        var written = new HashSet<string>(StringComparer.Ordinal);
+        var output = new List<string>();
+        var preserved = 0;
+
+        foreach (var line in existingLines)
+        {
+            if (!TryFindWritableKnownHostKey(line, writableEntries, out var matchedKey))
+            {
+                output.Add(line);
+                preserved++;
+                continue;
+            }
+
+            if (written.Add(matchedKey)
+                && TryExportLine(matchedKey, writableEntries[matchedKey], out var replacement))
+            {
+                output.Add(replacement);
+            }
+        }
+
+        foreach (var (hostPort, entry) in writableEntries)
+        {
+            if (written.Add(hostPort) && TryExportLine(hostPort, entry, out var line))
+            {
+                output.Add(line);
+            }
+        }
+
+        var skipped = entries.Count - writableEntries.Count;
+        WriteAtomic(path, string.Join(Environment.NewLine, output) + Environment.NewLine);
+        return new KnownHostsExportReport(written.Count, preserved, skipped);
+    }
+
+    private void WriteAtomic(string path, string content)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var temp = Path.Combine(directory ?? string.Empty, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        _writeAllText(temp, content);
+
+        if (File.Exists(path))
+        {
+            File.Replace(temp, path, null, ignoreMetadataErrors: true);
+        }
+        else
+        {
+            File.Move(temp, path);
+        }
+    }
+
+    private static bool TryFindWritableKnownHostKey(
+        string line,
+        IReadOnlyDictionary<string, HostKeyEntry> entries,
+        out string matchedKey)
+    {
+        matchedKey = string.Empty;
+        var parsed = KnownHostsParser.Parse(line);
+        foreach (var entry in parsed.Entries)
+        {
+            if (entry.IsHashedHost)
+            {
+                continue;
+            }
+
+            var key = HostKeyFormats.MakeKey(entry.Host, entry.Port);
+            if (entries.ContainsKey(key))
+            {
+                matchedKey = key;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryExportLine(string hostPort, HostKeyEntry entry, out string line)
+    {
+        line = string.Empty;
+        if (string.IsNullOrWhiteSpace(entry.PublicKeyBase64)
+            || !HostKeyFormats.TryParseKey(hostPort, out var host, out var port)
+            || host.StartsWith("|1|", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var hostField = port == 22 ? host : $"[{host}]:{port}";
+        line = $"{hostField} {entry.Algorithm} {entry.PublicKeyBase64}";
+        return true;
+    }
+}

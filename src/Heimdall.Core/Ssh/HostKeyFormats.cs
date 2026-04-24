@@ -49,4 +49,33 @@ public static class HostKeyFormats
             ? $"[{host}]:{port}"
             : $"{host}:{port}";
     }
+
+    public static bool TryParseKey(string hostPortKey, out string host, out int port)
+    {
+        ArgumentNullException.ThrowIfNull(hostPortKey);
+
+        host = string.Empty;
+        port = 0;
+
+        if (hostPortKey.StartsWith("[", StringComparison.Ordinal))
+        {
+            var closing = hostPortKey.IndexOf(']');
+            if (closing <= 0 || closing + 2 > hostPortKey.Length || hostPortKey[closing + 1] != ':')
+            {
+                return false;
+            }
+
+            host = hostPortKey[1..closing];
+            return int.TryParse(hostPortKey[(closing + 2)..], out port) && port is >= 1 and <= 65535;
+        }
+
+        var separator = hostPortKey.LastIndexOf(':');
+        if (separator <= 0 || separator == hostPortKey.Length - 1)
+        {
+            return false;
+        }
+
+        host = hostPortKey[..separator];
+        return int.TryParse(hostPortKey[(separator + 1)..], out port) && port is >= 1 and <= 65535;
+    }
 }

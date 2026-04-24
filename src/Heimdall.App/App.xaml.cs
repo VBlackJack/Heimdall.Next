@@ -33,6 +33,7 @@ using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
+using KnownHostsImporter = Heimdall.App.Services.Import.KnownHostsImporter;
 
 namespace Heimdall.App;
 

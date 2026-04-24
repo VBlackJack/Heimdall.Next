@@ -29,8 +29,41 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
     public event Action<string, HostKeyEntry, HostKeyEntry>? EntryReplaced;
 
     public HostKeyEntry? GetEntry(string host, int port)
+        => TryFindStoredEntry(host, port, out _, out var entry) ? entry : null;
+
+    private bool TryFindStoredEntry(
+        string host,
+        int port,
+        out string hostPort,
+        out HostKeyEntry entry)
     {
-        return _store.GetEntry(host, port);
+        hostPort = HostKeyFormats.MakeKey(host, port);
+        var direct = _store.GetEntry(host, port);
+        if (direct is not null)
+        {
+            entry = direct;
+            return true;
+        }
+
+        foreach (var (storedHostPort, storedEntry) in _store.GetAllEntries())
+        {
+            if (!HostKeyFormats.TryParseKey(storedHostPort, out var storedHost, out var storedPort)
+                || storedPort != port
+                || !storedHost.StartsWith("|1|", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (KnownHostsHash.TryMatches(storedHost, host))
+            {
+                hostPort = storedHostPort;
+                entry = storedEntry;
+                return true;
+            }
+        }
+
+        entry = null!;
+        return false;
     }
 
     public IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries()
@@ -49,8 +82,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(presentedFingerprint);
 
-        var existing = _store.GetEntry(host, port);
-        if (existing is null)
+        if (!TryFindStoredEntry(host, port, out var hostPort, out var existing))
         {
             return new HostKeyVerifyResult(
                 Trusted: true,
@@ -70,8 +102,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
         }
 
         _store.SetEntry(
-            host,
-            port,
+            hostPort,
             existing with
             {
                 LastSeen = DateTimeOffset.UtcNow,
@@ -91,7 +122,8 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
         int port,
         string fingerprint,
         string algorithm,
-        HostKeySource source)
+        HostKeySource source,
+        string? publicKeyBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(fingerprint);
@@ -104,7 +136,8 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
             existing?.FirstSeen > DateTimeOffset.MinValue ? existing.FirstSeen : now,
             now,
             NormalizeAlgorithm(algorithm, existing?.Algorithm),
-            source);
+            source)
+        { PublicKeyBase64 = publicKeyBase64 ?? existing?.PublicKeyBase64 };
 
         _store.SetEntry(host, port, entry, raiseEvent: true);
 
@@ -123,7 +156,8 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
         int port,
         string fingerprint,
         string algorithm,
-        DateTimeOffset importedAt)
+        DateTimeOffset importedAt,
+        string? publicKeyBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(fingerprint);
@@ -135,7 +169,8 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
             importedAt,
             importedAt,
             NormalizeAlgorithm(algorithm, existing?.Algorithm),
-            HostKeySource.ImportedKnownHosts);
+            HostKeySource.ImportedKnownHosts)
+        { PublicKeyBase64 = publicKeyBase64 ?? existing?.PublicKeyBase64 };
 
         _store.SetEntry(host, port, entry, raiseEvent: true);
 
