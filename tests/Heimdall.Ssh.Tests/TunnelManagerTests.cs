@@ -52,6 +52,18 @@ public class TunnelManagerTests : IDisposable
             isAlive ?? (() => true));
     }
 
+    private static SshConnectionParams MakeSshParams(
+        string host = "127.0.0.1",
+        int port = 22) =>
+        new()
+        {
+            Host = host,
+            Port = port,
+            Username = "testuser",
+            Password = "secret",
+            ConnectTimeout = TimeSpan.FromMilliseconds(100)
+        };
+
     // ── Initial state ─────────────────────────────────────────────────
 
     [Fact]
@@ -492,5 +504,209 @@ public class TunnelManagerTests : IDisposable
 
         // 10001 still has 2 refs
         Assert.True(_manager.HasTunnel(10001));
+    }
+
+    // ── OpenTunnelAsync characterization ─────────────────────────────
+
+    [Fact]
+    public async Task OpenTunnelAsync_PortAlreadyTracked_ReturnsPortInUseWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        RegisterFake(10001);
+        openedCount = 0;
+
+        var result = await _manager.OpenTunnelAsync(
+            MakeSshParams(),
+            "target.internal",
+            3389,
+            10001);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.PortInUse, result.FailureCode);
+        Assert.Contains("already in use", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+    }
+
+    [Fact]
+    public async Task OpenTunnelAsync_CancelledBeforeConnect_ReturnsCancelledWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var result = await _manager.OpenTunnelAsync(
+            MakeSshParams(),
+            "target.internal",
+            3389,
+            10001,
+            cts.Token);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.Cancelled, result.FailureCode);
+        Assert.Equal("Tunnel establishment was cancelled.", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
+    [Fact]
+    public async Task OpenTunnelAsync_HostKeyStoreWithoutVerifier_ReturnsUnknownWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+
+        var result = await _manager.OpenTunnelAsync(
+            MakeSshParams(),
+            "target.internal",
+            3389,
+            10001,
+            hostKeyStore: new HostKeyStore(),
+            verifier: null);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.Unknown, result.FailureCode);
+        Assert.Equal("IHostKeyVerifier is required when HostKeyStore is provided.", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
+    // ── OpenChainedTunnelAsync characterization ──────────────────────
+
+    [Fact]
+    public async Task OpenChainedTunnelAsync_EmptyChain_ReturnsUnknown()
+    {
+        var result = await _manager.OpenChainedTunnelAsync(
+            [],
+            "target.internal",
+            3389,
+            10001);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.Unknown, result.FailureCode);
+        Assert.Equal("Gateway chain must contain at least one gateway.", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task OpenChainedTunnelAsync_PortAlreadyTracked_ReturnsPortInUseWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        RegisterFake(10001);
+        openedCount = 0;
+
+        var result = await _manager.OpenChainedTunnelAsync(
+            [MakeSshParams("gateway1.example.com"), MakeSshParams("gateway2.example.com")],
+            "target.internal",
+            3389,
+            10001);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.PortInUse, result.FailureCode);
+        Assert.Contains("already in use", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+    }
+
+    [Fact]
+    public async Task OpenChainedTunnelAsync_CancelledBeforeRootConnect_ReturnsChainedCancelledWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var result = await _manager.OpenChainedTunnelAsync(
+            [MakeSshParams("gateway1.example.com"), MakeSshParams("gateway2.example.com")],
+            "target.internal",
+            3389,
+            10001,
+            cts.Token);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.Cancelled, result.FailureCode);
+        Assert.Equal("Chained tunnel establishment was cancelled.", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
+    [Fact]
+    public async Task OpenChainedTunnelAsync_HostKeyStoreWithoutVerifier_ReturnsUnknownWithoutEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+
+        var result = await _manager.OpenChainedTunnelAsync(
+            [MakeSshParams("gateway1.example.com"), MakeSshParams("gateway2.example.com")],
+            "target.internal",
+            3389,
+            10001,
+            hostKeyStore: new HostKeyStore(),
+            verifier: null);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Tunnel);
+        Assert.Equal(SshFailureCode.Unknown, result.FailureCode);
+        Assert.Equal("IHostKeyVerifier is required when HostKeyStore is provided.", result.ErrorMessage);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
+    [Fact]
+    public async Task OpenChainedTunnelAsync_SingleGateway_DelegatesToSingleHopBehavior()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var result = await _manager.OpenChainedTunnelAsync(
+            [MakeSshParams()],
+            "target.internal",
+            3389,
+            10001,
+            cts.Token);
+
+        Assert.False(result.Success);
+        Assert.Equal(SshFailureCode.Cancelled, result.FailureCode);
+        Assert.Equal("Tunnel establishment was cancelled.", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void TryRegisterExternalTunnel_Duplicate_DoesNotFireOpenOrCloseEvents()
+    {
+        var openedCount = 0;
+        var closedCount = 0;
+        _manager.TunnelOpened += _ => openedCount++;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        RegisterFake(10001);
+        openedCount = 0;
+
+        var result = RegisterFake(10001);
+
+        Assert.False(result);
+        Assert.Equal(0, openedCount);
+        Assert.Equal(0, closedCount);
     }
 }
