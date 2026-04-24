@@ -34,12 +34,13 @@ public sealed record HostKeyVerifyResult(
 
 /// <summary>
 /// Trust-On-First-Use host key verification store.
-/// Stores SHA256 fingerprints per host:port, blocks on mismatch.
+/// Stores host key entries per host:port, blocks on mismatch.
 /// Thread-safe via <see cref="ConcurrentDictionary{TKey, TValue}"/>.
 /// </summary>
 public sealed class HostKeyStore
 {
-    private readonly ConcurrentDictionary<string, string> _trustedKeys = new();
+    private const string UnknownAlgorithm = "unknown";
+    private readonly ConcurrentDictionary<string, HostKeyEntry> _trustedKeys = new();
 
     /// <summary>
     /// Raised whenever a host key is explicitly trusted.
@@ -66,8 +67,8 @@ public sealed class HostKeyStore
 
         if (_trustedKeys.TryGetValue(key, out var stored))
         {
-            var match = string.Equals(stored, fingerprint, StringComparison.Ordinal);
-            return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored);
+            var match = string.Equals(stored.Fingerprint, fingerprint, StringComparison.Ordinal);
+            return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored.Fingerprint);
         }
 
         // First use: trusted by TOFU policy
@@ -87,7 +88,24 @@ public sealed class HostKeyStore
         {
             if (!string.IsNullOrWhiteSpace(fingerprint))
             {
-                _trustedKeys[HostKeyFormats.MakeKey(host, port)] = fingerprint;
+                _trustedKeys[HostKeyFormats.MakeKey(host, port)] = CreateLegacyEntry(fingerprint);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Populate the store from persisted metadata-rich host key entries.
+    /// Called at startup before any connections are made.
+    /// </summary>
+    public void LoadEntriesFromConfig(IEnumerable<(string host, int port, HostKeyEntry? entry)> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+
+        foreach (var (host, port, entry) in entries)
+        {
+            if (entry is not null && !string.IsNullOrWhiteSpace(entry.Fingerprint))
+            {
+                _trustedKeys[HostKeyFormats.MakeKey(host, port)] = NormalizeEntry(entry);
             }
         }
     }
@@ -98,7 +116,16 @@ public sealed class HostKeyStore
     public string? GetFingerprint(string host, int port)
     {
         ArgumentNullException.ThrowIfNull(host);
-        return _trustedKeys.TryGetValue(HostKeyFormats.MakeKey(host, port), out var fp) ? fp : null;
+        return _trustedKeys.TryGetValue(HostKeyFormats.MakeKey(host, port), out var entry) ? entry.Fingerprint : null;
+    }
+
+    /// <summary>
+    /// Get the stored metadata entry for a host, or null if unknown.
+    /// </summary>
+    public HostKeyEntry? GetEntry(string host, int port)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        return _trustedKeys.TryGetValue(HostKeyFormats.MakeKey(host, port), out var entry) ? entry : null;
     }
 
     /// <summary>
@@ -106,13 +133,44 @@ public sealed class HostKeyStore
     /// Trust uses upsert semantics and emits <see cref="HostKeyEvent"/> for persistence.
     /// </summary>
     public void Trust(string host, int port, string fingerprint)
+        => Trust(host, port, fingerprint, UnknownAlgorithm, HostKeySource.UserConfirmed);
+
+    /// <summary>
+    /// Manually trust a host key with metadata.
+    /// Trust uses upsert semantics and emits <see cref="HostKeyEvent"/> for persistence.
+    /// </summary>
+    public void Trust(
+        string host,
+        int port,
+        string fingerprint,
+        string algorithm,
+        HostKeySource source)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(fingerprint);
 
         var key = HostKeyFormats.MakeKey(host, port);
-        _trustedKeys[key] = fingerprint;
+        _trustedKeys[key] = new HostKeyEntry(
+            fingerprint,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow,
+            string.IsNullOrWhiteSpace(algorithm) ? UnknownAlgorithm : algorithm,
+            source);
         HostKeyEvent?.Invoke(key, fingerprint, true);
+    }
+
+    /// <summary>
+    /// Store a pre-built host key entry.
+    /// </summary>
+    public void TrustEntry(string host, int port, HostKeyEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        var normalized = NormalizeEntry(entry);
+        var key = HostKeyFormats.MakeKey(host, port);
+        _trustedKeys[key] = normalized;
+        HostKeyEvent?.Invoke(key, normalized.Fingerprint, true);
     }
 
     /// <summary>
@@ -128,7 +186,19 @@ public sealed class HostKeyStore
     /// Get all trusted entries for persistence to config.
     /// </summary>
     public IReadOnlyDictionary<string, string> GetAllTrusted()
-        => _trustedKeys;
+        => _trustedKeys.ToDictionary(
+            static kvp => kvp.Key,
+            static kvp => kvp.Value.Fingerprint,
+            StringComparer.Ordinal);
+
+    /// <summary>
+    /// Get all trusted metadata entries.
+    /// </summary>
+    public IReadOnlyDictionary<string, HostKeyEntry> GetAllEntries()
+        => _trustedKeys.ToDictionary(
+            static kvp => kvp.Key,
+            static kvp => kvp.Value,
+            StringComparer.Ordinal);
 
     /// <summary>
     /// Compute a SHA256 fingerprint from raw host key bytes.
@@ -137,5 +207,23 @@ public sealed class HostKeyStore
     internal static string ComputeFingerprint(byte[] hostKey)
     {
         return HostKeyFormats.ComputeSha256Fingerprint(hostKey);
+    }
+
+    private static HostKeyEntry CreateLegacyEntry(string fingerprint)
+    {
+        return new HostKeyEntry(
+            fingerprint,
+            DateTimeOffset.MinValue,
+            DateTimeOffset.MinValue,
+            UnknownAlgorithm,
+            HostKeySource.Unknown);
+    }
+
+    private static HostKeyEntry NormalizeEntry(HostKeyEntry entry)
+    {
+        return entry with
+        {
+            Algorithm = string.IsNullOrWhiteSpace(entry.Algorithm) ? UnknownAlgorithm : entry.Algorithm
+        };
     }
 }

@@ -19,6 +19,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.Core.Configuration;
 
@@ -168,9 +169,9 @@ public sealed class ConfigManager : IConfigManager
 
         var json = await File.ReadAllTextAsync(_settingsPath, Utf8NoBom)
             .ConfigureAwait(false);
-        var settings = JsonSerializer.Deserialize<AppSettings>(json, ReadOptions);
-
-        return settings ?? new AppSettings();
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, ReadOptions) ?? new AppSettings();
+        NormalizeTrustedHostKeys(settings);
+        return settings;
     }
 
     /// <summary>
@@ -183,6 +184,7 @@ public sealed class ConfigManager : IConfigManager
         await _writeLock.WaitAsync().ConfigureAwait(false);
         try
         {
+            NormalizeTrustedHostKeys(settings);
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
             ApplyFileAcl(_settingsPath);
@@ -212,12 +214,14 @@ public sealed class ConfigManager : IConfigManager
         try
         {
             var settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
-            if (settings.TrustedHostKeys.ContainsKey(hostPortKey))
+            if (settings.TrustedHostKeysV2.ContainsKey(hostPortKey))
             {
                 return false;
             }
 
-            settings.TrustedHostKeys[hostPortKey] = fingerprint;
+            var entry = CreateUserConfirmedHostKeyEntry(fingerprint);
+            settings.TrustedHostKeysV2[hostPortKey] = entry;
+            settings.TrustedHostKeys.TryAdd(hostPortKey, fingerprint);
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
             ApplyFileAcl(_settingsPath);
@@ -249,12 +253,13 @@ public sealed class ConfigManager : IConfigManager
                     continue;
                 }
 
-                if (settings.TrustedHostKeys.ContainsKey(entry.Key))
+                if (settings.TrustedHostKeysV2.ContainsKey(entry.Key))
                 {
                     continue;
                 }
 
-                settings.TrustedHostKeys[entry.Key] = entry.Value;
+                settings.TrustedHostKeysV2[entry.Key] = CreateUserConfirmedHostKeyEntry(entry.Value);
+                settings.TrustedHostKeys.TryAdd(entry.Key, entry.Value);
                 added++;
             }
 
@@ -310,7 +315,47 @@ public sealed class ConfigManager : IConfigManager
         }
 
         var json = await File.ReadAllTextAsync(_settingsPath, Utf8NoBom).ConfigureAwait(false);
-        return JsonSerializer.Deserialize<AppSettings>(json, ReadOptions) ?? new AppSettings();
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, ReadOptions) ?? new AppSettings();
+        NormalizeTrustedHostKeys(settings);
+        return settings;
+    }
+
+    private static void NormalizeTrustedHostKeys(AppSettings settings)
+    {
+        if (settings.TrustedHostKeysV2.Count == 0 && settings.TrustedHostKeys.Count > 0)
+        {
+            foreach (var (key, fingerprint) in settings.TrustedHostKeys)
+            {
+                if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    settings.TrustedHostKeysV2[key] = new HostKeyEntry(
+                        fingerprint,
+                        DateTimeOffset.MinValue,
+                        DateTimeOffset.MinValue,
+                        "unknown",
+                        HostKeySource.Unknown);
+                }
+            }
+        }
+
+        foreach (var (key, entry) in settings.TrustedHostKeysV2)
+        {
+            if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(entry.Fingerprint))
+            {
+                settings.TrustedHostKeys.TryAdd(key, entry.Fingerprint);
+            }
+        }
+    }
+
+    private static HostKeyEntry CreateUserConfirmedHostKeyEntry(string fingerprint)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return new HostKeyEntry(
+            fingerprint,
+            now,
+            now,
+            "unknown",
+            HostKeySource.UserConfirmed);
     }
 
     /// <summary>
