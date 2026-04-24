@@ -404,6 +404,10 @@ public sealed class PageantClient : IDisposable
              | buffer[offset + 3];
     }
 
+    /// <summary>
+    /// Marks the client disposed. The current implementation owns no long-lived
+    /// handles; <see cref="IDisposable"/> is reserved for future handle caching.
+    /// </summary>
     public void Dispose()
     {
         _disposed = true;
