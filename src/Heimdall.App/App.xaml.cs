@@ -156,7 +156,16 @@ public partial class App : System.Windows.Application
 
             // Load trusted SSH host keys into the TOFU store
             var hostKeyStore = _serviceProvider.GetRequiredService<HostKeyStore>();
-            if (settings.TrustedHostKeys.Count > 0)
+            if (settings.TrustedHostKeysV2.Count > 0)
+            {
+                var entries = settings.TrustedHostKeysV2.Select(kvp =>
+                {
+                    ParseHostKeyEntry(kvp.Key, out var host, out var port);
+                    return (host, port, (HostKeyEntry?)kvp.Value);
+                });
+                hostKeyStore.LoadEntriesFromConfig(entries);
+            }
+            else if (settings.TrustedHostKeys.Count > 0)
             {
                 var entries = settings.TrustedHostKeys.Select(kvp =>
                 {
@@ -168,6 +177,16 @@ public partial class App : System.Windows.Application
 
             // Persist newly trusted host keys back to settings via transactional merge.
             // Fire-and-forget on purpose: TOFU acceptance must not block the caller path.
+            var hostKeyTrustService = _serviceProvider.GetRequiredService<IHostKeyTrustService>();
+            hostKeyTrustService.EntryTrusted += (key, entry) =>
+            {
+                _ = PersistTrustedHostKeyEntryAsync(configManager, key, entry);
+            };
+            hostKeyTrustService.EntryReplaced += (key, oldEntry, entry) =>
+            {
+                _ = PersistTrustedHostKeyEntryAsync(configManager, key, entry);
+            };
+
             hostKeyStore.HostKeyEvent += (key, fingerprint, trusted) =>
             {
                 if (!trusted)
@@ -177,6 +196,8 @@ public partial class App : System.Windows.Application
 
                 _ = PersistTrustedHostKeyAsync(configManager, key, fingerprint);
             };
+
+            _serviceProvider.GetRequiredService<KnownHostsStartupSync>().StartIfEnabled(settings);
 
             // Subscribe to runtime settings changes for logging and theme updates
             configManager.SettingsChanged += OnSettingsChanged;
@@ -284,6 +305,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ApplicationStatusMachine>();
         services.AddSingleton<HostKeyStore>();
         services.AddSingleton<IHostKeyTrustService, HostKeyTrustService>();
+        services.AddSingleton<KnownHostsStartupSync>();
         services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<PinManager>();
 
@@ -405,6 +427,26 @@ public partial class App : System.Windows.Application
         {
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"Failed to persist host key for {key}: {ex.Message}");
+        }
+    }
+
+    internal static async Task PersistTrustedHostKeyEntryAsync(
+        IConfigManager configManager,
+        string key,
+        HostKeyEntry entry)
+    {
+        try
+        {
+            await configManager.MergeSettingAsync(settings =>
+            {
+                settings.TrustedHostKeysV2[key] = entry;
+                settings.TrustedHostKeys[key] = entry.Fingerprint;
+            });
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"Failed to persist host key metadata for {key}: {ex.Message}");
         }
     }
 
