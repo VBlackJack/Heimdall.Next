@@ -51,6 +51,9 @@ public static class FailureClassifier
 
         return ex switch
         {
+            HostKeyRejectedException hostKeyRejected =>
+                ClassifyHostKeyRejected(hostKeyRejected),
+
             SshAuthenticationException authEx =>
                 ClassifyAuthException(authEx, connectionParams),
 
@@ -130,6 +133,13 @@ public static class FailureClassifier
         }
 
         return new SshFailureInfo(SshFailureCode.NoSupportedAuth, "No supported authentication method.", true, ex);
+    }
+
+    private static SshFailureInfo ClassifyHostKeyRejected(HostKeyRejectedException ex)
+    {
+        return ex.IsMismatch
+            ? new SshFailureInfo(SshFailureCode.HostKeyMismatch, ex.Message, true, ex)
+            : new SshFailureInfo(SshFailureCode.Cancelled, "Connection was cancelled.", false, ex);
     }
 
     private static SshFailureInfo ClassifyConnectionException(

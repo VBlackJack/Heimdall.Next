@@ -62,6 +62,23 @@ public sealed class SshSessionDiagnosticFactoryTests
         Assert.Equal("Gateway tunnel failed.", diagnostic.Detail);
     }
 
+    [Fact]
+    public void CreateHostKeyMismatchFailure_UsesHostKeyStageAndCode()
+    {
+        var diagnostic = SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
+            "SHA256:stored",
+            "SHA256:presented",
+            "server.example.com",
+            22);
+
+        Assert.Equal(SessionFailureStage.SshHostKey, diagnostic.Stage);
+        Assert.Equal("ErrorHostKeyMismatch", diagnostic.MessageKey);
+        Assert.Equal((int)SshFailureCode.HostKeyMismatch, diagnostic.Code);
+        Assert.Contains("server.example.com:22", diagnostic.Detail);
+        Assert.Contains("SHA256:stored", diagnostic.Detail);
+        Assert.Contains("SHA256:presented", diagnostic.Detail);
+    }
+
     [Theory]
     [InlineData(SshFailureCode.NetworkRefused)]
     [InlineData(SshFailureCode.NetworkTimedOut)]

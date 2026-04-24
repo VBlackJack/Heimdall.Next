@@ -16,6 +16,10 @@
 
 namespace Heimdall.Ssh.Tests;
 
+// The plink TOFU caller shells out to plink.exe and is not currently isolated
+// behind a unit-test seam. These tests cover the HostKeyStore contract used by
+// both the SSH.NET path and the plink fallback, including first-trust
+// persistence signaling via HostKeyEvent.
 public class HostKeyStoreTests
 {
     private readonly HostKeyStore _store = new();
@@ -111,37 +115,28 @@ public class HostKeyStoreTests
     // ── HostKeyEvent ───────────────────────────────────────────────────
 
     [Fact]
-    public void Verify_RaisesHostKeyEvent()
+    public void Verify_DoesNotRaiseHostKeyEvent()
     {
-        string? eventHost = null;
-        string? eventFingerprint = null;
-        bool? eventTrusted = null;
+        var eventRaised = false;
 
-        _store.HostKeyEvent += (host, fp, trusted) =>
-        {
-            eventHost = host;
-            eventFingerprint = fp;
-            eventTrusted = trusted;
-        };
+        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
 
         _store.Verify("test.host", 22, _sampleKey);
 
-        Assert.Equal("test.host:22", eventHost);
-        Assert.NotNull(eventFingerprint);
-        Assert.True(eventTrusted);
+        Assert.False(eventRaised);
     }
 
     [Fact]
-    public void Verify_Mismatch_RaisesEventWithFalse()
+    public void Verify_Mismatch_DoesNotRaiseHostKeyEvent()
     {
         _store.Trust("test.host", 22, "SHA256:old");
-        bool? eventTrusted = null;
+        var eventRaised = false;
 
-        _store.HostKeyEvent += (_, _, trusted) => eventTrusted = trusted;
+        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
 
         _store.Verify("test.host", 22, _sampleKey);
 
-        Assert.False(eventTrusted);
+        Assert.False(eventRaised);
     }
 
     // ── LoadFromConfig ─────────────────────────────────────────────────
@@ -184,6 +179,44 @@ public class HostKeyStoreTests
         _store.Trust("myhost", 22, "SHA256:test");
 
         Assert.Equal("SHA256:test", _store.GetFingerprint("myhost", 22));
+    }
+
+    [Fact]
+    public void Trust_RaisesHostKeyEventWithTrustedTrue()
+    {
+        string? eventHost = null;
+        string? eventFingerprint = null;
+        bool? eventTrusted = null;
+
+        _store.HostKeyEvent += (host, fp, trusted) =>
+        {
+            eventHost = host;
+            eventFingerprint = fp;
+            eventTrusted = trusted;
+        };
+
+        _store.Trust("myhost", 22, "SHA256:test");
+
+        Assert.Equal("myhost:22", eventHost);
+        Assert.Equal("SHA256:test", eventFingerprint);
+        Assert.True(eventTrusted);
+    }
+
+    [Fact]
+    public void Verify_FirstUseThenTrust_RaisesTrustedEventOnlyOnce()
+    {
+        var trustedEvents = new List<(string Host, string Fingerprint, bool Trusted)>();
+
+        _store.HostKeyEvent += (host, fingerprint, trusted) =>
+            trustedEvents.Add((host, fingerprint, trusted));
+
+        var result = _store.Verify("test.host", 22, _sampleKey);
+        _store.Trust("test.host", 22, result.Fingerprint);
+
+        var trustedEvent = Assert.Single(trustedEvents);
+        Assert.Equal("test.host:22", trustedEvent.Host);
+        Assert.Equal(result.Fingerprint, trustedEvent.Fingerprint);
+        Assert.True(trustedEvent.Trusted);
     }
 
     [Fact]

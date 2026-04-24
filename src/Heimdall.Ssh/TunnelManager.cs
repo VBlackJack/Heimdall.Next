@@ -16,6 +16,7 @@
 
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using Heimdall.Core.Ssh;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
@@ -90,6 +91,7 @@ public sealed class TunnelManager : IDisposable
         int localPort,
         CancellationToken cancellationToken = default,
         HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? verifier = null,
         int keepAliveIntervalSeconds = 30,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
@@ -118,8 +120,18 @@ public sealed class TunnelManager : IDisposable
 
             if (hostKeyStore is not null)
             {
+                if (verifier is null)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        "TunnelManager called without an IHostKeyVerifier — falling back to auto-accept; this is unsafe and indicates a missing DI wiring.");
+                }
+
                 SshConnectionFactory.AttachHostKeyVerification(
-                    client, gatewayParams.Host, gatewayParams.Port, hostKeyStore);
+                    client,
+                    gatewayParams.Host,
+                    gatewayParams.Port,
+                    hostKeyStore,
+                    verifier ?? AutoAcceptHostKeyVerifier.Instance);
             }
 
             client.ErrorOccurred += (_, args) =>
@@ -191,45 +203,39 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             return new TunnelResult(false, null, "Tunnel establishment was cancelled.", SshFailureCode.Cancelled);
+        }
+        catch (HostKeyRejectedException ex)
+        {
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
+            var code = ex.IsMismatch ? SshFailureCode.HostKeyMismatch : SshFailureCode.Cancelled;
+            return new TunnelResult(false, null, ex.Message, code);
         }
         catch (SshAuthenticationException ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (SshConnectionException ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.NetworkRefused);
         }
         catch (SshException ex) when (ex.Message.Contains("port", StringComparison.OrdinalIgnoreCase))
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.PortInUse);
         }
         catch (Exception ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupPartial(client, forwardedPort);
+            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
     }
@@ -253,6 +259,7 @@ public sealed class TunnelManager : IDisposable
         int localPort,
         CancellationToken cancellationToken = default,
         HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? verifier = null,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
         int remoteLocalPort = 0)
@@ -269,6 +276,7 @@ public sealed class TunnelManager : IDisposable
         if (gatewayChain.Count == 1)
         {
             return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore,
+                    verifier,
                     socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort)
                 .ConfigureAwait(false);
         }
@@ -301,8 +309,18 @@ public sealed class TunnelManager : IDisposable
 
             if (hostKeyStore is not null)
             {
+                if (verifier is null)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        "TunnelManager called without an IHostKeyVerifier — falling back to auto-accept; this is unsafe and indicates a missing DI wiring.");
+                }
+
                 SshConnectionFactory.AttachHostKeyVerification(
-                    rootClient, gatewayChain[0].Host, gatewayChain[0].Port, hostKeyStore);
+                    rootClient,
+                    gatewayChain[0].Host,
+                    gatewayChain[0].Port,
+                    hostKeyStore,
+                    verifier ?? AutoAcceptHostKeyVerifier.Instance);
             }
 
             await using var rootConnectReg = cancellationToken.Register(
@@ -354,7 +372,11 @@ public sealed class TunnelManager : IDisposable
                 {
                     // Verify against the real gateway host, not 127.0.0.1
                     SshConnectionFactory.AttachHostKeyVerification(
-                        hopClient, nextGateway.Host, nextGateway.Port, hostKeyStore);
+                        hopClient,
+                        nextGateway.Host,
+                        nextGateway.Port,
+                        hostKeyStore,
+                        verifier ?? AutoAcceptHostKeyVerifier.Instance);
                 }
 
                 await using var hopConnectReg = cancellationToken.Register(
@@ -437,31 +459,29 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, "Chained tunnel establishment was cancelled.", SshFailureCode.Cancelled);
+        }
+        catch (HostKeyRejectedException ex)
+        {
+            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
+            var code = ex.IsMismatch ? SshFailureCode.HostKeyMismatch : SshFailureCode.Cancelled;
+            return new TunnelResult(false, null, ex.Message, code);
         }
         catch (SshAuthenticationException ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (Exception ex)
         {
-            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
-            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
-            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
     }
@@ -676,6 +696,30 @@ public sealed class TunnelManager : IDisposable
             SocketError.AddressAlreadyInUse => SshFailureCode.PortInUse,
             _ => SshFailureCode.Unknown
         };
+    }
+
+    private static void CleanupPartialFull(
+        SshClient? client, ForwardedPortLocal? forwardedPort, ForwardedPortDynamic? dynamicPort, ForwardedPortRemote? remotePortFwd)
+    {
+        SafeDispose(dynamicPort, "Dynamic port dispose suppressed");
+        SafeDispose(remotePortFwd, "Remote port forward dispose suppressed");
+        CleanupPartial(client, forwardedPort);
+    }
+
+    private static void CleanupChainPartialFull(
+        SshClient? finalClient, ForwardedPortLocal? finalPort, ForwardedPortDynamic? dynamicPort, ForwardedPortRemote? remotePortFwd,
+        List<SshClient> intermediateClients, List<ForwardedPortLocal> intermediatePorts)
+    {
+        SafeDispose(dynamicPort, "Dynamic port dispose suppressed");
+        SafeDispose(remotePortFwd, "Remote port forward dispose suppressed");
+        CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+    }
+
+    private static void SafeDispose(IDisposable? resource, string logMessage)
+    {
+        if (resource is null) { return; }
+        try { resource.Dispose(); }
+        catch (Exception ex) { Core.Logging.FileLogger.Debug(logMessage, ex); }
     }
 
     /// <summary>Safely cleans up a partially constructed single-hop tunnel.</summary>

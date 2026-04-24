@@ -16,6 +16,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 using Renci.SshNet;
 
@@ -35,6 +36,7 @@ public sealed class RemoteFileEditor : IDisposable
     private readonly IRemoteBrowser _browser;
     private readonly string _editorPath;
     private readonly HostKeyStore? _hostKeyStore;
+    private readonly IHostKeyVerifier? _hostKeyVerifier;
     private readonly ConcurrentDictionary<string, EditSession> _activeSessions = new();
     private bool _disposed;
 
@@ -56,12 +58,14 @@ public sealed class RemoteFileEditor : IDisposable
     public RemoteFileEditor(
         IRemoteBrowser browser,
         string editorPath = "notepad.exe",
-        HostKeyStore? hostKeyStore = null)
+        HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? hostKeyVerifier = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         _browser = browser;
         _editorPath = editorPath;
         _hostKeyStore = hostKeyStore;
+        _hostKeyVerifier = hostKeyVerifier;
     }
 
     /// <summary>
@@ -132,7 +136,11 @@ public sealed class RemoteFileEditor : IDisposable
         if (_hostKeyStore is not null)
         {
             SshConnectionFactory.AttachHostKeyVerification(
-                sshClient, sshParams.Host, sshParams.Port, _hostKeyStore);
+                sshClient,
+                sshParams.Host,
+                sshParams.Port,
+                _hostKeyStore,
+                _hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
         }
 
         await Task.Run(() =>
@@ -173,6 +181,7 @@ public sealed class RemoteFileEditor : IDisposable
             IsSudo = true,
             SshParams = sshParams,
             HostKeyStore = _hostKeyStore,
+            HostKeyVerifier = _hostKeyVerifier,
             LastUploadTime = DateTime.UtcNow
         };
 
@@ -373,9 +382,17 @@ public sealed class RemoteFileEditor : IDisposable
         if (session.HostKeyStore is not null)
         {
             SshConnectionFactory.AttachHostKeyVerification(
-                sftpClient, session.SshParams.Host, session.SshParams.Port, session.HostKeyStore);
+                sftpClient,
+                session.SshParams.Host,
+                session.SshParams.Port,
+                session.HostKeyStore,
+                session.HostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
             SshConnectionFactory.AttachHostKeyVerification(
-                sshClient, session.SshParams.Host, session.SshParams.Port, session.HostKeyStore);
+                sshClient,
+                session.SshParams.Host,
+                session.SshParams.Port,
+                session.HostKeyStore,
+                session.HostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
         }
 
         await Task.Run(() =>
@@ -476,6 +493,9 @@ internal sealed class EditSession : IDisposable
 
     /// <summary>TOFU host key store for server verification on sudo connections.</summary>
     public HostKeyStore? HostKeyStore { get; init; }
+
+    /// <summary>Host key verifier for sudo SSH connections.</summary>
+    public IHostKeyVerifier? HostKeyVerifier { get; init; }
 
     /// <summary>File system watcher for auto-upload on save.</summary>
     public FileSystemWatcher? Watcher { get; set; }

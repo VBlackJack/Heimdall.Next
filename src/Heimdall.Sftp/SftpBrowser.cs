@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Ssh;
+using Heimdall.Core.Ssh;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
 
@@ -59,6 +60,7 @@ public sealed class SftpBrowser : IRemoteBrowser
     public async Task ConnectAsync(
         SshConnectionParams connectionParams,
         HostKeyStore? hostKeyStore = null,
+        IHostKeyVerifier? hostKeyVerifier = null,
         CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -74,7 +76,11 @@ public sealed class SftpBrowser : IRemoteBrowser
         if (hostKeyStore is not null)
         {
             SshConnectionFactory.AttachHostKeyVerification(
-                _client, connectionParams.Host, connectionParams.Port, hostKeyStore);
+                _client,
+                connectionParams.Host,
+                connectionParams.Port,
+                hostKeyStore,
+                hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
         }
 
         await Task.Run(() =>

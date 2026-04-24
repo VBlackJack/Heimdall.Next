@@ -29,6 +29,7 @@ using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
@@ -281,6 +282,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ConnectionStateMachine>();
         services.AddSingleton<ApplicationStatusMachine>();
         services.AddSingleton<HostKeyStore>();
+        services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<PinManager>();
 
         // SSH/Tunnel services

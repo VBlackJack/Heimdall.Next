@@ -83,6 +83,9 @@ public static class WpfTestHost
                 try
                 {
                     _repoRoot = LocateRepoRoot();
+                    typeof(WpfApplication)
+                        .GetField("_resourceAssembly", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                        ?.SetValue(null, typeof(Heimdall.App.App).Assembly);
                     _application = WpfApplication.Current ?? new Heimdall.App.App();
                     if (_application is Heimdall.App.App app)
                     {

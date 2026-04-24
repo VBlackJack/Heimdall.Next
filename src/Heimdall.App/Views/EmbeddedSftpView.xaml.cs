@@ -22,6 +22,7 @@ using System.Windows.Media;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.Utilities;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
@@ -40,6 +41,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan StatusResetDelay = TimeSpan.FromSeconds(5);
     private readonly EmbeddedSftpViewModel _viewModel;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
 
     private IRemoteBrowser? _browser;
     private RemoteFileEditor? _editor;
@@ -80,6 +82,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         var services = (Application.Current as App)?.Services;
         var uiDispatcher = services?.GetRequiredService<IUiDispatcher>()
             ?? throw new InvalidOperationException("IUiDispatcher is not registered.");
+        _hostKeyVerifier = services?.GetRequiredService<IHostKeyVerifier>()
+            ?? throw new InvalidOperationException("IHostKeyVerifier is not registered.");
         _viewModel = new EmbeddedSftpViewModel(uiDispatcher);
         DataContext = _viewModel;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -123,9 +127,13 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             localizer,
             dialogService,
             sshParams,
-            hostKeyStore);
+            hostKeyStore,
+            _hostKeyVerifier);
 
-        _editor = new RemoteFileEditor(browser, hostKeyStore: hostKeyStore);
+        _editor = new RemoteFileEditor(
+            browser,
+            hostKeyStore: hostKeyStore,
+            hostKeyVerifier: _hostKeyVerifier);
         _editor.FileUploaded += OnEditorFileUploaded;
 
         // Hide sudo toggle for FTP sessions (no SSH channel for sudo)
@@ -1158,7 +1166,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
             // Create a fresh browser and reconnect
             var newBrowser = new SftpBrowser();
-            await newBrowser.ConnectAsync(_sshParams);
+            await newBrowser.ConnectAsync(
+                _sshParams,
+                _hostKeyStore,
+                _hostKeyVerifier);
 
             _browser = newBrowser;
             _browser.DirectoryChanged += OnDirectoryChanged;
@@ -1171,7 +1182,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 _editor.FileUploaded -= OnEditorFileUploaded;
                 _editor.Dispose();
             }
-            _editor = new RemoteFileEditor(newBrowser);
+            _editor = new RemoteFileEditor(
+                newBrowser,
+                hostKeyStore: _hostKeyStore,
+                hostKeyVerifier: _hostKeyVerifier);
             _editor.FileUploaded += OnEditorFileUploaded;
             _viewModel.Initialize(
                 newBrowser,
@@ -1181,7 +1195,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 _localizer ?? throw new InvalidOperationException("Localizer not available."),
                 _dialogService ?? throw new InvalidOperationException("Dialog service not available."),
                 _sshParams,
-                _hostKeyStore);
+                _hostKeyStore,
+                _hostKeyVerifier);
             _viewModel.CurrentPath = reconnectPath;
 
             // Restore connected UI state

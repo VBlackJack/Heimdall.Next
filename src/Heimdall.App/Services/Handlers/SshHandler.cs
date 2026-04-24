@@ -16,10 +16,12 @@
 
 using System.IO;
 using System.Net;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 
@@ -34,6 +36,7 @@ internal sealed class SshHandler : IProtocolHandler
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly X11ServerManager _x11ServerManager;
 
     internal Action<string>? SetStatusText { get; set; }
@@ -43,12 +46,14 @@ internal sealed class SshHandler : IProtocolHandler
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
         HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
         X11ServerManager x11ServerManager)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
         _localizer = localizer;
         _hostKeyStore = hostKeyStore;
+        _hostKeyVerifier = hostKeyVerifier;
         _x11ServerManager = x11ServerManager;
     }
 
@@ -127,13 +132,47 @@ internal sealed class SshHandler : IProtocolHandler
         var session = new SshShellSession();
         try
         {
-            await session.ConnectAsync(sshParams, hostKeyStore: _hostKeyStore, cancellationToken: ct)
+            await session.ConnectAsync(
+                    sshParams,
+                    hostKeyStore: _hostKeyStore,
+                    hostKeyVerifier: _hostKeyVerifier,
+                    cancellationToken: ct)
                 .ConfigureAwait(false);
             if (session.Client is { } connectedClient)
             {
                 connectedClient.KeepAliveInterval =
                     TimeSpan.FromSeconds(settings.SshKeepAliveIntervalSeconds);
             }
+        }
+        catch (HostKeyRejectedException ex)
+        {
+            session.Dispose();
+
+            if (ex.IsMismatch && !string.IsNullOrWhiteSpace(ex.StoredFingerprint))
+            {
+                var message = BuildHostKeyMismatchMessage(
+                    ex.StoredFingerprint,
+                    ex.PresentedFingerprint);
+                _connectionSm.SetError(server.Id, message);
+                return new ConnectionResult(
+                    false,
+                    message,
+                    null,
+                    SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
+                        ex.StoredFingerprint,
+                        ex.PresentedFingerprint,
+                        ex.Host,
+                        ex.Port));
+            }
+
+            var cancelledMessage = BuildCancelledMessage();
+            _connectionSm.SetError(server.Id, cancelledMessage);
+            return new ConnectionResult(
+                false,
+                cancelledMessage,
+                null,
+                SshSessionDiagnosticFactory.FromClassifiedFailure(
+                    new SshFailureInfo(SshFailureCode.Cancelled, cancelledMessage, false, ex)));
         }
         catch (Exception ex)
         {
@@ -328,14 +367,117 @@ internal sealed class SshHandler : IProtocolHandler
             ? $"{server.SshUsername}@{targetHost}"
             : targetHost;
 
-        var hostKeyArg = await ProbeHostKeyFingerprintAsync(
-                plinkPath,
-                targetHost,
-                targetPort,
-                server.SshUsername,
-                settings,
-                ct)
-            .ConfigureAwait(false);
+        var storedFingerprint = _hostKeyStore.GetFingerprint(targetHost, targetPort);
+        string? hostKeyArg = storedFingerprint;
+
+        if (!string.IsNullOrWhiteSpace(storedFingerprint))
+        {
+            Core.Logging.FileLogger.Info(
+                $"Using pinned host key for Plink path {targetHost}:{targetPort}: {storedFingerprint}");
+
+            var verifyPresentation = await ProbeHostKeyPresentationAsync(
+                    plinkPath,
+                    targetHost,
+                    targetPort,
+                    server.SshUsername,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+
+            if (verifyPresentation is not null
+                && !string.Equals(
+                    verifyPresentation.Fingerprint,
+                    storedFingerprint,
+                    StringComparison.Ordinal))
+            {
+                Core.Logging.FileLogger.Error(
+                    $"HOST KEY MISMATCH (plink path) for {targetHost}:{targetPort}! " +
+                    $"Stored={storedFingerprint} Presented={verifyPresentation.Fingerprint}");
+
+                var decision = await _hostKeyVerifier.VerifyAsync(
+                        targetHost,
+                        targetPort,
+                        verifyPresentation.Algorithm,
+                        verifyPresentation.Fingerprint,
+                        storedFingerprint,
+                        ct)
+                    .ConfigureAwait(false);
+
+                if (decision == HostKeyDecision.Accept)
+                {
+                    _hostKeyStore.Trust(
+                        targetHost,
+                        targetPort,
+                        verifyPresentation.Fingerprint);
+                    hostKeyArg = verifyPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Warn(
+                        $"User accepted replacement host key for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
+                }
+                else
+                {
+                    var msg = BuildHostKeyMismatchMessage(
+                        storedFingerprint,
+                        verifyPresentation.Fingerprint);
+                    _connectionSm.SetError(server.Id, msg);
+                    return new ConnectionResult(
+                        false,
+                        msg,
+                        null,
+                        SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
+                            storedFingerprint,
+                            verifyPresentation.Fingerprint,
+                            targetHost,
+                            targetPort));
+                }
+            }
+        }
+        else
+        {
+            var probedPresentation = await ProbeHostKeyPresentationAsync(
+                    plinkPath,
+                    targetHost,
+                    targetPort,
+                    server.SshUsername,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+
+            if (probedPresentation is not null)
+            {
+                var decision = await _hostKeyVerifier.VerifyAsync(
+                        targetHost,
+                        targetPort,
+                        probedPresentation.Algorithm,
+                        probedPresentation.Fingerprint,
+                        storedFingerprint: null,
+                        ct)
+                    .ConfigureAwait(false);
+
+                if (decision == HostKeyDecision.Accept)
+                {
+                    _hostKeyStore.Trust(
+                        targetHost,
+                        targetPort,
+                        probedPresentation.Fingerprint);
+                    hostKeyArg = probedPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Info(
+                        $"User trusted Plink host key for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");
+                }
+                else
+                {
+                    var message = BuildCancelledMessage();
+                    _connectionSm.SetError(server.Id, message);
+                    return new ConnectionResult(
+                        false,
+                        message,
+                        null,
+                        SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                            "ErrorSshCancelled",
+                            message,
+                            SshFailureCode.Cancelled));
+                }
+            }
+        }
 
         var args = BuildPipeModeArguments(
             server.SshKeyPath,
@@ -371,10 +513,10 @@ internal sealed class SshHandler : IProtocolHandler
     }
 
     /// <summary>
-    /// Probes the SSH host key fingerprint by running <c>plink -batch</c>.
+    /// Probes the SSH host key presentation by running <c>plink -batch -v</c>.
     /// Returns null if the key is already cached or the fingerprint cannot be parsed.
     /// </summary>
-    private async Task<string?> ProbeHostKeyFingerprintAsync(
+    private Task<PlinkHostKeyPresentation?> ProbeHostKeyPresentationAsync(
         string plinkPath,
         string host,
         int port,
@@ -382,110 +524,13 @@ internal sealed class SshHandler : IProtocolHandler
         AppSettings settings,
         CancellationToken ct)
     {
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(username) &&
-                !InputValidator.Validate(username, "SshUser"))
-            {
-                return null;
-            }
-
-            if (!IsValidSshHost(host))
-            {
-                return null;
-            }
-
-            if (!InputValidator.ValidatePortRange(port))
-            {
-                return null;
-            }
-
-            var userPrefix = string.IsNullOrWhiteSpace(username) ? string.Empty : $"{username}@";
-            var probeTarget = $"{userPrefix}{host}";
-            var probeParts = new[] { "-v", "-batch", "-ssh", "-P", port.ToString(), probeTarget };
-            var probeArgs = string.Join(' ', probeParts);
-
-            Core.Logging.FileLogger.Info($"Host key probe: {plinkPath} {probeArgs}");
-
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = plinkPath,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                RedirectStandardInput = true
-            };
-            foreach (var part in probeParts)
-            {
-                psi.ArgumentList.Add(part);
-            }
-
-            using var process = new System.Diagnostics.Process { StartInfo = psi };
-            process.Start();
-
-            using var timeout = new CancellationTokenSource(
-                TimeSpan.FromMilliseconds(settings.HostKeyProbeTimeoutMs));
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
-
-            string stderr;
-            try
-            {
-                stderr = await process.StandardError.ReadToEndAsync(linked.Token).ConfigureAwait(false);
-                await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                try
-                {
-                    process.Kill(true);
-                }
-                catch (Exception ex)
-                {
-                    Core.Logging.FileLogger.Warn($"[SshHandler] host key probe kill: {ex.Message}");
-                }
-
-                stderr = string.Empty;
-            }
-
-            Core.Logging.FileLogger.Info(
-                $"Host key probe stderr ({stderr.Length} chars): {stderr.Trim().Replace('\n', ' ')}");
-
-            if (string.IsNullOrWhiteSpace(stderr))
-            {
-                return null;
-            }
-
-            var match = System.Text.RegularExpressions.Regex.Match(
-                stderr,
-                @"(ssh-\S+)\s+\d+\s+(SHA256:\S+)",
-                System.Text.RegularExpressions.RegexOptions.Multiline);
-
-            if (match.Success)
-            {
-                var fingerprint = match.Groups[2].Value;
-                Core.Logging.FileLogger.Info($"Extracted host key fingerprint: {fingerprint}");
-                return fingerprint;
-            }
-
-            var sha256Match = System.Text.RegularExpressions.Regex.Match(stderr, @"SHA256:(\S+)");
-
-            if (sha256Match.Success)
-            {
-                var fingerprint = "SHA256:" + sha256Match.Groups[1].Value;
-                Core.Logging.FileLogger.Info(
-                    $"Extracted host key fingerprint (fallback): {fingerprint}");
-                return fingerprint;
-            }
-
-            Core.Logging.FileLogger.Warn($"Could not parse fingerprint from stderr for {host}:{port}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"Host key probe failed: {ex.Message}");
-            return null;
-        }
+        return PlinkHostKeyProbe.ProbeAsync(
+            plinkPath,
+            host,
+            port,
+            username,
+            settings.HostKeyProbeTimeoutMs,
+            ct);
     }
 
     internal static System.Diagnostics.ProcessStartInfo BuildPuttyStartInfo(
@@ -609,5 +654,35 @@ internal sealed class SshHandler : IProtocolHandler
     {
         return !string.IsNullOrWhiteSpace(host)
             && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
+    }
+
+    private string BuildHostKeyMismatchMessage(
+        string storedFingerprint,
+        string presentedFingerprint)
+    {
+        var message = _localizer["ErrorHostKeyMismatch"];
+        if (string.Equals(message, "ErrorHostKeyMismatch", StringComparison.Ordinal))
+        {
+            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
+        }
+
+        var detail = _localizer.Format(
+            "ErrorHostKeyMismatchDetail",
+            storedFingerprint,
+            presentedFingerprint);
+        if (string.Equals(detail, "ErrorHostKeyMismatchDetail", StringComparison.Ordinal))
+        {
+            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
+        }
+
+        return $"{message} {detail}";
+    }
+
+    private string BuildCancelledMessage()
+    {
+        var message = _localizer["ErrorSshCancelled"];
+        return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
+            ? "Connection was cancelled."
+            : message;
     }
 }

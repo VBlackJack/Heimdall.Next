@@ -18,6 +18,7 @@ using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Heimdall.Ssh.Pageant;
@@ -34,6 +35,7 @@ public sealed class TunnelService : ITunnelService
     private readonly HostKeyStore _hostKeyStore;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
 
     private AppSettings? _currentSettings;
 
@@ -41,12 +43,14 @@ public sealed class TunnelService : ITunnelService
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
         ConnectionStateMachine connectionSm,
-        LocalizationManager localizer)
+        LocalizationManager localizer,
+        IHostKeyVerifier hostKeyVerifier)
     {
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
         _connectionSm = connectionSm;
         _localizer = localizer;
+        _hostKeyVerifier = hostKeyVerifier;
     }
 
     public void UpdateSettings(AppSettings settings)
@@ -166,11 +170,12 @@ public sealed class TunnelService : ITunnelService
                     remotePort,
                     localPort,
                     ct,
-                    _hostKeyStore,
-                    keepAlive,
-                    socksProxyPort,
-                    remoteBindPort,
-                    remoteLocalPort)
+                    hostKeyStore: _hostKeyStore,
+                    verifier: _hostKeyVerifier,
+                    keepAliveIntervalSeconds: keepAlive,
+                    socksProxyPort: socksProxyPort,
+                    remoteBindPort: remoteBindPort,
+                    remoteLocalPort: remoteLocalPort)
                 .ConfigureAwait(false);
         }
         else
@@ -181,10 +186,11 @@ public sealed class TunnelService : ITunnelService
                     remotePort,
                     localPort,
                     ct,
-                    _hostKeyStore,
-                    socksProxyPort,
-                    remoteBindPort,
-                    remoteLocalPort)
+                    hostKeyStore: _hostKeyStore,
+                    verifier: _hostKeyVerifier,
+                    socksProxyPort: socksProxyPort,
+                    remoteBindPort: remoteBindPort,
+                    remoteLocalPort: remoteLocalPort)
                 .ConfigureAwait(false);
         }
 
@@ -239,7 +245,95 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
-        var fingerprint = _hostKeyStore.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
+        var storedFingerprint = _hostKeyStore.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
+        string? fingerprint = storedFingerprint;
+
+        if (!string.IsNullOrWhiteSpace(storedFingerprint))
+        {
+            var verifyPresentation = await ProbeHostKeyPresentationAsync(
+                    plinkPath,
+                    gatewayParams.Host,
+                    gatewayParams.Port,
+                    gatewayParams.Username,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+
+            if (verifyPresentation is not null
+                && !string.Equals(
+                    verifyPresentation.Fingerprint,
+                    storedFingerprint,
+                    StringComparison.Ordinal))
+            {
+                var decision = await _hostKeyVerifier.VerifyAsync(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        verifyPresentation.Algorithm,
+                        verifyPresentation.Fingerprint,
+                        storedFingerprint,
+                        ct)
+                    .ConfigureAwait(false);
+
+                if (decision == HostKeyDecision.Accept)
+                {
+                    _hostKeyStore.Trust(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        verifyPresentation.Fingerprint);
+                    fingerprint = verifyPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Warn(
+                        $"User accepted replacement tunnel host key for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
+                }
+                else
+                {
+                    var message = BuildHostKeyMismatchMessage(
+                        storedFingerprint,
+                        verifyPresentation.Fingerprint);
+                    _connectionSm.SetError(serverId, message);
+                    return new TunnelResult(false, null, message, SshFailureCode.HostKeyMismatch);
+                }
+            }
+        }
+        else
+        {
+            var probedPresentation = await ProbeHostKeyPresentationAsync(
+                    plinkPath,
+                    gatewayParams.Host,
+                    gatewayParams.Port,
+                    gatewayParams.Username,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+
+            if (probedPresentation is not null)
+            {
+                var decision = await _hostKeyVerifier.VerifyAsync(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        probedPresentation.Algorithm,
+                        probedPresentation.Fingerprint,
+                        storedFingerprint: null,
+                        ct)
+                    .ConfigureAwait(false);
+
+                if (decision == HostKeyDecision.Accept)
+                {
+                    _hostKeyStore.Trust(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        probedPresentation.Fingerprint);
+                    fingerprint = probedPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Info(
+                        $"User trusted tunnel host key for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");
+                }
+                else
+                {
+                    var message = BuildCancelledMessage();
+                    _connectionSm.SetError(serverId, message);
+                    return new TunnelResult(false, null, message, SshFailureCode.Cancelled);
+                }
+            }
+        }
 
         var runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
@@ -291,5 +385,52 @@ public sealed class TunnelService : ITunnelService
             $"Plink tunnel established for {serverId} on port {localPort} (pid={runner.ProcessId?.ToString() ?? "unknown"})");
 
         return new TunnelResult(true, tunnelInfo, null, null);
+    }
+
+    private Task<PlinkHostKeyPresentation?> ProbeHostKeyPresentationAsync(
+        string plinkPath,
+        string host,
+        int port,
+        string? username,
+        AppSettings settings,
+        CancellationToken ct)
+    {
+        return PlinkHostKeyProbe.ProbeAsync(
+            plinkPath,
+            host,
+            port,
+            username,
+            settings.HostKeyProbeTimeoutMs,
+            ct);
+    }
+
+    private string BuildHostKeyMismatchMessage(
+        string storedFingerprint,
+        string presentedFingerprint)
+    {
+        var message = _localizer["ErrorHostKeyMismatch"];
+        if (string.Equals(message, "ErrorHostKeyMismatch", StringComparison.Ordinal))
+        {
+            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
+        }
+
+        var detail = _localizer.Format(
+            "ErrorHostKeyMismatchDetail",
+            storedFingerprint,
+            presentedFingerprint);
+        if (string.Equals(detail, "ErrorHostKeyMismatchDetail", StringComparison.Ordinal))
+        {
+            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
+        }
+
+        return $"{message} {detail}";
+    }
+
+    private string BuildCancelledMessage()
+    {
+        var message = _localizer["ErrorSshCancelled"];
+        return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
+            ? "Connection was cancelled."
+            : message;
     }
 }
