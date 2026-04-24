@@ -26,7 +26,7 @@ namespace Heimdall.Ssh;
 /// Manages the lifecycle of SSH port-forwarding tunnels. Thread-safe.
 /// Replaces the legacy plink-based tunnel management with in-process SSH.NET tunnels.
 /// </summary>
-public sealed class TunnelManager : IDisposable
+public sealed partial class TunnelManager : IDisposable
 {
     private readonly ConcurrentDictionary<int, TunnelSession> _activeTunnels = new();
     private readonly ConcurrentDictionary<int, ExternalTunnelSession> _externalTunnels = new();
@@ -105,10 +105,7 @@ public sealed class TunnelManager : IDisposable
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
 
-        SshClient? client = null;
-        ForwardedPortLocal? forwardedPort = null;
-        ForwardedPortDynamic? dynamicPort = null;
-        ForwardedPortRemote? remotePortFwd = null;
+        var context = new TunnelBuildContext();
 
         try
         {
@@ -122,123 +119,50 @@ public sealed class TunnelManager : IDisposable
                 .ConfigureAwait(false);
 
             var connectionInfo = SshConnectionFactory.Create(gatewayParams);
-            client = new SshClient(connectionInfo)
+            context.FinalClient = new SshClient(connectionInfo)
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds)
             };
 
-            if (pinnedVerifier is not null)
-            {
-                SshConnectionFactory.AttachPinnedHostKeyVerification(
-                    client,
-                    gatewayParams.Host,
-                    gatewayParams.Port,
-                    pinnedVerifier);
-            }
-
-            client.ErrorOccurred += (_, args) =>
+            context.FinalClient.ErrorOccurred += (_, args) =>
                 Core.Logging.FileLogger.Error($"SSH tunnel error on port {localPort}: {args.Exception.Message}");
 
-            await using var connectReg = cancellationToken.Register(
-                () => { try { client.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Client disconnect on cancel suppressed", ex); } });
-            await Task.Run(() =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                client.Connect();
-            }, cancellationToken).ConfigureAwait(false);
+            await ConnectSshClientWithCancellationAsync(
+                    context.FinalClient,
+                    gatewayParams.Host,
+                    gatewayParams.Port,
+                    pinnedVerifier,
+                    cancellationToken,
+                    "Client disconnect on cancel suppressed")
+                .ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            forwardedPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
+            WireFinalForwardedPorts(
+                context,
+                remoteHost,
+                remotePort,
+                localPort,
+                socksProxyPort,
+                remoteBindPort,
+                remoteLocalPort,
+                isChained: false);
 
-            forwardedPort.Exception += (_, args) =>
-                Core.Logging.FileLogger.Error($"SSH forwarded port {localPort} exception: {args.Exception.Message}");
-
-            client.AddForwardedPort(forwardedPort);
-            forwardedPort.Start();
-
-            if (socksProxyPort > 0)
-            {
-                dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
-                client.AddForwardedPort(dynamicPort);
-                dynamicPort.Start();
-                Core.Logging.FileLogger.Info(
-                    $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort}");
-            }
-
-            if (remoteBindPort > 0)
-            {
-                int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
-                remotePortFwd = new ForwardedPortRemote(
-                    "127.0.0.1", (uint)remoteBindPort,
-                    "127.0.0.1", (uint)localFwd);
-                client.AddForwardedPort(remotePortFwd);
-                remotePortFwd.Start();
-                Core.Logging.FileLogger.Info(
-                    $"Remote forward started: server:{remoteBindPort} \u2192 local:{localFwd}");
-            }
-
-            var info = new TunnelInfo(
+            var info = BuildTunnelInfo(
                 gatewayParams.Host,
                 localPort,
                 remoteHost,
                 remotePort,
-                DateTime.UtcNow,
-                IsAlive: true)
-            { SocksProxyPort = socksProxyPort, RemoteBindPort = remoteBindPort };
+                socksProxyPort,
+                remoteBindPort);
 
-            var session = new TunnelSession(client, forwardedPort, info)
-            { DynamicPort = dynamicPort, RemotePort = remotePortFwd };
+            var session = context.CreateSession(info);
 
-            lock (_registryLock)
-            {
-                if (IsPortTracked(localPort) || !_activeTunnels.TryAdd(localPort, session))
-                {
-                    session.Dispose();
-                    return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
-                }
-            }
-
-            AddReference(localPort);
-            TunnelOpened?.Invoke(info);
-            return new TunnelResult(true, info, null, null);
-        }
-        catch (OperationCanceledException)
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            return new TunnelResult(false, null, "Tunnel establishment was cancelled.", SshFailureCode.Cancelled);
-        }
-        catch (HostKeyRejectedException ex)
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            var code = ex.IsMismatch ? SshFailureCode.HostKeyMismatch : SshFailureCode.Cancelled;
-            return new TunnelResult(false, null, ex.Message, code);
-        }
-        catch (SshAuthenticationException ex)
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
-        }
-        catch (SocketException ex)
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            var code = ClassifySocketException(ex);
-            return new TunnelResult(false, null, ex.Message, code);
-        }
-        catch (SshConnectionException ex)
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.NetworkRefused);
-        }
-        catch (SshException ex) when (ex.Message.Contains("port", StringComparison.OrdinalIgnoreCase))
-        {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.PortInUse);
+            return RegisterTunnelSession(session, localPort, info);
         }
         catch (Exception ex)
         {
-            CleanupPartialFull(client, forwardedPort, dynamicPort, remotePortFwd);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+            return ClassifyAndBuildFailureResult(ex, context.Cleanup, isChained: false);
         }
     }
 
@@ -288,12 +212,7 @@ public sealed class TunnelManager : IDisposable
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
 
-        var intermediateClients = new List<SshClient>();
-        var intermediatePorts = new List<ForwardedPortLocal>();
-        SshClient? finalClient = null;
-        ForwardedPortLocal? finalPort = null;
-        ForwardedPortDynamic? dynamicPort = null;
-        ForwardedPortRemote? remotePortFwd = null;
+        var context = new TunnelBuildContext();
 
         try
         {
@@ -315,27 +234,18 @@ public sealed class TunnelManager : IDisposable
                 .ConfigureAwait(false);
 
             // Connect to the first (root) gateway directly
-            var rootInfo = SshConnectionFactory.Create(gatewayChain[0]);
-            var rootClient = new SshClient(rootInfo);
+            var rootClient = new SshClient(SshConnectionFactory.Create(gatewayChain[0]));
+            context.IntermediateClients.Add(rootClient);
 
-            if (rootPinnedVerifier is not null)
-            {
-                SshConnectionFactory.AttachPinnedHostKeyVerification(
+            await ConnectSshClientWithCancellationAsync(
                     rootClient,
                     gatewayChain[0].Host,
                     gatewayChain[0].Port,
-                    rootPinnedVerifier);
-            }
+                    rootPinnedVerifier,
+                    cancellationToken,
+                    "Root client disconnect on cancel suppressed")
+                .ConfigureAwait(false);
 
-            await using var rootConnectReg = cancellationToken.Register(
-                () => { try { rootClient.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Root client disconnect on cancel suppressed", ex); } });
-            await Task.Run(() =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                rootClient.Connect();
-            }, cancellationToken).ConfigureAwait(false);
-
-            intermediateClients.Add(rootClient);
             SshClient currentClient = rootClient;
 
             // Set up intermediate hops
@@ -353,26 +263,12 @@ public sealed class TunnelManager : IDisposable
                     (uint)intermediateLocalPort,
                     nextGateway.Host,
                     (uint)nextGateway.Port);
+                context.IntermediatePorts.Add(intermediatePort);
                 currentClient.AddForwardedPort(intermediatePort);
                 intermediatePort.Start();
-                intermediatePorts.Add(intermediatePort);
 
                 // Connect to the next gateway through the forwarded port
-                var hopParams = new SshConnectionParams
-                {
-                    Host = "127.0.0.1",
-                    Port = intermediateLocalPort,
-                    Username = nextGateway.Username,
-                    KeyPath = nextGateway.KeyPath,
-                    Password = nextGateway.Password,
-                    KeyPassphrase = nextGateway.KeyPassphrase,
-                    SshAgentPreference = nextGateway.SshAgentPreference,
-                    UseLegacyPasswordAsKeyPassphrase = nextGateway.UseLegacyPasswordAsKeyPassphrase,
-                    LegacyCredentialName = nextGateway.LegacyCredentialName,
-                    AgentForwarding = nextGateway.AgentForwarding,
-                    Compression = nextGateway.Compression,
-                    ConnectTimeout = nextGateway.ConnectTimeout
-                };
+                var hopParams = CreateLoopbackHopParams(nextGateway, intermediateLocalPort);
 
                 var hopPinnedVerifier = await ResolvePinnedVerifierAsync(
                         hopParams,
@@ -383,123 +279,54 @@ public sealed class TunnelManager : IDisposable
                         cancellationToken)
                     .ConfigureAwait(false);
 
-                var hopInfo = SshConnectionFactory.Create(hopParams);
-                var hopClient = new SshClient(hopInfo);
-
-                if (hopPinnedVerifier is not null)
-                {
-                    // Verify against the real gateway host, not 127.0.0.1
-                    SshConnectionFactory.AttachPinnedHostKeyVerification(
-                        hopClient,
-                        nextGateway.Host,
-                        nextGateway.Port,
-                        hopPinnedVerifier);
-                }
-
-                await using var hopConnectReg = cancellationToken.Register(
-                    () => { try { hopClient.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Hop client disconnect on cancel suppressed", ex); } });
-                await Task.Run(() =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    hopClient.Connect();
-                }, cancellationToken).ConfigureAwait(false);
+                var hopClient = new SshClient(SshConnectionFactory.Create(hopParams));
 
                 if (i < gatewayChain.Count - 1)
                 {
-                    intermediateClients.Add(hopClient);
+                    context.IntermediateClients.Add(hopClient);
                     currentClient = hopClient;
                 }
                 else
                 {
                     // This is the final gateway
-                    finalClient = hopClient;
+                    context.FinalClient = hopClient;
                 }
+
+                await ConnectSshClientWithCancellationAsync(
+                        hopClient,
+                        nextGateway.Host,
+                        nextGateway.Port,
+                        hopPinnedVerifier,
+                        cancellationToken,
+                        "Hop client disconnect on cancel suppressed")
+                    .ConfigureAwait(false);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // The final forwarded port goes from localPort to remoteHost:remotePort
-            finalPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
-            finalClient!.AddForwardedPort(finalPort);
-            finalPort.Start();
+            WireFinalForwardedPorts(
+                context,
+                remoteHost,
+                remotePort,
+                localPort,
+                socksProxyPort,
+                remoteBindPort,
+                remoteLocalPort,
+                isChained: true);
 
-            if (socksProxyPort > 0)
-            {
-                dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
-                finalClient.AddForwardedPort(dynamicPort);
-                dynamicPort.Start();
-                Core.Logging.FileLogger.Info(
-                    $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort} (chained tunnel)");
-            }
-
-            if (remoteBindPort > 0)
-            {
-                int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
-                remotePortFwd = new ForwardedPortRemote(
-                    "127.0.0.1", (uint)remoteBindPort,
-                    "127.0.0.1", (uint)localFwd);
-                finalClient.AddForwardedPort(remotePortFwd);
-                remotePortFwd.Start();
-                Core.Logging.FileLogger.Info(
-                    $"Remote forward started: server:{remoteBindPort} \u2192 local:{localFwd} (chained tunnel)");
-            }
-
-            var tunnelInfo = new TunnelInfo(
+            var tunnelInfo = BuildTunnelInfo(
                 gatewayChain[^1].Host,
                 localPort,
                 remoteHost,
                 remotePort,
-                DateTime.UtcNow,
-                IsAlive: true)
-            { SocksProxyPort = socksProxyPort, RemoteBindPort = remoteBindPort };
+                socksProxyPort,
+                remoteBindPort);
 
-            var session = new TunnelSession(
-                finalClient,
-                finalPort,
-                tunnelInfo,
-                intermediateClients,
-                intermediatePorts)
-            { DynamicPort = dynamicPort, RemotePort = remotePortFwd };
-
-            lock (_registryLock)
-            {
-                if (IsPortTracked(localPort) || !_activeTunnels.TryAdd(localPort, session))
-                {
-                    session.Dispose();
-                    return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
-                }
-            }
-
-            AddReference(localPort);
-            TunnelOpened?.Invoke(tunnelInfo);
-            return new TunnelResult(true, tunnelInfo, null, null);
-        }
-        catch (OperationCanceledException)
-        {
-            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
-            return new TunnelResult(false, null, "Chained tunnel establishment was cancelled.", SshFailureCode.Cancelled);
-        }
-        catch (HostKeyRejectedException ex)
-        {
-            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
-            var code = ex.IsMismatch ? SshFailureCode.HostKeyMismatch : SshFailureCode.Cancelled;
-            return new TunnelResult(false, null, ex.Message, code);
-        }
-        catch (SshAuthenticationException ex)
-        {
-            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
-        }
-        catch (SocketException ex)
-        {
-            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
-            var code = ClassifySocketException(ex);
-            return new TunnelResult(false, null, ex.Message, code);
+            return RegisterTunnelSession(context.CreateSession(tunnelInfo), localPort, tunnelInfo);
         }
         catch (Exception ex)
         {
-            CleanupChainPartialFull(finalClient, finalPort, dynamicPort, remotePortFwd, intermediateClients, intermediatePorts);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+            return ClassifyAndBuildFailureResult(ex, context.Cleanup, isChained: true);
         }
     }
 
@@ -664,34 +491,6 @@ public sealed class TunnelManager : IDisposable
         return _activeTunnels.ContainsKey(localPort) || _externalTunnels.ContainsKey(localPort);
     }
 
-    private static async Task<PinnedFingerprintVerifier?> ResolvePinnedVerifierAsync(
-        SshConnectionParams connectionParams,
-        string verificationHost,
-        int verificationPort,
-        HostKeyStore? hostKeyStore,
-        IHostKeyVerifier? verifier,
-        CancellationToken cancellationToken)
-    {
-        if (hostKeyStore is null)
-        {
-            return null;
-        }
-
-        if (verifier is null)
-        {
-            throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-        }
-
-        return await SshConnectionFactory.ResolveHostKeyAsync(
-                connectionParams,
-                verificationHost,
-                verificationPort,
-                hostKeyStore,
-                verifier,
-                cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Allocates an available local port for tunnel forwarding.
     /// If the requested port is available and not tracked, returns it.
@@ -730,140 +529,4 @@ public sealed class TunnelManager : IDisposable
         return port;
     }
 
-    /// <summary>Classifies a SocketException into a structured failure code.</summary>
-    private static SshFailureCode ClassifySocketException(SocketException ex)
-    {
-        return ex.SocketErrorCode switch
-        {
-            SocketError.ConnectionRefused => SshFailureCode.NetworkRefused,
-            SocketError.TimedOut => SshFailureCode.NetworkTimedOut,
-            SocketError.HostNotFound or SocketError.HostUnreachable => SshFailureCode.NetworkUnreachable,
-            SocketError.AddressAlreadyInUse => SshFailureCode.PortInUse,
-            _ => SshFailureCode.Unknown
-        };
-    }
-
-    private static void CleanupPartialFull(
-        SshClient? client, ForwardedPortLocal? forwardedPort, ForwardedPortDynamic? dynamicPort, ForwardedPortRemote? remotePortFwd)
-    {
-        SafeDispose(dynamicPort, "Dynamic port dispose suppressed");
-        SafeDispose(remotePortFwd, "Remote port forward dispose suppressed");
-        CleanupPartial(client, forwardedPort);
-    }
-
-    private static void CleanupChainPartialFull(
-        SshClient? finalClient, ForwardedPortLocal? finalPort, ForwardedPortDynamic? dynamicPort, ForwardedPortRemote? remotePortFwd,
-        List<SshClient> intermediateClients, List<ForwardedPortLocal> intermediatePorts)
-    {
-        SafeDispose(dynamicPort, "Dynamic port dispose suppressed");
-        SafeDispose(remotePortFwd, "Remote port forward dispose suppressed");
-        CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
-    }
-
-    private static void SafeDispose(IDisposable? resource, string logMessage)
-    {
-        if (resource is null) { return; }
-        try { resource.Dispose(); }
-        catch (Exception ex) { Core.Logging.FileLogger.Debug(logMessage, ex); }
-    }
-
-    /// <summary>Safely cleans up a partially constructed single-hop tunnel.</summary>
-    private static void CleanupPartial(SshClient? client, ForwardedPortLocal? port)
-    {
-        try
-        {
-            if (port is { IsStarted: true })
-            {
-                port.Stop();
-            }
-
-            port?.Dispose();
-        }
-        catch (ObjectDisposedException ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TunnelManager] CleanupPartial port: {ex.Message}"); }
-
-        try
-        {
-            if (client is { IsConnected: true })
-            {
-                client.Disconnect();
-            }
-
-            client?.Dispose();
-        }
-        catch (ObjectDisposedException ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TunnelManager] CleanupPartial client: {ex.Message}"); }
-    }
-
-    /// <summary>Safely cleans up a partially constructed chained tunnel.</summary>
-    private static void CleanupChainPartial(
-        SshClient? finalClient,
-        ForwardedPortLocal? finalPort,
-        List<SshClient> intermediateClients,
-        List<ForwardedPortLocal> intermediatePorts)
-    {
-        CleanupPartial(finalClient, finalPort);
-
-        for (int i = intermediatePorts.Count - 1; i >= 0; i--)
-        {
-            try
-            {
-                if (intermediatePorts[i].IsStarted)
-                {
-                    intermediatePorts[i].Stop();
-                }
-
-                intermediatePorts[i].Dispose();
-            }
-            catch (ObjectDisposedException ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TunnelManager] CleanupChainPartial port[{i}]: {ex.Message}"); }
-        }
-
-        for (int i = intermediateClients.Count - 1; i >= 0; i--)
-        {
-            try
-            {
-                if (intermediateClients[i].IsConnected)
-                {
-                    intermediateClients[i].Disconnect();
-                }
-
-                intermediateClients[i].Dispose();
-            }
-            catch (ObjectDisposedException ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TunnelManager] CleanupChainPartial client[{i}]: {ex.Message}"); }
-        }
-    }
-
-    private sealed class ExternalTunnelSession : IDisposable
-    {
-        private readonly IDisposable _tunnelHandle;
-        private readonly Func<bool> _isAlive;
-
-        public ExternalTunnelSession(TunnelInfo info, IDisposable tunnelHandle, Func<bool> isAlive)
-        {
-            Info = info;
-            _tunnelHandle = tunnelHandle;
-            _isAlive = isAlive;
-        }
-
-        public TunnelInfo Info { get; }
-
-        public bool IsAlive
-        {
-            get
-            {
-                try
-                {
-                    return _isAlive();
-                }
-                catch (Exception ex)
-                {
-                    Heimdall.Core.Logging.FileLogger.Warn($"[TunnelManager.ExternalTunnelSession] IsAlive: {ex.Message}");
-                    return false;
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            _tunnelHandle.Dispose();
-        }
-    }
 }
