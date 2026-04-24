@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Models;
 using System.Text.Json.Serialization;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Configuration;
 
