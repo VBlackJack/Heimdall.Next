@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Security;
 using System.Runtime.Versioning;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
 

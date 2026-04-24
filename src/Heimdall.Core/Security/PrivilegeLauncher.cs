@@ -21,8 +21,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Win32.SafeHandles;
 using Heimdall.Core.Logging;
+using Microsoft.Win32.SafeHandles;
 
 namespace Heimdall.Core.Security;
 
