@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4195%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4233%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -210,7 +210,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,102 i18n keys)
+- Bilingual interface: English and French (~5,105 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -245,8 +245,8 @@ Two editions are available. Both include the full .NET runtime and require **no 
 
 | Edition | Size | WebView2 | Best for |
 |---------|------|----------|----------|
-| **Standard** | ~55 MB (installer) / ~195 MB (zip) | Requires Edge or WebView2 Evergreen Runtime (pre-installed on Windows 10/11) | Most users — workstations, laptops, any PC with Edge |
-| **Self-Contained** | ~216 MB (installer) / ~653 MB (zip) | Bundled (WebView2 Fixed Version Runtime included) | Air-gapped servers, restricted environments without Edge, isolated VMs |
+| **Standard** | ~106 MB (installer) / ~159 MB (zip) | Requires Edge or WebView2 Evergreen Runtime (pre-installed on Windows 10/11) | Most users — workstations, laptops, any PC with Edge |
+| **Self-Contained** | ~267 MB (installer) / ~380 MB (zip) | Bundled (WebView2 Fixed Version Runtime included) | Air-gapped servers, restricted environments without Edge, isolated VMs |
 
 Both editions are available as **installer** (.exe with shortcuts, upgrade detection, uninstaller) or **zip** (extract and run, no installation required).
 
@@ -336,8 +336,8 @@ Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder name
 
 | Edition | Size (zip / installer) | WebView2 |
 |---------|----------------------|----------|
-| **Standard** | ~177 MB / ~127 MB | Requires system Edge/WebView2 |
-| **Self-Contained** | ~397 MB / ~288 MB | Bundled Fixed Version Runtime |
+| **Standard** | ~159 MB / ~106 MB | Requires system Edge/WebView2 |
+| **Self-Contained** | ~380 MB / ~267 MB | Bundled Fixed Version Runtime |
 
 Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` with desktop/start menu shortcuts and upgrade detection.
 
@@ -357,7 +357,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (1,775 tests) |
+| Testing | xUnit (4,239 tests across 4 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
@@ -376,7 +376,7 @@ Heimdall.App          WPF application (MVVM, views, themes, services)
   +-- Heimdall.Terminal  Terminal sessions (pipe mode, ConPTY, Telnet), smart paste guard
 ```
 
-Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.App.Tests`.
+Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.App.Tests`, `Heimdall.App.UiTests`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design decisions and data flow diagrams.
 

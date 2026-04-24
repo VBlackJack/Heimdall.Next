@@ -11,6 +11,15 @@
 # Changelog
 
 All notable changes to Heimdall.Next are documented in this file.
+
+## 2026-04-23 — release 2026.042302 — audit remediation patch release
+- Version bump from `2026.042301` to `2026.042302` (`InformationalVersion`).
+- Packages the full 2026-04-22 audit-remediation line already merged on `master`: session/WebView handler leak cleanup, File Share bearer-token hardening with TFTP opt-in, startup async de-blocking, terminal asset caching, subprocess argument hardening, MVVM cleanup, UI polish, accessibility fixes, and repository housekeeping.
+- Follow-up release patch after the first publish:
+  - aligns the formatting gate with the repository's expected CRLF / `using` order
+  - relaxes one `TcpPingViewModelTests` timeout under code coverage so GitHub Actions stays stable without changing runtime behavior
+- Current baseline for this release line: **4,233 passing + 6 skipped** in CI, **59 built-in tools**, and **5,105 locale keys** per locale.
+
 ## 2026-04-22 — sessions diagnostics, NotesTool cleanup, and docs sync
 - Introduced a shared `SessionDiagnostic` / `SessionFailureStage` contract and surfaced pane-scoped SSH failure diagnostics end-to-end, including a `Details` disclosure in `SessionPaneControl`.
 - Wired RDP diagnostics on both pre-tab failure branches (`RdpHandler`) and mid-session host events (`RdpActiveXHost.Disconnected` / `FatalError`) while retiring the legacy local detail text block in `EmbeddedRdpView`.
