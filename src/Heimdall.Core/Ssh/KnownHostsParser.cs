@@ -95,15 +95,6 @@ public static class KnownHostsParser
             var keyType = fields[1];
             var base64 = fields[2];
 
-            if (hostsField.StartsWith("|1|", StringComparison.Ordinal))
-            {
-                diagnostics.Add(new KnownHostsImportDiagnostic(
-                    KnownHostsDiagnosticLevel.Info,
-                    lineNumber,
-                    KnownHostsDiagnosticCode.HashedEntryNotSupported));
-                continue;
-            }
-
             if (!SupportedKeyTypes.Contains(keyType))
             {
                 diagnostics.Add(new KnownHostsImportDiagnostic(
@@ -112,6 +103,15 @@ public static class KnownHostsParser
                     KnownHostsDiagnosticCode.UnsupportedKeyType,
                     keyType));
                 continue;
+            }
+
+            if (string.Equals(keyType, "ssh-dss", StringComparison.Ordinal))
+            {
+                diagnostics.Add(new KnownHostsImportDiagnostic(
+                    KnownHostsDiagnosticLevel.Warning,
+                    lineNumber,
+                    KnownHostsDiagnosticCode.LegacyKeyType,
+                    keyType));
             }
 
             byte[] rawKeyBlob;
@@ -133,6 +133,30 @@ public static class KnownHostsParser
             {
                 if (string.IsNullOrWhiteSpace(token))
                 {
+                    continue;
+                }
+
+                if (token.StartsWith("|1|", StringComparison.Ordinal))
+                {
+                    if (!KnownHostsHash.TryParse(token, out _, out _))
+                    {
+                        diagnostics.Add(new KnownHostsImportDiagnostic(
+                            KnownHostsDiagnosticLevel.Warning,
+                            lineNumber,
+                            KnownHostsDiagnosticCode.MalformedLine,
+                            "bad hashed host"));
+                        continue;
+                    }
+
+                    entries.Add(new KnownHostsRawEntry
+                    {
+                        Host = token,
+                        Port = 22,
+                        IsHashedHost = true,
+                        KeyType = keyType,
+                        Base64Key = rawKeyBlob,
+                        SourceLineNumber = lineNumber
+                    });
                     continue;
                 }
 
@@ -160,6 +184,7 @@ public static class KnownHostsParser
                 {
                     Host = host,
                     Port = port,
+                    IsHashedHost = false,
                     KeyType = keyType,
                     Base64Key = rawKeyBlob,
                     SourceLineNumber = lineNumber

@@ -15,6 +15,8 @@
  */
 
 using Heimdall.Core.Ssh;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Heimdall.Core.Tests.Ssh;
 
@@ -103,13 +105,30 @@ public sealed class KnownHostsParserTests
     }
 
     [Fact]
-    public void Parse_HashedEntry_SkippedWithDiagnostic()
+    public void Parse_HashedEntry_ProducesHashedEntry()
     {
-        var result = KnownHostsParser.Parse($"|1|salt|hash ssh-ed25519 {SampleKey}");
+        var hashedHost = CreateHashedHost("host.example.com", "test-salt");
+
+        var result = KnownHostsParser.Parse($"{hashedHost} ssh-ed25519 {SampleKey}");
+
+        var entry = Assert.Single(result.Entries);
+        Assert.Equal(hashedHost, entry.Host);
+        Assert.Equal(22, entry.Port);
+        Assert.True(entry.IsHashedHost);
+        Assert.Empty(result.Diagnostics);
+        Assert.True(KnownHostsHash.TryMatches(hashedHost, "host.example.com"));
+        Assert.False(KnownHostsHash.TryMatches(hashedHost, "other.example.com"));
+    }
+
+    [Fact]
+    public void Parse_MalformedHashedEntry_SkippedWithDiagnostic()
+    {
+        var result = KnownHostsParser.Parse($"|1|bad-salt|bad-hash ssh-ed25519 {SampleKey}");
 
         Assert.Empty(result.Entries);
         var diagnostic = Assert.Single(result.Diagnostics);
-        Assert.Equal(KnownHostsDiagnosticCode.HashedEntryNotSupported, diagnostic.Code);
+        Assert.Equal(KnownHostsDiagnosticCode.MalformedLine, diagnostic.Code);
+        Assert.Equal("bad hashed host", diagnostic.Context);
     }
 
     [Fact]
@@ -152,5 +171,57 @@ public sealed class KnownHostsParserTests
         var diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal(KnownHostsDiagnosticCode.MalformedLine, diagnostic.Code);
         Assert.Equal("bad base64", diagnostic.Context);
+    }
+
+    [Fact]
+    public void Parse_MultipleAlgorithmsForSameHost_ProducesMultipleEntries()
+    {
+        var result = KnownHostsParser.Parse(
+            $"""
+            host.example.com ssh-ed25519 {SampleKey}
+            host.example.com ecdsa-sha2-nistp256 {SampleKey}
+            """);
+
+        Assert.Equal(2, result.Entries.Count);
+        Assert.Contains(result.Entries, entry => entry.KeyType == "ssh-ed25519");
+        Assert.Contains(result.Entries, entry => entry.KeyType == "ecdsa-sha2-nistp256");
+    }
+
+    [Fact]
+    public void Parse_SshDss_ParsesWithLegacyDiagnostic()
+    {
+        var result = KnownHostsParser.Parse($"legacy.example.com ssh-dss {SampleKey}");
+
+        var entry = Assert.Single(result.Entries);
+        Assert.Equal("legacy.example.com", entry.Host);
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(KnownHostsDiagnosticLevel.Warning, diagnostic.Level);
+        Assert.Equal(KnownHostsDiagnosticCode.LegacyKeyType, diagnostic.Code);
+    }
+
+    [Fact]
+    public void Parse_LargeFile_ParsesAllEntries()
+    {
+        var builder = new StringBuilder();
+        for (var i = 0; i < 1001; i++)
+        {
+            builder.Append("host")
+                .Append(i)
+                .Append(" ssh-ed25519 ")
+                .AppendLine(SampleKey);
+        }
+
+        var result = KnownHostsParser.Parse(builder.ToString());
+
+        Assert.Equal(1001, result.Entries.Count);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    private static string CreateHashedHost(string host, string saltText)
+    {
+        var salt = Encoding.UTF8.GetBytes(saltText);
+        using var hmac = new HMACSHA1(salt);
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(host));
+        return $"|1|{Convert.ToBase64String(salt)}|{Convert.ToBase64String(hash)}";
     }
 }
