@@ -282,6 +282,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ConnectionStateMachine>();
         services.AddSingleton<ApplicationStatusMachine>();
         services.AddSingleton<HostKeyStore>();
+        services.AddSingleton<IHostKeyTrustService, HostKeyTrustService>();
         services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<PinManager>();
 

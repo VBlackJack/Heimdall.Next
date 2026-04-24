@@ -37,6 +37,7 @@ internal sealed class SshHandler : IProtocolHandler
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyTrustService _hostKeyTrustService;
     private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly X11ServerManager _x11ServerManager;
 
@@ -47,6 +48,7 @@ internal sealed class SshHandler : IProtocolHandler
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
         HostKeyStore hostKeyStore,
+        IHostKeyTrustService hostKeyTrustService,
         IHostKeyVerifier hostKeyVerifier,
         X11ServerManager x11ServerManager)
     {
@@ -54,6 +56,7 @@ internal sealed class SshHandler : IProtocolHandler
         _connectionSm = connectionSm;
         _localizer = localizer;
         _hostKeyStore = hostKeyStore;
+        _hostKeyTrustService = hostKeyTrustService;
         _hostKeyVerifier = hostKeyVerifier;
         _x11ServerManager = x11ServerManager;
     }
@@ -404,7 +407,7 @@ internal sealed class SshHandler : IProtocolHandler
             ? $"{server.SshUsername}@{targetHost}"
             : targetHost;
 
-        var storedFingerprint = _hostKeyStore.GetFingerprint(targetHost, targetPort);
+        var storedFingerprint = _hostKeyTrustService.GetEntry(targetHost, targetPort)?.Fingerprint;
         string? hostKeyArg = storedFingerprint;
 
         if (!string.IsNullOrWhiteSpace(storedFingerprint))
@@ -442,10 +445,12 @@ internal sealed class SshHandler : IProtocolHandler
 
                 if (decision == HostKeyDecision.Accept)
                 {
-                    _hostKeyStore.Trust(
+                    _hostKeyTrustService.Trust(
                         targetHost,
                         targetPort,
-                        verifyPresentation.Fingerprint);
+                        verifyPresentation.Fingerprint,
+                        verifyPresentation.Algorithm,
+                        HostKeySource.UserConfirmed);
                     hostKeyArg = verifyPresentation.Fingerprint;
                     Core.Logging.FileLogger.Warn(
                         $"User accepted replacement host key for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
@@ -492,10 +497,12 @@ internal sealed class SshHandler : IProtocolHandler
 
                 if (decision == HostKeyDecision.Accept)
                 {
-                    _hostKeyStore.Trust(
+                    _hostKeyTrustService.Trust(
                         targetHost,
                         targetPort,
-                        probedPresentation.Fingerprint);
+                        probedPresentation.Fingerprint,
+                        probedPresentation.Algorithm,
+                        HostKeySource.UserConfirmed);
                     hostKeyArg = probedPresentation.Fingerprint;
                     Core.Logging.FileLogger.Info(
                         $"User trusted Plink host key for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");

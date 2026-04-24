@@ -33,6 +33,7 @@ public sealed class TunnelService : ITunnelService
 {
     private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyTrustService _hostKeyTrustService;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly IHostKeyVerifier _hostKeyVerifier;
@@ -42,12 +43,14 @@ public sealed class TunnelService : ITunnelService
     public TunnelService(
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
+        IHostKeyTrustService hostKeyTrustService,
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
         IHostKeyVerifier hostKeyVerifier)
     {
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
+        _hostKeyTrustService = hostKeyTrustService;
         _connectionSm = connectionSm;
         _localizer = localizer;
         _hostKeyVerifier = hostKeyVerifier;
@@ -273,7 +276,7 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
-        var storedFingerprint = _hostKeyStore.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
+        var storedFingerprint = _hostKeyTrustService.GetEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
         string? fingerprint = storedFingerprint;
 
         if (!string.IsNullOrWhiteSpace(storedFingerprint))
@@ -304,10 +307,12 @@ public sealed class TunnelService : ITunnelService
 
                 if (decision == HostKeyDecision.Accept)
                 {
-                    _hostKeyStore.Trust(
+                    _hostKeyTrustService.Trust(
                         gatewayParams.Host,
                         gatewayParams.Port,
-                        verifyPresentation.Fingerprint);
+                        verifyPresentation.Fingerprint,
+                        verifyPresentation.Algorithm,
+                        HostKeySource.UserConfirmed);
                     fingerprint = verifyPresentation.Fingerprint;
                     Core.Logging.FileLogger.Warn(
                         $"User accepted replacement tunnel host key for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
@@ -346,10 +351,12 @@ public sealed class TunnelService : ITunnelService
 
                 if (decision == HostKeyDecision.Accept)
                 {
-                    _hostKeyStore.Trust(
+                    _hostKeyTrustService.Trust(
                         gatewayParams.Host,
                         gatewayParams.Port,
-                        probedPresentation.Fingerprint);
+                        probedPresentation.Fingerprint,
+                        probedPresentation.Algorithm,
+                        HostKeySource.UserConfirmed);
                     fingerprint = probedPresentation.Fingerprint;
                     Core.Logging.FileLogger.Info(
                         $"User trusted tunnel host key for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");

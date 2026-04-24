@@ -1,0 +1,175 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.Ssh;
+
+namespace Heimdall.Core.Ssh;
+
+public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustService
+{
+    private readonly HostKeyStore _store = store;
+
+    public event Action<string, HostKeyEntry>? EntryTrusted;
+
+    public event Action<string>? EntryRemoved;
+
+    public event Action<string, HostKeyEntry, HostKeyEntry>? EntryReplaced;
+
+    public HostKeyEntry? GetEntry(string host, int port)
+    {
+        return _store.GetEntry(host, port);
+    }
+
+    public IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries()
+    {
+        return _store.GetAllEntries()
+            .Select(static kvp => (kvp.Key, kvp.Value))
+            .ToList();
+    }
+
+    public HostKeyVerifyResult Verify(
+        string host,
+        int port,
+        string presentedFingerprint,
+        string algorithm)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(presentedFingerprint);
+
+        var existing = _store.GetEntry(host, port);
+        if (existing is null)
+        {
+            return new HostKeyVerifyResult(
+                Trusted: true,
+                FirstUse: true,
+                presentedFingerprint,
+                StoredFingerprint: null);
+        }
+
+        var match = string.Equals(existing.Fingerprint, presentedFingerprint, StringComparison.Ordinal);
+        if (!match)
+        {
+            return new HostKeyVerifyResult(
+                Trusted: false,
+                FirstUse: false,
+                presentedFingerprint,
+                existing.Fingerprint);
+        }
+
+        _store.SetEntry(
+            host,
+            port,
+            existing with
+            {
+                LastSeen = DateTimeOffset.UtcNow,
+                Algorithm = NormalizeAlgorithm(algorithm, existing.Algorithm)
+            },
+            raiseEvent: false);
+
+        return new HostKeyVerifyResult(
+            Trusted: true,
+            FirstUse: false,
+            presentedFingerprint,
+            existing.Fingerprint);
+    }
+
+    public void Trust(
+        string host,
+        int port,
+        string fingerprint,
+        string algorithm,
+        HostKeySource source)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(fingerprint);
+
+        var hostPort = HostKeyFormats.MakeKey(host, port);
+        var existing = _store.GetEntry(host, port);
+        var now = DateTimeOffset.UtcNow;
+        var entry = new HostKeyEntry(
+            fingerprint,
+            existing?.FirstSeen > DateTimeOffset.MinValue ? existing.FirstSeen : now,
+            now,
+            NormalizeAlgorithm(algorithm, existing?.Algorithm),
+            source);
+
+        _store.SetEntry(host, port, entry, raiseEvent: true);
+
+        if (existing is not null && !string.Equals(existing.Fingerprint, fingerprint, StringComparison.Ordinal))
+        {
+            EntryReplaced?.Invoke(hostPort, existing, entry);
+        }
+        else
+        {
+            EntryTrusted?.Invoke(hostPort, entry);
+        }
+    }
+
+    public void Import(
+        string host,
+        int port,
+        string fingerprint,
+        string algorithm,
+        DateTimeOffset importedAt)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(fingerprint);
+
+        var hostPort = HostKeyFormats.MakeKey(host, port);
+        var existing = _store.GetEntry(host, port);
+        var entry = new HostKeyEntry(
+            fingerprint,
+            importedAt,
+            importedAt,
+            NormalizeAlgorithm(algorithm, existing?.Algorithm),
+            HostKeySource.ImportedKnownHosts);
+
+        _store.SetEntry(host, port, entry, raiseEvent: true);
+
+        if (existing is not null && !string.Equals(existing.Fingerprint, fingerprint, StringComparison.Ordinal))
+        {
+            EntryReplaced?.Invoke(hostPort, existing, entry);
+        }
+        else
+        {
+            EntryTrusted?.Invoke(hostPort, entry);
+        }
+    }
+
+    public bool Remove(string host, int port)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+
+        var hostPort = HostKeyFormats.MakeKey(host, port);
+        if (!_store.Remove(host, port))
+        {
+            return false;
+        }
+
+        EntryRemoved?.Invoke(hostPort);
+        return true;
+    }
+
+    private static string NormalizeAlgorithm(string? candidate, string? fallback = null)
+    {
+        if (!string.IsNullOrWhiteSpace(candidate) && !string.Equals(candidate, "unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return candidate;
+        }
+
+        return string.IsNullOrWhiteSpace(fallback) ? "unknown" : fallback;
+    }
+}
