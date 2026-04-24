@@ -1685,6 +1685,11 @@ public sealed class ServerListBulkActionTests
 
         public Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview) => Task.FromResult<KnownHostsImportOutcome?>(null);
 
+        public Task ShowTrustedHostKeyDetailsAsync(TrustedHostKeyDetailsDialogViewModel viewModel) => Task.CompletedTask;
+
+        public Task<ImportKnownHostsConflictResolution?> ShowImportKnownHostsConflictAsync(ImportKnownHostsConflictDialogViewModel viewModel)
+            => Task.FromResult<ImportKnownHostsConflictResolution?>(null);
+
         public Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
             CommandLibraryPickerDialogViewModel viewModel,
             AutoPrefillContext? prefillContext = null,

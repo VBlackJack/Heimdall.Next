@@ -1935,6 +1935,156 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Trusted host keys -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock x:Name="Mw_SettingsTrustedHostKeysTitle" Text="{loc:Translate SettingsSshTrustedHostKeysSectionTitle}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="{loc:Translate SettingsSshTrustedHostKeysSectionHint}" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Command="{Binding Settings.TrustedHostKeys.ImportKnownHostsCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,3"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        Margin="0,0,4,0"
+                                                        AutomationProperties.Name="{loc:Translate BtnImportKnownHosts}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8B5;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnImportKnownHosts}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Command="{Binding Settings.TrustedHostKeys.ExportKnownHostsCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,3"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        Margin="0,0,4,0"
+                                                        AutomationProperties.Name="{loc:Translate BtnExportKnownHosts}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8A5;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnExportKnownHosts}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Command="{Binding Settings.TrustedHostKeys.RefreshCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,3"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        AutomationProperties.Name="{loc:Translate BtnRefreshTrustedHostKeys}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnRefreshTrustedHostKeys}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <TextBox Text="{Binding Settings.TrustedHostKeys.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="{loc:Translate HintTrustedHostKeysSearch}"
+                                                 AutomationProperties.Name="{loc:Translate HintTrustedHostKeysSearch}"
+                                                 Margin="0,0,0,8"/>
+
+                                        <Grid>
+                                            <DataGrid ItemsSource="{Binding Settings.TrustedHostKeys.Rows}"
+                                                      SelectedItem="{Binding Settings.TrustedHostKeys.SelectedRow, Mode=TwoWay}"
+                                                      AutoGenerateColumns="False"
+                                                      CanUserAddRows="False"
+                                                      CanUserDeleteRows="False"
+                                                      CanUserReorderColumns="False"
+                                                      CanUserResizeRows="False"
+                                                      HeadersVisibility="Column"
+                                                      IsReadOnly="True"
+                                                      SelectionMode="Single"
+                                                      SelectionUnit="FullRow"
+                                                      RowHeaderWidth="0"
+                                                      MaxHeight="260"
+                                                      Sorting="OnTrustedHostKeysSorting"
+                                                      Visibility="{Binding Settings.TrustedHostKeys.HasRows, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                      AutomationProperties.Name="{loc:Translate A11yTrustedHostKeysGrid}">
+                                                <DataGrid.InputBindings>
+                                                    <KeyBinding Key="Enter" Command="{Binding Settings.TrustedHostKeys.ShowSelectedDetailsCommand}"/>
+                                                    <KeyBinding Key="Delete" Command="{Binding Settings.TrustedHostKeys.RemoveSelectedCommand}"/>
+                                                </DataGrid.InputBindings>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeyHostPort}" Binding="{Binding HostPort}" SortMemberPath="HostPort" Width="170"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeyAlgorithm}" Binding="{Binding Algorithm}" SortMemberPath="Algorithm" Width="140"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeySource}" Binding="{Binding SourceDisplay}" SortMemberPath="Source" Width="150"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeyFirstSeen}" Binding="{Binding FirstSeenDisplay}" SortMemberPath="FirstSeen" Width="130"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeyLastSeen}" Binding="{Binding LastSeenDisplay}" SortMemberPath="LastSeen" Width="130"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedHostKeyFingerprint}" Binding="{Binding FingerprintDisplay}" SortMemberPath="Fingerprint" Width="*">
+                                                        <DataGridTextColumn.ElementStyle>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="ToolTip" Value="{Binding Fingerprint}"/>
+                                                            </Style>
+                                                        </DataGridTextColumn.ElementStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTemplateColumn Header="{loc:Translate ColTrustedHostKeyActions}" Width="120">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                                    <Button Command="{Binding DataContext.Settings.TrustedHostKeys.CopyFingerprintCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                            CommandParameter="{Binding}"
+                                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                                            Padding="5,2"
+                                                                            Margin="0,0,4,0"
+                                                                            ToolTip="{loc:Translate BtnTrustedHostKeyCopyFingerprint}"
+                                                                            AutomationProperties.Name="{loc:Translate BtnTrustedHostKeyCopyFingerprint}">
+                                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="12"/>
+                                                                    </Button>
+                                                                    <Button Command="{Binding DataContext.Settings.TrustedHostKeys.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                            CommandParameter="{Binding}"
+                                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                                            Padding="5,2"
+                                                                            Margin="0,0,4,0"
+                                                                            ToolTip="{loc:Translate BtnTrustedHostKeyDetails}"
+                                                                            AutomationProperties.Name="{loc:Translate BtnTrustedHostKeyDetails}">
+                                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="12"/>
+                                                                    </Button>
+                                                                    <Button Command="{Binding DataContext.Settings.TrustedHostKeys.RemoveCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                            CommandParameter="{Binding}"
+                                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                                            Padding="5,2"
+                                                                            ToolTip="{loc:Translate BtnTrustedHostKeyRemove}"
+                                                                            AutomationProperties.Name="{loc:Translate BtnTrustedHostKeyRemove}">
+                                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="12"/>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+
+                                            <Border Padding="{StaticResource SpacingLg}"
+                                                    Background="{DynamicResource BackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="{StaticResource CornerRadiusMd}"
+                                                    Visibility="{Binding Settings.TrustedHostKeys.IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Translate EmptyStateNoTrustedHostKeys}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate EmptyStateNoTrustedHostKeysHint}"
+                                                               Foreground="{DynamicResource TextTertiaryBrush}"
+                                                               FontSize="{StaticResource FontSizeCaption}"
+                                                               TextWrapping="Wrap"
+                                                               TextAlignment="Center"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding Settings.TrustedHostKeys.StatusMessage}"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Margin="0,8,0,0"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding Settings.TrustedHostKeys.HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- SSH Gateways -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>

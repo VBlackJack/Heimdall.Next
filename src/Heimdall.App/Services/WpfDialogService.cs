@@ -295,6 +295,37 @@ public sealed class WpfDialogService(
     }
 
     /// <inheritdoc/>
+    public Task ShowTrustedHostKeyDetailsAsync(TrustedHostKeyDetailsDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        var dialog = new TrustedHostKeyDetailsDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        dialog.ShowDialog();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<ImportKnownHostsConflictResolution?> ShowImportKnownHostsConflictAsync(
+        ImportKnownHostsConflictDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        var dialog = new ImportKnownHostsConflictDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        var confirmed = dialog.ShowDialog() == true;
+        return Task.FromResult(confirmed ? viewModel.Result : null);
+    }
+
+    /// <inheritdoc/>
     public async Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
         CommandLibraryPickerDialogViewModel viewModel,
         AutoPrefillContext? prefillContext = null,
