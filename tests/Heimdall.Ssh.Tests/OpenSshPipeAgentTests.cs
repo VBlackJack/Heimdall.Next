@@ -68,14 +68,17 @@ public sealed class OpenSshPipeAgentTests
     public async Task GetIdentities_WhenPipeClosesAfterConnect_ReturnsEmpty()
     {
         var pipeName = $"heimdall-test-{Guid.NewGuid():N}";
+        var serverReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var serverTask = Task.Run(async () =>
         {
             await using var server = CreateServer(pipeName);
+            serverReady.SetResult(true);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
         });
         var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
 
+        await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(2));
         var identities = agent.GetIdentities();
         await serverTask;
 
