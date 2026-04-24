@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4318%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4448%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -48,13 +48,15 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### SSH Terminal
 - Embedded terminal via WebView2 + xterm.js (full VT100/xterm rendering)
 - Pipe mode transport for correct arrow keys, colors, and escape sequences
-- Pageant agent integration (native Win32 IPC with identity count verification)
+- **Multi-agent support**: Pageant (PuTTY) and Windows OpenSSH Agent (named pipe `\\.\pipe\openssh-ssh-agent`) behind a common `ISshAgent` abstraction. User-configurable priority in `Settings > SSH & SFTP > SSH agent preference` (default: OpenSSH first, Pageant second). RSA keys negotiate SHA-2 automatically so modern servers with `ssh-rsa` disabled still accept cached agent keys.
+- **Separate key passphrase field**: distinct from the login password, both persisted encrypted. Enables key-with-fallback-password workflows without the field ambiguity of legacy setups.
+- **OpenSSH config import with ProxyJump**: single-hop and multi-hop chains auto-mapped to Heimdall's gateway model with `ParentGatewayId` links. Unsupported forms (ProxyCommand, `%h`/`%p` tokens, cycles) rejected with explicit diagnostics rather than silently mis-imported.
 - SSH keepalive heartbeat (prevents TMOUT disconnects)
-- User-confirmed TOFU host key verification with persistent fingerprint pinning
+- User-confirmed TOFU host key verification with persistent fingerprint pinning; trust decisions resolved *before* `Connect()` via a dedicated pre-authentication probe — SSH.NET's `HostKeyReceived` callback never performs async work or UI dispatch
 - Multi-gateway tunnel chaining with circular dependency detection
-- Dynamic tunnel port allocation (no more port conflicts)
+- Dynamic tunnel port allocation with bounded retry on bind-race (`AddressAlreadyInUse`)
 - Tunnel ref-counting (shared tunnels survive individual session close)
-- Terminal resize via SSH window-change request
+- Terminal resize via SSH window-change request (public `ShellStream.ChangeWindowSize` API, no reflection)
 - X11 forwarding with automatic X server detection and auto-start
 - 25 structured failure codes with localized error messages
 - Auto-reconnect overlay on unexpected disconnect (SSH and RDP)
@@ -210,7 +212,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,118 i18n keys)
+- Bilingual interface: English and French (~5,185 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -230,8 +232,11 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - XXE protection: DtdProcessing.Prohibit on all XML importers (mRemoteNG, RDCMan, Citrix cache)
 - Plink password file: atomic ACL creation on Windows, mode 0600 on Unix (no fallback)
 - Wake-on-LAN via UDP magic packet (right-click context menu)
-- User-confirmed SSH host key first-use and mismatch handling across SSH.NET and Plink fallback paths
-- Plink fallback sessions enforce pinned `-hostkey` fingerprints from the shared `HostKeyStore`
+- User-confirmed SSH host key first-use and mismatch handling across SSH.NET and Plink fallback paths, with interactive decisions resolved in a pre-authentication probe rather than inside SSH.NET's `HostKeyReceived` callback
+- Centralized `HostKeyTrustService` with per-entry metadata (first seen, last seen, algorithm, source) — production paths **fail closed** when a `HostKeyStore` is provided without a verifier; no silent auto-accept fallbacks in release code
+- `Settings > SSH & SFTP > Trusted host keys` sub-panel: dense auditable grid of every trusted host key with source provenance, import from `~/.ssh/known_hosts`, export to it, explicit per-row conflict resolution ("Keep existing" default), and copy/remove row actions
+- Opt-in `known_hosts` synchronization at startup so Heimdall, OpenSSH CLI, and Plink share one view of trust
+- Plink fallback sessions enforce pinned `-hostkey` fingerprints from the shared trust store
 - Credential broker autofill requires an RDP host-title match before injecting passwords
 - Known security limitations and threat model notes are tracked in [SECURITY.md](SECURITY.md)
 - Session-scoped CredMan entries with deterministic cleanup
