@@ -89,6 +89,7 @@ public sealed class AppSettings
     public string SshDefaultMode { get; set; } = "Embedded";
     [JsonConverter(typeof(JsonStringEnumConverter<SshAgentPreference>))]
     public SshAgentPreference SshAgentPreference { get; set; } = SshAgentPreference.AutoOpenSshFirst;
+    public bool SyncKnownHostsAtStartup { get; set; }
     public int AntiIdleIntervalSeconds { get; set; } = 60;
     public int SshTmoutResetIntervalSeconds { get; set; } = 240;
 

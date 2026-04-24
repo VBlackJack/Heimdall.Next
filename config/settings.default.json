@@ -45,6 +45,7 @@
     "powerShellExecutionPolicy": "Default",
     "sshDefaultMode": "Embedded",
     "sshAgentPreference": "AutoOpenSshFirst",
+    "syncKnownHostsAtStartup": false,
     "antiIdleIntervalSeconds": 60,
     "sshTmoutResetIntervalSeconds": 240,
     "rdpDefaultMode": "Embedded",
