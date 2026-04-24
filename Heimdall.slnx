@@ -14,6 +14,7 @@
     <Project Path="tests/Heimdall.App.Tests/Heimdall.App.Tests.csproj" />
     <Project Path="tests/Heimdall.App.UiTests/Heimdall.App.UiTests.csproj" />
     <Project Path="tests/Heimdall.Core.Tests/Heimdall.Core.Tests.csproj" />
+    <Project Path="tests/Heimdall.Rdp.Tests/Heimdall.Rdp.Tests.csproj" />
     <Project Path="tests/Heimdall.Ssh.Tests/Heimdall.Ssh.Tests.csproj" />
   </Folder>
 </Solution>

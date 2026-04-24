@@ -462,6 +462,22 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
     #region Private apply methods (late-bound COM property access)
 
+    /// <summary>
+    /// Invokes a late-bound COM property setter and logs + swallows exceptions.
+    /// Used for optional properties that may not exist on older IMsRdpClient interface versions.
+    /// </summary>
+    private static void TrySetDynamic(string propertyName, Action apply)
+    {
+        try
+        {
+            apply();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[RdpActiveXHost] {propertyName}: {ex.Message}");
+        }
+    }
+
     private void ApplyServerSettings(object ocx)
     {
         if (string.IsNullOrWhiteSpace(_pendingHost)) return;
@@ -553,15 +569,13 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
         if (_pendingRedirections.AutoReconnect)
         {
-            try { adv.MaxReconnectAttempts = 20; }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] MaxReconnectAttempts: {ex.Message}"); }
+            TrySetDynamic("MaxReconnectAttempts", () => adv.MaxReconnectAttempts = 20);
         }
 
         // USB / PnP device redirection
         if (_pendingRedirections.Usb)
         {
-            try { adv.RedirectDevices = true; }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] RedirectDevices: {ex.Message}"); }
+            TrySetDynamic("RedirectDevices", () => adv.RedirectDevices = true);
         }
 
         // NOTE: Webcam (camerastoredirect) requires IMsRdpClientNonScriptable7
@@ -574,41 +588,29 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         // Allow background input — CRITICAL for anti-idle on background tabs.
         // Without this, the RDP ActiveX control discards PostMessage input
         // when it does not have focus, silently breaking anti-idle.
-        try { adv.allowBackgroundInput = 1; } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] allowBackgroundInput: {ex.Message}"); }
+        TrySetDynamic("allowBackgroundInput", () => adv.allowBackgroundInput = 1);
 
         // TCP keep-alive interval for network break detection
-        try { adv.KeepAliveInterval = KeepAliveIntervalMs; }
-        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] KeepAliveInterval: {ex.Message}"); }
+        TrySetDynamic("KeepAliveInterval", () => adv.KeepAliveInterval = KeepAliveIntervalMs);
 
         // Performance flags (disable visual effects for bandwidth optimization)
         if (_pendingRedirections.PerformanceFlags > 0)
         {
-            try { adv.PerformanceFlags = _pendingRedirections.PerformanceFlags; }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] PerformanceFlags: {ex.Message}"); }
+            TrySetDynamic("PerformanceFlags", () => adv.PerformanceFlags = _pendingRedirections.PerformanceFlags);
         }
 
         // Network auto-detect: let the server continuously adapt encoding to bandwidth.
         // Skipped when DisableUdp is set (that path forces LAN profile instead).
         if (!_pendingRedirections.DisableUdp)
         {
-            try { adv.BandwidthDetection = true; }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] BandwidthDetection: {ex.Message}"); }
-
-            try { adv.NetworkConnectionType = 7; } // CONNECTION_TYPE_AUTODETECT
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] NetworkConnectionType: {ex.Message}"); }
+            TrySetDynamic("BandwidthDetection", () => adv.BandwidthDetection = true);
+            TrySetDynamic("NetworkConnectionType", () => adv.NetworkConnectionType = 7); // CONNECTION_TYPE_AUTODETECT
         }
 
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
         {
-            try
-            {
-                adv.UseMultimon = true;
-            }
-            catch (Exception ex)
-            {
-                Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] UseMultimon: {ex.Message}");
-            }
+            TrySetDynamic("UseMultimon", () => adv.UseMultimon = true);
         }
 
         // Force TCP-only: disable bandwidth auto-detection (which uses UDP probes)
@@ -618,11 +620,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         // same result by preventing the UDP probe that times out behind firewalls.
         if (_pendingRedirections.DisableUdp)
         {
-            try { adv.BandwidthDetection = false; }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp BandwidthDetection: {ex.Message}"); }
-
-            try { adv.NetworkConnectionType = 6; } // LAN — no probing needed
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp NetworkConnectionType: {ex.Message}"); }
+            TrySetDynamic("DisableUdp BandwidthDetection", () => adv.BandwidthDetection = false);
+            TrySetDynamic("DisableUdp NetworkConnectionType", () => adv.NetworkConnectionType = 6); // LAN — no probing needed
         }
     }
 

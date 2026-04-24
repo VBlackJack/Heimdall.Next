@@ -45,7 +45,6 @@ public sealed class PlinkTunnelRunner : IDisposable
     private static readonly int PortCheckMaxAttempts = 15;
     private readonly TimeSpan _portCheckInterval;
     private readonly TimeSpan _processKillGracePeriod;
-    private readonly TimeSpan _stderrReadTimeout;
 
     private Process? _process;
     private string? _pwFilePath;
@@ -58,7 +57,6 @@ public sealed class PlinkTunnelRunner : IDisposable
     {
         _portCheckInterval = TimeSpan.FromMilliseconds(portCheckIntervalMs);
         _processKillGracePeriod = TimeSpan.FromMilliseconds(killGracePeriodMs);
-        _stderrReadTimeout = TimeSpan.FromMilliseconds(stderrReadTimeoutMs);
     }
 
     /// <summary>Whether the underlying plink process is running.</summary>
@@ -464,29 +462,6 @@ public sealed class PlinkTunnelRunner : IDisposable
         catch (SocketException)
         {
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Reads any available stderr output from the plink process.
-    /// Uses a short timeout to avoid blocking if the process is still running.
-    /// </summary>
-    private async Task<string> ReadStderrSafeAsync()
-    {
-        if (_process?.StandardError is null)
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            using var cts = new CancellationTokenSource(_stderrReadTimeout);
-            return await _process.StandardError.ReadToEndAsync(cts.Token).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] ReadStderrSafe: {ex.Message}");
-            return string.Empty;
         }
     }
 

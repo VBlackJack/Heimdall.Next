@@ -210,6 +210,15 @@ public static partial class CredentialAutofill
                 $"CredentialAutofill scan {scan}: candidate handle=0x{candidate.Handle.ToInt64():X} class={candidate.ClassName} title='{candidate.Title}' pid={candidate.ProcessId} process={candidate.ProcessName}");
         }
 
+        return SelectCredentialDialogTarget(mstscProcessId, hostHintPattern, candidates, scan);
+    }
+
+    internal static WindowInfo? SelectCredentialDialogTarget(
+        int mstscProcessId,
+        Regex? hostHintPattern,
+        IReadOnlyList<WindowInfo> candidates,
+        int scan)
+    {
         // Prefer windows owned by the target mstsc process.
         var ownedByTarget = candidates.Where(w => w.ProcessId == mstscProcessId).ToList();
         if (ownedByTarget.Count > 0)
@@ -217,9 +226,8 @@ public static partial class CredentialAutofill
             return SelectBestMatch(ownedByTarget, hostHintPattern);
         }
 
-        // Fall back to known credential broker processes, but only if their title
-        // matches the host hint (prevents injecting into the wrong dialog when
-        // multiple Windows Security prompts are open simultaneously).
+        // Fall back to known credential broker processes only if their title
+        // matches the host hint. Unmatched brokers may belong to unrelated apps.
         var brokerMatches = candidates
             .Where(w => IsCredentialBroker(w.ProcessId, w.ProcessName))
             .ToList();
@@ -229,11 +237,14 @@ public static partial class CredentialAutofill
             {
                 var hostMatched = brokerMatches.Where(w => hostHintPattern.IsMatch(w.Title)).ToList();
                 if (hostMatched.Count > 0)
+                {
                     return SelectBestMatch(hostMatched, hostHintPattern);
+                }
             }
-            // Only fall back to unmatched brokers if there's exactly one candidate
-            if (brokerMatches.Count == 1)
-                return brokerMatches[0];
+
+            FileLogger.Info(
+                $"CredentialAutofill scan {scan}: broker candidates ignored by strict host gate.");
+            return null;
         }
 
         FileLogger.Warn(
@@ -586,7 +597,7 @@ public static partial class CredentialAutofill
 
     #region Window Enumeration
 
-    private readonly record struct WindowInfo(
+    internal readonly record struct WindowInfo(
         IntPtr Handle,
         string Title,
         string ClassName,
