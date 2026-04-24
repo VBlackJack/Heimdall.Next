@@ -82,7 +82,11 @@ internal sealed class SftpHandler : IProtocolHandler
             Port = targetPort,
             Username = server.SshUsername ?? string.Empty,
             Password = ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted),
+            KeyPassphrase = ConnectionHelpers.DecryptPassword(server.SshKeyPassphraseEncrypted),
             KeyPath = string.IsNullOrWhiteSpace(server.SshKeyPath) ? null : server.SshKeyPath,
+            SshAgentPreference = settings.SshAgentPreference,
+            UseLegacyPasswordAsKeyPassphrase = server.UsesLegacySshCredentialMapping,
+            LegacyCredentialName = server.DisplayName,
             AgentForwarding = server.SshAgentForwarding,
             Compression = server.SshCompression
         };

@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+using System.Text.Json.Serialization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.Core.Configuration;
 
@@ -85,6 +87,8 @@ public sealed class AppSettings
 
     // SSH defaults
     public string SshDefaultMode { get; set; } = "Embedded";
+    [JsonConverter(typeof(JsonStringEnumConverter<SshAgentPreference>))]
+    public SshAgentPreference SshAgentPreference { get; set; } = SshAgentPreference.AutoOpenSshFirst;
     public int AntiIdleIntervalSeconds { get; set; } = 60;
     public int SshTmoutResetIntervalSeconds { get; set; } = 240;
 

@@ -21,7 +21,7 @@ using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
-using Heimdall.Ssh.Pageant;
+using Heimdall.Ssh.Agents;
 using Heimdall.Ssh.Plink;
 
 namespace Heimdall.App.Services;
@@ -144,7 +144,8 @@ public sealed class TunnelService : ITunnelService
             chain = GatewayChainResolver.ResolveChain(
                 gatewayId,
                 settings.SshGateways,
-                ConnectionHelpers.DecryptPassword);
+                ConnectionHelpers.DecryptPassword,
+                sshAgentPreference: settings.SshAgentPreference);
         }
         catch (Exception ex)
         {
@@ -152,10 +153,20 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
 
+        var agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+        if (chain.Any(hop => hop.AgentForwarding)
+            && !agentRegistry.HasPlinkCompatibleAgent()
+            && agentRegistry.HasAnyNonPlinkAgent())
+        {
+            var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+            _connectionSm.SetError(serverId, message);
+            return new TunnelResult(false, null, message, SshFailureCode.PageantKeyUnavailable);
+        }
+
         var preflight = AuthPreflightChecker.Check(chain[0], isTunnelMode: true);
         if (!preflight.Success)
         {
-            var msg = preflight.Message ?? _localizer["ErrorPreflightFailed"];
+            var msg = ResolvePreflightMessage(preflight.Message);
             _connectionSm.SetError(serverId, msg);
             return new TunnelResult(false, null, msg, preflight.FailureCode);
         }
@@ -196,8 +207,10 @@ public sealed class TunnelService : ITunnelService
 
         if (!result.Success
             && chain.Count == 1
-            && result.FailureCode is SshFailureCode.AuthRejected or SshFailureCode.KeyRejected
-            && PageantClient.IsAvailable())
+            && result.FailureCode is SshFailureCode.AuthRejected
+                or SshFailureCode.KeyRejected
+                or SshFailureCode.PassphraseRejected
+            && SshAgentRegistry.CreateDefault(settings.SshAgentPreference).HasPlinkCompatibleAgent())
         {
             Core.Logging.FileLogger.Info(
                 $"SSH.NET auth failed, falling back to Plink: {result.ErrorMessage}");
@@ -211,6 +224,21 @@ public sealed class TunnelService : ITunnelService
                     settings,
                     ct)
                 .ConfigureAwait(false);
+        }
+
+        if (!result.Success
+            && chain.Count == 1
+            && result.FailureCode is SshFailureCode.AuthRejected
+                or SshFailureCode.KeyRejected
+                or SshFailureCode.PassphraseRejected)
+        {
+            var registry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+            if (!registry.HasPlinkCompatibleAgent() && registry.HasAnyNonPlinkAgent())
+            {
+                var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+                _connectionSm.SetError(serverId, message);
+                return new TunnelResult(false, null, message, result.FailureCode);
+            }
         }
 
         if (result.Success)
@@ -350,7 +378,9 @@ public sealed class TunnelService : ITunnelService
                 remotePort,
                 localPort,
                 fingerprint,
-                ct)
+                ct,
+                gatewayParams.KeyPassphrase,
+                _localizer["ErrorPlinkPassphraseUnsupported"])
             .ConfigureAwait(false);
 
         if (!result.Success)
@@ -432,5 +462,18 @@ public sealed class TunnelService : ITunnelService
         return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
             ? "Connection was cancelled."
             : message;
+    }
+
+    private string ResolvePreflightMessage(string? messageOrKey)
+    {
+        if (string.IsNullOrWhiteSpace(messageOrKey))
+        {
+            return _localizer["ErrorPreflightFailed"];
+        }
+
+        var localized = _localizer[messageOrKey];
+        return string.Equals(localized, messageOrKey, StringComparison.Ordinal)
+            ? messageOrKey
+            : localized;
     }
 }

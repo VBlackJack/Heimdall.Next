@@ -84,6 +84,35 @@ public class FailureClassifierTests
         Assert.True(result.IsFatal);
     }
 
+    [Fact]
+    public void Classify_SshPassPhraseNullOrEmpty_ReturnsPassphraseRequired()
+    {
+        var ex = new SshPassPhraseNullOrEmptyException("Private key passphrase is required.");
+
+        var result = FailureClassifier.Classify(ex);
+
+        Assert.Equal(SshFailureCode.PassphraseRequired, result.Code);
+        Assert.True(result.IsFatal);
+    }
+
+    [Fact]
+    public void Classify_SshException_PassphraseMessageWithKeyPassphrase_ReturnsPassphraseRejected()
+    {
+        var ex = new SshException("Invalid passphrase.");
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Username = "user",
+            KeyPath = @"C:\keys\id_rsa",
+            KeyPassphrase = "wrong"
+        };
+
+        var result = FailureClassifier.Classify(ex, connParams);
+
+        Assert.Equal(SshFailureCode.PassphraseRejected, result.Code);
+        Assert.True(result.IsFatal);
+    }
+
     // ── Connection exception classification ────────────────────────────
 
     [Fact]

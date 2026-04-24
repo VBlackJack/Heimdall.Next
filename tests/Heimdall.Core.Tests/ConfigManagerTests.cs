@@ -18,6 +18,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
 
@@ -356,6 +357,39 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal("SSH", servers[1].ConnectionType);
     }
 
+    [Fact]
+    public async Task LoadServersAsync_LegacySshKeyPassword_DoesNotAutoMigrateToKeyPassphrase()
+    {
+        CredentialProtector.Initialize(null);
+        var legacySecret = CredentialProtector.Protect("legacy-secret");
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = $$"""
+        [
+            {
+                "id": "srv-legacy",
+                "displayName": "Legacy SSH",
+                "remoteServer": "10.0.0.2",
+                "sshPort": 22,
+                "connectionType": "SSH",
+                "sshKeyPath": "C:\\keys\\legacy.pem",
+                "sshPasswordEncrypted": "{{legacySecret}}"
+            }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, json, new UTF8Encoding(false));
+
+        var servers = await _manager.LoadServersAsync();
+        var reloadedJson = await File.ReadAllTextAsync(_manager.ServersPath, new UTF8Encoding(false));
+
+        var server = Assert.Single(servers);
+        Assert.False(server.HasSshKeyPassphraseEncryptedField);
+        Assert.True(server.UsesLegacySshCredentialMapping);
+        Assert.Null(server.SshKeyPassphraseEncrypted);
+        Assert.DoesNotContain("sshKeyPassphraseEncrypted", reloadedJson);
+    }
+
     // ── SaveServersAsync / round-trip ──────────────────────────────────
 
     [Fact]
@@ -414,6 +448,37 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal("Embedded", loaded[1].SshMode);
         Assert.True(loaded[1].SshAgentForwarding);
         Assert.Equal("admin", loaded[1].SshUsername);
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_RoundTrips_SshKeyPassphraseEncrypted()
+    {
+        CredentialProtector.Initialize(null);
+        var protectedPassphrase = CredentialProtector.Protect("key-passphrase");
+        var original = new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "srv-key",
+                DisplayName = "Key SSH",
+                RemoteServer = "10.0.0.5",
+                SshPort = 22,
+                ConnectionType = "SSH",
+                SshMode = "Embedded",
+                SshUsername = "admin",
+                SshKeyPath = @"C:\keys\id_rsa",
+                SshPasswordEncrypted = CredentialProtector.Protect("login-password"),
+                SshKeyPassphraseEncrypted = protectedPassphrase
+            }
+        };
+
+        await _manager.SaveServersAsync(original);
+        var loaded = await _manager.LoadServersAsync();
+
+        var server = Assert.Single(loaded);
+        Assert.True(server.HasSshKeyPassphraseEncryptedField);
+        Assert.False(server.UsesLegacySshCredentialMapping);
+        Assert.Equal("key-passphrase", CredentialProtector.Unprotect(server.SshKeyPassphraseEncrypted));
     }
 
     [Fact]

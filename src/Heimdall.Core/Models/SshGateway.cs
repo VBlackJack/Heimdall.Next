@@ -49,6 +49,9 @@ public partial class SshGateway : ObservableObject
     private string? _sshPasswordEncrypted;
 
     [ObservableProperty]
+    private string? _sshKeyPassphraseEncrypted;
+
+    [ObservableProperty]
     private bool _isDefault;
 
     [ObservableProperty]

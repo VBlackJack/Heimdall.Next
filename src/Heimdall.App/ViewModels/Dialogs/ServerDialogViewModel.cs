@@ -192,8 +192,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _sshPassword = "";
 
-    // Existing encrypted passwords (preserved on edit if user doesn't change them)
+    [ObservableProperty]
+    private string _sshKeyPassphrase = "";
+
+    // Existing encrypted SSH secrets (preserved on edit if user doesn't change them)
     public string? ExistingSshPasswordEncrypted { get; set; }
+    public string? ExistingSshKeyPassphraseEncrypted { get; set; }
     public string? ExistingRdpPasswordEncrypted { get; set; }
 
     [ObservableProperty]
@@ -215,25 +219,28 @@ public partial class ServerDialogViewModel : ObservableValidator
     private int _postConnectDelayMs = 800;
 
     /// <summary>
-    /// Returns a context-aware label for the SSH password field:
-    /// "Password" when no key is configured, "Passphrase" when a key is set.
+    /// Whether the SSH key passphrase field should be shown.
     /// </summary>
-    public string SshPasswordLabel => string.IsNullOrWhiteSpace(SshKeyPath)
-        ? L("ServerDialogLabelPassword")
-        : L("ServerDialogLabelPassphrase");
+    public bool HasSshKeyPath => !string.IsNullOrWhiteSpace(SshKeyPath);
 
     /// <summary>
-    /// Returns a context-aware hint explaining the SSH auth mode:
-    /// password-centric hint when no key is configured, key-centric hint otherwise.
+    /// Returns the hint for the SSH password field.
     /// </summary>
-    public string SshAuthHint => string.IsNullOrWhiteSpace(SshKeyPath)
-        ? L("ServerDialogSshAuthHintPassword")
-        : L("ServerDialogSshAuthHintKey");
+    public string SshAuthHint => L("ServerDialogSshAuthHintPassword");
+
+    /// <summary>
+    /// Returns the hint for the SSH key passphrase field.
+    /// </summary>
+    public string SshKeyPassphraseHint => L("ServerDialogSshKeyPassphraseHint");
 
     partial void OnSshKeyPathChanged(string value)
     {
-        OnPropertyChanged(nameof(SshPasswordLabel));
-        OnPropertyChanged(nameof(SshAuthHint));
+        OnPropertyChanged(nameof(HasSshKeyPath));
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SshKeyPassphrase = "";
+            ExistingSshKeyPassphraseEncrypted = null;
+        }
     }
 
     // --- Local Shell settings ---
@@ -761,6 +768,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// </summary>
     public ServerProfileDto ToDto()
     {
+        var sshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath;
+
         return new ServerProfileDto
         {
             DisplayName = DisplayName,
@@ -772,10 +781,15 @@ public partial class ServerDialogViewModel : ObservableValidator
             ConnectionType = ConnectionType,
             SshUsername = string.IsNullOrWhiteSpace(SshUsername) ? null : SshUsername,
             SshPort = SshPort,
-            SshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath,
+            SshKeyPath = sshKeyPath,
             SshPasswordEncrypted = string.IsNullOrEmpty(SshPassword)
                 ? ExistingSshPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(SshPassword),
+            SshKeyPassphraseEncrypted = sshKeyPath is null
+                ? null
+                : string.IsNullOrEmpty(SshKeyPassphrase)
+                    ? ExistingSshKeyPassphraseEncrypted ?? string.Empty
+                    : Heimdall.Core.Security.CredentialProtector.Protect(SshKeyPassphrase),
             SshCompression = SshCompression,
             SshX11Forwarding = SshX11Forwarding,
             SshAgentForwarding = SshAgentForwarding,
@@ -913,6 +927,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RdpUsername = dto.RdpUsername ?? "";
         vm.ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted;
         vm.ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted;
+        vm.ExistingSshKeyPassphraseEncrypted = dto.SshKeyPassphraseEncrypted;
         vm.RdpMode = dto.RdpMode;
         vm.RdpUseGlobalDefaults = dto.RdpUseGlobalDefaults;
         vm.RdpAntiIdle = dto.RdpAntiIdle;

@@ -17,6 +17,7 @@
 using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Services;
@@ -29,12 +30,20 @@ internal static class ConnectionHelpers
     /// <summary>
     /// Converts a gateway DTO to SSH connection parameters, decrypting the password if present.
     /// </summary>
-    internal static SshConnectionParams CreateGatewayConnectionParams(SshGatewayDto gateway)
+    internal static SshConnectionParams CreateGatewayConnectionParams(
+        SshGatewayDto gateway,
+        SshAgentPreference sshAgentPreference = SshAgentPreference.AutoOpenSshFirst)
     {
         string? password = null;
         if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
         {
             password = DecryptPassword(gateway.SshPasswordEncrypted);
+        }
+
+        string? keyPassphrase = null;
+        if (!string.IsNullOrEmpty(gateway.SshKeyPassphraseEncrypted))
+        {
+            keyPassphrase = DecryptPassword(gateway.SshKeyPassphraseEncrypted);
         }
 
         return new SshConnectionParams
@@ -43,7 +52,11 @@ internal static class ConnectionHelpers
             Port = gateway.Port,
             Username = gateway.User,
             KeyPath = string.IsNullOrWhiteSpace(gateway.KeyPath) ? null : gateway.KeyPath,
-            Password = password
+            Password = password,
+            KeyPassphrase = keyPassphrase,
+            SshAgentPreference = sshAgentPreference,
+            UseLegacyPasswordAsKeyPassphrase = gateway.UsesLegacySshCredentialMapping,
+            LegacyCredentialName = gateway.Name
         };
     }
 

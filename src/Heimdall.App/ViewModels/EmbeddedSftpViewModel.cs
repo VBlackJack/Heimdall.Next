@@ -454,17 +454,32 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             throw new InvalidOperationException("SSH params not available for sudo.");
         }
 
+        PinnedFingerprintVerifier? pinnedVerifier = null;
+        if (_hostKeyStore is not null)
+        {
+            if (_hostKeyVerifier is null)
+            {
+                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
+            }
+
+            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                    _sshParams,
+                    _hostKeyStore,
+                    _hostKeyVerifier,
+                    ct)
+                .ConfigureAwait(false);
+        }
+
         var connInfo = SshConnectionFactory.Create(_sshParams);
         var ssh = new Renci.SshNet.SshClient(connInfo);
 
-        if (_hostKeyStore is not null)
+        if (pinnedVerifier is not null)
         {
-            SshConnectionFactory.AttachHostKeyVerification(
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
                 ssh,
                 _sshParams.Host,
                 _sshParams.Port,
-                _hostKeyStore,
-                _hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
+                pinnedVerifier);
         }
 
         await Task.Run(() =>

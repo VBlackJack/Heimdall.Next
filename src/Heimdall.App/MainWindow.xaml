@@ -1884,6 +1884,16 @@
                                             </StackPanel>
                                             <TextBlock x:Name="Mw_SettingsSshModeHint" Text="{loc:Translate SettingsSshModeHint}" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsSshAgentPreferenceLabel" Text="{loc:Translate SettingsSshAgentPreferenceLabel}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.SshAgentPreference}" SelectedValuePath="Tag" Width="260" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsSshAgentPreferenceLabel}">
+                                                <ComboBoxItem Content="{loc:Translate SettingsSshAgentPreferenceAutoOpenSshFirst}" Tag="AutoOpenSshFirst" AutomationProperties.Name="{loc:Translate SettingsSshAgentPreferenceAutoOpenSshFirst}"/>
+                                                <ComboBoxItem Content="{loc:Translate SettingsSshAgentPreferenceAutoPageantFirst}" Tag="AutoPageantFirst" AutomationProperties.Name="{loc:Translate SettingsSshAgentPreferenceAutoPageantFirst}"/>
+                                                <ComboBoxItem Content="{loc:Translate SettingsSshAgentPreferenceOpenSshOnly}" Tag="OpenSshOnly" AutomationProperties.Name="{loc:Translate SettingsSshAgentPreferenceOpenSshOnly}"/>
+                                                <ComboBoxItem Content="{loc:Translate SettingsSshAgentPreferencePageantOnly}" Tag="PageantOnly" AutomationProperties.Name="{loc:Translate SettingsSshAgentPreferencePageantOnly}"/>
+                                            </ComboBox>
+                                            <TextBlock Text="{loc:Translate SettingsSshAgentPreferenceHint}" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>

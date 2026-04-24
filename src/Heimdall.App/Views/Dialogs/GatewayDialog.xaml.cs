@@ -48,6 +48,7 @@ public partial class GatewayDialog : Window
                 LblUsername.Text = vm.Localizer["GatewayDialogLabelUsername"];
                 LblKeyPath.Text = vm.Localizer["GatewayDialogLabelKeyPath"];
                 // LblPassword is bound to GatewayPasswordLabel on the ViewModel.
+                LblKeyPassphrase.Text = vm.Localizer["GatewayDialogLabelPassphrase"];
                 LblParentGateway.Text = vm.Localizer["GatewayDialogLabelParentGateway"];
                 LblHostKeyFingerprint.Text = vm.Localizer["GatewayDialogLabelHostKeyFingerprint"];
                 LblHostKeyFingerprintHint.Text = vm.Localizer["GatewayHostKeyFingerprintHint"];
@@ -62,6 +63,7 @@ public partial class GatewayDialog : Window
                 System.Windows.Automation.AutomationProperties.SetName(TxtUsername, vm.Localizer["GatewayDialogLabelUsername"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtKeyPath, vm.Localizer["GatewayDialogLabelKeyPath"]);
                 System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.GatewayPasswordLabel);
+                System.Windows.Automation.AutomationProperties.SetName(KeyPassphraseBox, vm.Localizer["GatewayDialogLabelPassphrase"]);
                 System.Windows.Automation.AutomationProperties.SetName(CmbParentGateway, vm.Localizer["GatewayDialogLabelParentGateway"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtHostKeyFingerprint, vm.Localizer["GatewayDialogLabelHostKeyFingerprint"]);
 
@@ -69,6 +71,8 @@ public partial class GatewayDialog : Window
                 {
                     if (e.PropertyName == nameof(GatewayDialogViewModel.GatewayPasswordLabel))
                         System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.GatewayPasswordLabel);
+                    if (e.PropertyName == nameof(GatewayDialogViewModel.HasKeyPath) && !vm.HasKeyPath)
+                        KeyPassphraseBox.Clear();
                 };
             }
 
@@ -85,6 +89,7 @@ public partial class GatewayDialog : Window
 
         // Transfer PasswordBox value (WPF PasswordBox cannot be databound)
         vm.Password = PasswordBox.Password;
+        vm.KeyPassphrase = vm.HasKeyPath ? KeyPassphraseBox.Password : "";
 
         vm.ValidateCommand.Execute(null);
 
@@ -94,6 +99,7 @@ public partial class GatewayDialog : Window
 
             // Clear password from UI memory (CWE-316)
             PasswordBox.Clear();
+            KeyPassphraseBox.Clear();
         }
     }
 
@@ -101,7 +107,12 @@ public partial class GatewayDialog : Window
     {
         // Skip dirty check when the user clicked Save (DialogResult == true)
         if (DialogResult == true) return;
-        if (DataContext is not GatewayDialogViewModel { IsDirty: true } vm) return;
+        if (DataContext is not GatewayDialogViewModel { IsDirty: true } vm)
+        {
+            PasswordBox.Clear();
+            KeyPassphraseBox.Clear();
+            return;
+        }
 
         var title = vm.Localizer?["DialogUnsavedWarningTitle"] ?? "Unsaved Changes";
         var message = vm.Localizer?["DialogUnsavedWarning"]
@@ -113,7 +124,11 @@ public partial class GatewayDialog : Window
         if (!discard)
         {
             e.Cancel = true;
+            return;
         }
+
+        PasswordBox.Clear();
+        KeyPassphraseBox.Clear();
     }
 
     private void OnBrowseKeyClick(object sender, RoutedEventArgs e)

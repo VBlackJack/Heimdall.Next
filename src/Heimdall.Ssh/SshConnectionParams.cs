@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Ssh;
+
 namespace Heimdall.Ssh;
 
 /// <summary>
 /// Parameters for establishing an SSH connection.
 /// Callers are responsible for decrypting secrets (e.g., via DPAPI) before
-/// populating <see cref="Password"/>; this class never touches encrypted storage.
+/// populating <see cref="Password"/> or <see cref="KeyPassphrase"/>;
+/// this class never touches encrypted storage.
 /// </summary>
 public sealed class SshConnectionParams
 {
@@ -35,13 +38,26 @@ public sealed class SshConnectionParams
     /// <summary>Path to a private key file (PEM or OpenSSH format). Optional.</summary>
     public string? KeyPath { get; init; }
 
-    /// <summary>
-    /// Plaintext password for password authentication or private key passphrase.
-    /// The caller must decrypt from DPAPI before supplying this value.
-    /// </summary>
+    /// <summary>Plaintext password for SSH password authentication.</summary>
     public string? Password { get; init; }
 
-    /// <summary>Whether to enable SSH agent forwarding (Pageant on Windows).</summary>
+    /// <summary>Plaintext passphrase used to decrypt <see cref="KeyPath"/>.</summary>
+    public string? KeyPassphrase { get; init; }
+
+    /// <summary>
+    /// Compatibility switch for profiles saved before the dedicated key
+    /// passphrase field existed. When enabled, <see cref="Password"/> is also
+    /// tried as a key passphrase, then still used as a password fallback.
+    /// </summary>
+    public bool UseLegacyPasswordAsKeyPassphrase { get; init; }
+
+    /// <summary>Display name used in the legacy credential mapping log entry.</summary>
+    public string? LegacyCredentialName { get; init; }
+
+    /// <summary>Preferred local SSH agent order for authentication.</summary>
+    public SshAgentPreference SshAgentPreference { get; init; } = SshAgentPreference.AutoOpenSshFirst;
+
+    /// <summary>Whether to enable SSH agent forwarding.</summary>
     public bool AgentForwarding { get; init; }
 
     /// <summary>Whether to enable zlib compression on the SSH transport.</summary>

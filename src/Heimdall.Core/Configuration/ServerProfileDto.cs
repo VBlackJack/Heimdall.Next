@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Core.Models;
+using System.Text.Json.Serialization;
 
 namespace Heimdall.Core.Configuration;
 
@@ -25,6 +26,8 @@ namespace Heimdall.Core.Configuration;
 /// </summary>
 public sealed class ServerProfileDto
 {
+    private string? _sshKeyPassphraseEncrypted;
+
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     /// <summary>
@@ -50,6 +53,25 @@ public sealed class ServerProfileDto
     public bool SshAgentForwarding { get; set; }
     public string? SshKeyPath { get; set; }
     public string? SshPasswordEncrypted { get; set; }
+    public string? SshKeyPassphraseEncrypted
+    {
+        get => _sshKeyPassphraseEncrypted;
+        set
+        {
+            _sshKeyPassphraseEncrypted = value;
+            HasSshKeyPassphraseEncryptedField = true;
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasSshKeyPassphraseEncryptedField { get; private set; }
+
+    [JsonIgnore]
+    public bool UsesLegacySshCredentialMapping =>
+        !HasSshKeyPassphraseEncryptedField
+        && !string.IsNullOrWhiteSpace(SshKeyPath)
+        && !string.IsNullOrWhiteSpace(SshPasswordEncrypted);
+
     public bool SshCompression { get; set; }
     public bool SshX11Forwarding { get; set; }
     public int SocksProxyPort { get; set; }

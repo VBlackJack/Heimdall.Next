@@ -33,11 +33,11 @@ public sealed record PlinkTunnelResult(bool Success, string? ErrorMessage, SshFa
 /// <summary>
 /// Fallback tunnel implementation using an external plink.exe process.
 /// Used when SSH.NET cannot handle the authentication method, such as
-/// Pageant agent keys where the private key material is only accessible
-/// to the agent process.
+/// PuTTY/Pageant-specific agent flows where plink.exe can use the key
+/// through its own compatible agent integration.
 /// </summary>
 /// <remarks>
-/// This is a temporary bridge until SSH.NET adds native Pageant/agent support.
+/// This is a temporary bridge for Plink-specific fallback paths.
 /// The legacy Heimdall (PowerShell) used plink exclusively for all tunnels.
 /// </remarks>
 public sealed class PlinkTunnelRunner : IDisposable
@@ -91,13 +91,24 @@ public sealed class PlinkTunnelRunner : IDisposable
         int remotePort,
         int localPort,
         string? hostKeyFingerprint = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? keyPassphrase = null,
+        string? passphraseUnsupportedMessage = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_process is not null)
         {
             throw new InvalidOperationException("A plink tunnel is already running. Call Stop() first.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyPath) && !string.IsNullOrEmpty(keyPassphrase))
+        {
+            return new PlinkTunnelResult(
+                false,
+                passphraseUnsupportedMessage
+                    ?? "Plink fallback cannot unlock a passphrase-protected key file. Load the key in Pageant instead.",
+                SshFailureCode.PassphraseRequired);
         }
 
         if (!File.Exists(plinkPath))

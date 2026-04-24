@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.Ssh;
 
@@ -43,7 +44,8 @@ public static class GatewayChainResolver
         string targetGatewayId,
         IReadOnlyList<SshGatewayDto> allGateways,
         Func<string, string?> decryptPassword,
-        int maxDepth = 5)
+        int maxDepth = 5,
+        SshAgentPreference sshAgentPreference = SshAgentPreference.AutoOpenSshFirst)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetGatewayId);
         ArgumentNullException.ThrowIfNull(allGateways);
@@ -96,7 +98,7 @@ public static class GatewayChainResolver
         chain.Reverse();
 
         // Convert DTOs to connection parameters
-        return chain.Select(gw => ToConnectionParams(gw, decryptPassword)).ToList();
+        return chain.Select(gw => ToConnectionParams(gw, decryptPassword, sshAgentPreference)).ToList();
     }
 
     /// <summary>
@@ -105,12 +107,19 @@ public static class GatewayChainResolver
     /// </summary>
     private static SshConnectionParams ToConnectionParams(
         SshGatewayDto gateway,
-        Func<string, string?> decryptPassword)
+        Func<string, string?> decryptPassword,
+        SshAgentPreference sshAgentPreference)
     {
         string? password = null;
         if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
         {
             password = decryptPassword(gateway.SshPasswordEncrypted);
+        }
+
+        string? keyPassphrase = null;
+        if (!string.IsNullOrEmpty(gateway.SshKeyPassphraseEncrypted))
+        {
+            keyPassphrase = decryptPassword(gateway.SshKeyPassphraseEncrypted);
         }
 
         return new SshConnectionParams
@@ -119,7 +128,11 @@ public static class GatewayChainResolver
             Port = gateway.Port,
             Username = gateway.User,
             KeyPath = gateway.KeyPath,
-            Password = password
+            Password = password,
+            KeyPassphrase = keyPassphrase,
+            SshAgentPreference = sshAgentPreference,
+            UseLegacyPasswordAsKeyPassphrase = gateway.UsesLegacySshCredentialMapping,
+            LegacyCredentialName = gateway.Name
         };
     }
 }

@@ -97,6 +97,45 @@ public class GatewayChainResolverTests
     }
 
     [Fact]
+    public void ResolveChain_DecryptsKeyPassphraseViaCallback()
+    {
+        var gateways = new List<SshGatewayDto>
+        {
+            new()
+            {
+                Id = "gw1", Host = "gw.com", Port = 22, User = "user",
+                KeyPath = @"C:\keys\id_rsa",
+                SshKeyPassphraseEncrypted = "encrypted_key_passphrase"
+            }
+        };
+
+        var chain = GatewayChainResolver.ResolveChain("gw1", gateways, PassthroughDecrypt);
+
+        Assert.Equal("decrypted:encrypted_key_passphrase", chain[0].KeyPassphrase);
+        Assert.False(chain[0].UseLegacyPasswordAsKeyPassphrase);
+    }
+
+    [Fact]
+    public void ResolveChain_LegacyKeyPassword_SetsLegacyMappingFlag()
+    {
+        var gateways = new List<SshGatewayDto>
+        {
+            new()
+            {
+                Id = "gw1", Name = "legacy-gw", Host = "gw.com", Port = 22, User = "user",
+                KeyPath = @"C:\keys\id_rsa",
+                SshPasswordEncrypted = "encrypted_password"
+            }
+        };
+
+        var chain = GatewayChainResolver.ResolveChain("gw1", gateways, PassthroughDecrypt);
+
+        Assert.Equal("decrypted:encrypted_password", chain[0].Password);
+        Assert.True(chain[0].UseLegacyPasswordAsKeyPassphrase);
+        Assert.Equal("legacy-gw", chain[0].LegacyCredentialName);
+    }
+
+    [Fact]
     public void ResolveChain_NoPassword_LeavesPasswordNull()
     {
         var gateways = new List<SshGatewayDto>

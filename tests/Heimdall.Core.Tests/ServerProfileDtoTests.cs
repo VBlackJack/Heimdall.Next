@@ -99,6 +99,8 @@ public class ServerProfileDtoTests
         Assert.Null(dto.SshUsername);
         Assert.Null(dto.SshKeyPath);
         Assert.Null(dto.SshPasswordEncrypted);
+        Assert.Null(dto.SshKeyPassphraseEncrypted);
+        Assert.False(dto.HasSshKeyPassphraseEncryptedField);
         Assert.Null(dto.Tags);
         Assert.Null(dto.Environment);
         Assert.Null(dto.LocalShellExecutable);
@@ -128,6 +130,8 @@ public class ServerProfileDtoTests
             SshMode = "Embedded",
             SshAgentForwarding = true,
             SshKeyPath = @"C:\keys\id_rsa",
+            SshPasswordEncrypted = "encrypted-password",
+            SshKeyPassphraseEncrypted = "encrypted-key-passphrase",
             IsFavorite = true,
             SortOrder = 5,
             Tags = "production,critical",
@@ -156,6 +160,9 @@ public class ServerProfileDtoTests
         Assert.Equal(original.SshMode, deserialized.SshMode);
         Assert.Equal(original.SshAgentForwarding, deserialized.SshAgentForwarding);
         Assert.Equal(original.SshKeyPath, deserialized.SshKeyPath);
+        Assert.Equal(original.SshPasswordEncrypted, deserialized.SshPasswordEncrypted);
+        Assert.Equal(original.SshKeyPassphraseEncrypted, deserialized.SshKeyPassphraseEncrypted);
+        Assert.True(deserialized.HasSshKeyPassphraseEncryptedField);
         Assert.Equal(original.IsFavorite, deserialized.IsFavorite);
         Assert.Equal(original.SortOrder, deserialized.SortOrder);
         Assert.Equal(original.Tags, deserialized.Tags);

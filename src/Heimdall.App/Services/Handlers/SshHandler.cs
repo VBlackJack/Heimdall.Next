@@ -24,6 +24,7 @@ using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
+using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.Services.Handlers;
 
@@ -109,16 +110,36 @@ internal sealed class SshHandler : IProtocolHandler
             Port = targetPort,
             Username = server.SshUsername ?? string.Empty,
             Password = ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted),
+            KeyPassphrase = ConnectionHelpers.DecryptPassword(server.SshKeyPassphraseEncrypted),
             KeyPath = string.IsNullOrWhiteSpace(server.SshKeyPath) ? null : server.SshKeyPath,
+            SshAgentPreference = settings.SshAgentPreference,
+            UseLegacyPasswordAsKeyPassphrase = server.UsesLegacySshCredentialMapping,
+            LegacyCredentialName = server.DisplayName,
             AgentForwarding = server.SshAgentForwarding,
             Compression = server.SshCompression,
             X11Forwarding = server.SshX11Forwarding
         };
 
-        if (SshConnectionFactory.RequiresPageantFallback(sshParams))
+        var agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+        if (sshParams.AgentForwarding
+            && !agentRegistry.HasPlinkCompatibleAgent()
+            && agentRegistry.HasAnyNonPlinkAgent())
+        {
+            var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+            _connectionSm.SetError(server.Id, message);
+            return new ConnectionResult(
+                false,
+                message,
+                null,
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                    "ErrorPlinkOpenSshAgentUnsupported",
+                    message));
+        }
+
+        if (SshConnectionFactory.RequiresPlinkFallback(sshParams))
         {
             Core.Logging.FileLogger.Info(
-                $"SSH using Plink fallback (Pageant) for {server.DisplayName}");
+                $"SSH using Plink fallback for {server.DisplayName}");
             return await ConnectSshViaPlinkAsync(
                     server,
                     settings,
@@ -181,10 +202,26 @@ internal sealed class SshHandler : IProtocolHandler
 
             if (failure.Code is SshFailureCode.AuthRejected
                     or SshFailureCode.KeyRejected
+                    or SshFailureCode.PassphraseRejected
                     or SshFailureCode.PasswordRejected
                     or SshFailureCode.NoSupportedAuth
                     or SshFailureCode.KeyboardInteractiveNoPassword)
             {
+                var fallbackAgentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+                if (!fallbackAgentRegistry.HasPlinkCompatibleAgent() && fallbackAgentRegistry.HasAnyNonPlinkAgent())
+                {
+                    var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+                    _connectionSm.SetError(server.Id, message);
+                    return new ConnectionResult(
+                        false,
+                        message,
+                        null,
+                        SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                            "ErrorPlinkOpenSshAgentUnsupported",
+                            message,
+                            failure.Code));
+                }
+
                 Core.Logging.FileLogger.Info(
                     $"SSH.NET auth failed ({failure.Code}), falling back to Plink: {failure.Message}");
                 SetStatusText?.Invoke(_localizer["StatusSshRetryingViaPlink"]);

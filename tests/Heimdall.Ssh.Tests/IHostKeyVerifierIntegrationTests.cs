@@ -15,6 +15,9 @@
  */
 
 using Heimdall.Core.Ssh;
+using Heimdall.Sftp;
+using Renci.SshNet;
+using System.Diagnostics;
 
 namespace Heimdall.Ssh.Tests;
 
@@ -32,7 +35,7 @@ public sealed class IHostKeyVerifierIntegrationTests
     private static readonly byte[] DifferentKey = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
 
     [Fact]
-    public async Task MatchingKnownHost_SkipsVerifier_AndDoesNotEmitEvent()
+    public async Task MatchingKnownHost_SkipsVerifier_AndReturnsPinnedVerifier()
     {
         var store = new HostKeyStore();
         var trustedFingerprint = HostKeyStore.ComputeFingerprint(FirstKey);
@@ -48,16 +51,16 @@ public sealed class IHostKeyVerifierIntegrationTests
             }
         };
 
-        var canTrust = await ApplyDecisionAsync(store, verifier, FirstKey);
+        var pinned = await ResolvePresentationAsync(store, verifier, FirstKey);
 
-        Assert.True(canTrust);
+        Assert.True(pinned.Matches(Host, Port, trustedFingerprint));
         Assert.Equal(trustedFingerprint, store.GetFingerprint(Host, Port));
         Assert.Equal(0, verifier.CallCount);
         Assert.Equal(0, trustedEvents);
     }
 
     [Fact]
-    public async Task FirstUseAccept_TrustsFingerprint_AndEmitsTrustedEvent()
+    public async Task FirstUseAccept_TrustsFingerprint_AndReturnsPinnedVerifier()
     {
         var store = new HostKeyStore();
         var verifier = new FixedDecisionVerifier(HostKeyDecision.Accept);
@@ -65,13 +68,15 @@ public sealed class IHostKeyVerifierIntegrationTests
         store.HostKeyEvent += (host, fingerprint, trusted) =>
             trustedEvents.Add((host, fingerprint, trusted));
 
-        var canTrust = await ApplyDecisionAsync(store, verifier, FirstKey);
+        var pinned = await ResolvePresentationAsync(store, verifier, FirstKey);
         var storedFingerprint = store.GetFingerprint(Host, Port);
 
-        Assert.True(canTrust);
         Assert.NotNull(storedFingerprint);
+        Assert.True(pinned.Matches(Host, Port, storedFingerprint!));
         Assert.Equal(1, verifier.CallCount);
         Assert.Null(verifier.LastStoredFingerprint);
+        Assert.DoesNotContain(nameof(SshConnectionFactory.AttachHostKeyVerification), verifier.LastStackTrace);
+        Assert.DoesNotContain("HostKeyReceived", verifier.LastStackTrace);
         var trustedEvent = Assert.Single(trustedEvents);
         Assert.Equal($"{Host}:{Port}", trustedEvent.Host);
         Assert.Equal(storedFingerprint, trustedEvent.Fingerprint);
@@ -79,39 +84,39 @@ public sealed class IHostKeyVerifierIntegrationTests
     }
 
     [Fact]
-    public async Task FirstUseReject_DoesNotTrust_AndDoesNotEmitEvent()
+    public async Task FirstUseReject_ThrowsHostKeyRejected_AndDoesNotEmitEvent()
     {
         var store = new HostKeyStore();
         var verifier = new FixedDecisionVerifier(HostKeyDecision.Reject);
         var eventRaised = false;
         store.HostKeyEvent += (_, _, _) => eventRaised = true;
 
-        var canTrust = await ApplyDecisionAsync(store, verifier, FirstKey);
+        await Assert.ThrowsAsync<HostKeyRejectedException>(
+            () => ResolvePresentationAsync(store, verifier, FirstKey));
 
-        Assert.False(canTrust);
         Assert.Null(store.GetFingerprint(Host, Port));
         Assert.Equal(1, verifier.CallCount);
         Assert.False(eventRaised);
     }
 
     [Fact]
-    public async Task MismatchAccept_OverwritesStoredFingerprint()
+    public async Task MismatchAccept_OverwritesStoredFingerprint_AndReturnsNewPin()
     {
         var store = new HostKeyStore();
         store.Trust(Host, Port, HostKeyStore.ComputeFingerprint(FirstKey));
         var verifier = new FixedDecisionVerifier(HostKeyDecision.Accept);
 
-        var canTrust = await ApplyDecisionAsync(store, verifier, DifferentKey);
+        var pinned = await ResolvePresentationAsync(store, verifier, DifferentKey);
         var storedFingerprint = store.GetFingerprint(Host, Port);
 
-        Assert.True(canTrust);
         Assert.Equal(1, verifier.CallCount);
         Assert.NotNull(verifier.LastStoredFingerprint);
         Assert.Equal(HostKeyStore.ComputeFingerprint(DifferentKey), storedFingerprint);
+        Assert.True(pinned.Matches(Host, Port, storedFingerprint!));
     }
 
     [Fact]
-    public async Task MismatchReject_PreservesStoredFingerprint()
+    public async Task MismatchReject_ThrowsHostKeyRejected_AndPreservesStoredFingerprint()
     {
         var store = new HostKeyStore();
         var originalFingerprint = HostKeyStore.ComputeFingerprint(FirstKey);
@@ -120,42 +125,142 @@ public sealed class IHostKeyVerifierIntegrationTests
         var eventRaised = false;
         store.HostKeyEvent += (_, _, _) => eventRaised = true;
 
-        var canTrust = await ApplyDecisionAsync(store, verifier, DifferentKey);
+        var ex = await Assert.ThrowsAsync<HostKeyRejectedException>(
+            () => ResolvePresentationAsync(store, verifier, DifferentKey));
 
-        Assert.False(canTrust);
+        Assert.True(ex.IsMismatch);
         Assert.Equal(1, verifier.CallCount);
         Assert.Equal(originalFingerprint, verifier.LastStoredFingerprint);
         Assert.Equal(originalFingerprint, store.GetFingerprint(Host, Port));
         Assert.False(eventRaised);
     }
 
-    private static async Task<bool> ApplyDecisionAsync(
+    [Fact]
+    public void AttachHostKeyVerification_RejectsInteractiveVerifierSynchronously()
+    {
+        using var client = new SshClient(new ConnectionInfo(
+            Host,
+            Port,
+            "user",
+            new NoneAuthenticationMethod("user")));
+        var verifier = new SlowVerifier();
+        var previousContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new SingleThreadSynchronizationContext());
+        try
+        {
+            var stopwatch = Stopwatch.StartNew();
+            Assert.Throws<InvalidOperationException>(() =>
+                SshConnectionFactory.AttachHostKeyVerification(
+                    client,
+                    Host,
+                    Port,
+                    new HostKeyStore(),
+                    verifier));
+            stopwatch.Stop();
+
+            Assert.True(stopwatch.ElapsedMilliseconds < 50);
+            Assert.Equal(0, verifier.CallCount);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+    }
+
+    [Fact]
+    public void EvaluatePinnedHostKey_CompletesSynchronously_WithoutVerifierCallback()
+    {
+        var fingerprint = HostKeyStore.ComputeFingerprint(FirstKey);
+        var pinned = new PinnedFingerprintVerifier(Host, Port, fingerprint);
+        var stopwatch = Stopwatch.StartNew();
+
+        var outcome = SshConnectionFactory.EvaluatePinnedHostKey(
+            Host,
+            Port,
+            Algorithm,
+            FirstKey,
+            pinned);
+
+        stopwatch.Stop();
+        Assert.True(outcome.Trusted);
+        Assert.Equal(fingerprint, outcome.Fingerprint);
+        Assert.True(stopwatch.ElapsedMilliseconds < 50);
+    }
+
+    [Fact]
+    public async Task ExplicitAutoAcceptInjection_RemainsAvailableForTests()
+    {
+        var store = new HostKeyStore();
+
+        var pinned = await ResolvePresentationAsync(
+            store,
+            AutoAcceptHostKeyVerifier.Instance,
+            FirstKey);
+
+        var fingerprint = store.GetFingerprint(Host, Port);
+        Assert.NotNull(fingerprint);
+        Assert.True(pinned.Matches(Host, Port, fingerprint!));
+    }
+
+    [Fact]
+    public async Task SshShellSession_WithHostKeyStoreAndMissingVerifier_FailsClosedBeforeNetwork()
+    {
+        using var session = new SshShellSession();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => session.ConnectAsync(
+                CreateConnectionParams(),
+                hostKeyStore: new HostKeyStore(),
+                hostKeyVerifier: null));
+
+        Assert.Contains("IHostKeyVerifier", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SftpBrowser_WithHostKeyStoreAndMissingVerifier_FailsClosedBeforeNetwork()
+    {
+        using var browser = new SftpBrowser();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => browser.ConnectAsync(
+                CreateConnectionParams(),
+                hostKeyStore: new HostKeyStore(),
+                hostKeyVerifier: null));
+
+        Assert.Contains("IHostKeyVerifier", ex.Message, StringComparison.Ordinal);
+    }
+
+    private static Task<PinnedFingerprintVerifier> ResolvePresentationAsync(
         HostKeyStore store,
         IHostKeyVerifier verifier,
         byte[] hostKey,
         CancellationToken ct = default)
     {
-        var result = store.Verify(Host, Port, hostKey);
-        if (!result.FirstUse && result.Trusted)
-        {
-            return true;
-        }
-
-        var decision = await verifier.VerifyAsync(
+        var presentation = new SshConnectionFactory.HostKeyPresentation(
             Host,
             Port,
             Algorithm,
-            result.Fingerprint,
-            result.StoredFingerprint,
+            HostKeyStore.ComputeFingerprint(hostKey),
+            hostKey);
+        return SshConnectionFactory.ResolvePresentedHostKeyAsync(
+            Host,
+            Port,
+            presentation,
+            store,
+            verifier,
             ct);
+    }
 
-        if (decision == HostKeyDecision.Accept)
+    private static SshConnectionParams CreateConnectionParams()
+    {
+        return new SshConnectionParams
         {
-            store.Trust(Host, Port, result.Fingerprint);
-            return true;
-        }
-
-        return false;
+            Host = "127.0.0.1",
+            Port = 65000,
+            Username = "user",
+            Password = "secret",
+            ConnectTimeout = TimeSpan.FromMilliseconds(50)
+        };
     }
 
     private sealed class FixedDecisionVerifier(HostKeyDecision decision) : IHostKeyVerifier
@@ -163,6 +268,8 @@ public sealed class IHostKeyVerifierIntegrationTests
         public int CallCount { get; private set; }
 
         public string? LastStoredFingerprint { get; private set; }
+
+        public string? LastStackTrace { get; private set; }
 
         public Task<HostKeyDecision> VerifyAsync(
             string host,
@@ -174,7 +281,34 @@ public sealed class IHostKeyVerifierIntegrationTests
         {
             CallCount++;
             LastStoredFingerprint = storedFingerprint;
+            LastStackTrace = Environment.StackTrace;
             return Task.FromResult(decision);
+        }
+    }
+
+    private sealed class SlowVerifier : IHostKeyVerifier
+    {
+        public int CallCount { get; private set; }
+
+        public async Task<HostKeyDecision> VerifyAsync(
+            string host,
+            int port,
+            string algorithm,
+            string presentedFingerprint,
+            string? storedFingerprint,
+            CancellationToken ct = default)
+        {
+            CallCount++;
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            return HostKeyDecision.Accept;
+        }
+    }
+
+    private sealed class SingleThreadSynchronizationContext : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            d(state);
         }
     }
 }

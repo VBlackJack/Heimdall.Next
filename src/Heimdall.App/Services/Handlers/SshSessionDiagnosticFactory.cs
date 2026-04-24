@@ -116,6 +116,7 @@ internal static class SshSessionDiagnosticFactory
         {
             SshFailureCode.AuthRejected
                 or SshFailureCode.KeyRejected
+                or SshFailureCode.PassphraseRejected
                 or SshFailureCode.PasswordRejected
                 or SshFailureCode.NoSupportedAuth
                 or SshFailureCode.TooManyAuthFailures
@@ -150,8 +151,12 @@ internal static class SshSessionDiagnosticFactory
 
     internal static string GetMessageKey(SshFailureCode? code, string fallbackKey)
     {
-        return code is null
-            ? fallbackKey
-            : $"ErrorSsh{code.Value}";
+        return code switch
+        {
+            null => fallbackKey,
+            SshFailureCode.PageantKeyUnavailable => "ErrorNoSshAgentRunning",
+            SshFailureCode.PageantNoIdentities => "ErrorSshAgentHasNoIdentities",
+            _ => $"ErrorSsh{code.Value}"
+        };
     }
 }

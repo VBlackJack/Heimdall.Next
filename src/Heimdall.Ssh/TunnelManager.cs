@@ -112,26 +112,28 @@ public sealed class TunnelManager : IDisposable
 
         try
         {
+            var pinnedVerifier = await ResolvePinnedVerifierAsync(
+                    gatewayParams,
+                    gatewayParams.Host,
+                    gatewayParams.Port,
+                    hostKeyStore,
+                    verifier,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
             var connectionInfo = SshConnectionFactory.Create(gatewayParams);
             client = new SshClient(connectionInfo)
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds)
             };
 
-            if (hostKeyStore is not null)
+            if (pinnedVerifier is not null)
             {
-                if (verifier is null)
-                {
-                    Core.Logging.FileLogger.Warn(
-                        "TunnelManager called without an IHostKeyVerifier — falling back to auto-accept; this is unsafe and indicates a missing DI wiring.");
-                }
-
-                SshConnectionFactory.AttachHostKeyVerification(
+                SshConnectionFactory.AttachPinnedHostKeyVerification(
                     client,
                     gatewayParams.Host,
                     gatewayParams.Port,
-                    hostKeyStore,
-                    verifier ?? AutoAcceptHostKeyVerifier.Instance);
+                    pinnedVerifier);
             }
 
             client.ErrorOccurred += (_, args) =>
@@ -303,24 +305,26 @@ public sealed class TunnelManager : IDisposable
 
             int nextLocalPort = GetEphemeralPort();
 
+            var rootPinnedVerifier = await ResolvePinnedVerifierAsync(
+                    gatewayChain[0],
+                    gatewayChain[0].Host,
+                    gatewayChain[0].Port,
+                    hostKeyStore,
+                    verifier,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
             // Connect to the first (root) gateway directly
             var rootInfo = SshConnectionFactory.Create(gatewayChain[0]);
             var rootClient = new SshClient(rootInfo);
 
-            if (hostKeyStore is not null)
+            if (rootPinnedVerifier is not null)
             {
-                if (verifier is null)
-                {
-                    Core.Logging.FileLogger.Warn(
-                        "TunnelManager called without an IHostKeyVerifier — falling back to auto-accept; this is unsafe and indicates a missing DI wiring.");
-                }
-
-                SshConnectionFactory.AttachHostKeyVerification(
+                SshConnectionFactory.AttachPinnedHostKeyVerification(
                     rootClient,
                     gatewayChain[0].Host,
                     gatewayChain[0].Port,
-                    hostKeyStore,
-                    verifier ?? AutoAcceptHostKeyVerifier.Instance);
+                    rootPinnedVerifier);
             }
 
             await using var rootConnectReg = cancellationToken.Register(
@@ -361,22 +365,35 @@ public sealed class TunnelManager : IDisposable
                     Username = nextGateway.Username,
                     KeyPath = nextGateway.KeyPath,
                     Password = nextGateway.Password,
+                    KeyPassphrase = nextGateway.KeyPassphrase,
+                    SshAgentPreference = nextGateway.SshAgentPreference,
+                    UseLegacyPasswordAsKeyPassphrase = nextGateway.UseLegacyPasswordAsKeyPassphrase,
+                    LegacyCredentialName = nextGateway.LegacyCredentialName,
                     AgentForwarding = nextGateway.AgentForwarding,
                     Compression = nextGateway.Compression,
                     ConnectTimeout = nextGateway.ConnectTimeout
                 };
-                var hopInfo = SshConnectionFactory.Create(hopParams);
-                var hopClient = new SshClient(hopInfo);
 
-                if (hostKeyStore is not null)
-                {
-                    // Verify against the real gateway host, not 127.0.0.1
-                    SshConnectionFactory.AttachHostKeyVerification(
-                        hopClient,
+                var hopPinnedVerifier = await ResolvePinnedVerifierAsync(
+                        hopParams,
                         nextGateway.Host,
                         nextGateway.Port,
                         hostKeyStore,
-                        verifier ?? AutoAcceptHostKeyVerifier.Instance);
+                        verifier,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                var hopInfo = SshConnectionFactory.Create(hopParams);
+                var hopClient = new SshClient(hopInfo);
+
+                if (hopPinnedVerifier is not null)
+                {
+                    // Verify against the real gateway host, not 127.0.0.1
+                    SshConnectionFactory.AttachPinnedHostKeyVerification(
+                        hopClient,
+                        nextGateway.Host,
+                        nextGateway.Port,
+                        hopPinnedVerifier);
                 }
 
                 await using var hopConnectReg = cancellationToken.Register(
@@ -645,6 +662,34 @@ public sealed class TunnelManager : IDisposable
     private bool IsPortTracked(int localPort)
     {
         return _activeTunnels.ContainsKey(localPort) || _externalTunnels.ContainsKey(localPort);
+    }
+
+    private static async Task<PinnedFingerprintVerifier?> ResolvePinnedVerifierAsync(
+        SshConnectionParams connectionParams,
+        string verificationHost,
+        int verificationPort,
+        HostKeyStore? hostKeyStore,
+        IHostKeyVerifier? verifier,
+        CancellationToken cancellationToken)
+    {
+        if (hostKeyStore is null)
+        {
+            return null;
+        }
+
+        if (verifier is null)
+        {
+            throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
+        }
+
+        return await SshConnectionFactory.ResolveHostKeyAsync(
+                connectionParams,
+                verificationHost,
+                verificationPort,
+                hostKeyStore,
+                verifier,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>

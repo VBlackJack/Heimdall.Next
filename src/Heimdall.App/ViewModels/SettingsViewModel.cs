@@ -27,6 +27,7 @@ using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
+using SshAgentPreferenceEnum = Heimdall.Core.Ssh.SshAgentPreference;
 
 namespace Heimdall.App.ViewModels;
 
@@ -109,6 +110,9 @@ public partial class SettingsViewModel : ObservableValidator
 
     [ObservableProperty]
     private string _sshDefaultMode = "Embedded";
+
+    [ObservableProperty]
+    private string _sshAgentPreference = "AutoOpenSshFirst";
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -406,6 +410,7 @@ public partial class SettingsViewModel : ObservableValidator
         PlinkPath = settings.PlinkPath;
         PuttyPath = settings.PuttyPath ?? "";
         SshDefaultMode = settings.SshDefaultMode;
+        SshAgentPreference = settings.SshAgentPreference.ToString();
         AntiIdleInterval = settings.AntiIdleIntervalSeconds;
         SshTmoutResetInterval = settings.SshTmoutResetIntervalSeconds;
         SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
@@ -529,6 +534,12 @@ public partial class SettingsViewModel : ObservableValidator
         settings.PlinkPath = PlinkPath;
         settings.PuttyPath = string.IsNullOrWhiteSpace(PuttyPath) ? null : PuttyPath;
         settings.SshDefaultMode = SshDefaultMode;
+        settings.SshAgentPreference = Enum.TryParse<SshAgentPreferenceEnum>(
+            SshAgentPreference,
+            ignoreCase: false,
+            out var sshAgentPreference)
+            ? sshAgentPreference
+            : SshAgentPreferenceEnum.AutoOpenSshFirst;
         settings.AntiIdleIntervalSeconds = AntiIdleInterval;
         settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
         settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
@@ -1320,6 +1331,7 @@ public partial class SettingsViewModel : ObservableValidator
         User = g.User,
         KeyPath = g.KeyPath,
         SshPasswordEncrypted = g.SshPasswordEncrypted,
+        SshKeyPassphraseEncrypted = g.SshKeyPassphraseEncrypted,
         IsDefault = g.IsDefault,
         ParentGatewayId = g.ParentGatewayId,
         HostKeyFingerprint = g.HostKeyFingerprint

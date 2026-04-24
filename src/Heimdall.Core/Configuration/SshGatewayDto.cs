@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Text.Json.Serialization;
+
 namespace Heimdall.Core.Configuration;
 
 /// <summary>
@@ -22,6 +24,8 @@ namespace Heimdall.Core.Configuration;
 /// </summary>
 public sealed class SshGatewayDto
 {
+    private string? _sshKeyPassphraseEncrypted;
+
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Host { get; set; } = string.Empty;
@@ -29,6 +33,25 @@ public sealed class SshGatewayDto
     public string User { get; set; } = string.Empty;
     public string? KeyPath { get; set; }
     public string? SshPasswordEncrypted { get; set; }
+    public string? SshKeyPassphraseEncrypted
+    {
+        get => _sshKeyPassphraseEncrypted;
+        set
+        {
+            _sshKeyPassphraseEncrypted = value;
+            HasSshKeyPassphraseEncryptedField = true;
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasSshKeyPassphraseEncryptedField { get; private set; }
+
+    [JsonIgnore]
+    public bool UsesLegacySshCredentialMapping =>
+        !HasSshKeyPassphraseEncryptedField
+        && !string.IsNullOrWhiteSpace(KeyPath)
+        && !string.IsNullOrWhiteSpace(SshPasswordEncrypted);
+
     public bool IsDefault { get; set; }
     public string? ParentGatewayId { get; set; }
     public string? HostKeyFingerprint { get; set; }
