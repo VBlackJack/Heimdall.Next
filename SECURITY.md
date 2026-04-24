@@ -69,22 +69,99 @@ verbosity for `CredentialAutofill` or redirect the category to a separate sink.
 
 `TunnelManager.GetEphemeralPort` and `TunnelManager.AllocatePort` bind an OS
 ephemeral port, read its number, release it, then return it. Between release
-and the actual tunnel bind, another process can claim the same port. The race
-is mitigated by a double-check in `OpenTunnelAsync` and
-`OpenChainedTunnelAsync`, which re-validates `IsPortTracked(localPort)` under
-the `_registryLock` and disposes the session on collision. Callers may observe
-`SshFailureCode.PortInUse` on contention; retry is safe.
+and the actual tunnel bind, another process can claim the same port. Three
+mitigations are in place:
+
+1. A double-check in `OpenTunnelAsync` and `OpenChainedTunnelAsync`
+   re-validates `IsPortTracked(localPort)` under `_registryLock` and disposes
+   the session on collision.
+2. `StartForwardedPortWithRetry` wraps the actual `ForwardedPortLocal.Start()`
+   and `ForwardedPortDynamic.Start()` calls with a bounded retry (3 attempts,
+   50 ms spacing) on `SocketException(AddressAlreadyInUse)` only. Unrelated
+   socket errors and non-socket exceptions propagate immediately with no
+   retry. This closes the common case where another local process held the
+   port transiently.
+3. Chained-tunnel intermediate local ports receive the same retry treatment.
+   `ForwardedPortRemote.Start()` does not (server-side bind, different race
+   surface).
+
+Callers may still observe `SshFailureCode.PortInUse` when the port is
+genuinely occupied; retry is safe at any layer.
+
+### SSH host-key trust model
+
+Host-key trust decisions are resolved **before** the real `Connect()` via a
+pre-authentication probe (`SshConnectionFactory.ProbeHostKeyAsync` with
+`NoneAuthenticationMethod`). The real connection then uses a strict,
+synchronous `PinnedFingerprintVerifier` that only accepts the pre-resolved
+fingerprint. SSH.NET's `HostKeyReceived` callback performs no async work, no
+UI dispatch, and no `IHostKeyVerifier.VerifyAsync` call from inside it — this
+invariant has a dedicated regression test
+(`IHostKeyVerifierIntegrationTests.AttachHostKeyVerification_RejectsInteractiveVerifierSynchronously`).
+
+Production runtime paths **fail closed** when a `HostKeyStore` is provided
+without an `IHostKeyVerifier`. `AutoAcceptHostKeyVerifier.Instance` is only
+reachable via explicit test injection; it has zero occurrences in `src/`
+outside its defining file. `ToolGatewayConnector` refuses to route tool
+traffic through a gateway that has no pinned fingerprint yet; the user must
+complete a normal interactive SSH session first so the host key is captured
+into `HostKeyStore` via the confirmed-trust path.
+
+Trust entries carry metadata (`FirstSeen`, `LastSeen`, `Algorithm`, `Source`,
+`PublicKeyBase64`) via `HostKeyEntry`. Persistence is additive:
+`trustedHostKeysV2` in `settings.json` holds the enriched entries; the
+legacy `trustedHostKeys` string dictionary remains readable for downgrade
+safety and is never rewritten from the V2 path.
+
+`~/.ssh/known_hosts` import and export are explicit user actions surfaced in
+`Settings > SSH & SFTP > Trusted host keys`. Import preserves conflicting
+existing entries unless the user explicitly opts into replacement in a
+dedicated modal. Export preserves every line Heimdall did not originate
+(including `@cert-authority`, `@revoked`, and hashed entries that Heimdall
+cannot fully consume) verbatim.
+
+### SSH agent identity enumeration
+
+`ISshAgent` implementations (`PageantAgent`, `OpenSshPipeAgent`) never hold
+IPC handles across requests. Every `GetIdentities` and `Sign` call opens a
+new shared-memory mapping (Pageant) or named-pipe connection (OpenSSH Agent)
+and disposes it before returning. Availability probes have a 250 ms timeout;
+real requests have a 5 s timeout. Pipe-not-found and timeout both return
+"unavailable" without raising. User preference between agents is a runtime
+setting (`AppSettings.SshAgentPreference`); changes take effect on the next
+connection attempt without app restart.
 
 ## Security testing
 
 - Unit tests for TOFU verification:
   `tests/Heimdall.Ssh.Tests/HostKeyStoreTests.cs` and
-  `tests/Heimdall.Ssh.Tests/IHostKeyVerifierIntegrationTests.cs`.
+  `tests/Heimdall.Ssh.Tests/IHostKeyVerifierIntegrationTests.cs`, including
+  an anti-deadlock regression test that runs the host-key callback under a
+  single-threaded `SynchronizationContext` with a slow verifier and asserts
+  the callback returns under 50 ms.
+- Trust service orchestration and known_hosts round-trip:
+  `tests/Heimdall.Ssh.Tests/KnownHostsImportExportTests.cs`.
+- SSH agent protocol and IPC: `tests/Heimdall.Ssh.Tests/OpenSshAgentProtocolTests.cs`
+  (pure protocol encoding/decoding) and
+  `tests/Heimdall.Ssh.Tests/OpenSshPipeAgentTests.cs` (named-pipe transport
+  using a GUID-suffixed test pipe, independent of the real Windows OpenSSH
+  Agent service).
+- Local bind retry helper:
+  `tests/Heimdall.Ssh.Tests/TunnelManagerStartRetryTests.cs`, including a
+  test that holds a real TCP port via `Socket.Bind` and confirms the retry
+  helper still fails closed with `AddressAlreadyInUse`.
+- `TunnelManager` characterization tests (pre-refactor behaviour capture,
+  still passing on the refactored code):
+  `tests/Heimdall.Ssh.Tests/TunnelManagerTests.cs`.
 - Shell-injection regression tests: `InputValidator` coverage in
   `tests/Heimdall.Core.Tests`.
 - RDP file generation sanitization:
   `tests/Heimdall.Ssh.Tests/RdpFileGeneratorTests.cs`.
-- Dependency scan: run
-  `dotnet list Heimdall.slnx package --vulnerable --include-transitive` before
-  each release. CI currently does not gate on this; add a CI job if not already
-  present.
+- CI enforces: build with zero warnings under `TreatWarningsAsErrors`,
+  `dotnet format --verify-no-changes`, full test suite, JSON locale parity
+  (EN and FR key sets must be identical, currently 5,185 keys each), and an
+  informational `dotnet list package --vulnerable` scan.
+- Dependency scan for manual review: `dotnet list Heimdall.slnx package
+  --vulnerable --include-transitive`. CI emits warnings but does not gate on
+  vulnerability results, since advisories occasionally include false
+  positives or entries without an upgrade path.
