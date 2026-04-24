@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+using System.Diagnostics;
 using Heimdall.Core.Ssh;
 using Heimdall.Sftp;
 using Renci.SshNet;
-using System.Diagnostics;
 
 namespace Heimdall.Ssh.Tests;
 

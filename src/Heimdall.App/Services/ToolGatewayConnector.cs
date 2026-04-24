@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Windows;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
@@ -21,7 +22,6 @@ using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
 using Renci.SshNet;
-using System.Windows;
 
 namespace Heimdall.App.Services;
 

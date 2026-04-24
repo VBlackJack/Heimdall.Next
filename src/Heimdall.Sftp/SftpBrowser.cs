@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.Ssh;
 using Heimdall.Core.Ssh;
+using Heimdall.Ssh;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
 
