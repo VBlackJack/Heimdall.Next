@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-using System.Diagnostics;
+using Heimdall.Ssh.Agents;
 
 namespace Heimdall.Ssh;
 
@@ -35,7 +35,7 @@ public sealed record PreflightResult(bool Success, SshFailureCode? FailureCode, 
 
 /// <summary>
 /// Validates SSH connection prerequisites before attempting a connection.
-/// Checks key file existence, Pageant availability, and auth method availability.
+/// Checks key file existence, SSH agent availability, and auth method availability.
 /// </summary>
 public static class AuthPreflightChecker
 {
@@ -45,11 +45,14 @@ public static class AuthPreflightChecker
     /// <param name="connectionParams">SSH connection parameters to validate.</param>
     /// <param name="isTunnelMode">
     /// Whether the connection is a background tunnel (non-interactive).
-    /// Tunnel mode requires Pageant for key-based auth without a password,
-    /// because there is no interactive passphrase prompt.
+    /// Tunnel mode requires at least one loaded SSH agent identity when no
+    /// key file or password is configured.
     /// </param>
     /// <returns>A <see cref="PreflightResult"/> indicating pass or fail with details.</returns>
-    public static PreflightResult Check(SshConnectionParams connectionParams, bool isTunnelMode = false)
+    public static PreflightResult Check(
+        SshConnectionParams connectionParams,
+        bool isTunnelMode = false,
+        SshAgentRegistry? agentRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(connectionParams);
 
@@ -61,73 +64,54 @@ public static class AuthPreflightChecker
                 $"Key file not found: {connectionParams.KeyPath}");
         }
 
-        // Tunnel mode: key specified but no password — needs Pageant for passphrase
-        if (isTunnelMode
-            && !string.IsNullOrEmpty(connectionParams.KeyPath)
-            && string.IsNullOrEmpty(connectionParams.Password))
-        {
-            var pageantCheck = CheckPageantAvailability();
-            if (pageantCheck is not null)
-                return pageantCheck;
-        }
-
-        // Tunnel mode: no key and no password — needs Pageant as sole auth source
+        // Tunnel mode: no key and no password — needs an agent as sole auth source.
         if (isTunnelMode
             && string.IsNullOrEmpty(connectionParams.KeyPath)
             && string.IsNullOrEmpty(connectionParams.Password))
         {
-            var pageantCheck = CheckPageantAvailability();
-            if (pageantCheck is not null)
-                return pageantCheck;
+            var agentCheck = CheckAgentAvailability(
+                agentRegistry ?? SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference));
+            if (agentCheck is not null)
+            {
+                return agentCheck;
+            }
         }
 
         return PreflightResult.Ok();
     }
 
     /// <summary>
-    /// Check whether the Pageant SSH agent process is running.
+    /// Verifies that at least one configured SSH agent has identities loaded.
+    /// Returns a failure result if not, or null if agent auth is ready.
     /// </summary>
-    public static bool IsPageantRunning()
+    private static PreflightResult? CheckAgentAvailability(SshAgentRegistry agentRegistry)
     {
-        try
-        {
-            return Process.GetProcessesByName("pageant").Length > 0;
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Verifies that Pageant is running and has at least one identity loaded.
-    /// Returns a failure result if not, or null if Pageant is ready.
-    /// </summary>
-    private static PreflightResult? CheckPageantAvailability()
-    {
-        if (!IsPageantRunning())
+        var agents = agentRegistry.GetAvailableAgents();
+        if (agents.Count == 0)
         {
             return PreflightResult.Fail(
                 SshFailureCode.PageantKeyUnavailable,
-                "Pageant not running. Start Pageant and load the key, or configure a password.");
+                "ErrorNoSshAgentRunning");
         }
 
-        try
+        foreach (var agent in agents)
         {
-            var client = new Pageant.PageantClient();
-            var identities = client.GetIdentities();
-            if (identities.Count == 0)
+            try
             {
-                return PreflightResult.Fail(
-                    SshFailureCode.PageantNoIdentities,
-                    "Pageant is running but has no keys loaded. Load a key in Pageant before connecting.");
+                if (agent.GetIdentities().Count > 0)
+                {
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"SSH agent {agent.Name}: preflight identity check failed: {ex.Message}");
             }
         }
-        catch
-        {
-            // Pageant IPC failed — fall through and let the connection attempt handle it
-        }
 
-        return null;
+        return PreflightResult.Fail(
+            SshFailureCode.PageantNoIdentities,
+            "ErrorSshAgentHasNoIdentities");
     }
 }

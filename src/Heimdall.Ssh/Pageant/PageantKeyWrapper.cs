@@ -14,75 +14,38 @@
  * limitations under the License.
  */
 
+using Heimdall.Ssh.Agents;
 using Renci.SshNet;
-using Renci.SshNet.Security;
 
 namespace Heimdall.Ssh.Pageant;
 
 /// <summary>
 /// Wraps a Pageant-loaded SSH key as an <see cref="IPrivateKeySource"/> for SSH.NET.
-/// The <see cref="HostKeyAlgorithms"/> collection contains a single
-/// <see cref="PageantHostAlgorithm"/> that delegates signing to the Pageant agent.
+/// Compatibility wrapper kept for code that still constructs Pageant-specific
+/// key sources directly. New code should use <see cref="SshAgentKeyWrapper"/>.
 /// </summary>
 /// <remarks>
-/// SSH.NET's <see cref="PrivateKeyAuthenticationMethod"/> accepts
-/// <see cref="IPrivateKeySource"/> instances. By implementing this interface,
-/// Pageant keys integrate seamlessly into SSH.NET's auth pipeline without
-/// requiring access to the private key material.
+/// Signing is delegated through <see cref="PageantAgentKey"/>, so the private
+/// key material remains inside Pageant.
 /// </remarks>
-internal sealed class PageantKeyWrapper : IPrivateKeySource, IDisposable
+internal sealed class PageantKeyWrapper : SshAgentKeyWrapper, IDisposable
 {
-    private readonly PageantClient _client;
-    private readonly IReadOnlyCollection<HostAlgorithm> _algorithms;
     private bool _disposed;
 
     /// <summary>
     /// Creates a wrapper for the specified Pageant key.
-    /// A dedicated <see cref="PageantClient"/> instance is created for signing
-    /// operations during the authentication handshake.
-    /// For RSA keys, registers rsa-sha2-256 and rsa-sha2-512 algorithms
-    /// (preferred by modern servers) in addition to the legacy ssh-rsa.
     /// </summary>
     /// <param name="key">Pageant key identity (blob, comment, type).</param>
     public PageantKeyWrapper(PageantKey key)
+        : base(new PageantAgentKey(key))
     {
-        ArgumentNullException.ThrowIfNull(key);
-
-        _client = new PageantClient();
-        _algorithms = BuildAlgorithms(key, _client);
     }
-
-    private static IReadOnlyCollection<HostAlgorithm> BuildAlgorithms(
-        PageantKey key,
-        PageantClient client)
-    {
-        // For RSA keys, modern servers require rsa-sha2-256 or rsa-sha2-512.
-        // Register SHA-2 variants first (preferred), then legacy ssh-rsa as fallback.
-        // The agent protocol flags (0x02, 0x04) tell Pageant which hash to use.
-        if (string.Equals(key.KeyType, "ssh-rsa", StringComparison.Ordinal))
-        {
-            return
-            [
-                new PageantHostAlgorithm("rsa-sha2-256", key.Blob, client,
-                    PageantHostAlgorithm.AgentRsaSha2_256),
-                new PageantHostAlgorithm("rsa-sha2-512", key.Blob, client,
-                    PageantHostAlgorithm.AgentRsaSha2_512),
-                new PageantHostAlgorithm("ssh-rsa", key.Blob, client, 0),
-            ];
-        }
-
-        return [new PageantHostAlgorithm(key.KeyType, key.Blob, client, 0)];
-    }
-
-    /// <inheritdoc/>
-    public IReadOnlyCollection<HostAlgorithm> HostKeyAlgorithms => _algorithms;
 
     public void Dispose()
     {
         if (!_disposed)
         {
             _disposed = true;
-            _client.Dispose();
         }
     }
 }

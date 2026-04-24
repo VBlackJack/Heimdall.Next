@@ -705,13 +705,30 @@
                                      Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource DialogFormTextBoxStyle}"/>
                         </DockPanel>
-                        <TextBlock x:Name="DlgSrv_BasicPassphraseLabel" Text="{Binding SshPasswordLabel}" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                        <TextBlock x:Name="DlgSrv_BasicSshPasswordLabel"
+                                   Text="{loc:Translate ServerDialogLabelPassword}"
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,12,0,4"/>
                         <PasswordBox x:Name="SshPasswordBox" TabIndex="12"
-                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicPassphraseLabel}"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicSshPasswordLabel}"
                                      Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicSshAuthHint" Text="{Binding SshAuthHint}"
                                    Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"
                                    TextWrapping="Wrap"/>
+                        <StackPanel Visibility="{Binding HasSshKeyPath, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock x:Name="DlgSrv_BasicSshKeyPassphraseLabel"
+                                       Text="{loc:Translate ServerDialogLabelKeyPassphrase}"
+                                       Style="{StaticResource LabelStyle}"
+                                       Margin="0,12,0,4"/>
+                            <PasswordBox x:Name="SshKeyPassphraseBox" TabIndex="13"
+                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicSshKeyPassphraseLabel}"
+                                         Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                            <TextBlock x:Name="DlgSrv_BasicSshKeyPassphraseHint"
+                                       Text="{Binding SshKeyPassphraseHint}"
+                                       Style="{StaticResource DialogHintTextStyle}"
+                                       Margin="0,8,0,0"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

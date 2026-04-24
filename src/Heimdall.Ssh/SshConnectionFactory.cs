@@ -17,18 +17,34 @@
 using System.Buffers.Binary;
 using System.Text;
 using Heimdall.Core.Ssh;
-using Heimdall.Ssh.Pageant;
+using Heimdall.Ssh.Agents;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 
 namespace Heimdall.Ssh;
 
 /// <summary>
 /// Builds SSH.NET <see cref="ConnectionInfo"/> instances from Heimdall connection
 /// parameters. Supports password authentication, private key authentication
-/// (with optional passphrase), and Pageant SSH agent key authentication.
+/// (with optional passphrase), and SSH agent key authentication.
 /// </summary>
 public static class SshConnectionFactory
 {
+    /// <summary>
+    /// Presented SSH host key captured during a pre-authentication probe.
+    /// </summary>
+    /// <param name="Host">Host used for trust lookup.</param>
+    /// <param name="Port">Port used for trust lookup.</param>
+    /// <param name="Algorithm">Presented host key algorithm.</param>
+    /// <param name="Fingerprint">Presented SHA256 fingerprint.</param>
+    /// <param name="HostKey">Raw host key bytes.</param>
+    public sealed record HostKeyPresentation(
+        string Host,
+        int Port,
+        string Algorithm,
+        string Fingerprint,
+        byte[] HostKey);
+
     /// <summary>
     /// Creates a <see cref="ConnectionInfo"/> suitable for interactive sessions
     /// (shell, SFTP) from the supplied connection parameters.
@@ -41,7 +57,19 @@ public static class SshConnectionFactory
     {
         ArgumentNullException.ThrowIfNull(connectionParams);
 
-        var authMethods = BuildAuthMethods(connectionParams);
+        return Create(
+            connectionParams,
+            SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference));
+    }
+
+    internal static ConnectionInfo Create(
+        SshConnectionParams connectionParams,
+        SshAgentRegistry agentRegistry)
+    {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+        ArgumentNullException.ThrowIfNull(agentRegistry);
+
+        var authMethods = BuildAuthMethods(connectionParams, agentRegistry);
 
         var info = new ConnectionInfo(
             connectionParams.Host,
@@ -60,23 +88,22 @@ public static class SshConnectionFactory
     /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
     /// BEFORE calling <c>Connect()</c>.
     /// </summary>
-    [Obsolete("Use the overload that accepts IHostKeyVerifier", false)]
+    [Obsolete("Use ResolveHostKeyAsync and AttachPinnedHostKeyVerification.", true)]
     public static void AttachHostKeyVerification(
         Renci.SshNet.BaseClient client,
         string host,
         int port,
         HostKeyStore hostKeyStore)
     {
-        AttachHostKeyVerification(
-            client,
-            host,
-            port,
-            hostKeyStore,
-            AutoAcceptHostKeyVerifier.Instance);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+
+        throw new InvalidOperationException(
+            "Host key verification requires a pre-resolved PinnedFingerprintVerifier.");
     }
 
     /// <summary>
-    /// Attaches verifier-driven host key verification to an SSH.NET client.
+    /// Attaches pre-resolved host key verification to an SSH.NET client.
     /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
     /// BEFORE calling <c>Connect()</c>.
     /// </summary>
@@ -91,42 +118,251 @@ public static class SshConnectionFactory
         ArgumentNullException.ThrowIfNull(hostKeyStore);
         ArgumentNullException.ThrowIfNull(verifier);
 
+        if (verifier is not PinnedFingerprintVerifier pinnedVerifier)
+        {
+            throw new InvalidOperationException(
+                "HostKeyReceived cannot invoke interactive verifiers. Resolve host key trust before Connect().");
+        }
+
+        AttachPinnedHostKeyVerification(client, host, port, pinnedVerifier);
+    }
+
+    /// <summary>
+    /// Attaches a strict, synchronous host key pin to an SSH.NET client.
+    /// </summary>
+    public static void AttachPinnedHostKeyVerification(
+        Renci.SshNet.BaseClient client,
+        string host,
+        int port,
+        PinnedFingerprintVerifier verifier)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(verifier);
+
         client.HostKeyReceived += (sender, e) =>
         {
-            var result = hostKeyStore.Verify(host, port, e.HostKey);
-            var algorithm = ExtractKeyAlgorithm(e.HostKeyName, e.HostKey);
-
-            if (!result.FirstUse && result.Trusted)
+            var outcome = EvaluatePinnedHostKey(host, port, e.HostKeyName, e.HostKey, verifier);
+            e.CanTrust = outcome.Trusted;
+            if (!outcome.Trusted)
             {
-                e.CanTrust = true;
-                return;
+                throw new HostKeyRejectedException(
+                    host,
+                    port,
+                    outcome.Algorithm,
+                    outcome.Fingerprint,
+                    verifier.Fingerprint);
             }
-
-            var decision = verifier
-                .VerifyAsync(host, port, algorithm, result.Fingerprint, result.StoredFingerprint)
-                .GetAwaiter()
-                .GetResult();
-
-            if (decision == HostKeyDecision.Accept)
-            {
-                hostKeyStore.Trust(host, port, result.Fingerprint);
-                e.CanTrust = true;
-                return;
-            }
-
-            e.CanTrust = false;
-            Heimdall.Core.Logging.FileLogger.Warn(
-                $"User rejected host key for {host}:{port} algorithm={algorithm} stored={result.StoredFingerprint ?? "<none>"} presented={result.Fingerprint}");
-            throw new HostKeyRejectedException(
-                host,
-                port,
-                algorithm,
-                result.Fingerprint,
-                result.StoredFingerprint);
         };
     }
 
-    private static string ExtractKeyAlgorithm(string? hostKeyName, byte[] hostKey)
+    /// <summary>
+    /// Resolves a pinned verifier by probing the server host key before authentication.
+    /// </summary>
+    public static async Task<PinnedFingerprintVerifier> ResolveHostKeyAsync(
+        SshConnectionParams connectionParams,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
+        CancellationToken cancellationToken = default)
+    {
+        return await ResolveHostKeyAsync(
+                connectionParams,
+                connectionParams.Host,
+                connectionParams.Port,
+                hostKeyStore,
+                verifier,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves a pinned verifier by probing a transport endpoint while storing
+    /// trust against the logical host and port.
+    /// </summary>
+    public static async Task<PinnedFingerprintVerifier> ResolveHostKeyAsync(
+        SshConnectionParams connectionParams,
+        string verificationHost,
+        int verificationPort,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+        ArgumentNullException.ThrowIfNull(verificationHost);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
+
+        var presentation = await ProbeHostKeyAsync(
+                connectionParams,
+                verificationHost,
+                verificationPort,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return await ResolvePresentedHostKeyAsync(
+                verificationHost,
+                verificationPort,
+                presentation,
+                hostKeyStore,
+                verifier,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Captures the host key from a throwaway none-auth SSH.NET connection.
+    /// </summary>
+    public static async Task<HostKeyPresentation> ProbeHostKeyAsync(
+        SshConnectionParams connectionParams,
+        string verificationHost,
+        int verificationPort,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+        ArgumentNullException.ThrowIfNull(verificationHost);
+
+        var username = string.IsNullOrWhiteSpace(connectionParams.Username)
+            ? "heimdall-probe"
+            : connectionParams.Username;
+        var connectionInfo = new ConnectionInfo(
+            connectionParams.Host,
+            connectionParams.Port,
+            username,
+            new NoneAuthenticationMethod(username))
+        {
+            Timeout = connectionParams.ConnectTimeout
+        };
+
+        HostKeyPresentation? presentation = null;
+        Exception? connectFailure = null;
+
+        using var client = new SshClient(connectionInfo);
+        client.HostKeyReceived += (_, e) =>
+        {
+            var hostKey = e.HostKey.ToArray();
+            presentation = new HostKeyPresentation(
+                verificationHost,
+                verificationPort,
+                ExtractKeyAlgorithm(e.HostKeyName, hostKey),
+                HostKeyStore.ComputeFingerprint(hostKey),
+                hostKey);
+            e.CanTrust = false;
+        };
+
+        await using var connectReg = cancellationToken.Register(
+            () =>
+            {
+                try { client.Disconnect(); }
+                catch (Exception ex) { Core.Logging.FileLogger.Debug("SSH host key probe disconnect suppressed", ex); }
+            });
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                client.Connect();
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            connectFailure = ex;
+        }
+        finally
+        {
+            if (client.IsConnected)
+            {
+                try { client.Disconnect(); }
+                catch (Exception ex) { Core.Logging.FileLogger.Debug("SSH host key probe cleanup suppressed", ex); }
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (presentation is not null)
+        {
+            return presentation;
+        }
+
+        if (connectFailure is not null)
+        {
+            throw connectFailure;
+        }
+
+        throw new InvalidOperationException(
+            $"SSH host key probe completed without receiving a host key for {connectionParams.Host}:{connectionParams.Port}.");
+    }
+
+    internal static async Task<PinnedFingerprintVerifier> ResolvePresentedHostKeyAsync(
+        string verificationHost,
+        int verificationPort,
+        HostKeyPresentation presentation,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(verificationHost);
+        ArgumentNullException.ThrowIfNull(presentation);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
+
+        var result = hostKeyStore.Verify(verificationHost, verificationPort, presentation.HostKey);
+        if (!result.FirstUse && result.Trusted)
+        {
+            return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
+        }
+
+        var decision = await verifier.VerifyAsync(
+                verificationHost,
+                verificationPort,
+                presentation.Algorithm,
+                result.Fingerprint,
+                result.StoredFingerprint,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (decision == HostKeyDecision.Accept)
+        {
+            hostKeyStore.Trust(verificationHost, verificationPort, result.Fingerprint);
+            return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
+        }
+
+        throw new HostKeyRejectedException(
+            verificationHost,
+            verificationPort,
+            presentation.Algorithm,
+            result.Fingerprint,
+            result.StoredFingerprint);
+    }
+
+    internal static HostKeyPinEvaluation EvaluatePinnedHostKey(
+        string host,
+        int port,
+        string? hostKeyName,
+        byte[] hostKey,
+        PinnedFingerprintVerifier verifier)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(hostKey);
+        ArgumentNullException.ThrowIfNull(verifier);
+
+        var fingerprint = HostKeyStore.ComputeFingerprint(hostKey);
+        var trusted = verifier.Matches(host, port, fingerprint);
+        return new HostKeyPinEvaluation(
+            trusted,
+            ExtractKeyAlgorithm(hostKeyName, hostKey),
+            fingerprint);
+    }
+
+    internal sealed record HostKeyPinEvaluation(
+        bool Trusted,
+        string Algorithm,
+        string Fingerprint);
+
+    internal static string ExtractKeyAlgorithm(string? hostKeyName, byte[] hostKey)
     {
         if (!string.IsNullOrWhiteSpace(hostKeyName))
         {
@@ -155,34 +391,15 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
-    /// Determines whether the given connection parameters require Pageant agent
-    /// authentication, meaning the tunnel cannot be handled by SSH.NET alone and
-    /// must fall back to plink.exe via <see cref="Plink.PlinkTunnelRunner"/>.
+    /// Determines whether plink.exe is required for features SSH.NET cannot provide.
     /// </summary>
-    /// <param name="connectionParams">SSH connection parameters to evaluate.</param>
-    /// <returns>
-    /// True if Pageant is running and either agent forwarding is enabled,
-    /// or no key file and no password are configured (agent is the sole auth source).
-    /// </returns>
-    public static bool RequiresPageantFallback(SshConnectionParams connectionParams)
+    public static bool RequiresPlinkFallback(SshConnectionParams connectionParams)
     {
         ArgumentNullException.ThrowIfNull(connectionParams);
 
-        // Explicit agent forwarding requested
-        if (connectionParams.AgentForwarding && PageantClient.IsAvailable())
-        {
-            return true;
-        }
-
-        // No key and no password: Pageant is the only viable auth source
-        if (string.IsNullOrEmpty(connectionParams.KeyPath)
-            && string.IsNullOrEmpty(connectionParams.Password)
-            && PageantClient.IsAvailable())
-        {
-            return true;
-        }
-
-        return false;
+        return connectionParams.AgentForwarding
+            && SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference)
+                .HasPlinkCompatibleAgent();
     }
 
     /// <summary>
@@ -191,16 +408,23 @@ public static class SshConnectionFactory
     /// </summary>
     private static List<AuthenticationMethod> BuildAuthMethods(SshConnectionParams connectionParams)
     {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+
+        return BuildAuthMethods(
+            connectionParams,
+            SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference));
+    }
+
+    private static List<AuthenticationMethod> BuildAuthMethods(
+        SshConnectionParams connectionParams,
+        SshAgentRegistry agentRegistry)
+    {
         var methods = new List<AuthenticationMethod>();
 
         // Private key authentication (with optional passphrase)
         if (!string.IsNullOrWhiteSpace(connectionParams.KeyPath))
         {
-            var keyFile = string.IsNullOrEmpty(connectionParams.Password)
-                ? new PrivateKeyFile(connectionParams.KeyPath)
-                : new PrivateKeyFile(connectionParams.KeyPath, connectionParams.Password);
-
-            methods.Add(new PrivateKeyAuthenticationMethod(connectionParams.Username, keyFile));
+            AddPrivateKeyMethod(methods, connectionParams);
         }
 
         // Password authentication.
@@ -209,29 +433,18 @@ public static class SshConnectionFactory
         //   2. "keyboard-interactive" (RFC 4256): required when PasswordAuthentication is
         //      disabled server-side but KbdInteractiveAuthentication is enabled (common on
         //      hardened Linux). SSH.NET tries the next method automatically on rejection.
-        if (!string.IsNullOrEmpty(connectionParams.Password) &&
-            string.IsNullOrWhiteSpace(connectionParams.KeyPath))
+        if (!string.IsNullOrEmpty(connectionParams.Password))
         {
-            methods.Add(new PasswordAuthenticationMethod(connectionParams.Username, connectionParams.Password));
-
-            var password = connectionParams.Password; // Captured in closure — avoid re-reading mutable param
-            var kbdInteractive = new KeyboardInteractiveAuthenticationMethod(connectionParams.Username);
-            kbdInteractive.AuthenticationPrompt += (_, e) =>
-            {
-                foreach (var prompt in e.Prompts)
-                {
-                    prompt.Response = password;
-                }
-            };
-            methods.Add(kbdInteractive);
+            AddPasswordMethods(methods, connectionParams.Username, connectionParams.Password);
         }
 
-        // Pageant agent key authentication (Windows SSH agent).
-        // Always add Pageant as a supplementary auth method when available,
-        // so SSH.NET can fall back to the agent if key file or password auth
-        // is rejected (e.g., passphrase-protected key loaded only in Pageant).
+        // SSH agent key authentication. Always add agent keys as supplementary
+        // auth methods when available, so SSH.NET can fall back to an agent if
+        // key file or password auth is rejected.
         {
-            var agentMethod = TryCreateAgentAuth(connectionParams.Username);
+            var agentMethod = TryCreateAgentAuth(
+                connectionParams.Username,
+                agentRegistry);
             if (agentMethod is not null)
             {
                 methods.Add(agentMethod);
@@ -247,47 +460,127 @@ public static class SshConnectionFactory
         return methods;
     }
 
-    /// <summary>
-    /// Attempts to create a Pageant-based agent authentication method.
-    /// Queries Pageant for loaded keys and wraps the first available key
-    /// into a <see cref="PrivateKeyAuthenticationMethod"/> via a
-    /// <see cref="PageantKeyWrapper"/> that delegates signing to the agent.
-    /// Returns null if Pageant is not running or no keys are loaded.
-    /// </summary>
-    private static AuthenticationMethod? TryCreateAgentAuth(string username)
+    private static string? ResolveKeyPassphrase(SshConnectionParams connectionParams)
     {
+        if (!string.IsNullOrEmpty(connectionParams.KeyPassphrase))
+        {
+            return connectionParams.KeyPassphrase;
+        }
+
+        if (connectionParams.UseLegacyPasswordAsKeyPassphrase
+            && !string.IsNullOrEmpty(connectionParams.Password)
+            && !string.IsNullOrWhiteSpace(connectionParams.KeyPath))
+        {
+            var name = string.IsNullOrWhiteSpace(connectionParams.LegacyCredentialName)
+                ? $"{connectionParams.Username}@{connectionParams.Host}:{connectionParams.Port}"
+                : connectionParams.LegacyCredentialName;
+            Core.Logging.FileLogger.Info(
+                $"Legacy credential mapping for server {name} - configure KeyPassphrase explicitly.");
+            return connectionParams.Password;
+        }
+
+        return null;
+    }
+
+    private static void AddPrivateKeyMethod(
+        ICollection<AuthenticationMethod> methods,
+        SshConnectionParams connectionParams)
+    {
+        var keyPath = connectionParams.KeyPath
+            ?? throw new InvalidOperationException("KeyPath is required for private key authentication.");
+
         try
         {
-            if (!PageantClient.IsAvailable())
-            {
-                Heimdall.Core.Logging.FileLogger.Info("Pageant: not available");
-                return null;
-            }
+            var keyPassphrase = ResolveKeyPassphrase(connectionParams);
+            var keyFile = string.IsNullOrEmpty(keyPassphrase)
+                ? new PrivateKeyFile(keyPath)
+                : new PrivateKeyFile(keyPath, keyPassphrase);
 
-            using var client = new PageantClient();
-            var keys = client.GetIdentities();
-
-            if (keys.Count == 0)
-            {
-                Heimdall.Core.Logging.FileLogger.Info("Pageant: no keys loaded");
-                return null;
-            }
-
-            Heimdall.Core.Logging.FileLogger.Info(
-                $"Pageant: {keys.Count} key(s) loaded: {string.Join(", ", keys.Select(k => $"{k.KeyType} ({k.Comment})"))}");
-
-            // Wrap each Pageant key as an IPrivateKeySource for SSH.NET
-            var keyWrappers = keys
-                .Select(k => new PageantKeyWrapper(k))
-                .Cast<IPrivateKeySource>()
-                .ToArray();
-
-            return new PrivateKeyAuthenticationMethod(username, keyWrappers);
+            methods.Add(new PrivateKeyAuthenticationMethod(connectionParams.Username, keyFile));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (CanFallBackToPasswordAfterKeyLoadFailure(ex, connectionParams))
         {
-            Heimdall.Core.Logging.FileLogger.Warn($"Pageant auth setup failed: {ex.Message}");
-            return null;
+            Core.Logging.FileLogger.Warn(
+                $"SSH key file could not be loaded for {connectionParams.Username}@{connectionParams.Host}:{connectionParams.Port}; trying password fallback. {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    private static bool CanFallBackToPasswordAfterKeyLoadFailure(
+        Exception ex,
+        SshConnectionParams connectionParams)
+    {
+        if (string.IsNullOrEmpty(connectionParams.Password))
+        {
+            return false;
+        }
+
+        // SSH.NET raises typed passphrase/key parsing exceptions before it can
+        // attempt later auth methods. When an explicit password fallback exists,
+        // keep building the connection so password auth can still proceed.
+        return ex is SshPassPhraseNullOrEmptyException
+            or SshException
+            or FormatException
+            or ArgumentException;
+    }
+
+    private static void AddPasswordMethods(
+        ICollection<AuthenticationMethod> methods,
+        string username,
+        string password)
+    {
+        methods.Add(new PasswordAuthenticationMethod(username, password));
+
+        var capturedPassword = password; // Captured in closure - avoid re-reading mutable param.
+        var kbdInteractive = new KeyboardInteractiveAuthenticationMethod(username);
+        kbdInteractive.AuthenticationPrompt += (_, e) =>
+        {
+            foreach (var prompt in e.Prompts)
+            {
+                prompt.Response = capturedPassword;
+            }
+        };
+        methods.Add(kbdInteractive);
+    }
+
+    /// <summary>
+    /// Attempts to create an SSH-agent authentication method.
+    /// Returns null if no configured agent is available or no keys are loaded.
+    /// </summary>
+    private static AuthenticationMethod? TryCreateAgentAuth(
+        string username,
+        SshAgentRegistry agentRegistry)
+    {
+        ArgumentNullException.ThrowIfNull(agentRegistry);
+
+        foreach (var agent in agentRegistry.GetAvailableAgents())
+        {
+            try
+            {
+                var keys = agent.GetIdentities();
+
+                if (keys.Count == 0)
+                {
+                    Heimdall.Core.Logging.FileLogger.Info($"SSH agent {agent.Name}: no keys loaded");
+                    continue;
+                }
+
+                Heimdall.Core.Logging.FileLogger.Info(
+                    $"SSH agent {agent.Name}: using {keys.Count} key(s): {string.Join(", ", keys.Select(k => $"{k.KeyType} ({k.Comment})"))}");
+
+                var keyWrappers = keys
+                    .Select(k => new SshAgentKeyWrapper(k))
+                    .Cast<IPrivateKeySource>()
+                    .ToArray();
+
+                return new PrivateKeyAuthenticationMethod(username, keyWrappers);
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"SSH agent {agent.Name}: auth setup failed: {ex.Message}");
+            }
+        }
+
+        return null;
     }
 }

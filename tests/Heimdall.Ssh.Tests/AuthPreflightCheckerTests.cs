@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Ssh;
+using Heimdall.Ssh.Agents;
+
 namespace Heimdall.Ssh.Tests;
 
 public class AuthPreflightCheckerTests
 {
     private static SshConnectionParams MakeParams(
         string? keyPath = null,
-        string? password = null) =>
+        string? password = null,
+        string? keyPassphrase = null) =>
         new()
         {
             Host = "server.example.com",
             Username = "testuser",
             KeyPath = keyPath,
-            Password = password
+            Password = password,
+            KeyPassphrase = keyPassphrase
         };
 
     // ── Key file existence ─────────────────────────────────────────────
@@ -93,6 +98,58 @@ public class AuthPreflightCheckerTests
         Assert.True(result.Success);
     }
 
+    [Fact]
+    public void Check_NoKeyNoPassword_TunnelMode_NoAgent_ReturnsGenericAgentFailure()
+    {
+        var connParams = MakeParams();
+        var registry = new SshAgentRegistry(
+            [new FakeAgent("Windows OpenSSH Agent", available: false, [])]);
+
+        var result = AuthPreflightChecker.Check(connParams, isTunnelMode: true, agentRegistry: registry);
+
+        Assert.False(result.Success);
+        Assert.Equal(SshFailureCode.PageantKeyUnavailable, result.FailureCode);
+        Assert.Equal("ErrorNoSshAgentRunning", result.Message);
+    }
+
+    [Fact]
+    public void Check_NoKeyNoPassword_TunnelMode_EmptyAgent_ReturnsNoIdentities()
+    {
+        var connParams = MakeParams();
+        var registry = new SshAgentRegistry(
+            [new FakeAgent("Windows OpenSSH Agent", available: true, [])]);
+
+        var result = AuthPreflightChecker.Check(connParams, isTunnelMode: true, agentRegistry: registry);
+
+        Assert.False(result.Success);
+        Assert.Equal(SshFailureCode.PageantNoIdentities, result.FailureCode);
+        Assert.Equal("ErrorSshAgentHasNoIdentities", result.Message);
+    }
+
+    [Fact]
+    public void Check_NoKeyNoPassword_TunnelMode_AgentWithIdentity_ReturnsOk()
+    {
+        var connParams = MakeParams();
+        var registry = new SshAgentRegistry(
+            [new FakeAgent("Windows OpenSSH Agent", available: true, [new FakeAgentKey()])]);
+
+        var result = AuthPreflightChecker.Check(connParams, isTunnelMode: true, agentRegistry: registry);
+
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void Check_KeyWithKeyPassphraseOnly_TunnelMode_ReturnsOk()
+    {
+        var connParams = MakeParams(
+            keyPath: @"C:\Windows\System32\drivers\etc\hosts",
+            keyPassphrase: "passphrase");
+
+        var result = AuthPreflightChecker.Check(connParams, isTunnelMode: true);
+
+        Assert.True(result.Success);
+    }
+
     // ── Null params ────────────────────────────────────────────────────
 
     [Fact]
@@ -121,5 +178,23 @@ public class AuthPreflightCheckerTests
         Assert.False(result.Success);
         Assert.Equal(SshFailureCode.KeyFileNotFound, result.FailureCode);
         Assert.Equal("Not found", result.Message);
+    }
+
+    private sealed class FakeAgent(
+        string name,
+        bool available,
+        IReadOnlyList<ISshAgentKey> identities) : ISshAgent
+    {
+        public string Name { get; } = name;
+        public bool IsAvailable() => available;
+        public IReadOnlyList<ISshAgentKey> GetIdentities() => identities;
+    }
+
+    private sealed class FakeAgentKey : ISshAgentKey
+    {
+        public string Comment => "fake";
+        public string KeyType => "ssh-ed25519";
+        public byte[] PublicKeyBlob => [0, 0, 0, 11, 115, 115, 104, 45, 101, 100, 50, 53, 53, 49, 57];
+        public byte[] Sign(byte[] data, SshAgentSignFlags flags) => [1];
     }
 }

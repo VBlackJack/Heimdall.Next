@@ -183,6 +183,22 @@ public class PlinkTunnelRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task StartAsync_KeyPathWithKeyPassphrase_ReturnsFailureWithoutStartingProcess()
+    {
+        var result = await _runner.StartAsync(
+            @"C:\nonexistent\plink.exe",
+            "gw.test", 22, "user", @"C:\keys\id_rsa.ppk", null,
+            "remote", 22, 10022,
+            keyPassphrase: "key-passphrase",
+            passphraseUnsupportedMessage: "localized plink passphrase unsupported");
+
+        Assert.False(result.Success);
+        Assert.Equal(SshFailureCode.PassphraseRequired, result.FailureCode);
+        Assert.Equal("localized plink passphrase unsupported", result.ErrorMessage);
+        Assert.False(_runner.IsRunning);
+    }
+
+    [Fact]
     public void BuildArguments_RejectsKeyPathWithQuoteInjection()
     {
         var ex = Assert.Throws<ArgumentException>(() => _runner.BuildArguments(

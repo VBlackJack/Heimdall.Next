@@ -266,6 +266,7 @@ public sealed class MigrationService
         MapString(legacy, "SshMode", v => dto.SshMode = v);
         MapBool(legacy, "SshAgentForwarding", v => dto.SshAgentForwarding = v);
         MapNullableString(legacy, "SshKeyPath", v => dto.SshKeyPath = v);
+        MapNullableString(legacy, "SshKeyPassphraseEncrypted", v => dto.SshKeyPassphraseEncrypted = v);
         MapBool(legacy, "SshCompression", v => dto.SshCompression = v);
         MapBool(legacy, "SshX11Forwarding", v => dto.SshX11Forwarding = v);
         MapNullableString(legacy, "SshPasswordEncrypted",
@@ -322,6 +323,7 @@ public sealed class MigrationService
         MapString(legacy, "User", v => dto.User = v);
         MapNullableString(legacy, "KeyPath", v => dto.KeyPath = v);
         MapNullableString(legacy, "SshPasswordEncrypted", v => dto.SshPasswordEncrypted = v);
+        MapNullableString(legacy, "SshKeyPassphraseEncrypted", v => dto.SshKeyPassphraseEncrypted = v);
         MapBool(legacy, "IsDefault", v => dto.IsDefault = v);
         MapNullableString(legacy, "ParentGatewayId", v => dto.ParentGatewayId = v);
         MapNullableString(legacy, "HostKeyFingerprint", v => dto.HostKeyFingerprint = v);

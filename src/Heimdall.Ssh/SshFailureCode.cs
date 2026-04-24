@@ -29,14 +29,17 @@ public enum SshFailureCode
 
     // ── Auth failures ──────────────────────────────────────────────────
 
-    /// <summary>Pageant SSH agent is not running or inaccessible.</summary>
+    /// <summary>SSH agent is not running or inaccessible. Name kept for backward compatibility.</summary>
     PageantKeyUnavailable,
 
-    /// <summary>Pageant is running but has no identities loaded.</summary>
+    /// <summary>SSH agent is running but has no identities loaded. Name kept for backward compatibility.</summary>
     PageantNoIdentities,
 
     /// <summary>Private key passphrase is required but not provided.</summary>
     PassphraseRequired,
+
+    /// <summary>Private key passphrase was rejected while decrypting the key file.</summary>
+    PassphraseRejected,
 
     /// <summary>Private key file format is unsupported or corrupt.</summary>
     KeyFileInvalid,

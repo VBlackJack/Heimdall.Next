@@ -76,17 +76,32 @@ public sealed class SshShellSession : IDisposable
             throw new InvalidOperationException("Session is already connected. Call Disconnect() first.");
         }
 
+        PinnedFingerprintVerifier? pinnedVerifier = null;
+        if (hostKeyStore is not null)
+        {
+            if (hostKeyVerifier is null)
+            {
+                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
+            }
+
+            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                    connectionParams,
+                    hostKeyStore,
+                    hostKeyVerifier,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
         _client = new SshClient(connectionInfo);
 
-        if (hostKeyStore is not null)
+        if (pinnedVerifier is not null)
         {
-            SshConnectionFactory.AttachHostKeyVerification(
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
                 _client,
                 connectionParams.Host,
                 connectionParams.Port,
-                hostKeyStore,
-                hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
+                pinnedVerifier);
         }
 
         await using var connectReg = cancellationToken.Register(

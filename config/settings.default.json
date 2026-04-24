@@ -44,6 +44,7 @@
     "terminalColorScheme": "Dracula",
     "powerShellExecutionPolicy": "Default",
     "sshDefaultMode": "Embedded",
+    "sshAgentPreference": "AutoOpenSshFirst",
     "antiIdleIntervalSeconds": 60,
     "sshTmoutResetIntervalSeconds": 240,
     "rdpDefaultMode": "Embedded",

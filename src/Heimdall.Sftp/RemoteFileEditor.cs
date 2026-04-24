@@ -129,18 +129,33 @@ public sealed class RemoteFileEditor : IDisposable
         string localPath = CreateTempFilePath(remotePath);
         string escapedPath = PathEscaper.EscapeForShell(remotePath);
 
+        PinnedFingerprintVerifier? pinnedVerifier = null;
+        if (_hostKeyStore is not null)
+        {
+            if (_hostKeyVerifier is null)
+            {
+                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
+            }
+
+            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                    sshParams,
+                    _hostKeyStore,
+                    _hostKeyVerifier,
+                    ct)
+                .ConfigureAwait(false);
+        }
+
         // Download with sudo via SSH command
         var connectionInfo = SshConnectionFactory.Create(sshParams);
         using var sshClient = new SshClient(connectionInfo);
 
-        if (_hostKeyStore is not null)
+        if (pinnedVerifier is not null)
         {
-            SshConnectionFactory.AttachHostKeyVerification(
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
                 sshClient,
                 sshParams.Host,
                 sshParams.Port,
-                _hostKeyStore,
-                _hostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
+                pinnedVerifier);
         }
 
         await Task.Run(() =>
@@ -375,24 +390,37 @@ public sealed class RemoteFileEditor : IDisposable
         string escapedPath = PathEscaper.EscapeForShell(session.RemotePath);
         string tempRemotePath = $"{RemoteTempPrefix}edit_{Guid.NewGuid():N}";
 
+        PinnedFingerprintVerifier? pinnedVerifier = null;
+        if (session.HostKeyStore is not null)
+        {
+            if (session.HostKeyVerifier is null)
+            {
+                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
+            }
+
+            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                    session.SshParams,
+                    session.HostKeyStore,
+                    session.HostKeyVerifier)
+                .ConfigureAwait(false);
+        }
+
         var connectionInfo = SshConnectionFactory.Create(session.SshParams);
         using var sftpClient = new SftpClient(connectionInfo);
         using var sshClient = new SshClient(connectionInfo);
 
-        if (session.HostKeyStore is not null)
+        if (pinnedVerifier is not null)
         {
-            SshConnectionFactory.AttachHostKeyVerification(
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
                 sftpClient,
                 session.SshParams.Host,
                 session.SshParams.Port,
-                session.HostKeyStore,
-                session.HostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
-            SshConnectionFactory.AttachHostKeyVerification(
+                pinnedVerifier);
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
                 sshClient,
                 session.SshParams.Host,
                 session.SshParams.Port,
-                session.HostKeyStore,
-                session.HostKeyVerifier ?? AutoAcceptHostKeyVerifier.Instance);
+                pinnedVerifier);
         }
 
         await Task.Run(() =>

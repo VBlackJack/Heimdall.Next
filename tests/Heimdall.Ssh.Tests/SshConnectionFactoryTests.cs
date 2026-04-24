@@ -15,6 +15,10 @@
  */
 
 using System.Reflection;
+using System.Security.Cryptography;
+using Heimdall.Core.Logging;
+using Heimdall.Core.Ssh;
+using Heimdall.Ssh.Agents;
 using Renci.SshNet;
 
 namespace Heimdall.Ssh.Tests;
@@ -34,12 +38,17 @@ public sealed class SshConnectionFactoryTests
     /// </summary>
     private static List<AuthenticationMethod> InvokeBuildAuthMethods(SshConnectionParams connectionParams)
     {
-        var method = typeof(SshConnectionFactory).GetMethod(
-            "BuildAuthMethods",
-            BindingFlags.NonPublic | BindingFlags.Static)
+        var method = typeof(SshConnectionFactory)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .SingleOrDefault(m =>
+                m.Name == "BuildAuthMethods" &&
+                m.GetParameters() is [{ ParameterType: var first }, { ParameterType: var second }] &&
+                first == typeof(SshConnectionParams) &&
+                second == typeof(SshAgentRegistry))
             ?? throw new InvalidOperationException("BuildAuthMethods not found — check method name or visibility.");
 
-        var result = method.Invoke(null, [connectionParams])
+        var registry = new SshAgentRegistry(Array.Empty<ISshAgent>());
+        var result = method.Invoke(null, [connectionParams, registry])
             ?? throw new InvalidOperationException("BuildAuthMethods returned null.");
 
         return (List<AuthenticationMethod>)result;
@@ -47,6 +56,16 @@ public sealed class SshConnectionFactoryTests
 
     private static IEnumerable<string> MethodTypeNames(IEnumerable<AuthenticationMethod> methods)
         => methods.Select(m => m.GetType().Name);
+
+    private static string CreateTempRsaPrivateKeyFile()
+    {
+        using var rsa = RSA.Create(2048);
+        var keyBytes = rsa.ExportRSAPrivateKey();
+        var pem = new string(PemEncoding.Write("RSA PRIVATE KEY", keyBytes));
+        var path = Path.Combine(Path.GetTempPath(), $"heimdall_test_key_{Guid.NewGuid():N}.pem");
+        File.WriteAllText(path, pem);
+        return path;
+    }
 
     // ── BuildAuthMethods — password-only ──────────────────────────────
 
@@ -118,47 +137,158 @@ public sealed class SshConnectionFactoryTests
     [Fact]
     public void BuildAuthMethods_WithKeyPath_UsesPrivateKeyMethod()
     {
-        // We use a file that always exists on Windows CI to avoid FileNotFoundException.
+        var keyPath = CreateTempRsaPrivateKeyFile();
         var connParams = new SshConnectionParams
         {
             Host = "example.com",
             Port = 22,
             Username = "user",
             Password = null,
-            KeyPath = @"C:\Windows\System32\drivers\etc\hosts"
+            KeyPath = keyPath
         };
 
-        // PrivateKeyFile throws on invalid key content — we only test that the
-        // method would be the one selected, not that the key is valid.
-        // So we test the condition guard rather than the full BuildAuthMethods call.
-        var hasKey = !string.IsNullOrWhiteSpace(connParams.KeyPath);
-        var hasPassword = !string.IsNullOrEmpty(connParams.Password);
+        try
+        {
+            var methods = InvokeBuildAuthMethods(connParams);
+            var names = MethodTypeNames(methods).ToList();
 
-        Assert.True(hasKey);
-        Assert.False(hasPassword);
-
-        // When a key is present and no password, no PasswordAuthenticationMethod
-        // should be added (password is treated as key passphrase, not login password).
-        // We can't invoke BuildAuthMethods here because PrivateKeyFile would throw
-        // on a non-key file. The conditional logic is: key branch is entered, password
-        // branch (KeyPath check) is skipped.
+            Assert.Contains("PrivateKeyAuthenticationMethod", names);
+            Assert.DoesNotContain("PasswordAuthenticationMethod", names);
+            Assert.DoesNotContain("KeyboardInteractiveAuthenticationMethod", names);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
     }
 
     [Fact]
-    public void BuildAuthMethods_PasswordWithKeyPath_DoesNotAddPasswordMethod()
+    public void BuildAuthMethods_KeyPathWithKeyPassphraseOnly_UsesPrivateKeyOnly()
     {
-        // When both KeyPath and Password are set, Password is treated as the key
-        // passphrase — NOT as a login password. No PasswordAuthenticationMethod is added.
-        // This verifies the guard condition: !string.IsNullOrWhiteSpace(connectionParams.KeyPath)
-        // prevents password-branch entry.
-        var hasKey = !string.IsNullOrWhiteSpace(@"C:\some\key.pem");
-        var hasPassword = !string.IsNullOrEmpty("passphrase");
+        var keyPath = CreateTempRsaPrivateKeyFile();
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Port = 22,
+            Username = "user",
+            Password = null,
+            KeyPassphrase = "key-passphrase",
+            KeyPath = keyPath
+        };
 
-        // Password branch guard: Password is added only when KeyPath is empty
-        var passwordBranchWouldExecute = hasPassword && string.IsNullOrWhiteSpace(@"C:\some\key.pem");
+        try
+        {
+            var methods = InvokeBuildAuthMethods(connParams);
+            var names = MethodTypeNames(methods).ToList();
 
-        Assert.False(passwordBranchWouldExecute,
-            "When KeyPath is set, password must not be added as a login credential.");
+            Assert.Contains("PrivateKeyAuthenticationMethod", names);
+            Assert.DoesNotContain("PasswordAuthenticationMethod", names);
+            Assert.DoesNotContain("KeyboardInteractiveAuthenticationMethod", names);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
+    }
+
+    [Fact]
+    public void BuildAuthMethods_KeyPathWithKeyPassphraseAndPassword_AddsPasswordFallback()
+    {
+        var keyPath = CreateTempRsaPrivateKeyFile();
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Port = 22,
+            Username = "user",
+            Password = "login-password",
+            KeyPassphrase = "key-passphrase",
+            KeyPath = keyPath
+        };
+
+        try
+        {
+            var methods = InvokeBuildAuthMethods(connParams);
+            var names = MethodTypeNames(methods).ToList();
+
+            Assert.Contains("PrivateKeyAuthenticationMethod", names);
+            Assert.Contains("PasswordAuthenticationMethod", names);
+            Assert.Contains("KeyboardInteractiveAuthenticationMethod", names);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
+    }
+
+    [Fact]
+    public void BuildAuthMethods_KeyPathWithPasswordWithoutLegacy_AddsPasswordFallback()
+    {
+        var keyPath = CreateTempRsaPrivateKeyFile();
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Port = 22,
+            Username = "user",
+            Password = "login-password",
+            KeyPassphrase = null,
+            KeyPath = keyPath,
+            UseLegacyPasswordAsKeyPassphrase = false
+        };
+
+        try
+        {
+            var methods = InvokeBuildAuthMethods(connParams);
+            var names = MethodTypeNames(methods).ToList();
+
+            Assert.Contains("PrivateKeyAuthenticationMethod", names);
+            Assert.Contains("PasswordAuthenticationMethod", names);
+            Assert.Contains("KeyboardInteractiveAuthenticationMethod", names);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
+    }
+
+    [Fact]
+    public void BuildAuthMethods_LegacyKeyPathWithPassword_UsesPasswordAsPassphraseAndFallback()
+    {
+        var keyPath = CreateTempRsaPrivateKeyFile();
+        var logDir = Path.Combine(Path.GetTempPath(), $"heimdall_ssh_log_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(logDir);
+        FileLogger.Initialize(logDir, flushIntervalMs: 60000);
+        FileLogger.SetEnabled(true);
+
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Port = 22,
+            Username = "user",
+            Password = "legacy-secret",
+            KeyPassphrase = null,
+            KeyPath = keyPath,
+            UseLegacyPasswordAsKeyPassphrase = true,
+            LegacyCredentialName = "legacy-profile"
+        };
+
+        try
+        {
+            var methods = InvokeBuildAuthMethods(connParams);
+            FileLogger.Flush();
+            var names = MethodTypeNames(methods).ToList();
+
+            Assert.Contains("PrivateKeyAuthenticationMethod", names);
+            Assert.Contains("PasswordAuthenticationMethod", names);
+            Assert.Contains("KeyboardInteractiveAuthenticationMethod", names);
+
+            var logFile = Directory.GetFiles(logDir, "heimdall_*.log").Single();
+            var log = File.ReadAllText(logFile);
+            Assert.Contains("Legacy credential mapping for server legacy-profile", log);
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
     }
 
     // ── BuildAuthMethods — no credentials ────────────────────────────
@@ -253,20 +383,52 @@ public sealed class SshConnectionFactoryTests
         Assert.NotEmpty(info.AuthenticationMethods);
     }
 
-    // ── RequiresPageantFallback ───────────────────────────────────────
+    [Fact]
+    public void BuildAuthMethods_AvailableEmptyAgent_SkipsToNextAgentWithKeys()
+    {
+        var connParams = new SshConnectionParams
+        {
+            Host = "example.com",
+            Port = 22,
+            Username = "user",
+            Password = null,
+            KeyPath = null
+        };
+        var emptyAgent = new FakeAgent("empty", available: true, []);
+        var keyAgent = new FakeAgent(
+            "keys",
+            available: true,
+            [new FakeAgentKey("ssh-ed25519", CreateAgentKeyBlob("ssh-ed25519"))]);
+        var registry = new SshAgentRegistry([emptyAgent, keyAgent]);
+
+        var method = typeof(SshConnectionFactory)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Single(m =>
+                m.Name == "BuildAuthMethods" &&
+                m.GetParameters().Length == 2);
+        var methods = (List<AuthenticationMethod>)method.Invoke(null, [connParams, registry])!;
+
+        var names = MethodTypeNames(methods).ToList();
+        Assert.Contains("PrivateKeyAuthenticationMethod", names);
+        Assert.DoesNotContain("NoneAuthenticationMethod", names);
+        Assert.Equal(1, emptyAgent.GetIdentitiesCallCount);
+        Assert.Equal(1, keyAgent.GetIdentitiesCallCount);
+    }
+
+    // ── RequiresPlinkFallback ────────────────────────────────────────
 
     [Fact]
-    public void RequiresPageantFallback_NullParams_ThrowsArgumentNullException()
+    public void RequiresPlinkFallback_NullParams_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(
-            () => SshConnectionFactory.RequiresPageantFallback(null!));
+            () => SshConnectionFactory.RequiresPlinkFallback(null!));
     }
 
     [Fact]
-    public void RequiresPageantFallback_WithPassword_NoAgentForwarding_ReturnsFalse()
+    public void RequiresPlinkFallback_WithPassword_NoAgentForwarding_ReturnsFalse()
     {
-        // A connection with an explicit password does not require Pageant,
-        // even if Pageant happens to be running.
+        // A connection without agent forwarding does not require Plink,
+        // even if a compatible agent happens to be running.
         var connParams = new SshConnectionParams
         {
             Host = "example.com",
@@ -277,15 +439,15 @@ public sealed class SshConnectionFactoryTests
             AgentForwarding = false
         };
 
-        var result = SshConnectionFactory.RequiresPageantFallback(connParams);
+        var result = SshConnectionFactory.RequiresPlinkFallback(connParams);
 
-        Assert.False(result, "Password auth should not require Pageant fallback.");
+        Assert.False(result, "Password auth should not require Plink fallback.");
     }
 
     [Fact]
-    public void RequiresPageantFallback_WithKeyPath_NoAgentForwarding_ReturnsFalse()
+    public void RequiresPlinkFallback_WithKeyPath_NoAgentForwarding_ReturnsFalse()
     {
-        // A connection with an explicit key file does not require Pageant fallback
+        // A connection with an explicit key file does not require Plink fallback
         // (SSH.NET can handle the key directly).
         var connParams = new SshConnectionParams
         {
@@ -297,24 +459,14 @@ public sealed class SshConnectionFactoryTests
             AgentForwarding = false
         };
 
-        var result = SshConnectionFactory.RequiresPageantFallback(connParams);
+        var result = SshConnectionFactory.RequiresPlinkFallback(connParams);
 
-        // Pageant may or may not be available; either way key-file auth is handled by SSH.NET.
-        // When Pageant is not running, this must be false.
-        // We can't assert unconditionally here because Pageant might be running on the dev box.
-        // We only verify the no-Pageant case by checking the condition logic:
-        // AgentForwarding is false, so the first branch is skipped.
-        // KeyPath is set, so the "no key and no password" branch is skipped.
-        // Result depends solely on Pageant availability — which is environment-specific.
-        // We document and skip rather than produce a flaky assertion.
+        Assert.False(result, "Agent forwarding is disabled, so Plink fallback is not required.");
     }
 
     [Fact]
-    public void RequiresPageantFallback_NoCredentials_NoPageant_ReturnsFalse()
+    public void RequiresPlinkFallback_NoCredentials_NoAgentForwarding_ReturnsFalse()
     {
-        // On a machine without Pageant running, even "no credentials" should return false
-        // because PageantClient.IsAvailable() returns false.
-        // This test verifies the condition is correctly guarded by IsAvailable().
         var connParams = new SshConnectionParams
         {
             Host = "example.com",
@@ -325,10 +477,41 @@ public sealed class SshConnectionFactoryTests
             AgentForwarding = false
         };
 
-        // On CI (no Pageant), result must be false regardless of credentials.
-        // On dev machine (Pageant running), result may be true.
-        // We can only assert this is deterministic (no exception, returns a bool).
-        var result = SshConnectionFactory.RequiresPageantFallback(connParams);
-        Assert.IsType<bool>(result);
+        var result = SshConnectionFactory.RequiresPlinkFallback(connParams);
+        Assert.False(result);
+    }
+
+    private static byte[] CreateAgentKeyBlob(string keyType)
+    {
+        var keyTypeBytes = System.Text.Encoding.ASCII.GetBytes(keyType);
+        var blob = new byte[sizeof(uint) + keyTypeBytes.Length];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(
+            blob.AsSpan(0, sizeof(uint)),
+            (uint)keyTypeBytes.Length);
+        keyTypeBytes.CopyTo(blob.AsSpan(sizeof(uint)));
+        return blob;
+    }
+
+    private sealed class FakeAgent(
+        string name,
+        bool available,
+        IReadOnlyList<ISshAgentKey> identities) : ISshAgent
+    {
+        public int GetIdentitiesCallCount { get; private set; }
+        public string Name { get; } = name;
+        public bool IsAvailable() => available;
+        public IReadOnlyList<ISshAgentKey> GetIdentities()
+        {
+            GetIdentitiesCallCount++;
+            return identities;
+        }
+    }
+
+    private sealed class FakeAgentKey(string keyType, byte[] publicKeyBlob) : ISshAgentKey
+    {
+        public string Comment => "test-key";
+        public string KeyType => keyType;
+        public byte[] PublicKeyBlob => publicKeyBlob;
+        public byte[] Sign(byte[] data, SshAgentSignFlags flags) => [1, 2, 3];
     }
 }

@@ -113,7 +113,9 @@ public sealed class ConnectionService : IConnectionService
                 _localizer.Format("ErrorGatewayNotFound", server.SshGatewayId));
         }
 
-        var connParams = ConnectionHelpers.CreateGatewayConnectionParams(gateway);
+        var connParams = ConnectionHelpers.CreateGatewayConnectionParams(
+            gateway,
+            settings.SshAgentPreference);
         bool isTunnel = server.ConnectionType?.Equals("RDP", StringComparison.OrdinalIgnoreCase) == true;
         return AuthPreflightChecker.Check(connParams, isTunnelMode: isTunnel);
     }

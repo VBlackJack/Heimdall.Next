@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
@@ -31,8 +32,6 @@ namespace Heimdall.App.Services;
 /// </summary>
 internal static class ToolGatewayConnector
 {
-    private static readonly HostKeyStore s_hostKeyStore = new();
-
     /// <summary>
     /// Creates and connects an SSH client to the specified gateway.
     /// Validates auth prerequisites, verifies host keys via TOFU,
@@ -52,6 +51,12 @@ internal static class ToolGatewayConnector
             password = CredentialProtector.Unprotect(gateway.SshPasswordEncrypted);
         }
 
+        string? keyPassphrase = null;
+        if (!string.IsNullOrEmpty(gateway.SshKeyPassphraseEncrypted))
+        {
+            keyPassphrase = CredentialProtector.Unprotect(gateway.SshKeyPassphraseEncrypted);
+        }
+
         var connParams = new SshConnectionParams
         {
             Host = gateway.Host,
@@ -59,6 +64,9 @@ internal static class ToolGatewayConnector
             Username = gateway.User,
             KeyPath = gateway.KeyPath,
             Password = password,
+            KeyPassphrase = keyPassphrase,
+            UseLegacyPasswordAsKeyPassphrase = gateway.UsesLegacySshCredentialMapping,
+            LegacyCredentialName = gateway.Name,
             ConnectTimeout = TimeSpan.FromSeconds(15)
         };
 
@@ -72,15 +80,17 @@ internal static class ToolGatewayConnector
 
         var connInfo = SshConnectionFactory.Create(connParams);
         var client = new SshClient(connInfo);
-        var (hostKeyStore, hostKeyVerifier) = ResolveHostKeyDependencies();
+        var (hostKeyStore, localizer) = ResolveHostKeyDependencies();
+        var fingerprint = hostKeyStore.GetFingerprint(gateway.Host, gateway.Port)
+            ?? throw new InvalidOperationException(
+                localizer.Format("ErrorGatewayHostKeyNotTrusted", gateway.Host, gateway.Port));
 
         // TOFU host key verification
-        SshConnectionFactory.AttachHostKeyVerification(
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
             client,
             gateway.Host,
             gateway.Port,
-            hostKeyStore,
-            hostKeyVerifier);
+            new PinnedFingerprintVerifier(gateway.Host, gateway.Port, fingerprint));
 
         client.Connect();
 
@@ -90,20 +100,18 @@ internal static class ToolGatewayConnector
         return client;
     }
 
-    private static (HostKeyStore HostKeyStore, IHostKeyVerifier HostKeyVerifier) ResolveHostKeyDependencies()
+    private static (HostKeyStore HostKeyStore, LocalizationManager Localizer) ResolveHostKeyDependencies()
     {
         if ((Application.Current as App)?.Services is IServiceProvider services)
         {
-            var hostKeyStore = services.GetService<HostKeyStore>() ?? s_hostKeyStore;
-            var verifier = services.GetService<IHostKeyVerifier>();
-            if (verifier is not null)
+            if (services.GetService<HostKeyStore>() is { } hostKeyStore &&
+                services.GetService<LocalizationManager>() is { } localizer)
             {
-                return (hostKeyStore, verifier);
+                return (hostKeyStore, localizer);
             }
         }
 
-        Core.Logging.FileLogger.Warn(
-            "ToolGatewayConnector could not resolve IHostKeyVerifier from DI — falling back to auto-accept. This is unsafe and indicates a missing app host.");
-        return (s_hostKeyStore, AutoAcceptHostKeyVerifier.Instance);
+        throw new InvalidOperationException(
+            "ToolGatewayConnector could not resolve host key services from DI; refusing to connect without pinned host key verification.");
     }
 }

@@ -57,14 +57,17 @@ public static class FailureClassifier
             SshAuthenticationException authEx =>
                 ClassifyAuthException(authEx, connectionParams),
 
-            SshConnectionException connEx =>
-                ClassifyConnectionException(connEx),
-
             SshOperationTimeoutException =>
                 new SshFailureInfo(SshFailureCode.NetworkTimedOut, "Connection timed out.", true, ex),
 
             ProxyException proxyEx =>
                 new SshFailureInfo(SshFailureCode.ForwardingFailed, $"Proxy error: {proxyEx.Message}", true, ex),
+
+            SshPassPhraseNullOrEmptyException =>
+                new SshFailureInfo(SshFailureCode.PassphraseRequired, "SSH key requires a passphrase.", true, ex),
+
+            SshConnectionException connEx =>
+                ClassifyConnectionException(connEx),
 
             SocketException socketEx =>
                 ClassifySocketException(socketEx),
@@ -74,6 +77,9 @@ public static class FailureClassifier
 
             OperationCanceledException =>
                 new SshFailureInfo(SshFailureCode.AuthTimeout, "Connection cancelled.", false, ex),
+
+            SshException sshEx =>
+                ClassifySshException(sshEx, connectionParams),
 
             _ => new SshFailureInfo(SshFailureCode.Unknown, ex.Message, true, ex)
         };
@@ -93,7 +99,12 @@ public static class FailureClassifier
         ArgumentNullException.ThrowIfNull(localizer);
 
         var prefix = gatewayName is not null ? $"{gatewayName}: " : "";
-        var key = $"ErrorSsh{info.Code}";
+        var key = info.Code switch
+        {
+            SshFailureCode.PageantKeyUnavailable => "ErrorNoSshAgentRunning",
+            SshFailureCode.PageantNoIdentities => "ErrorSshAgentHasNoIdentities",
+            _ => $"ErrorSsh{info.Code}"
+        };
         var localized = localizer(key);
         return prefix + (localized ?? info.Message);
     }
@@ -140,6 +151,36 @@ public static class FailureClassifier
         return ex.IsMismatch
             ? new SshFailureInfo(SshFailureCode.HostKeyMismatch, ex.Message, true, ex)
             : new SshFailureInfo(SshFailureCode.Cancelled, "Connection was cancelled.", false, ex);
+    }
+
+    private static SshFailureInfo ClassifySshException(
+        SshException ex,
+        SshConnectionParams? connectionParams)
+    {
+        var msg = ex.Message ?? "";
+
+        if (!string.IsNullOrWhiteSpace(connectionParams?.KeyPath)
+            && !string.IsNullOrEmpty(connectionParams.KeyPassphrase)
+            && msg.Contains("passphrase", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SshFailureInfo(
+                SshFailureCode.PassphraseRejected,
+                "SSH key passphrase was rejected.",
+                true,
+                ex);
+        }
+
+        if (msg.Contains("private key", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("key file", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SshFailureInfo(
+                SshFailureCode.KeyFileInvalid,
+                "SSH key file is invalid or unsupported.",
+                true,
+                ex);
+        }
+
+        return new SshFailureInfo(SshFailureCode.Unknown, msg, true, ex);
     }
 
     private static SshFailureInfo ClassifyConnectionException(

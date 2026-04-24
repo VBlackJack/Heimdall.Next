@@ -73,24 +73,28 @@ public partial class GatewayDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _password = "";
 
-    // Existing encrypted password (preserved on edit if user doesn't change it)
+    [ObservableProperty]
+    private string _keyPassphrase = "";
+
+    // Existing encrypted SSH secrets (preserved on edit if user doesn't change them)
     public string? ExistingSshPasswordEncrypted { get; set; }
+    public string? ExistingSshKeyPassphraseEncrypted { get; set; }
 
     /// <summary>
-    /// Returns a context-aware label for the password field:
-    /// "Password" when no key is configured, "Passphrase" when a key is set.
+    /// Returns the label for the SSH password field.
     /// </summary>
-    public string GatewayPasswordLabel => string.IsNullOrWhiteSpace(KeyPath)
-        ? Localizer?["GatewayDialogLabelPassword"] ?? "Password"
-        : Localizer?["GatewayDialogLabelPassphrase"] ?? "Passphrase";
+    public string GatewayPasswordLabel => Localizer?["GatewayDialogLabelPassword"] ?? "Password";
+
+    /// <summary>Whether the key passphrase field should be shown.</summary>
+    public bool HasKeyPath => !string.IsNullOrWhiteSpace(KeyPath);
 
     /// <summary>
-    /// Returns a context-aware hint explaining the gateway auth mode:
-    /// password-centric hint when no key is configured, key-centric hint otherwise.
+    /// Returns the gateway password field hint.
     /// </summary>
-    public string GatewayAuthHint => string.IsNullOrWhiteSpace(KeyPath)
-        ? Localizer?["GatewayAuthHintPassword"] ?? ""
-        : Localizer?["GatewayAuthHintKey"] ?? "";
+    public string GatewayAuthHint => Localizer?["GatewayAuthHintPassword"] ?? "";
+
+    /// <summary>Returns the gateway key passphrase field hint.</summary>
+    public string GatewayKeyPassphraseHint => Localizer?["GatewayAuthHintKey"] ?? "";
 
     /// <summary>
     /// Shows the resulting chain topology when a parent gateway is selected.
@@ -138,7 +142,7 @@ public partial class GatewayDialogViewModel : ObservableValidator
 
         // Mark dirty when any user-editable property changes
         if (e.PropertyName is nameof(Name) or nameof(Host) or nameof(Port)
-            or nameof(User) or nameof(KeyPath) or nameof(Password)
+            or nameof(User) or nameof(KeyPath) or nameof(Password) or nameof(KeyPassphrase)
             or nameof(SelectedParentGatewayId))
         {
             IsDirty = true;
@@ -188,8 +192,12 @@ public partial class GatewayDialogViewModel : ObservableValidator
 
     partial void OnKeyPathChanged(string value)
     {
-        OnPropertyChanged(nameof(GatewayPasswordLabel));
-        OnPropertyChanged(nameof(GatewayAuthHint));
+        OnPropertyChanged(nameof(HasKeyPath));
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            KeyPassphrase = "";
+            ExistingSshKeyPassphraseEncrypted = null;
+        }
     }
 
     partial void OnSelectedParentGatewayIdChanged(string value)
@@ -259,16 +267,23 @@ public partial class GatewayDialogViewModel : ObservableValidator
     /// </summary>
     public SshGatewayDto ToDto()
     {
+        var keyPath = string.IsNullOrWhiteSpace(KeyPath) ? null : KeyPath;
+
         return new SshGatewayDto
         {
             Name = Name,
             Host = Host,
             Port = Port,
             User = User,
-            KeyPath = string.IsNullOrWhiteSpace(KeyPath) ? null : KeyPath,
+            KeyPath = keyPath,
             SshPasswordEncrypted = string.IsNullOrEmpty(Password)
                 ? ExistingSshPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(Password),
+            SshKeyPassphraseEncrypted = keyPath is null
+                ? null
+                : string.IsNullOrEmpty(KeyPassphrase)
+                    ? ExistingSshKeyPassphraseEncrypted ?? string.Empty
+                    : Heimdall.Core.Security.CredentialProtector.Protect(KeyPassphrase),
             ParentGatewayId = string.IsNullOrWhiteSpace(SelectedParentGatewayId)
                 ? null
                 : SelectedParentGatewayId,
@@ -297,6 +312,7 @@ public partial class GatewayDialogViewModel : ObservableValidator
         vm.SelectedParentGatewayId = dto.ParentGatewayId ?? "";
         vm.HostKeyFingerprint = dto.HostKeyFingerprint ?? "";
         vm.ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted;
+        vm.ExistingSshKeyPassphraseEncrypted = dto.SshKeyPassphraseEncrypted;
         vm._isInitializing = false;
         return vm;
     }

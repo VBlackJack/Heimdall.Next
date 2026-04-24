@@ -27,8 +27,8 @@ public enum HostKeyDecision
 
 /// <summary>
 /// Asks the user to verify an SSH host key before it is trusted.
-/// Implementations may marshal to the UI thread internally and are safe to call
-/// from non-UI threads such as SSH.NET host key callbacks.
+/// Implementations may marshal to the UI thread internally; callers must invoke
+/// them before SSH.NET's synchronous host key callback.
 /// </summary>
 public interface IHostKeyVerifier
 {

@@ -91,10 +91,20 @@ public partial class ServerDialog : Window
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ServerDialogViewModel.IsAdvancedMode)) return;
-        if (_configManager is null || DataContext is not ServerDialogViewModel vm) return;
+        if (DataContext is not ServerDialogViewModel vm) return;
 
-        _ = _configManager.MergeSettingAsync(s => s.ServerDialogAdvancedMode = vm.IsAdvancedMode);
+        if (e.PropertyName == nameof(ServerDialogViewModel.HasSshKeyPath) && !vm.HasSshKeyPath)
+        {
+            (FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox)?.Clear();
+            return;
+        }
+
+        if (_configManager is null) return;
+
+        if (e.PropertyName == nameof(ServerDialogViewModel.IsAdvancedMode))
+        {
+            _ = _configManager.MergeSettingAsync(s => s.ServerDialogAdvancedMode = vm.IsAdvancedMode);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -160,12 +170,18 @@ public partial class ServerDialog : Window
 
         // Transfer PasswordBox values if they exist in the visual tree
         var sshPwBox = FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox;
+        var sshKeyPassphraseBox = FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox;
         var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
         var vncPwBox = FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox;
         var ftpPwBox = FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox;
         var telnetPwBox = FindName("TelnetPasswordBox") as System.Windows.Controls.PasswordBox;
 
         if (sshPwBox is not null) vm.SshPassword = sshPwBox.Password;
+        if (sshKeyPassphraseBox is not null)
+        {
+            vm.SshKeyPassphrase = vm.HasSshKeyPath ? sshKeyPassphraseBox.Password : "";
+        }
+
         if (rdpPwBox is not null) vm.RdpPassword = rdpPwBox.Password;
         if (vncPwBox is not null) vm.VncPassword = vncPwBox.Password;
         if (ftpPwBox is not null) vm.FtpPassword = ftpPwBox.Password;
@@ -179,6 +195,7 @@ public partial class ServerDialog : Window
 
             // Clear passwords from UI memory (CWE-316)
             sshPwBox?.Clear();
+            sshKeyPassphraseBox?.Clear();
             rdpPwBox?.Clear();
             vncPwBox?.Clear();
             ftpPwBox?.Clear();
@@ -268,6 +285,7 @@ public partial class ServerDialog : Window
 
         // Clear all password boxes from UI memory on close (CWE-316)
         (FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
@@ -453,8 +471,7 @@ public partial class ServerDialog : Window
         DlgSrv_BasicSshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
         System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_SshKeyPathBox, DlgSrv_BasicSshKeyLabel);
         DlgSrv_BasicBrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
-        // DlgSrv_BasicPassphraseLabel and DlgSrv_BasicSshAuthHint are bound
-        // to SshPasswordLabel / SshAuthHint computed properties on the ViewModel.
+        // SSH auth hints are bound to computed ViewModel properties.
         DlgSrv_BasicVncCredentialsTitle.Text = _localizer["ServerDialogVncCredentials"];
         DlgSrv_BasicVncCredentialsDesc.Text = _localizer["ServerDialogVncCredentialsDesc"];
         DlgSrv_BasicVncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
@@ -657,7 +674,8 @@ public partial class ServerDialog : Window
 
         // Accessibility: automation names for PasswordBox controls (basic auth section)
         System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);
-        System.Windows.Automation.AutomationProperties.SetName(SshPasswordBox, _localizer["ServerDialogLabelPassphrase"]);
+        System.Windows.Automation.AutomationProperties.SetName(SshPasswordBox, _localizer["ServerDialogLabelPassword"]);
+        System.Windows.Automation.AutomationProperties.SetName(SshKeyPassphraseBox, _localizer["ServerDialogLabelKeyPassphrase"]);
         System.Windows.Automation.AutomationProperties.SetName(FtpPasswordBox, _localizer["ServerDialogFtpPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(VncPasswordBox, _localizer["ServerDialogVncPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(TelnetPasswordBox, _localizer["ServerDialogLabelPassword"]);
