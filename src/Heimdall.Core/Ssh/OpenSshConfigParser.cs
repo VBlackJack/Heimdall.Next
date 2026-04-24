@@ -34,7 +34,7 @@ public static class OpenSshConfigParser
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var diagnostics = new List<OpenSshImportDiagnostic>();
-        var candidates = new List<OpenSshImportCandidate>();
+        var blocks = new List<HostBlockState>();
         var seenAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HostBlockState? currentBlock = null;
         var isInsideMatchBlock = false;
@@ -49,7 +49,7 @@ public static class OpenSshConfigParser
                 continue;
             }
 
-            if (!TrySplitDirective(trimmedLine, out var directive, out var value))
+            if (!TrySplitDirective(trimmedLine, out var directive, out var value, out var valueWasQuoted))
             {
                 continue;
             }
@@ -76,14 +76,14 @@ public static class OpenSshConfigParser
 
             if (directive.Equals("host", StringComparison.OrdinalIgnoreCase))
             {
-                FinalizeCurrentBlock(currentBlock, diagnostics, candidates, seenAliases);
+                AddCurrentBlock(currentBlock, blocks);
                 currentBlock = CreateHostBlock(value, lineNumber, diagnostics, seenAliases);
                 continue;
             }
 
             if (directive.Equals("match", StringComparison.OrdinalIgnoreCase))
             {
-                FinalizeCurrentBlock(currentBlock, diagnostics, candidates, seenAliases);
+                AddCurrentBlock(currentBlock, blocks);
                 currentBlock = null;
                 diagnostics.Add(new OpenSshImportDiagnostic(
                     OpenSshDiagnosticLevel.Warning,
@@ -113,12 +113,20 @@ public static class OpenSshConfigParser
                 continue;
             }
 
-            ApplyDirective(currentBlock, directive, value, userProfile, lineNumber, diagnostics);
+            ApplyDirective(currentBlock, directive, value, valueWasQuoted, userProfile, lineNumber, diagnostics);
         }
 
-        FinalizeCurrentBlock(currentBlock, diagnostics, candidates, seenAliases);
+        AddCurrentBlock(currentBlock, blocks);
 
-        return new OpenSshParseResult(candidates, diagnostics);
+        return new OpenSshParseResult(BuildCandidates(blocks, diagnostics), diagnostics);
+    }
+
+    private static void AddCurrentBlock(HostBlockState? block, ICollection<HostBlockState> blocks)
+    {
+        if (block is not null)
+        {
+            blocks.Add(block);
+        }
     }
 
     private static HostBlockState? CreateHostBlock(
@@ -167,6 +175,7 @@ public static class OpenSshConfigParser
         HostBlockState block,
         string directive,
         string value,
+        bool valueWasQuoted,
         string userProfile,
         int lineNumber,
         ICollection<OpenSshImportDiagnostic> diagnostics)
@@ -208,11 +217,16 @@ public static class OpenSshConfigParser
 
         if (directive.Equals("proxyjump", StringComparison.OrdinalIgnoreCase))
         {
-            diagnostics.Add(new OpenSshImportDiagnostic(
-                OpenSshDiagnosticLevel.Warning,
-                lineNumber,
-                OpenSshDiagnosticCode.ProxyJumpCapturedButNotMapped,
-                value));
+            block.ProxyJumpValue = value;
+            block.ProxyJumpLineNumber = lineNumber;
+            block.ProxyJumpWasQuoted = valueWasQuoted;
+            return;
+        }
+
+        if (directive.Equals("proxycommand", StringComparison.OrdinalIgnoreCase))
+        {
+            block.ProxyCommandValue = value;
+            block.ProxyCommandLineNumber = lineNumber;
             return;
         }
 
@@ -255,40 +269,309 @@ public static class OpenSshConfigParser
         return expanded;
     }
 
-    private static void FinalizeCurrentBlock(
-        HostBlockState? block,
-        ICollection<OpenSshImportDiagnostic> diagnostics,
-        ICollection<OpenSshImportCandidate> candidates,
-        ISet<string> seenAliases)
+    private static IReadOnlyList<OpenSshImportCandidate> BuildCandidates(
+        IReadOnlyList<HostBlockState> blocks,
+        ICollection<OpenSshImportDiagnostic> diagnostics)
     {
-        if (block is null)
+        var candidates = new List<OpenSshImportCandidate>();
+        var blockByAlias = blocks
+            .SelectMany(block => block.Aliases.Select(alias => (Alias: alias, Block: block)))
+            .GroupBy(item => item.Alias, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Block, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var block in blocks)
         {
-            return;
+            foreach (var alias in block.Aliases)
+            {
+                var hostName = ResolveHostName(alias, block, diagnostics);
+                candidates.Add(new OpenSshImportCandidate
+                {
+                    Alias = alias,
+                    HostName = hostName,
+                    Port = block.Port,
+                    User = block.User,
+                    IdentityFile = block.IdentityFile,
+                    SourceLineNumber = block.SourceLineNumber,
+                    ProxyJumpChain = BuildProxyJumpChain(alias, hostName, block, blockByAlias, diagnostics)
+                });
+            }
         }
 
-        foreach (var alias in block.Aliases)
+        return candidates;
+    }
+
+    private static string ResolveHostName(
+        string alias,
+        HostBlockState block,
+        ICollection<OpenSshImportDiagnostic> diagnostics)
+    {
+        if (!string.IsNullOrWhiteSpace(block.HostName))
         {
-            var hostName = block.HostName;
-            if (string.IsNullOrWhiteSpace(hostName))
+            return block.HostName;
+        }
+
+        diagnostics.Add(new OpenSshImportDiagnostic(
+            OpenSshDiagnosticLevel.Info,
+            block.SourceLineNumber,
+            OpenSshDiagnosticCode.HostNameFallbackToAlias,
+            alias));
+
+        return alias;
+    }
+
+    private static IReadOnlyList<OpenSshProxyJumpHop> BuildProxyJumpChain(
+        string alias,
+        string hostName,
+        HostBlockState block,
+        IReadOnlyDictionary<string, HostBlockState> blockByAlias,
+        ICollection<OpenSshImportDiagnostic> diagnostics)
+    {
+        if (string.IsNullOrWhiteSpace(block.ProxyJumpValue))
+        {
+            if (!string.IsNullOrWhiteSpace(block.ProxyCommandValue))
             {
-                hostName = alias;
                 diagnostics.Add(new OpenSshImportDiagnostic(
-                    OpenSshDiagnosticLevel.Info,
-                    block.SourceLineNumber,
-                    OpenSshDiagnosticCode.HostNameFallbackToAlias,
-                    alias));
+                    OpenSshDiagnosticLevel.Warning,
+                    block.ProxyCommandLineNumber ?? block.SourceLineNumber,
+                    OpenSshDiagnosticCode.ProxyCommandUnsupported,
+                    block.ProxyCommandValue));
             }
 
-            candidates.Add(new OpenSshImportCandidate
-            {
-                Alias = alias,
-                HostName = hostName,
-                Port = block.Port,
-                User = block.User,
-                IdentityFile = block.IdentityFile,
-                SourceLineNumber = block.SourceLineNumber
-            });
+            return [];
         }
+
+        if (!string.IsNullOrWhiteSpace(block.ProxyCommandValue))
+        {
+            diagnostics.Add(new OpenSshImportDiagnostic(
+                OpenSshDiagnosticLevel.Warning,
+                block.ProxyJumpLineNumber ?? block.SourceLineNumber,
+                OpenSshDiagnosticCode.ProxyJumpMixedWithProxyCommand,
+                block.ProxyJumpValue));
+            return [];
+        }
+
+        if (block.ProxyJumpValue.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+
+        if (block.ProxyJumpValue.Contains('%', StringComparison.Ordinal))
+        {
+            diagnostics.Add(new OpenSshImportDiagnostic(
+                OpenSshDiagnosticLevel.Warning,
+                block.ProxyJumpLineNumber ?? block.SourceLineNumber,
+                OpenSshDiagnosticCode.ProxyJumpTokenSubstitution,
+                block.ProxyJumpValue));
+            return [];
+        }
+
+        if (!TryParseProxyJump(block.ProxyJumpValue, block.ProxyJumpWasQuoted, out var rawHops))
+        {
+            diagnostics.Add(new OpenSshImportDiagnostic(
+                OpenSshDiagnosticLevel.Warning,
+                block.ProxyJumpLineNumber ?? block.SourceLineNumber,
+                OpenSshDiagnosticCode.ProxyJumpUnrecognizedSyntax,
+                block.ProxyJumpValue));
+            return [];
+        }
+
+        if (HasProxyJumpCycle(alias, hostName, rawHops, blockByAlias))
+        {
+            diagnostics.Add(new OpenSshImportDiagnostic(
+                OpenSshDiagnosticLevel.Warning,
+                block.ProxyJumpLineNumber ?? block.SourceLineNumber,
+                OpenSshDiagnosticCode.ProxyJumpCycle,
+                alias));
+            return [];
+        }
+
+        return rawHops
+            .Select(raw => ResolveHop(raw, blockByAlias, block.ProxyJumpLineNumber ?? block.SourceLineNumber))
+            .ToList();
+    }
+
+    private static OpenSshProxyJumpHop ResolveHop(
+        RawProxyJumpHop raw,
+        IReadOnlyDictionary<string, HostBlockState> blockByAlias,
+        int lineNumber)
+    {
+        if (!blockByAlias.TryGetValue(raw.Host, out var hopBlock))
+        {
+            return new OpenSshProxyJumpHop
+            {
+                Host = raw.Host,
+                HostName = raw.Host,
+                Port = raw.Port ?? 22,
+                User = raw.User,
+                SourceLineNumber = lineNumber
+            };
+        }
+
+        return new OpenSshProxyJumpHop
+        {
+            Host = raw.Host,
+            HostName = string.IsNullOrWhiteSpace(hopBlock.HostName) ? raw.Host : hopBlock.HostName,
+            Port = raw.Port ?? hopBlock.Port,
+            User = string.IsNullOrWhiteSpace(raw.User) ? hopBlock.User : raw.User,
+            IdentityFile = hopBlock.IdentityFile,
+            SourceLineNumber = lineNumber
+        };
+    }
+
+    private static bool HasProxyJumpCycle(
+        string alias,
+        string hostName,
+        IReadOnlyList<RawProxyJumpHop> rawHops,
+        IReadOnlyDictionary<string, HostBlockState> blockByAlias)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            alias,
+            hostName
+        };
+
+        foreach (var hop in rawHops)
+        {
+            if (!seen.Add(hop.Host))
+            {
+                return true;
+            }
+
+            if (blockByAlias.TryGetValue(hop.Host, out var hopBlock))
+            {
+                if (!string.IsNullOrWhiteSpace(hopBlock.HostName) && !seen.Add(hopBlock.HostName))
+                {
+                    return true;
+                }
+
+                if (HasTransitiveProxyJumpCycle(alias, hopBlock, blockByAlias, []))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasTransitiveProxyJumpCycle(
+        string rootAlias,
+        HostBlockState block,
+        IReadOnlyDictionary<string, HostBlockState> blockByAlias,
+        HashSet<HostBlockState> visited)
+    {
+        if (!visited.Add(block) || string.IsNullOrWhiteSpace(block.ProxyJumpValue))
+        {
+            return false;
+        }
+
+        if (block.ProxyJumpValue.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+            !TryParseProxyJump(block.ProxyJumpValue, block.ProxyJumpWasQuoted, out var rawHops))
+        {
+            return false;
+        }
+
+        foreach (var hop in rawHops)
+        {
+            if (hop.Host.Equals(rootAlias, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (blockByAlias.TryGetValue(hop.Host, out var hopBlock) &&
+                HasTransitiveProxyJumpCycle(rootAlias, hopBlock, blockByAlias, visited))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryParseProxyJump(
+        string value,
+        bool valueWasQuoted,
+        out IReadOnlyList<RawProxyJumpHop> hops)
+    {
+        hops = [];
+
+        if (valueWasQuoted ||
+            string.IsNullOrWhiteSpace(value) ||
+            value.Any(char.IsWhiteSpace) ||
+            value.IndexOfAny(['"', '\'', '\\']) >= 0)
+        {
+            return false;
+        }
+
+        var parsed = new List<RawProxyJumpHop>();
+        foreach (var part in value.Split(','))
+        {
+            if (!TryParseProxyJumpHop(part, out var hop))
+            {
+                return false;
+            }
+
+            parsed.Add(hop);
+        }
+
+        hops = parsed;
+        return parsed.Count > 0;
+    }
+
+    private static bool TryParseProxyJumpHop(string value, out RawProxyJumpHop hop)
+    {
+        hop = default;
+        if (string.IsNullOrWhiteSpace(value) ||
+            value.Any(char.IsWhiteSpace) ||
+            value.Contains('%', StringComparison.Ordinal) ||
+            value.IndexOfAny(['"', '\'', '\\']) >= 0)
+        {
+            return false;
+        }
+
+        string? user = null;
+        var hostPort = value;
+        var atIndex = value.IndexOf('@', StringComparison.Ordinal);
+        if (atIndex >= 0)
+        {
+            if (atIndex == 0 || atIndex == value.Length - 1 || value.IndexOf('@', atIndex + 1) >= 0)
+            {
+                return false;
+            }
+
+            user = value[..atIndex];
+            hostPort = value[(atIndex + 1)..];
+        }
+
+        string host;
+        int? port = null;
+        var colonIndex = hostPort.LastIndexOf(':');
+        if (colonIndex >= 0)
+        {
+            if (colonIndex == 0 ||
+                colonIndex == hostPort.Length - 1 ||
+                hostPort.IndexOf(':') != colonIndex ||
+                !int.TryParse(hostPort[(colonIndex + 1)..], out var parsedPort) ||
+                parsedPort is < 1 or > 65535)
+            {
+                return false;
+            }
+
+            host = hostPort[..colonIndex];
+            port = parsedPort;
+        }
+        else
+        {
+            host = hostPort;
+        }
+
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return false;
+        }
+
+        hop = new RawProxyJumpHop(host, user, port);
+        return true;
     }
 
     private static string StripComments(string line)
@@ -321,10 +604,15 @@ public static class OpenSshConfigParser
         return builder.ToString();
     }
 
-    private static bool TrySplitDirective(string line, out string directive, out string value)
+    private static bool TrySplitDirective(
+        string line,
+        out string directive,
+        out string value,
+        out bool valueWasQuoted)
     {
         directive = string.Empty;
         value = string.Empty;
+        valueWasQuoted = false;
 
         if (string.IsNullOrWhiteSpace(line))
         {
@@ -339,15 +627,15 @@ public static class OpenSshConfigParser
         }
 
         directive = line[..firstWhitespaceIndex].Trim();
-        value = StripOuterQuotes(line[(firstWhitespaceIndex + 1)..].Trim());
+        var rawValue = line[(firstWhitespaceIndex + 1)..].Trim();
+        valueWasQuoted = IsOuterQuoted(rawValue);
+        value = valueWasQuoted ? rawValue[1..^1] : rawValue;
         return !string.IsNullOrWhiteSpace(directive);
     }
 
-    private static string StripOuterQuotes(string value)
+    private static bool IsOuterQuoted(string value)
     {
-        return value.Length >= 2 && value[0] == '"' && value[^1] == '"'
-            ? value[1..^1]
-            : value;
+        return value.Length >= 2 && value[0] == '"' && value[^1] == '"';
     }
 
     private static IReadOnlyList<string> SplitTokens(string value)
@@ -396,6 +684,8 @@ public static class OpenSshConfigParser
         return alias.StartsWith('!') || alias.Contains('*') || alias.Contains('?');
     }
 
+    private readonly record struct RawProxyJumpHop(string Host, string? User, int? Port);
+
     private sealed class HostBlockState(int sourceLineNumber, IReadOnlyList<string> aliases)
     {
         public int SourceLineNumber { get; } = sourceLineNumber;
@@ -409,5 +699,15 @@ public static class OpenSshConfigParser
         public string? User { get; set; }
 
         public string? IdentityFile { get; set; }
+
+        public string? ProxyJumpValue { get; set; }
+
+        public int? ProxyJumpLineNumber { get; set; }
+
+        public bool ProxyJumpWasQuoted { get; set; }
+
+        public string? ProxyCommandValue { get; set; }
+
+        public int? ProxyCommandLineNumber { get; set; }
     }
 }

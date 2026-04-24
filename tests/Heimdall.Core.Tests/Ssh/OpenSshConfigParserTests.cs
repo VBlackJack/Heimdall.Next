@@ -147,18 +147,164 @@ public sealed class OpenSshConfigParserTests
     }
 
     [Fact]
-    public void Parse_ProxyJump_CapturedInDiagnostics_NotStoredOnCandidate()
+    public void Parse_ProxyJump_SingleHop_CreatesResolvedChain()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyJump alice@bastion.example.com:2222
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Equal("prod", candidate.HostName);
+        var hop = Assert.Single(candidate.ProxyJumpChain);
+        Assert.Equal("bastion.example.com", hop.Host);
+        Assert.Equal("bastion.example.com", hop.HostName);
+        Assert.Equal("alice", hop.User);
+        Assert.Equal(2222, hop.Port);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code.ToString().StartsWith("ProxyJump", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("bastion.example.com", null, "bastion.example.com", 22)]
+    [InlineData("alice@bastion.example.com", "alice", "bastion.example.com", 22)]
+    [InlineData("bastion.example.com:2200", null, "bastion.example.com", 2200)]
+    [InlineData("alice@bastion.example.com:2200", "alice", "bastion.example.com", 2200)]
+    public void Parse_ProxyJump_SupportedSingleHopForms(string proxyJump, string? expectedUser, string expectedHost, int expectedPort)
+    {
+        var result = OpenSshConfigParser.Parse(
+            $$"""
+            Host prod
+                ProxyJump {{proxyJump}}
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        var hop = Assert.Single(candidate.ProxyJumpChain);
+        Assert.Equal(expectedHost, hop.HostName);
+        Assert.Equal(expectedUser, hop.User);
+        Assert.Equal(expectedPort, hop.Port);
+    }
+
+    [Fact]
+    public void Parse_ProxyJump_MultiHopWithOverrides_PreservesOrder()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyJump u1@h1:22,u2@h2:2222,h3
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Collection(
+            candidate.ProxyJumpChain,
+            first =>
+            {
+                Assert.Equal("h1", first.HostName);
+                Assert.Equal("u1", first.User);
+                Assert.Equal(22, first.Port);
+            },
+            second =>
+            {
+                Assert.Equal("h2", second.HostName);
+                Assert.Equal("u2", second.User);
+                Assert.Equal(2222, second.Port);
+            },
+            third =>
+            {
+                Assert.Equal("h3", third.HostName);
+                Assert.Null(third.User);
+                Assert.Equal(22, third.Port);
+            });
+    }
+
+    [Fact]
+    public void Parse_ProxyJump_None_ProducesNoChain()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyJump none
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code is OpenSshDiagnosticCode.ProxyJumpUnrecognizedSyntax);
+    }
+
+    [Fact]
+    public void Parse_ProxyCommand_ProducesUnsupportedDiagnostic()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyCommand ssh -W %h:%p bastion
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.Contains(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyCommandUnsupported);
+    }
+
+    [Fact]
+    public void Parse_ProxyJumpAndProxyCommand_ProducesConflictDiagnostic()
     {
         var result = OpenSshConfigParser.Parse(
             """
             Host prod
                 ProxyJump bastion
+                ProxyCommand ssh -W %h:%p other
             """);
 
         var candidate = Assert.Single(result.Candidates);
-        Assert.Equal("prod", candidate.HostName);
-        var diagnostic = Assert.Single(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyJumpCapturedButNotMapped);
-        Assert.Equal("bastion", diagnostic.Context);
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.Contains(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyJumpMixedWithProxyCommand);
+    }
+
+    [Fact]
+    public void Parse_ProxyJumpWithOpenSshToken_ProducesUnsupportedDiagnostic()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyJump %h
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.Contains(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyJumpTokenSubstitution);
+    }
+
+    [Theory]
+    [InlineData("host1, host2")]
+    [InlineData("\"host1\"")]
+    [InlineData("host1,,host2")]
+    public void Parse_ProxyJumpMalformedSyntax_ProducesDiagnostic(string proxyJump)
+    {
+        var result = OpenSshConfigParser.Parse(
+            $$"""
+            Host prod
+                ProxyJump {{proxyJump}}
+            """);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.Contains(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyJumpUnrecognizedSyntax);
+    }
+
+    [Fact]
+    public void Parse_ProxyJumpCycle_ProducesDiagnosticAndNoChain()
+    {
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyJump bastion
+            Host bastion
+                ProxyJump prod
+            """);
+
+        var candidate = Assert.Single(result.Candidates, c => c.Alias == "prod");
+        Assert.Empty(candidate.ProxyJumpChain);
+        Assert.Contains(result.Diagnostics, d => d.Code == OpenSshDiagnosticCode.ProxyJumpCycle);
     }
 
     [Theory]

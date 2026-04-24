@@ -50,4 +50,45 @@ public sealed record OpenSshImportCandidate
     /// Gets the 1-based source line number of the Host directive.
     /// </summary>
     public int SourceLineNumber { get; init; }
+
+    /// <summary>
+    /// Gets the resolved ProxyJump hops, ordered root-to-target.
+    /// </summary>
+    public IReadOnlyList<OpenSshProxyJumpHop> ProxyJumpChain { get; init; } = [];
+}
+
+/// <summary>
+/// Represents one resolved OpenSSH ProxyJump hop.
+/// </summary>
+public sealed record OpenSshProxyJumpHop
+{
+    /// <summary>
+    /// Gets the literal host token from the ProxyJump directive.
+    /// </summary>
+    public required string Host { get; init; }
+
+    /// <summary>
+    /// Gets the resolved hostname after applying a matching Host block, when present.
+    /// </summary>
+    public required string HostName { get; init; }
+
+    /// <summary>
+    /// Gets the resolved SSH port.
+    /// </summary>
+    public int Port { get; init; } = 22;
+
+    /// <summary>
+    /// Gets the resolved username.
+    /// </summary>
+    public string? User { get; init; }
+
+    /// <summary>
+    /// Gets the resolved identity file path for the hop, if configured.
+    /// </summary>
+    public string? IdentityFile { get; init; }
+
+    /// <summary>
+    /// Gets the 1-based source line number of the ProxyJump directive.
+    /// </summary>
+    public int SourceLineNumber { get; init; }
 }
