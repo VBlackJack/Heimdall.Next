@@ -12,6 +12,15 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-04-24 - SSH/RDP security audit remediation
+- Hardened SSH host-key trust across SSH.NET and Plink: Plink now consumes pinned fingerprints from `HostKeyStore`, first-use and mismatch decisions route through `IHostKeyVerifier`, and the themed `HostKeyPromptDialog` handles deliberate acceptance or rejection.
+- Added explicit host-key mismatch diagnostics, localized user messages, and persistence semantics where `HostKeyEvent` fires only from `Trust()`.
+- Refactored `TunnelManager` cleanup through single cleanup helpers for partial simple and chained tunnel setup failures.
+- Switched `ServerHealthMonitor` command execution to SSH.NET APM async execution with concurrent CPU/RAM/disk probes and cancellation coverage.
+- Tightened RDP credential broker autofill so broker windows require a host-title match before password injection.
+- Added root `SECURITY.md` with the current threat model, known limitations, and security test entry points.
+- Current baseline after this audit line: **4,318 passing + 6 skipped** (`4,324` discovered), **59 built-in tools**, and **~5,118 locale keys** per locale.
+
 ## 2026-04-23 — release 2026.042302 — audit remediation patch release
 - Version bump from `2026.042301` to `2026.042302` (`InformationalVersion`).
 - Packages the full 2026-04-22 audit-remediation line already merged on `master`: session/WebView handler leak cleanup, File Share bearer-token hardening with TFTP opt-in, startup async de-blocking, terminal asset caching, subprocess argument hardening, MVVM cleanup, UI polish, accessibility fixes, and repository housekeeping.
