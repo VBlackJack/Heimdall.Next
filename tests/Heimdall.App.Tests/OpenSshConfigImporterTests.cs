@@ -19,6 +19,7 @@ using Heimdall.App.Services.Import;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Ssh;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
 
@@ -107,6 +108,248 @@ public sealed class OpenSshConfigImporterTests
         Assert.Equal(1, outcome.ImportedCount);
         Assert.Equal(1, outcome.SkippedDuplicates);
         Assert.Equal(1, outcome.WarningCount);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_SingleHopProxyJump_CreatesGatewayAndLinksServer()
+    {
+        using var fixture = new OpenSshImportFixture();
+
+        var outcome = await fixture.Importer.ImportSelectedAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain = [Hop("bastion.example.com", user: "ops", port: 2222)]
+            }
+        ]);
+
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        var gateway = Assert.Single(settings.SshGateways);
+        var server = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal(1, outcome.ImportedCount);
+        Assert.Equal("bastion.example.com", gateway.Host);
+        Assert.Equal("ops", gateway.User);
+        Assert.Equal(2222, gateway.Port);
+        Assert.Null(gateway.ParentGatewayId);
+        Assert.Equal(gateway.Id, server.SshGatewayId);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_MultiHopProxyJump_CreatesParentLinks()
+    {
+        using var fixture = new OpenSshImportFixture();
+
+        await fixture.Importer.ImportSelectedAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain =
+                [
+                    Hop("h1.example.com", user: "u1"),
+                    Hop("h2.example.com", user: "u2", port: 2202),
+                    Hop("h3.example.com")
+                ]
+            }
+        ]);
+
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        var server = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal(3, settings.SshGateways.Count);
+        var h1 = Assert.Single(settings.SshGateways, gateway => gateway.Host == "h1.example.com");
+        var h2 = Assert.Single(settings.SshGateways, gateway => gateway.Host == "h2.example.com");
+        var h3 = Assert.Single(settings.SshGateways, gateway => gateway.Host == "h3.example.com");
+        Assert.Null(h1.ParentGatewayId);
+        Assert.Equal(h1.Id, h2.ParentGatewayId);
+        Assert.Equal(h2.Id, h3.ParentGatewayId);
+        Assert.Equal(h3.Id, server.SshGatewayId);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_ReusesSameGatewayWithinBatch()
+    {
+        using var fixture = new OpenSshImportFixture();
+
+        await fixture.Importer.ImportSelectedAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod-a",
+                HostName = "a.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain = [Hop("bastion.example.com", user: "ops")]
+            },
+            new OpenSshImportCandidate
+            {
+                Alias = "prod-b",
+                HostName = "b.example.com",
+                SourceLineNumber = 5,
+                ProxyJumpChain = [Hop("bastion.example.com", user: "ops")]
+            }
+        ]);
+
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        var servers = await fixture.ConfigManager.LoadServersAsync();
+        var gateway = Assert.Single(settings.SshGateways);
+        Assert.All(servers, server => Assert.Equal(gateway.Id, server.SshGatewayId));
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_ReusesExistingGatewayWithoutMutatingIt()
+    {
+        using var fixture = new OpenSshImportFixture();
+        var existing = new SshGatewayDto
+        {
+            Id = "existing-gw",
+            Name = "Existing Bastion",
+            Host = "bastion.example.com",
+            Port = 22,
+            User = "ops",
+            KeyPath = @"C:\existing\id_ed25519"
+        };
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        settings.SshGateways.Add(existing);
+        await fixture.ConfigManager.SaveSettingsAsync(settings);
+
+        var assessments = await fixture.Importer.ComputeStatusesAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain = [Hop("bastion.example.com", user: "ops", identityFile: @"C:\new\id_ed25519")]
+            }
+        ]);
+        var step = Assert.Single(Assert.Single(assessments).GatewayPreviewSteps);
+
+        await fixture.Importer.ImportSelectedAsync([assessments[0].Candidate]);
+
+        var reloadedSettings = await fixture.ConfigManager.LoadSettingsAsync();
+        var gateway = Assert.Single(reloadedSettings.SshGateways);
+        var server = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal("Existing Bastion", step.ReusedGatewayName);
+        Assert.Equal("existing-gw", server.SshGatewayId);
+        Assert.Equal(@"C:\existing\id_ed25519", gateway.KeyPath);
+        Assert.Null(gateway.ParentGatewayId);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_HopHostBlockOverrides_AreAppliedToGateway()
+    {
+        using var fixture = new OpenSshImportFixture();
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                HostName prod.example.com
+                ProxyJump bastion
+            Host bastion
+                HostName bastion.internal
+                User jumpuser
+                Port 2200
+                IdentityFile ~/.ssh/id_jump
+            """);
+        var prod = Assert.Single(result.Candidates, candidate => candidate.Alias == "prod");
+
+        await fixture.Importer.ImportSelectedAsync([prod]);
+
+        var gateway = Assert.Single((await fixture.ConfigManager.LoadSettingsAsync()).SshGateways);
+        Assert.Equal("bastion.internal", gateway.Host);
+        Assert.Equal("jumpuser", gateway.User);
+        Assert.Equal(2200, gateway.Port);
+        Assert.NotNull(gateway.KeyPath);
+        Assert.Contains($"{Path.DirectorySeparatorChar}.ssh{Path.DirectorySeparatorChar}id_jump", gateway.KeyPath!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_HopWithoutHostBlock_UsesProxyJumpOnly()
+    {
+        using var fixture = new OpenSshImportFixture();
+
+        await fixture.Importer.ImportSelectedAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain = [Hop("raw-bastion", user: "ops")]
+            }
+        ]);
+
+        var gateway = Assert.Single((await fixture.ConfigManager.LoadSettingsAsync()).SshGateways);
+        Assert.Equal("raw-bastion", gateway.Host);
+        Assert.Equal("ops", gateway.User);
+        Assert.Null(gateway.KeyPath);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_UnsupportedProxyJumpDiagnostics_DoNotCreateGateway()
+    {
+        using var fixture = new OpenSshImportFixture();
+        var result = OpenSshConfigParser.Parse(
+            """
+            Host prod
+                ProxyCommand ssh -W %h:%p bastion
+            """);
+        var candidate = Assert.Single(result.Candidates);
+
+        await fixture.Importer.ImportSelectedAsync([candidate]);
+
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        var server = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Empty(settings.SshGateways);
+        Assert.Null(server.SshGatewayId);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OpenSshDiagnosticCode.ProxyCommandUnsupported);
+    }
+
+    [Fact]
+    public async Task ImportSelectedAsync_ProducedChain_IsConsumableByGatewayChainResolver()
+    {
+        using var fixture = new OpenSshImportFixture();
+
+        await fixture.Importer.ImportSelectedAsync(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain =
+                [
+                    Hop("h1.example.com"),
+                    Hop("h2.example.com"),
+                    Hop("h3.example.com")
+                ]
+            }
+        ]);
+
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        var server = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        var chain = GatewayChainResolver.ResolveChain(server.SshGatewayId!, settings.SshGateways, _ => null);
+        Assert.Equal(["h1.example.com", "h2.example.com", "h3.example.com"], chain.Select(item => item.Host));
+    }
+
+    private static OpenSshProxyJumpHop Hop(
+        string hostName,
+        string? user = null,
+        int port = 22,
+        string? identityFile = null)
+    {
+        return new OpenSshProxyJumpHop
+        {
+            Host = hostName,
+            HostName = hostName,
+            Port = port,
+            User = user,
+            IdentityFile = identityFile,
+            SourceLineNumber = 1
+        };
     }
 
     private sealed class OpenSshImportFixture : IDisposable

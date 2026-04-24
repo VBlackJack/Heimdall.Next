@@ -37,6 +37,11 @@ public enum OpenSshDiagnosticCode
     InvalidPort,
     DuplicateAliasInFile,
     ProxyJumpCapturedButNotMapped,
+    ProxyCommandUnsupported,
+    ProxyJumpMixedWithProxyCommand,
+    ProxyJumpTokenSubstitution,
+    ProxyJumpCycle,
+    ProxyJumpUnrecognizedSyntax,
     IdentityFileTildeExpanded,
     HostNameFallbackToAlias
 }

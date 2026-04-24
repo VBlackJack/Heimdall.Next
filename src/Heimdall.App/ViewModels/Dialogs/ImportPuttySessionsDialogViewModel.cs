@@ -45,6 +45,7 @@ public sealed class ImportPuttySessionsDialogViewModel(
                 assessment.Candidate.Port,
                 assessment.Candidate.UserName,
                 assessment.Candidate.PublicKeyFile,
+                null,
                 assessment.Status,
                 Localizer)),
             parseResult.Diagnostics.Select(BuildDiagnostic));

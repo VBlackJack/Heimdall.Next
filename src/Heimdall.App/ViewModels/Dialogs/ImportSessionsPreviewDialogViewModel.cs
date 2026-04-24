@@ -54,6 +54,8 @@ public abstract partial class ImportSessionsPreviewDialogViewModel(LocalizationM
 
     public string IdentityFileColumnHeader => _localizer["HeaderIdentityFile"];
 
+    public string GatewayChainColumnHeader => _localizer["ColGatewayChain"];
+
     public string StatusColumnHeader => _localizer["HeaderStatus"];
 
     public string SummaryText

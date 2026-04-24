@@ -76,6 +76,98 @@ public sealed class ImportOpenSshConfigDialogViewModelTests
         Assert.Equal(0, fixture.ViewModel.Result!.SkippedDuplicates);
     }
 
+    [Fact]
+    public async Task Initialize_ProxyJumpRow_ShowsGatewayChain()
+    {
+        using var fixture = await OpenSshDialogFixture.CreateAsync();
+        await fixture.ViewModel.InitializeAsync(new OpenSshParseResult(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain =
+                [
+                    new OpenSshProxyJumpHop
+                    {
+                        Host = "bastion",
+                        HostName = "bastion.example.com",
+                        User = "ops",
+                        Port = 2222,
+                        SourceLineNumber = 2
+                    }
+                ]
+            }
+        ],
+        []));
+
+        var item = Assert.Single(fixture.ViewModel.Items);
+        Assert.Equal("ops@bastion.example.com:2222", item.GatewayChain);
+    }
+
+    [Fact]
+    public async Task Initialize_ProxyJumpDiagnostic_ShowsWarningMessage()
+    {
+        using var fixture = await OpenSshDialogFixture.CreateAsync();
+        await fixture.ViewModel.InitializeAsync(new OpenSshParseResult(
+        [
+            new OpenSshImportCandidate { Alias = "prod", HostName = "prod.example.com", SourceLineNumber = 1 }
+        ],
+        [
+            new OpenSshImportDiagnostic(
+                OpenSshDiagnosticLevel.Warning,
+                2,
+                OpenSshDiagnosticCode.ProxyJumpTokenSubstitution,
+                "%h")
+        ]));
+
+        var diagnostic = Assert.Single(fixture.ViewModel.Diagnostics);
+        Assert.True(diagnostic.IsWarning);
+        Assert.Contains("%h", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Initialize_ReusedGateway_IsDistinguishedInGatewayChain()
+    {
+        using var fixture = await OpenSshDialogFixture.CreateAsync();
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        settings.SshGateways.Add(new SshGatewayDto
+        {
+            Id = "existing",
+            Name = "Existing Bastion",
+            Host = "bastion.example.com",
+            Port = 22,
+            User = "ops"
+        });
+        await fixture.ConfigManager.SaveSettingsAsync(settings);
+
+        await fixture.ViewModel.InitializeAsync(new OpenSshParseResult(
+        [
+            new OpenSshImportCandidate
+            {
+                Alias = "prod",
+                HostName = "prod.example.com",
+                SourceLineNumber = 1,
+                ProxyJumpChain =
+                [
+                    new OpenSshProxyJumpHop
+                    {
+                        Host = "bastion.example.com",
+                        HostName = "bastion.example.com",
+                        User = "ops",
+                        Port = 22,
+                        SourceLineNumber = 2
+                    }
+                ]
+            }
+        ],
+        []));
+
+        var item = Assert.Single(fixture.ViewModel.Items);
+        Assert.Contains("Existing Bastion", item.GatewayChain, StringComparison.Ordinal);
+    }
+
     private sealed class OpenSshDialogFixture : IDisposable
     {
         private OpenSshDialogFixture(string rootPath, ConfigManager configManager, ImportOpenSshConfigDialogViewModel viewModel)

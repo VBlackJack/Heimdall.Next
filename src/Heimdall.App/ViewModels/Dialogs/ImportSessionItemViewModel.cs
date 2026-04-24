@@ -32,6 +32,7 @@ public sealed partial class ImportSessionItemViewModel : ObservableObject
         int? port,
         string? user,
         string? identityFile,
+        string? gatewayChain,
         ImportCandidateStatus status,
         LocalizationManager localizer)
     {
@@ -41,6 +42,7 @@ public sealed partial class ImportSessionItemViewModel : ObservableObject
         Port = port;
         User = string.IsNullOrWhiteSpace(user) ? "∅" : user;
         IdentityFile = string.IsNullOrWhiteSpace(identityFile) ? "∅" : identityFile;
+        GatewayChain = string.IsNullOrWhiteSpace(gatewayChain) ? "∅" : gatewayChain;
         Status = status;
         StatusDisplay = status switch
         {
@@ -67,6 +69,8 @@ public sealed partial class ImportSessionItemViewModel : ObservableObject
     public string User { get; }
 
     public string IdentityFile { get; }
+
+    public string GatewayChain { get; }
 
     public ImportCandidateStatus Status { get; }
 

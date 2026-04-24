@@ -45,6 +45,7 @@ public sealed class ImportOpenSshConfigDialogViewModel(
                 assessment.Candidate.Port,
                 assessment.Candidate.User,
                 assessment.Candidate.IdentityFile,
+                FormatGatewayChain(assessment.GatewayPreviewSteps),
                 assessment.Status,
                 Localizer)),
             parseResult.Diagnostics.Select(BuildDiagnostic));
@@ -70,6 +71,11 @@ public sealed class ImportOpenSshConfigDialogViewModel(
             OpenSshDiagnosticCode.InvalidPort => "DiagInvalidPort",
             OpenSshDiagnosticCode.DuplicateAliasInFile => "DiagDuplicateAliasInFile",
             OpenSshDiagnosticCode.ProxyJumpCapturedButNotMapped => "DiagProxyJumpCapturedButNotMapped",
+            OpenSshDiagnosticCode.ProxyCommandUnsupported => "WarnProxyJumpUnsupportedProxyCommand",
+            OpenSshDiagnosticCode.ProxyJumpMixedWithProxyCommand => "WarnProxyJumpMixedWithProxyCommand",
+            OpenSshDiagnosticCode.ProxyJumpTokenSubstitution => "WarnProxyJumpTokenSubstitution",
+            OpenSshDiagnosticCode.ProxyJumpCycle => "WarnProxyJumpCycle",
+            OpenSshDiagnosticCode.ProxyJumpUnrecognizedSyntax => "WarnProxyJumpUnrecognisedSyntax",
             OpenSshDiagnosticCode.IdentityFileTildeExpanded => "DiagIdentityFileTildeExpanded",
             OpenSshDiagnosticCode.HostNameFallbackToAlias => "DiagHostNameFallbackToAlias",
             _ => null
@@ -84,5 +90,24 @@ public sealed class ImportOpenSshConfigDialogViewModel(
             diagnostic.Level == OpenSshDiagnosticLevel.Warning,
             message,
             diagnostic.LineNumber);
+    }
+
+    private string FormatGatewayChain(IReadOnlyList<OpenSshGatewayPreviewStep> steps)
+    {
+        if (steps.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(" -> ", steps.Select(FormatGatewayStep));
+    }
+
+    private string FormatGatewayStep(OpenSshGatewayPreviewStep step)
+    {
+        var userPrefix = string.IsNullOrWhiteSpace(step.User) ? string.Empty : $"{step.User}@";
+        var display = $"{userPrefix}{step.Host}:{step.Port}";
+        return string.IsNullOrWhiteSpace(step.ReusedGatewayName)
+            ? display
+            : $"{display} ({Localizer.Format("InfoProxyJumpReusingGateway", step.ReusedGatewayName)})";
     }
 }

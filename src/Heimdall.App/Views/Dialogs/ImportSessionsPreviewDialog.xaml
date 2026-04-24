@@ -96,6 +96,10 @@
                                         Binding="{Binding IdentityFile, Mode=OneWay}"
                                         IsReadOnly="True"
                                         Width="2*"/>
+                    <DataGridTextColumn Header="{Binding GatewayChainColumnHeader, Mode=OneWay}"
+                                        Binding="{Binding GatewayChain, Mode=OneWay}"
+                                        IsReadOnly="True"
+                                        Width="2*"/>
                     <DataGridTextColumn Header="{Binding StatusColumnHeader, Mode=OneWay}"
                                         Binding="{Binding StatusDisplay, Mode=OneWay}"
                                         IsReadOnly="True"
