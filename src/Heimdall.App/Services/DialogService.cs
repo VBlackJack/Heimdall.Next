@@ -54,6 +54,18 @@ public interface IDialogService
     Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null);
 
     /// <summary>
+    /// Shows a password input dialog and returns the entered secret.
+    /// </summary>
+    /// <param name="title">Dialog title.</param>
+    /// <param name="prompt">Descriptive prompt label.</param>
+    /// <param name="cancellationToken">Cancellation token checked before showing the dialog.</param>
+    /// <returns>The entered password, or null if the user cancelled.</returns>
+    Task<string?> ShowPasswordInputAsync(
+        string title,
+        string prompt,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Shows the server add/edit dialog.
     /// </summary>
     /// <param name="editVm">Pre-populated ViewModel for edit mode, or null for add mode.</param>

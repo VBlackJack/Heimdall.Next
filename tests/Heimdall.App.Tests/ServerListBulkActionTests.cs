@@ -1649,6 +1649,8 @@ public sealed class ServerListBulkActionTests
 
         public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null) => Task.FromResult<string?>(null);
 
+        public Task<string?> ShowPasswordInputAsync(string title, string prompt, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+
         public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
         {
             LastBulkEditPortCount = count;

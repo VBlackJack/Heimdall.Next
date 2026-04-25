@@ -40,6 +40,7 @@ internal sealed class SshHandler : IProtocolHandler
     private readonly IHostKeyTrustService _hostKeyTrustService;
     private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly X11ServerManager _x11ServerManager;
+    private readonly IDialogService _dialogService;
 
     internal Action<string>? SetStatusText { get; set; }
 
@@ -50,7 +51,8 @@ internal sealed class SshHandler : IProtocolHandler
         HostKeyStore hostKeyStore,
         IHostKeyTrustService hostKeyTrustService,
         IHostKeyVerifier hostKeyVerifier,
-        X11ServerManager x11ServerManager)
+        X11ServerManager x11ServerManager,
+        IDialogService dialogService)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
@@ -59,6 +61,7 @@ internal sealed class SshHandler : IProtocolHandler
         _hostKeyTrustService = hostKeyTrustService;
         _hostKeyVerifier = hostKeyVerifier;
         _x11ServerManager = x11ServerManager;
+        _dialogService = dialogService;
     }
 
     public string Protocol => "SSH";
@@ -525,6 +528,29 @@ internal sealed class SshHandler : IProtocolHandler
 
         var passwordFilePath = CreatePlinkPasswordFile(
             ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted));
+        if (ShouldPromptForPlinkPassword(passwordFilePath, server.SshKeyPath))
+        {
+            var promptedPassword = await _dialogService.ShowPasswordInputAsync(
+                    _localizer["DialogSshPasswordPromptTitle"],
+                    _localizer.Format("DialogSshPasswordPromptMessage", target),
+                    ct)
+                .ConfigureAwait(false);
+
+            passwordFilePath = CreatePlinkPasswordFile(promptedPassword);
+            if (passwordFilePath is null)
+            {
+                var message = BuildCancelledMessage();
+                _connectionSm.SetError(server.Id, message);
+                return new ConnectionResult(
+                    false,
+                    message,
+                    null,
+                    SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                        "ErrorSshCancelled",
+                        message,
+                        SshFailureCode.Cancelled));
+            }
+        }
 
         var args = BuildPipeModeArguments(
             server.SshKeyPath,
@@ -536,7 +562,7 @@ internal sealed class SshHandler : IProtocolHandler
             hostKeyArg,
             passwordFilePath);
 
-        var terminalSession = CreatePlinkTerminalSession(passwordFilePath);
+        var terminalSession = new Heimdall.Terminal.PipeModeSession();
         Core.Logging.FileLogger.Info($"SSH via Plink ({terminalSession.GetType().Name}): {plinkPath} {args}");
 
         if (!string.IsNullOrEmpty(passwordFilePath))
@@ -568,14 +594,9 @@ internal sealed class SshHandler : IProtocolHandler
         return new ConnectionResult(true, null, new TerminalSessionResult(terminalSession));
     }
 
-    internal static Heimdall.Terminal.ITerminalSession CreatePlinkTerminalSession(string? passwordFilePath)
+    internal static bool ShouldPromptForPlinkPassword(string? passwordFilePath, string? keyPath)
     {
-        if (string.IsNullOrEmpty(passwordFilePath) && Heimdall.Terminal.ConPty.ConPtySession.IsAvailable)
-        {
-            return new Heimdall.Terminal.ConPty.ConPtySession();
-        }
-
-        return new Heimdall.Terminal.PipeModeSession();
+        return string.IsNullOrEmpty(passwordFilePath) && string.IsNullOrWhiteSpace(keyPath);
     }
 
     private static string? CreatePlinkPasswordFile(string? password)

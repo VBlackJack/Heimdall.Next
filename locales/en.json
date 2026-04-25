@@ -47,6 +47,8 @@
   "ErrorSshPassphraseRequired": "SSH key requires a passphrase. Configure the key passphrase or load the key in an SSH agent.",
   "ErrorSshPassphraseRejected": "SSH key passphrase was rejected.",
   "ErrorSshPasswordRejected": "SSH password was rejected by the server.",
+  "DialogSshPasswordPromptTitle": "SSH password required",
+  "DialogSshPasswordPromptMessage": "Enter the SSH password for {0}.",
   "ErrorSshProtocolError": "SSH protocol error. The server may use an incompatible protocol version.",
   "ErrorSshTooManyAuthFailures": "Too many authentication failures. Reduce the number of keys loaded in SSH agents.",
   "ErrorSshCancelled": "Connection was cancelled.",
