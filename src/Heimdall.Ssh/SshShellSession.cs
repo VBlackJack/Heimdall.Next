@@ -71,6 +71,11 @@ public sealed class SshShellSession : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(connectionParams);
 
+        // Fail fast on a pre-cancelled token: without this, the linked CTS
+        // and read-loop Task.Run further down would silently swallow the
+        // cancellation, leaving the caller unaware that nothing happened.
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_client is not null)
         {
             throw new InvalidOperationException("Session is already connected. Call Disconnect() first.");

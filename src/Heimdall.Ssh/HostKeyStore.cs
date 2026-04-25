@@ -69,6 +69,13 @@ public sealed class HostKeyStore
     /// differing byte through timing variations. ASCII-only by construction
     /// because OpenSSH-style fingerprints are <c>SHA256:&lt;base64&gt;</c>.
     /// </summary>
+    /// <remarks>
+    /// The early-exit on length mismatch is acceptable here: OpenSSH host-key
+    /// fingerprints are fixed at <c>SHA256:</c> + 43 base64 chars (= 50 chars),
+    /// so an attacker observing the timing of a length-mismatch branch learns
+    /// nothing useful. <b>Do not copy this pattern</b> to compare variable-length
+    /// secrets — re-implement padded equal-length comparison there.
+    /// </remarks>
     internal static bool ConstantTimeEquals(string a, string b)
     {
         if (a is null || b is null)

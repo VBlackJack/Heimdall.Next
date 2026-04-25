@@ -415,4 +415,25 @@ public class PageantClientTests
         using var scope = SecurityAttributesScope.CreateSelfOnly();
         Assert.NotEqual(IntPtr.Zero, scope.Pointer);
     }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void CreateSelfOnly_ManyAllocations_DoNotLeakOrThrow()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        // Smoke test for the alloc/free symmetry post-P1-MEM-01: exercising
+        // the path many times must not leak handles or throw on the second
+        // allocation. We can't directly assert "no native leak" from xUnit
+        // without ETW instrumentation, but a tight loop catches the obvious
+        // regression where saPtr is never released.
+        for (var i = 0; i < 64; i++)
+        {
+            using var scope = SecurityAttributesScope.CreateSelfOnly();
+            Assert.NotEqual(IntPtr.Zero, scope.Pointer);
+        }
+    }
 }

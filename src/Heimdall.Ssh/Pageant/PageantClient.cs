@@ -164,6 +164,8 @@ public sealed class PageantClient : IDisposable
 
         // The mapping name is per-process unique with a cryptographic random suffix
         // to defeat enumeration by another userland process running in the same session.
+        // GetHexString(16) returns 16 hex chars = 64 bits of entropy; combined with
+        // the self-only DACL applied below this is sufficient defense in depth.
         var mapName = $"PageantRequest{Environment.ProcessId:X8}{RandomNumberGenerator.GetHexString(16)}";
         var mappingSize = (uint)Math.Max(request.Length, AgentMaxMessageLength);
 
