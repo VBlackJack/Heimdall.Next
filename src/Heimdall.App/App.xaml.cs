@@ -727,7 +727,7 @@ public partial class App : System.Windows.Application
             // Close all active sessions (SSH, SFTP, RDP, Local — disposes host controls + kills processes)
             try
             {
-                _mainViewModel?.Connection.CloseAllSessionsCommand.Execute(null);
+                _mainViewModel?.Connection.CloseAllSessionsSilently();
             }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] session cleanup: {ex.Message}"); }
 

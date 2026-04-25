@@ -44,6 +44,11 @@ public sealed class WpfDialogService(
     /// <inheritdoc/>
     public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
     {
+        if (IsApplicationShuttingDown())
+        {
+            return Task.FromResult(true);
+        }
+
         var yes = _localizer["BtnYes"];
         var no = _localizer["BtnNo"];
         var result = Views.Dialogs.MessageDialog.ShowConfirm(
@@ -55,6 +60,11 @@ public sealed class WpfDialogService(
     /// <inheritdoc/>
     public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message)
     {
+        if (IsApplicationShuttingDown())
+        {
+            return Task.FromResult<bool?>(false);
+        }
+
         var save = _localizer["BtnSave"];
         var discard = _localizer["BtnDiscard"];
         var cancel = _localizer["BtnCancel"];
@@ -387,18 +397,33 @@ public sealed class WpfDialogService(
     /// <inheritdoc/>
     public void ShowError(string title, string message)
     {
+        if (IsApplicationShuttingDown())
+        {
+            return;
+        }
+
         Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "error", _localizer["BtnOk"]);
     }
 
     /// <inheritdoc/>
     public void ShowInfo(string title, string message)
     {
+        if (IsApplicationShuttingDown())
+        {
+            return;
+        }
+
         Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "info", _localizer["BtnOk"]);
     }
 
     /// <inheritdoc/>
     public void ShowWarning(string title, string message)
     {
+        if (IsApplicationShuttingDown())
+        {
+            return;
+        }
+
         Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "warning", _localizer["BtnOk"]);
     }
 
@@ -409,6 +434,12 @@ public sealed class WpfDialogService(
     private static Window? GetOwnerWindow()
     {
         return Application.Current?.MainWindow;
+    }
+
+    private static bool IsApplicationShuttingDown()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        return dispatcher is null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished;
     }
 
     private static Task<T> InvokeOnUiThreadAsync<T>(Func<T> action, CancellationToken cancellationToken)

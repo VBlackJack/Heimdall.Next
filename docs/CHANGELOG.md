@@ -12,6 +12,13 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-04-25 — SSH runtime validation fixes
+
+- Hardened embedded SSH terminal shutdown: late disconnect/output callbacks now stop posting to WebView2 once the terminal surface or dispatcher is disposed, preventing `TerminalWebView` object-disposed popups during app exit.
+- App shutdown now closes active sessions through the silent cleanup path instead of invoking the user-facing "close all sessions" confirmation while WPF is already shutting down.
+- Documented the `Heimdall-TestEnv` gateway setup split: imported server profiles reference gateway ids, but gateway definitions must exist in the runtime build's `config\settings.json` (`AppSettings.SshGateways`). Added smoke-test and troubleshooting notes for running `Inject-Gateway.ps1` against the exact Debug/Release build being launched.
+- Baseline after this pass: **4,454 passing + 6 skipped** tests.
+
 ## 2026-04-24 — SSH hardening roadmap (lots 1-9)
 
 Full roadmap addressing the SSH review recommendations. Nine lots plus one follow-through patch, each landed as independently-green commits on `master`.

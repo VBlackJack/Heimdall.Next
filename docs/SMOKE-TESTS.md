@@ -25,6 +25,25 @@ This repo now carries a small UIAutomation smoke harness for high-signal desktop
 - A Debug build of Heimdall.Next under `src/Heimdall.App/bin/Debug/...`.
 - The app must be launchable without first-run dialogs blocking the main window.
 
+### Heimdall-TestEnv SSH fixture
+
+The external `G:\_Projects\Tests\Heimdall-TestEnv` fixture seeds session profiles separately from
+gateway definitions:
+
+1. Start the TestEnv containers from `G:\_Projects\Tests\Heimdall-TestEnv`.
+2. Import `heimdall-import\servers.testenv.json` through Heimdall's session importer.
+3. Inject the TestEnv gateway into the exact build configuration used by the executable:
+
+```powershell
+& 'G:\_Projects\Tests\Heimdall-TestEnv\scripts\Inject-Gateway.ps1' `
+  -SettingsPath 'G:\_dev\SnapConnect\Heimdall.Next\src\Heimdall.App\bin\Debug\net10.0-windows\config\settings.json'
+```
+
+Restart Heimdall after this external settings edit. The imported server profiles reference a stable
+`SshGatewayId`, but the gateway object itself is stored in `settings.json` under
+`AppSettings.SshGateways`; importing only `servers.testenv.json` leaves the edit-session gateway
+dropdown empty and tunneled TestEnv sessions unresolved.
+
 ## Run
 
 From the repo root:

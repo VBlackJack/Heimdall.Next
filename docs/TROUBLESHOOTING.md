@@ -54,6 +54,7 @@ Index of all issues encountered during development and their solutions.
 39. [WebView2 — Side-by-Side Configuration Error (0x800736B1)](#webview2-sxs-error)
 40. [HTTP Traversal — Sibling Prefix Bypass](#http-traversal-sibling-prefix)
 41. [Tool Tunnel Scan — Few or No Hosts Found](#tool-tunnel-scan-few-hosts)
+42. [SSH — TestEnv Gateway Dropdown Empty After Import](#ssh-testenv-gateway-dropdown-empty)
 
 ---
 
@@ -741,3 +742,24 @@ Additionally, `/dev/tcp` is a bash-only feature. If the gateway's login shell is
 - **Network Cartography 3-phase tunnel scan**: (1) batch ping sweep via parallel background jobs + ARP table read, (2) batch reverse DNS in a single SSH command, (3) parallel `/dev/tcp` probes per host bounded by `sleep 5; kill $(jobs -p); wait`.
 
 **Files**: `Views/Tools/NetworkCartographyView.xaml.cs`, `Views/Tools/PortScannerView.xaml.cs`, `Views/Tools/BannerGrabberView.xaml.cs`, `Views/Tools/FirewallTesterView.xaml.cs`, `Views/Tools/DefaultCredentialView.xaml.cs`
+
+---
+
+## 42. SSH — TestEnv Gateway Dropdown Empty After Import {#ssh-testenv-gateway-dropdown-empty}
+
+**Symptom**: After importing `Heimdall-TestEnv` sessions, editing a tunneled SSH/SFTP/RDP session shows an empty gateway dropdown even though the imported profile has an `SshGatewayId`.
+
+**Root cause**: `servers.testenv.json` contains server profiles, not `SshGatewayDto` entries. Heimdall stores SSH gateways in the runtime build's `config\settings.json` under `AppSettings.SshGateways`, while server profiles in `servers.json` only hold references to those gateway ids. If the active build configuration has no matching gateway in `settings.json`, the edit dialog has nothing to list and gateway-chain resolution cannot bind the referenced id.
+
+This is easy to miss because the repo root also has a `config\settings.json`, but a Debug launch reads from `src\Heimdall.App\bin\Debug\net10.0-windows\config\settings.json`.
+
+**Solution**: Inject the TestEnv gateway into the exact runtime settings file used by the executable, then restart Heimdall:
+
+```powershell
+& 'G:\_Projects\Tests\Heimdall-TestEnv\scripts\Inject-Gateway.ps1' `
+  -SettingsPath 'G:\_dev\SnapConnect\Heimdall.Next\src\Heimdall.App\bin\Debug\net10.0-windows\config\settings.json'
+```
+
+Alternatively, create the gateway manually in Settings > SSH & SFTP > SSH gateways and save settings. External edits to `settings.json` are not live-reloaded; restart the app after running the script.
+
+**Files**: `G:\_Projects\Tests\Heimdall-TestEnv\scripts\Inject-Gateway.ps1`, runtime `config\settings.json`

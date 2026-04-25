@@ -17,6 +17,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -334,12 +335,14 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         Loaded -= OnLoaded;
         IsVisibleChanged -= OnVisibilityChanged;
 
-        if (_webViewInitialized && TerminalWebView.CoreWebView2 is not null)
+        _terminalReady = false;
+
+        if (_webViewInitialized && TryGetCoreWebView2(out var core, allowDuringDispose: true))
         {
-            TerminalWebView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
-            TerminalWebView.CoreWebView2.ProcessFailed -= OnWebViewProcessFailed;
+            core.WebMessageReceived -= OnWebMessageReceived;
+            core.ProcessFailed -= OnWebViewProcessFailed;
             // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
-            TerminalWebView.CoreWebView2.NavigationStarting -= OnWebViewNavigationStarting;
+            core.NavigationStarting -= OnWebViewNavigationStarting;
         }
 
         if (_session is not null)
@@ -622,12 +625,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             var env = await Services.WebView2Helper.CreateEnvironmentAsync("SSH");
             await TerminalWebView.EnsureCoreWebView2Async(env);
-            if (_disposed || TerminalWebView.CoreWebView2 is null)
+            if (_disposed || !TryGetCoreWebView2(out var core))
             {
                 return;
             }
 
-            var core = TerminalWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -1202,36 +1204,120 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void PostTerminalMessage(string message)
     {
-        if (_disposed || _webViewUnavailable)
+        if (_disposed || _webViewUnavailable || IsDispatcherShuttingDown())
         {
             return;
         }
 
         if (!Dispatcher.CheckAccess())
         {
-            _ = Dispatcher.BeginInvoke(() => PostTerminalMessage(message));
+            BeginInvokeIfAvailable(() => PostTerminalMessage(message));
             return;
         }
 
-        if (_terminalReady && TerminalWebView.CoreWebView2 is not null)
+        if (_terminalReady && TryGetCoreWebView2(out var core))
         {
-            TerminalWebView.CoreWebView2.PostWebMessageAsString(message);
+            try
+            {
+                core.PostWebMessageAsString(message);
+            }
+            catch (ObjectDisposedException)
+            {
+                DisableWebViewPosts();
+            }
+            catch (InvalidOperationException)
+            {
+                DisableWebViewPosts();
+            }
+
             return;
         }
 
-        _pendingTerminalMessages.Enqueue(message);
+        if (!_webViewUnavailable && !IsDispatcherShuttingDown())
+        {
+            _pendingTerminalMessages.Enqueue(message);
+        }
     }
 
     private void FlushPendingTerminalMessages()
     {
-        if (_disposed || !_terminalReady || TerminalWebView.CoreWebView2 is null)
+        if (_disposed || !_terminalReady || !TryGetCoreWebView2(out var core))
         {
             return;
         }
 
         while (_pendingTerminalMessages.TryDequeue(out var message))
         {
-            TerminalWebView.CoreWebView2.PostWebMessageAsString(message);
+            try
+            {
+                core.PostWebMessageAsString(message);
+            }
+            catch (ObjectDisposedException)
+            {
+                DisableWebViewPosts();
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                DisableWebViewPosts();
+                return;
+            }
+        }
+    }
+
+    private bool TryGetCoreWebView2([NotNullWhen(true)] out CoreWebView2? core, bool allowDuringDispose = false)
+    {
+        core = null;
+
+        if ((!allowDuringDispose && _disposed) || _webViewUnavailable || IsDispatcherShuttingDown())
+        {
+            return false;
+        }
+
+        try
+        {
+            core = TerminalWebView.CoreWebView2;
+            return core is not null;
+        }
+        catch (ObjectDisposedException)
+        {
+            DisableWebViewPosts();
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            DisableWebViewPosts();
+            return false;
+        }
+    }
+
+    private bool IsDispatcherShuttingDown() =>
+        Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished;
+
+    private void BeginInvokeIfAvailable(Action action)
+    {
+        if (_disposed || IsDispatcherShuttingDown())
+        {
+            return;
+        }
+
+        try
+        {
+            _ = Dispatcher.BeginInvoke(action);
+        }
+        catch (InvalidOperationException)
+        {
+            // The dispatcher can start shutting down between the check and BeginInvoke.
+        }
+    }
+
+    private void DisableWebViewPosts()
+    {
+        _terminalReady = false;
+        _webViewUnavailable = true;
+
+        while (_pendingTerminalMessages.TryDequeue(out _))
+        {
         }
     }
 
