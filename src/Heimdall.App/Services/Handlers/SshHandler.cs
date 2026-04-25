@@ -536,24 +536,24 @@ internal sealed class SshHandler : IProtocolHandler
             hostKeyArg,
             passwordFilePath);
 
-        Core.Logging.FileLogger.Info($"SSH via Plink (pipe mode): {plinkPath} {args}");
+        var terminalSession = CreatePlinkTerminalSession(passwordFilePath);
+        Core.Logging.FileLogger.Info($"SSH via Plink ({terminalSession.GetType().Name}): {plinkPath} {args}");
 
-        var pipeSession = new Heimdall.Terminal.PipeModeSession();
         if (!string.IsNullOrEmpty(passwordFilePath))
         {
             var fileToDelete = passwordFilePath;
-            pipeSession.ProcessExited += _ => DeletePlinkPasswordFile(fileToDelete);
+            terminalSession.ProcessExited += _ => DeletePlinkPasswordFile(fileToDelete);
         }
 
         try
         {
-            await pipeSession.StartAsync(plinkPath, args).ConfigureAwait(false);
-            Core.Logging.FileLogger.Info($"Plink SSH pipe session started: PID={pipeSession.ProcessId}");
+            await terminalSession.StartAsync(plinkPath, args).ConfigureAwait(false);
+            Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminalSession.ProcessId}");
             passwordFilePath = null;
         }
         catch (Exception ex)
         {
-            pipeSession.Dispose();
+            terminalSession.Dispose();
             DeletePlinkPasswordFile(passwordFilePath);
             Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
             _connectionSm.SetError(server.Id, ex.Message);
@@ -565,7 +565,17 @@ internal sealed class SshHandler : IProtocolHandler
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-        return new ConnectionResult(true, null, new TerminalSessionResult(pipeSession));
+        return new ConnectionResult(true, null, new TerminalSessionResult(terminalSession));
+    }
+
+    internal static Heimdall.Terminal.ITerminalSession CreatePlinkTerminalSession(string? passwordFilePath)
+    {
+        if (string.IsNullOrEmpty(passwordFilePath) && Heimdall.Terminal.ConPty.ConPtySession.IsAvailable)
+        {
+            return new Heimdall.Terminal.ConPty.ConPtySession();
+        }
+
+        return new Heimdall.Terminal.PipeModeSession();
     }
 
     private static string? CreatePlinkPasswordFile(string? password)
