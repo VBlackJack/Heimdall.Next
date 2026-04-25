@@ -94,6 +94,7 @@ public static class AuthPreflightChecker
                 "ErrorNoSshAgentRunning");
         }
 
+        var failedAgents = 0;
         foreach (var agent in agents)
         {
             try
@@ -105,9 +106,18 @@ public static class AuthPreflightChecker
             }
             catch (Exception ex)
             {
+                failedAgents++;
                 Core.Logging.FileLogger.Warn(
                     $"SSH agent {agent.Name}: preflight identity check failed: {ex.Message}");
             }
+        }
+
+        // Differentiate "all agents healthy but empty" from "every probe threw"
+        // so an operator reading the log can quickly tell which one to chase.
+        if (failedAgents == agents.Count)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"SSH agent preflight: all {agents.Count} configured agent(s) failed to enumerate identities; see prior warnings for per-agent errors.");
         }
 
         return PreflightResult.Fail(

@@ -64,9 +64,11 @@ internal sealed class SecurityAttributesScope : IDisposable
         var sdBinary = new byte[rawSd.BinaryLength];
         rawSd.GetBinaryForm(sdBinary, 0);
 
-        var sdPtr = Marshal.AllocHGlobal(sdBinary.Length);
+        var sdPtr = IntPtr.Zero;
+        var saPtr = IntPtr.Zero;
         try
         {
+            sdPtr = Marshal.AllocHGlobal(sdBinary.Length);
             Marshal.Copy(sdBinary, 0, sdPtr, sdBinary.Length);
 
             var sa = new NativeMethods.SECURITY_ATTRIBUTES
@@ -76,14 +78,29 @@ internal sealed class SecurityAttributesScope : IDisposable
                 bInheritHandle = false
             };
 
-            var saPtr = Marshal.AllocHGlobal((int)sa.nLength);
+            saPtr = Marshal.AllocHGlobal((int)sa.nLength);
             Marshal.StructureToPtr(sa, saPtr, fDeleteOld: false);
 
-            return new SecurityAttributesScope(saPtr, sdPtr);
+            // Ownership transferred to the scope; clear locals so the catch
+            // does not free buffers the scope is now responsible for.
+            var scope = new SecurityAttributesScope(saPtr, sdPtr);
+            saPtr = IntPtr.Zero;
+            sdPtr = IntPtr.Zero;
+            return scope;
         }
         catch
         {
-            Marshal.FreeHGlobal(sdPtr);
+            // Free in reverse allocation order. Both pointers may be IntPtr.Zero
+            // if their allocation step did not run or if ownership was already
+            // transferred above; FreeHGlobal(IntPtr.Zero) is a documented no-op.
+            if (saPtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(saPtr);
+            }
+            if (sdPtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(sdPtr);
+            }
             throw;
         }
     }

@@ -103,6 +103,7 @@ public sealed class ServerHealthMonitor : IDisposable
     private CancellationTokenSource? _cts;
     private Task? _pollTask;
     private readonly Func<SshClient, IHealthCommandRunner> _commandRunnerFactory;
+    private readonly Lock _stateLock = new();
     private bool _disposed;
 
     /// <summary>Raised on the thread pool when new health data is available.</summary>
@@ -129,13 +130,19 @@ public sealed class ServerHealthMonitor : IDisposable
         ArgumentNullException.ThrowIfNull(client);
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_cts is not null)
+        // Serialize Start vs concurrent Stop/Dispose so the _cts/_pollTask
+        // pair is always observed in a consistent state. The lock only
+        // guards state mutation; the poll task itself runs unblocked.
+        lock (_stateLock)
         {
-            throw new InvalidOperationException("Health monitor is already running.");
-        }
+            if (_cts is not null)
+            {
+                throw new InvalidOperationException("Health monitor is already running.");
+            }
 
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _pollTask = PollLoopAsync(client, _commandRunnerFactory(client), _cts.Token);
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _pollTask = PollLoopAsync(client, _commandRunnerFactory(client), _cts.Token);
+        }
 
         return Task.CompletedTask;
     }
@@ -143,17 +150,30 @@ public sealed class ServerHealthMonitor : IDisposable
     /// <summary>Stops the polling loop.</summary>
     public async Task StopAsync()
     {
-        if (_cts is null)
+        // Snapshot the cts/task pair under lock and clear the fields. The
+        // await happens outside the lock so Start callers do not block on
+        // a slow poll-task drain.
+        CancellationTokenSource? cts;
+        Task? pollTask;
+        lock (_stateLock)
+        {
+            cts = _cts;
+            pollTask = _pollTask;
+            _cts = null;
+            _pollTask = null;
+        }
+
+        if (cts is null)
         {
             return;
         }
 
         try
         {
-            _cts.Cancel();
-            if (_pollTask is not null)
+            cts.Cancel();
+            if (pollTask is not null)
             {
-                await _pollTask.WaitAsync(TimeSpan.FromMilliseconds(500))
+                await pollTask.WaitAsync(TimeSpan.FromMilliseconds(500))
                     .ConfigureAwait(false);
             }
         }
@@ -167,24 +187,32 @@ public sealed class ServerHealthMonitor : IDisposable
         }
         finally
         {
-            _cts.Dispose();
-            _cts = null;
-            _pollTask = null;
+            cts.Dispose();
         }
     }
 
     /// <summary>Stops the polling loop synchronously (best-effort for Dispose).</summary>
     public void Stop()
     {
-        if (_cts is null)
+        CancellationTokenSource? cts;
+        Task? pollTask;
+        lock (_stateLock)
+        {
+            cts = _cts;
+            pollTask = _pollTask;
+            _cts = null;
+            _pollTask = null;
+        }
+
+        if (cts is null)
         {
             return;
         }
 
         try
         {
-            _cts.Cancel();
-            _pollTask?.Wait(TimeSpan.FromMilliseconds(500));
+            cts.Cancel();
+            pollTask?.Wait(TimeSpan.FromMilliseconds(500));
         }
         catch (AggregateException)
         {
@@ -192,9 +220,7 @@ public sealed class ServerHealthMonitor : IDisposable
         }
         finally
         {
-            _cts.Dispose();
-            _cts = null;
-            _pollTask = null;
+            cts.Dispose();
         }
     }
 
