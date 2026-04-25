@@ -15,6 +15,8 @@
  */
 
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using Heimdall.Core.Ssh;
 
 namespace Heimdall.Ssh;
@@ -54,12 +56,34 @@ public sealed class HostKeyStore
 
         if (_trustedKeys.TryGetValue(key, out var stored))
         {
-            var match = string.Equals(stored.Fingerprint, fingerprint, StringComparison.Ordinal);
+            var match = ConstantTimeEquals(stored.Fingerprint, fingerprint);
             return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored.Fingerprint);
         }
 
         // First use: trusted by TOFU policy
         return new HostKeyVerifyResult(Trusted: true, FirstUse: true, fingerprint, StoredFingerprint: null);
+    }
+
+    /// <summary>
+    /// Compare two fingerprint strings without leaking the position of any
+    /// differing byte through timing variations. ASCII-only by construction
+    /// because OpenSSH-style fingerprints are <c>SHA256:&lt;base64&gt;</c>.
+    /// </summary>
+    internal static bool ConstantTimeEquals(string a, string b)
+    {
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        var aBytes = Encoding.ASCII.GetBytes(a);
+        var bBytes = Encoding.ASCII.GetBytes(b);
+        return CryptographicOperations.FixedTimeEquals(aBytes, bBytes);
     }
 
     /// <summary>

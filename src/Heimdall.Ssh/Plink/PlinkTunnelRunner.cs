@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Ssh.Plink;
@@ -399,6 +400,24 @@ public sealed class PlinkTunnelRunner : IDisposable
         return startInfo;
     }
 
+    /// <summary>
+    /// Match credential-like assignments such as <c>password=...</c>,
+    /// <c>passphrase: ...</c>, <c>token=...</c>, <c>bearer ...</c>.
+    /// </summary>
+    private static readonly Regex CredentialAssignmentPattern = new(
+        @"(?i)\b(password|passphrase|secret|token|bearer)\b\s*[:=]?\s*\S+",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// Match Plink-style credential CLI flags (<c>-pw</c>, <c>-pwfile</c>) and
+    /// the value that follows.
+    /// </summary>
+    private static readonly Regex PlinkCredentialFlagPattern = new(
+        @"(?i)-pw(?:file)?\s+\S+",
+        RegexOptions.Compiled);
+
+    private const string RedactedMarker = "[REDACTED]";
+
     internal static string SanitizeForLog(string? line)
     {
         if (string.IsNullOrEmpty(line))
@@ -420,13 +439,18 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
         }
 
+        // Redact known secret-bearing patterns. Done after the control-char
+        // pass so attackers cannot smuggle a regex break via embedded \0 etc.
+        var redacted = PlinkCredentialFlagPattern.Replace(builder.ToString(), RedactedMarker);
+        redacted = CredentialAssignmentPattern.Replace(redacted, RedactedMarker);
+
         const int maxLength = 256;
-        if (builder.Length <= maxLength)
+        if (redacted.Length <= maxLength)
         {
-            return builder.ToString();
+            return redacted;
         }
 
-        return $"{builder.ToString(0, maxLength)} [...]";
+        return $"{redacted[..maxLength]} [...]";
     }
 
     private static bool IsValidHost(string host)
