@@ -12,6 +12,73 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-04-25 — SSH audit follow-up (Pageant DACL, known_hosts DoS caps, lifecycle)
+
+Four-commit hardening pass on the SSH/SFTP/Tunnel surface following a
+multi-pass audit. Previous-pass findings vetted, two false positives dropped,
+one self-introduced regression caught and fixed in the same pass.
+
+- **Pageant IPC** — `PageantClient.SendMessage` now creates the shared file
+  mapping with a self-only DACL (`D:P(A;;FA;;;<currentUserSid>)`) and a
+  cryptographically random suffix in the mapping name (64 bits of entropy via
+  `RandomNumberGenerator.GetHexString(16)`). The new
+  `SecurityAttributesScope` allocates `SECURITY_ATTRIBUTES` and the security
+  descriptor under a try/catch that releases both pointers on any failure
+  between alloc and ownership transfer.
+- **known_hosts parsing** — `KnownHostsParser` enforces a per-line cap of
+  64 KB and exposes a streaming `TextReader` overload; `KnownHostsImporter`
+  refuses files larger than 50 MB, streams via `StreamReader`, and degrades
+  to an empty report (with `FileLogger.Warn`) on I/O / decoding failures
+  instead of bubbling exceptions to the UI.
+- **Constant-time fingerprint compare** — `HostKeyStore.Verify` now uses
+  `CryptographicOperations.FixedTimeEquals` after a length-equality guard
+  (safe because OpenSSH host-key fingerprints are fixed-length).
+- **Plink stderr redaction and lifecycle** — `PlinkTunnelRunner.SanitizeForLog`
+  redacts password / passphrase / token / bearer assignments and `-pw` /
+  `-pwfile` flags via compiled regexes; `Stop()` cancels and joins the stderr
+  drain task (with a 500 ms timeout) before killing the process, so the
+  background reader cannot outlive the pipe.
+- **SSH agent and shell** — `SshShellSession` links the read-loop CTS to the
+  caller's cancellation token (and now throws ahead of the link if the
+  caller-supplied token is already cancelled). `OpenSshPipeAgent.SendRequest`
+  is rebuilt on `PipeOptions.Asynchronous` + `ReadExactlyAsync` with a
+  linked timeout token, replacing the best-effort `ReadTimeout` that
+  `NamedPipeClientStream` silently ignores in some modes.
+- **Tunnel allocation** — `TunnelManager.AllocatePort` distinguishes
+  `AddressAlreadyInUse` from other socket failures and logs the fallback
+  to ephemeral.
+- **SFTP** — `SftpBrowser.DeleteDirectoryRecursive` is now an iterative
+  post-order traversal capped at 256 levels, eliminating the stack-overflow
+  risk on hostile remote filesystems. `RemoteFileEditor.AutoUploadAsync`
+  re-throws `HostKeyRejectedException` instead of folding it into a generic
+  upload failure, surfacing host-key changes to the UI as a security event.
+  `RemoteFileEditor.LaunchEditor` now uses `ProcessStartInfo.ArgumentList`
+  for the local path.
+- **ServerHealthMonitor** — Start/Stop/Stop sequencing is serialized via an
+  internal `Lock` and the cts/poll-task pair is snapshotted under the lock
+  before any blocking await, so an immediately-following `StartAsync` sees a
+  clean state.
+- **OpenSshConfigImporter** — `MakeUniqueName` caps its suffix loop at 1000
+  and falls back to a guid-tagged name beyond that.
+- **AuthPreflightChecker** — emits an aggregated warning when every
+  configured agent failed to enumerate identities, distinguishing
+  "no agent has keys" from "every agent crashed".
+- **FtpBrowser** — warns at connect time when TLS is disabled (credentials
+  in clear text) and rejects LIST entries whose filename exceeds 4 KB.
+- **i18n / configuration** — new `PlinkTunnelRunnerOptions` record (timings as
+  named values rather than positional ints) and `SshLocalizationKeys` const
+  class consumed by `SshHandler` + `TunnelService`, so a typo in an i18n key
+  fails to compile rather than silently surfacing the literal key in the UI.
+
+Test count after this pass: **421 SSH + 2 625 Core (~Ssh subset 212) +
+1 348 App + 96 UI = 4 490 passing + 6 skipped**, zero warnings under
+`TreatWarningsAsErrors`.
+
+Deferred (tracked, not implemented in this pass): mktemp-based portable
+remote temp dir for `RemoteFileEditor` (requires per-host probe cache),
+typed `FailureClassifier` properties (depends on SSH.NET surface),
+`SshHandler.cs` 834-LOC refactor (separate task).
+
 ## 2026-04-25 — SSH runtime validation fixes
 
 - Hardened embedded SSH terminal shutdown: late disconnect/output callbacks now stop posting to WebView2 once the terminal surface or dispatcher is disposed, preventing `TerminalWebView` object-disposed popups during app exit.
