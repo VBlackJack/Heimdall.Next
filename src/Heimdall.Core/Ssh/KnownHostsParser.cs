@@ -21,8 +21,32 @@ namespace Heimdall.Core.Ssh;
 /// </summary>
 public static class KnownHostsParser
 {
-    private static readonly HashSet<string> SupportedKeyTypes =
-    [
+    /// <summary>
+    /// Hard cap on the length of a single known_hosts line.
+    /// Lines longer than this are rejected with a <see cref="KnownHostsDiagnosticCode.MalformedLine"/>
+    /// diagnostic, defending against malicious or corrupted files attempting
+    /// to exhaust memory with one giant line.
+    /// </summary>
+    public const int MaxLineLength = 65_536;
+
+    /// <summary>
+    /// Hard cap on the size in bytes of a known_hosts file accepted by the
+    /// streaming importer. Files larger than this are rejected entirely.
+    /// </summary>
+    public const long MaxFileSizeBytes = 50L * 1024 * 1024;
+
+    /// <summary>
+    /// Diagnostic context value used when a single line exceeds <see cref="MaxLineLength"/>.
+    /// </summary>
+    public const string LineTooLongContext = "line too long";
+
+    /// <summary>
+    /// Set of host key algorithms recognized by the importer. Kept internal
+    /// to prevent ad-hoc mutation; consumers in other assemblies use
+    /// <see cref="IsSupportedKeyType"/> to validate against the same allow-list.
+    /// </summary>
+    private static readonly IReadOnlySet<string> SupportedKeyTypes = new HashSet<string>(StringComparer.Ordinal)
+    {
         "ssh-ed25519",
         "ecdsa-sha2-nistp256",
         "ecdsa-sha2-nistp384",
@@ -31,7 +55,17 @@ public static class KnownHostsParser
         "ssh-dss",
         "sk-ecdsa-sha2-nistp256@openssh.com",
         "sk-ssh-ed25519@openssh.com"
-    ];
+    };
+
+    /// <summary>
+    /// Returns whether the supplied SSH host key algorithm name is in the
+    /// importer's allow-list. Used by trust services to flag entries with
+    /// unrecognized algorithms.
+    /// </summary>
+    public static bool IsSupportedKeyType(string? algorithm)
+    {
+        return !string.IsNullOrWhiteSpace(algorithm) && SupportedKeyTypes.Contains(algorithm);
+    }
 
     public static KnownHostsParseResult Parse(string content)
     {
@@ -40,6 +74,26 @@ public static class KnownHostsParser
         return Parse(content.Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n')
             .Split('\n'));
+    }
+
+    /// <summary>
+    /// Stream-parse known_hosts from a <see cref="TextReader"/>, line by line.
+    /// Use this overload when reading from a file to avoid allocating the
+    /// whole content as a managed string.
+    /// </summary>
+    public static KnownHostsParseResult Parse(TextReader reader)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        return Parse(EnumerateLines(reader));
+    }
+
+    private static IEnumerable<string> EnumerateLines(TextReader reader)
+    {
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            yield return line;
+        }
     }
 
     public static KnownHostsParseResult Parse(IEnumerable<string> lines)
@@ -54,6 +108,17 @@ public static class KnownHostsParser
         {
             lineNumber++;
             var line = rawLine ?? string.Empty;
+
+            if (line.Length > MaxLineLength)
+            {
+                diagnostics.Add(new KnownHostsImportDiagnostic(
+                    KnownHostsDiagnosticLevel.Warning,
+                    lineNumber,
+                    KnownHostsDiagnosticCode.MalformedLine,
+                    LineTooLongContext));
+                continue;
+            }
+
             var trimmedStart = line.TrimStart();
             if (string.IsNullOrWhiteSpace(trimmedStart) || trimmedStart.StartsWith('#'))
             {

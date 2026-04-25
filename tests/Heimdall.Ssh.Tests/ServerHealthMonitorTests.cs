@@ -56,6 +56,44 @@ public sealed class ServerHealthMonitorTests
     }
 
     [Fact]
+    public async Task StopAsync_AllowsImmediateRestart()
+    {
+        // Regression test for the Start/Stop race fix: the post-Stop state
+        // must allow an immediate Start without throwing "already running".
+        using var client = new ConnectedTestSshClient();
+        var runner = new BlockingHealthCommandRunner();
+        using var monitor = new ServerHealthMonitor(_ => runner);
+
+        await monitor.StartAsync(client);
+        await runner.Started.WaitAsync(TimeSpan.FromSeconds(2));
+        await monitor.StopAsync().WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Second Start must succeed; the lock-protected snapshot in StopAsync
+        // guarantees _cts/_pollTask were cleared before StopAsync returned.
+        var runner2 = new BlockingHealthCommandRunner();
+        using var monitor2 = new ServerHealthMonitor(_ => runner2);
+        await monitor2.StartAsync(client);
+        await runner2.Started.WaitAsync(TimeSpan.FromSeconds(2));
+        await monitor2.StopAsync().WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public async Task StopAsync_CalledTwice_IsSafe()
+    {
+        // Second StopAsync must observe the cleared state and short-circuit
+        // without throwing or leaking the disposed CTS.
+        using var client = new ConnectedTestSshClient();
+        var runner = new BlockingHealthCommandRunner();
+        using var monitor = new ServerHealthMonitor(_ => runner);
+
+        await monitor.StartAsync(client);
+        await runner.Started.WaitAsync(TimeSpan.FromSeconds(2));
+
+        await monitor.StopAsync().WaitAsync(TimeSpan.FromSeconds(2));
+        await monitor.StopAsync().WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
     public async Task StopAsync_CancelsPendingCommandsPromptly()
     {
         using var client = new ConnectedTestSshClient();

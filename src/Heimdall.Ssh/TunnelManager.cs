@@ -500,19 +500,32 @@ public sealed partial class TunnelManager : IDisposable
     /// <returns>An available local port number.</returns>
     public int AllocatePort(int preferredPort = 0)
     {
-        if (preferredPort > 0 && !IsPortTracked(preferredPort))
+        if (preferredPort > 0)
         {
-            // Verify the preferred port is not in use by another process
-            try
+            if (IsPortTracked(preferredPort))
             {
-                using var listener = new TcpListener(System.Net.IPAddress.Loopback, preferredPort);
-                listener.Start();
-                listener.Stop();
-                return preferredPort;
+                Heimdall.Core.Logging.FileLogger.Info(
+                    $"TunnelManager: preferred local port {preferredPort} is already tracked by another tunnel; using ephemeral.");
             }
-            catch (SocketException)
+            else
             {
-                // Preferred port is in use by another process — fall through to ephemeral
+                try
+                {
+                    using var listener = new TcpListener(System.Net.IPAddress.Loopback, preferredPort);
+                    listener.Start();
+                    listener.Stop();
+                    return preferredPort;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+                {
+                    Heimdall.Core.Logging.FileLogger.Info(
+                        $"TunnelManager: preferred local port {preferredPort} is held by another process; using ephemeral.");
+                }
+                catch (SocketException ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"TunnelManager: preferred local port {preferredPort} bind failed ({ex.SocketErrorCode}); using ephemeral.");
+                }
             }
         }
 

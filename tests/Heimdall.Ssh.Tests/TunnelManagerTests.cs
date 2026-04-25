@@ -476,6 +476,28 @@ public class TunnelManagerTests : IDisposable
         Assert.True(port > 0);
     }
 
+    [Fact]
+    public void AllocatePort_PreferredHeldByExternalProcess_FallsBackToEphemeral()
+    {
+        // Hold a loopback port so the bind probe inside AllocatePort fails
+        // with AddressAlreadyInUse, exercising the SocketException fallback path.
+        using var blocker = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        blocker.Start();
+        var occupiedPort = ((System.Net.IPEndPoint)blocker.LocalEndpoint).Port;
+
+        try
+        {
+            int port = _manager.AllocatePort(occupiedPort);
+
+            Assert.NotEqual(occupiedPort, port);
+            Assert.True(port > 0);
+        }
+        finally
+        {
+            blocker.Stop();
+        }
+    }
+
     // ── Multiple tunnels on different ports ────────────────────────────
 
     [Fact]

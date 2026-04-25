@@ -280,6 +280,13 @@ public sealed class OpenSshConfigImporter(IConfigManager configManager)
         };
     }
 
+    /// <summary>
+    /// Hard upper bound on the suffix tried by <see cref="MakeUniqueName"/>.
+    /// In practice no real config reaches double-digit collisions; the cap
+    /// is purely a defensive guard against pathological inputs.
+    /// </summary>
+    private const int MaxUniqueNameSuffix = 1000;
+
     private static string MakeUniqueName(string baseName, ISet<string> usedGatewayNames)
     {
         var candidate = string.IsNullOrWhiteSpace(baseName) ? "SSH Gateway" : baseName;
@@ -288,7 +295,7 @@ public sealed class OpenSshConfigImporter(IConfigManager configManager)
             return candidate;
         }
 
-        for (var suffix = 2; ; suffix++)
+        for (var suffix = 2; suffix <= MaxUniqueNameSuffix; suffix++)
         {
             var suffixed = $"{candidate} ({suffix})";
             if (usedGatewayNames.Add(suffixed))
@@ -296,6 +303,12 @@ public sealed class OpenSshConfigImporter(IConfigManager configManager)
                 return suffixed;
             }
         }
+
+        // Fallback for the (very unlikely) saturation case: append a
+        // random hex tag instead of looping unboundedly.
+        var fallback = $"{candidate} ({Guid.NewGuid():N})";
+        usedGatewayNames.Add(fallback);
+        return fallback;
     }
 
     private static string Normalize(string? value)

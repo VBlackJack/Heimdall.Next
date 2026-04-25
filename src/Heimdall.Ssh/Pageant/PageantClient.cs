@@ -15,6 +15,7 @@
  */
 
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
@@ -23,6 +24,7 @@ namespace Heimdall.Ssh.Pageant;
 /// <summary>
 /// Communicates with PuTTY Pageant via shared memory IPC to access loaded SSH keys.
 /// Supports SSH agent protocol operations: listing identities and signing data.
+/// Windows-only by construction (Pageant is a Windows GUI process).
 /// </summary>
 public sealed class PageantClient : IDisposable
 {
@@ -160,12 +162,29 @@ public sealed class PageantClient : IDisposable
                 $"Request exceeds maximum agent message length of {AgentMaxMessageLength} bytes.");
         }
 
-        var mapName = $"PageantRequest{Environment.ProcessId:X8}{Thread.CurrentThread.ManagedThreadId:X8}";
+        // The mapping name is per-process unique with a cryptographic random suffix
+        // to defeat enumeration by another userland process running in the same session.
+        // GetHexString(16) returns 16 hex chars = 64 bits of entropy; combined with
+        // the self-only DACL applied below this is sufficient defense in depth.
+        var mapName = $"PageantRequest{Environment.ProcessId:X8}{RandomNumberGenerator.GetHexString(16)}";
         var mappingSize = (uint)Math.Max(request.Length, AgentMaxMessageLength);
 
+        // Pageant only runs on Windows; this guard keeps the analyzer aware that
+        // the SecurityAttributesScope (Windows-only by construction) is reachable
+        // only from a Windows runtime path.
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Pageant IPC is only supported on Windows.");
+        }
+
+        // Apply a self-only DACL to the file mapping so that no other process,
+        // even running under the same user, can OpenFileMapping by guessing the name.
+        // Pageant itself uses the calling user's token to read the mapping, so a
+        // current-user-only ACL is sufficient.
+        using var securityScope = SecurityAttributesScope.CreateSelfOnly();
         using var fileMapping = NativeMethods.CreateFileMapping(
             NativeMethods.InvalidHandleValue,
-            IntPtr.Zero,
+            securityScope.Pointer,
             NativeMethods.PAGE_READWRITE,
             0,
             mappingSize,

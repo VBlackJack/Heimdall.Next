@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using Heimdall.App.Localization;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -161,7 +162,7 @@ public sealed class TunnelService : ITunnelService
             && !agentRegistry.HasPlinkCompatibleAgent()
             && agentRegistry.HasAnyNonPlinkAgent())
         {
-            var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+            var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(false, null, message, SshFailureCode.PageantKeyUnavailable);
         }
@@ -238,7 +239,7 @@ public sealed class TunnelService : ITunnelService
             var registry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
             if (!registry.HasPlinkCompatibleAgent() && registry.HasAnyNonPlinkAgent())
             {
-                var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+                var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
                 _connectionSm.SetError(serverId, message);
                 return new TunnelResult(false, null, message, result.FailureCode);
             }
@@ -253,7 +254,7 @@ public sealed class TunnelService : ITunnelService
         else
         {
             Core.Logging.FileLogger.Error($"Tunnel failed for {serverId}: {result.ErrorMessage}");
-            _connectionSm.SetError(serverId, result.ErrorMessage ?? _localizer["ErrorTunnelFailed"]);
+            _connectionSm.SetError(serverId, result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed]);
         }
 
         return result;
@@ -271,7 +272,7 @@ public sealed class TunnelService : ITunnelService
         var plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
-            var message = _localizer["ErrorPlinkNotConfigured"];
+            var message = _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
@@ -387,12 +388,12 @@ public sealed class TunnelService : ITunnelService
                 fingerprint,
                 ct,
                 gatewayParams.KeyPassphrase,
-                _localizer["ErrorPlinkPassphraseUnsupported"])
+                _localizer[SshLocalizationKeys.ErrorPlinkPassphraseUnsupported])
             .ConfigureAwait(false);
 
         if (!result.Success)
         {
-            var errorMsg = result.ErrorMessage ?? _localizer["ErrorTunnelFailed"];
+            var errorMsg = result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed];
             Core.Logging.FileLogger.Error(
                 $"Plink tunnel failed for {serverId} via {gatewayParams.Host}:{gatewayParams.Port}: {errorMsg}");
             _connectionSm.SetError(serverId, errorMsg);
@@ -411,7 +412,7 @@ public sealed class TunnelService : ITunnelService
         if (!_tunnelManager.TryRegisterExternalTunnel(tunnelInfo, runner, () => runner.IsRunning))
         {
             runner.Dispose();
-            var duplicateMessage = _localizer["ErrorTunnelPortConcurrent"];
+            var duplicateMessage = _localizer[SshLocalizationKeys.ErrorTunnelPortConcurrent];
             _connectionSm.SetError(serverId, duplicateMessage);
             return new TunnelResult(false, null, duplicateMessage, SshFailureCode.PortInUse);
         }
@@ -445,17 +446,17 @@ public sealed class TunnelService : ITunnelService
         string storedFingerprint,
         string presentedFingerprint)
     {
-        var message = _localizer["ErrorHostKeyMismatch"];
-        if (string.Equals(message, "ErrorHostKeyMismatch", StringComparison.Ordinal))
+        var message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
+        if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
         {
             message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
         }
 
         var detail = _localizer.Format(
-            "ErrorHostKeyMismatchDetail",
+            SshLocalizationKeys.ErrorHostKeyMismatchDetail,
             storedFingerprint,
             presentedFingerprint);
-        if (string.Equals(detail, "ErrorHostKeyMismatchDetail", StringComparison.Ordinal))
+        if (string.Equals(detail, SshLocalizationKeys.ErrorHostKeyMismatchDetail, StringComparison.Ordinal))
         {
             detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
         }
@@ -465,8 +466,8 @@ public sealed class TunnelService : ITunnelService
 
     private string BuildCancelledMessage()
     {
-        var message = _localizer["ErrorSshCancelled"];
-        return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
+        var message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
+        return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
             ? "Connection was cancelled."
             : message;
     }
@@ -475,7 +476,7 @@ public sealed class TunnelService : ITunnelService
     {
         if (string.IsNullOrWhiteSpace(messageOrKey))
         {
-            return _localizer["ErrorPreflightFailed"];
+            return _localizer[SshLocalizationKeys.ErrorPreflightFailed];
         }
 
         var localized = _localizer[messageOrKey];

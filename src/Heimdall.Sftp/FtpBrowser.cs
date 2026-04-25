@@ -81,6 +81,16 @@ public sealed partial class FtpBrowser : IRemoteBrowser
             string.IsNullOrEmpty(username) ? "anonymous" : username,
             password ?? string.Empty);
 
+        // FTP without TLS sends credentials in clear text. Surface this loudly
+        // in the log so an operator reviewing connection history can spot when
+        // a session was actually transmitted unencrypted, even if the UI shows
+        // a green "connected" state.
+        if (!useSsl && !string.IsNullOrEmpty(username))
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"FtpBrowser: connecting to ftp://{host}:{_port} without TLS — username and password will be transmitted in clear text. Prefer SFTP when available.");
+        }
+
         // Verify connectivity by listing the root directory
         await Task.Run(() =>
         {
@@ -478,6 +488,13 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     }
 
     /// <summary>
+    /// Hard cap on the length of a filename extracted from an FTP LIST response.
+    /// Defends against a hostile or buggy server padding entries with megabytes
+    /// of trailing garbage that the regex would otherwise capture wholesale.
+    /// </summary>
+    internal const int MaxFtpFilenameLength = 4096;
+
+    /// <summary>
     /// Parses a single line from an FTP LIST response.
     /// Supports Unix-style (drwxr-xr-x ...) and DOS-style (01-01-2026 ...) formats.
     /// </summary>
@@ -492,6 +509,11 @@ public sealed partial class FtpBrowser : IRemoteBrowser
             long size = long.TryParse(unixMatch.Groups[4].Value, CultureInfo.InvariantCulture, out var s) ? s : 0;
             string dateStr = unixMatch.Groups[5].Value;
             string name = unixMatch.Groups[6].Value;
+
+            if (name.Length > MaxFtpFilenameLength)
+            {
+                return null;
+            }
 
             DateTime lastModified = ParseUnixDate(dateStr);
             string fullPath = parentPath.TrimEnd('/') + "/" + name;
@@ -520,6 +542,11 @@ public sealed partial class FtpBrowser : IRemoteBrowser
                 long.TryParse(sizeStr, CultureInfo.InvariantCulture, out size);
             }
             string name = dosMatch.Groups[4].Value;
+
+            if (name.Length > MaxFtpFilenameLength)
+            {
+                return null;
+            }
 
             DateTime.TryParse(dateStr, CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var lastModified);

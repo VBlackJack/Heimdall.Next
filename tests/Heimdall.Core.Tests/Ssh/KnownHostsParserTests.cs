@@ -224,4 +224,66 @@ public sealed class KnownHostsParserTests
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(host));
         return $"|1|{Convert.ToBase64String(salt)}|{Convert.ToBase64String(hash)}";
     }
+
+    // ── DoS protection: oversized lines and file streaming ────────────
+
+    [Fact]
+    public void Parse_LineExceedingMaxLength_EmitsMalformedDiagnostic()
+    {
+        var hugeLine = new string('a', KnownHostsParser.MaxLineLength + 1);
+
+        var result = KnownHostsParser.Parse(hugeLine);
+
+        Assert.Empty(result.Entries);
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(KnownHostsDiagnosticLevel.Warning, diagnostic.Level);
+        Assert.Equal(KnownHostsDiagnosticCode.MalformedLine, diagnostic.Code);
+        Assert.Equal(KnownHostsParser.LineTooLongContext, diagnostic.Context);
+    }
+
+    [Fact]
+    public void Parse_TextReader_StreamsLineByLine()
+    {
+        var content = $"host1 ssh-ed25519 {SampleKey}\nhost2 ssh-ed25519 {SampleKey}\n";
+        using var reader = new StringReader(content);
+
+        var result = KnownHostsParser.Parse(reader);
+
+        Assert.Equal(2, result.Entries.Count);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public void Parse_TextReader_RejectsTooLongLineButContinues()
+    {
+        var hugeLine = new string('z', KnownHostsParser.MaxLineLength + 1);
+        var content = $"good ssh-ed25519 {SampleKey}\n{hugeLine}\nalsogood ssh-ed25519 {SampleKey}\n";
+        using var reader = new StringReader(content);
+
+        var result = KnownHostsParser.Parse(reader);
+
+        Assert.Equal(2, result.Entries.Count);
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(KnownHostsDiagnosticCode.MalformedLine, diagnostic.Code);
+        Assert.Equal(2, diagnostic.SourceLineNumber);
+    }
+
+    [Fact]
+    public void IsSupportedKeyType_AllowsKnownAlgorithms()
+    {
+        Assert.True(KnownHostsParser.IsSupportedKeyType("ssh-ed25519"));
+        Assert.True(KnownHostsParser.IsSupportedKeyType("ecdsa-sha2-nistp256"));
+        Assert.True(KnownHostsParser.IsSupportedKeyType("ssh-rsa"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("rsa-sha2-512")] // not in OpenSSH host-key allow-list
+    [InlineData("MyBadAlgo-2000")]
+    public void IsSupportedKeyType_RejectsUnknownOrEmpty(string? algorithm)
+    {
+        Assert.False(KnownHostsParser.IsSupportedKeyType(algorithm));
+    }
 }

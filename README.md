@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4454%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4490%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -228,7 +228,10 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Path traversal prevention on local file browser rename/new folder operations
 - ConfigManager concurrency-safe writes via SemaphoreSlim
 - WebView2 Content Security Policy (CSP) and navigation blocking
-- Pageant IPC identity verification with empty-agent preflight check
+- Pageant IPC hardened with self-only DACL on the shared file mapping, cryptographic random suffix in the mapping name (64 bits of entropy), trusted Pageant process whitelist before any agent traffic, and empty-agent preflight check
+- Constant-time host-key fingerprint comparison via `CryptographicOperations.FixedTimeEquals`
+- `known_hosts` import bounded by per-line (64 KB) and per-file (50 MB) caps with streaming `StreamReader`; malformed input degrades to diagnostics rather than UI exceptions
+- Plink stderr drain redacts password / passphrase / token / bearer assignments and `-pw` / `-pwfile` flags; the drain task is joined before `Process.Kill()` so background readers cannot outlive their pipe
 - XXE protection: DtdProcessing.Prohibit on all XML importers (mRemoteNG, RDCMan, Citrix cache)
 - Plink password file: atomic ACL creation on Windows, mode 0600 on Unix (no fallback)
 - Wake-on-LAN via UDP magic packet (right-click context menu)
@@ -368,7 +371,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (4,454 passing tests across 5 projects) |
+| Testing | xUnit (4,490 passing tests across 5 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
