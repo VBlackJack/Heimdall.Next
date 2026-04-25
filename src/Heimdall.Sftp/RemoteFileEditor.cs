@@ -491,12 +491,16 @@ public sealed class RemoteFileEditor : IDisposable
             if (!string.IsNullOrWhiteSpace(editorPath) &&
                 !string.Equals(editorPath, "notepad.exe", StringComparison.OrdinalIgnoreCase))
             {
-                proc = Process.Start(new ProcessStartInfo
+                var psi = new ProcessStartInfo
                 {
                     FileName = editorPath,
-                    Arguments = $"\"{localPath}\"",
                     UseShellExecute = false
-                });
+                };
+                // ArgumentList performs proper Win32-aware quoting per arg, so a
+                // local path containing quotes / spaces / special chars cannot
+                // break out of the editor argument.
+                psi.ArgumentList.Add(localPath);
+                proc = Process.Start(psi);
             }
             else
             {

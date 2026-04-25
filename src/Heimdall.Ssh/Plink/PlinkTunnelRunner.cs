@@ -64,9 +64,15 @@ public sealed class PlinkTunnelRunner : IDisposable
         int portCheckIntervalMs = 2000,
         int killGracePeriodMs = 2000,
         int stderrReadTimeoutMs = 10000)
+        : this(new PlinkTunnelRunnerOptions(portCheckIntervalMs, killGracePeriodMs, stderrReadTimeoutMs))
     {
-        _portCheckInterval = TimeSpan.FromMilliseconds(portCheckIntervalMs);
-        _processKillGracePeriod = TimeSpan.FromMilliseconds(killGracePeriodMs);
+    }
+
+    public PlinkTunnelRunner(PlinkTunnelRunnerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _portCheckInterval = TimeSpan.FromMilliseconds(options.PortCheckIntervalMs);
+        _processKillGracePeriod = TimeSpan.FromMilliseconds(options.KillGracePeriodMs);
     }
 
     /// <summary>Whether the underlying plink process is running.</summary>

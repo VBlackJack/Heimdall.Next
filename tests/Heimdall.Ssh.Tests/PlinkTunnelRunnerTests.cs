@@ -342,4 +342,38 @@ public class PlinkTunnelRunnerTests : IDisposable
         runner.Dispose();
         runner.Dispose();
     }
+
+    // ── Options object ───────────────────────────────────────────────
+
+    [Fact]
+    public void Constructor_AcceptsOptionsObject()
+    {
+        // Smoke test: construction with a custom options object must not
+        // throw and must produce a usable runner.
+        var options = new PlinkTunnelRunnerOptions(
+            PortCheckIntervalMs: 250,
+            KillGracePeriodMs: 1000,
+            StderrReadTimeoutMs: 5000);
+
+        using var runner = new PlinkTunnelRunner(options);
+
+        // Stop without Start must still be safe with custom timings.
+        runner.Stop();
+    }
+
+    [Fact]
+    public void Options_Default_MatchesHistoricalConstants()
+    {
+        // The Default record must keep the historical constants so the
+        // parameterless ctor and Default-based ctor are observably equivalent.
+        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.PortCheckIntervalMs);
+        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.KillGracePeriodMs);
+        Assert.Equal(10000, PlinkTunnelRunnerOptions.Default.StderrReadTimeoutMs);
+    }
+
+    [Fact]
+    public void Constructor_NullOptions_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new PlinkTunnelRunner((PlinkTunnelRunnerOptions)null!));
+    }
 }
