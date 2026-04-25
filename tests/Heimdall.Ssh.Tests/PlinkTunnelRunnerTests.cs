@@ -321,4 +321,25 @@ public class PlinkTunnelRunnerTests : IDisposable
         const string benign = "Tunnel established on local port 13389";
         Assert.Equal(benign, PlinkTunnelRunner.SanitizeForLog(benign));
     }
+
+    // ── Stop() lifecycle ────────────────────────────────────────────
+
+    [Fact]
+    public void Stop_WithoutStart_IsNoOpAndIdempotent()
+    {
+        // Exercise the new drain-task join path: Stop() must tolerate being
+        // called when Start was never invoked, and a second call must also
+        // be safe (no double-Dispose, no AggregateException leaking).
+        _runner.Stop();
+        _runner.Stop();
+    }
+
+    [Fact]
+    public void Dispose_WithoutStart_IsNoOpAndIdempotent()
+    {
+        var runner = new PlinkTunnelRunner();
+
+        runner.Dispose();
+        runner.Dispose();
+    }
 }

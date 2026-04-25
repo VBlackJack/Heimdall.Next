@@ -490,33 +490,70 @@ public sealed class SftpBrowser : IRemoteBrowser
         Disconnected?.Invoke(e.Exception.Message);
     }
 
+    /// <summary>
+    /// Hard cap on the depth of <see cref="DeleteDirectoryRecursive"/>.
+    /// A malicious or corrupted remote filesystem with deep nesting cannot
+    /// blow the managed stack; the iterative traversal also avoids the
+    /// implicit per-level frame cost of the recursive form.
+    /// </summary>
+    internal const int MaxDeleteDepth = 256;
+
     private static void DeleteDirectoryRecursive(
         SftpClient client,
         string path,
         CancellationToken ct)
     {
-        foreach (ISftpFile entry in client.ListDirectory(path))
+        // Iterative post-order traversal with an explicit stack:
+        // 1. Push (dir, expanded=false) for each directory we discover.
+        // 2. On first pop, list its contents: delete files inline, push
+        //    nested dirs (expanded=false), and push the dir itself with
+        //    expanded=true so we revisit it after children are gone.
+        // 3. On second pop (expanded=true), the directory is empty and we
+        //    delete it.
+        var stack = new Stack<(string Path, int Depth, bool Expanded)>();
+        stack.Push((path, 0, false));
+
+        while (stack.Count > 0)
         {
             ct.ThrowIfCancellationRequested();
+            var (currentPath, depth, expanded) = stack.Pop();
 
-            if (entry.Name is "." or "..")
+            if (depth > MaxDeleteDepth)
             {
+                throw new InvalidOperationException(
+                    $"Refused to delete '{currentPath}': remote directory depth exceeds {MaxDeleteDepth}.");
+            }
+
+            if (expanded)
+            {
+                client.DeleteDirectory(currentPath);
                 continue;
             }
 
-            string fullPath = $"{path.TrimEnd('/')}/{entry.Name}";
+            // Re-queue this directory for its post-order delete pass.
+            stack.Push((currentPath, depth, true));
 
-            if (entry.IsDirectory)
+            foreach (ISftpFile entry in client.ListDirectory(currentPath))
             {
-                DeleteDirectoryRecursive(client, fullPath, ct);
-            }
-            else
-            {
-                client.DeleteFile(fullPath);
+                ct.ThrowIfCancellationRequested();
+
+                if (entry.Name is "." or "..")
+                {
+                    continue;
+                }
+
+                string fullPath = $"{currentPath.TrimEnd('/')}/{entry.Name}";
+
+                if (entry.IsDirectory)
+                {
+                    stack.Push((fullPath, depth + 1, false));
+                }
+                else
+                {
+                    client.DeleteFile(fullPath);
+                }
             }
         }
-
-        client.DeleteDirectory(path);
     }
 
     private static SftpFileInfo ToSftpFileInfo(ISftpFile entry)

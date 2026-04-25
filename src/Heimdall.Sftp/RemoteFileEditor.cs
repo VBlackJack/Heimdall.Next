@@ -366,6 +366,18 @@ public sealed class RemoteFileEditor : IDisposable
 
             success = true;
         }
+        catch (Heimdall.Ssh.HostKeyRejectedException ex)
+        {
+            // A host key change between the open-edit step and the upload step
+            // is a security event, not a benign upload failure. Log loudly and
+            // re-throw so the UI can prompt the user instead of silently
+            // pushing the file under a potentially MITM'd connection.
+            Heimdall.Core.Logging.FileLogger.Error(
+                $"RemoteFileEditor: host key rejected during upload of {session.RemotePath} "
+                + $"({ex.Host}:{ex.Port}, presented={ex.PresentedFingerprint}, stored={ex.StoredFingerprint ?? "<none>"}). Upload aborted.");
+            FileUploaded?.Invoke(session.RemotePath, false);
+            throw;
+        }
         catch (Exception ex)
         {
             success = false;
