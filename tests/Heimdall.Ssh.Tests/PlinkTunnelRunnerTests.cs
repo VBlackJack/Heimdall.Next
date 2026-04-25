@@ -290,4 +290,35 @@ public class PlinkTunnelRunnerTests : IDisposable
         Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(null));
         Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(string.Empty));
     }
+
+    // ── Secret redaction in stderr drain ────────────────────────────
+
+    [Theory]
+    [InlineData("connecting with password=hunter2", "connecting with [REDACTED]")]
+    [InlineData("Bearer abcdef0123456789", "[REDACTED]")]
+    [InlineData("token: abc-123-def", "[REDACTED]")]
+    [InlineData("passphrase = 's3cr3t!'", "[REDACTED]")]
+    [InlineData("secret=topsecret continuing", "[REDACTED] continuing")]
+    public void SanitizeForLog_RedactsCredentialAssignments(string raw, string expected)
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(raw);
+        Assert.Equal(expected, sanitized);
+    }
+
+    [Theory]
+    [InlineData("plink -pwfile C:\\temp\\heimdall_pw_xxx.tmp -ssh user@host",
+                "plink [REDACTED] -ssh user@host")]
+    [InlineData("trying with -pw mySecret target", "trying with [REDACTED] target")]
+    public void SanitizeForLog_RedactsPlinkCredentialFlags(string raw, string expected)
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(raw);
+        Assert.Equal(expected, sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_DoesNotRedactBenignText()
+    {
+        const string benign = "Tunnel established on local port 13389";
+        Assert.Equal(benign, PlinkTunnelRunner.SanitizeForLog(benign));
+    }
 }

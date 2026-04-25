@@ -49,8 +49,38 @@ public sealed class KnownHostsImporter(IHostKeyTrustService trustService)
             return new KnownHostsImportReport(0, 0, []);
         }
 
-        var content = File.ReadAllText(path, Encoding.UTF8);
-        return Import(KnownHostsParser.Parse(content), importedAt ?? DateTimeOffset.UtcNow);
+        KnownHostsParseResult parseResult;
+        try
+        {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Length > KnownHostsParser.MaxFileSizeBytes)
+            {
+                FileLogger.Warn(
+                    $"known_hosts import refused: file '{path}' exceeds {KnownHostsParser.MaxFileSizeBytes} bytes ({fileInfo.Length} bytes).");
+                return new KnownHostsImportReport(0, 0, []);
+            }
+
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            parseResult = KnownHostsParser.Parse(reader);
+        }
+        catch (IOException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: I/O error reading '{path}': {ex.Message}");
+            return new KnownHostsImportReport(0, 0, []);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: access denied to '{path}': {ex.Message}");
+            return new KnownHostsImportReport(0, 0, []);
+        }
+        catch (DecoderFallbackException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: decoding error in '{path}': {ex.Message}");
+            return new KnownHostsImportReport(0, 0, []);
+        }
+
+        return Import(parseResult, importedAt ?? DateTimeOffset.UtcNow);
     }
 
     public KnownHostsImportReport Import(KnownHostsParseResult parseResult, DateTimeOffset importedAt)
