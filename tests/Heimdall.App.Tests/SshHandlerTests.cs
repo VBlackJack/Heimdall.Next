@@ -99,4 +99,28 @@ public sealed class SshHandlerTests
         Assert.Contains($"-pwfile \"{escapedPasswordFilePath}\"", arguments);
         Assert.DoesNotContain("secret", arguments, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void BuildPipeModeArguments_PutsAllOptionsBeforeTarget()
+    {
+        var arguments = SshHandler.BuildPipeModeArguments(
+            keyPath: null,
+            compression: false,
+            agentForwarding: false,
+            x11Forwarding: false,
+            port: 2222,
+            target: "bastion@example.com",
+            hostKeyFingerprint: "SHA256:abc123",
+            passwordFilePath: @"C:\Temp\heimdall-pw.txt");
+
+        var hostKeyIndex = arguments.IndexOf("-hostkey", StringComparison.Ordinal);
+        var passwordFileIndex = arguments.IndexOf("-pwfile", StringComparison.Ordinal);
+        var targetIndex = arguments.LastIndexOf("bastion@example.com", StringComparison.Ordinal);
+
+        Assert.True(hostKeyIndex >= 0);
+        Assert.True(passwordFileIndex >= 0);
+        Assert.True(targetIndex > hostKeyIndex);
+        Assert.True(targetIndex > passwordFileIndex);
+        Assert.EndsWith(" bastion@example.com", arguments, StringComparison.Ordinal);
+    }
 }
