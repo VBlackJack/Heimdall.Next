@@ -718,7 +718,6 @@ internal sealed class SshHandler : IProtocolHandler
 
         argParts.Add("-P");
         argParts.Add(port.ToString());
-        argParts.Add(target);
 
         if (!string.IsNullOrWhiteSpace(hostKeyFingerprint))
         {
@@ -732,6 +731,7 @@ internal sealed class SshHandler : IProtocolHandler
             argParts.Add($"\"{InputValidator.EscapeForDoubleQuotedString(passwordFilePath)}\"");
         }
 
+        argParts.Add(target);
         return string.Join(' ', argParts);
     }
 
