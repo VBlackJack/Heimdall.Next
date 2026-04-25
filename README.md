@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4448%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-4454%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -244,6 +244,9 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 ### Import and Migration
 - Migration from Heimdall v1 (DPAPI-encrypted credentials preserved)
 - Import from JSON, MobaXterm (.mxtsessions / .ini), mRemoteNG (.xml), RDCMan (.rdg), and .rdp files
+- JSON session imports contain server profiles only. SSH gateway definitions live in `settings.json`
+  (`AppSettings.SshGateways`), so test fixtures such as `Heimdall-TestEnv` must inject the
+  matching gateway into the exact runtime build configuration before tunneled sessions can resolve it.
 
 ---
 
@@ -365,7 +368,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (4,324 tests across 5 projects) |
+| Testing | xUnit (4,454 passing tests across 5 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

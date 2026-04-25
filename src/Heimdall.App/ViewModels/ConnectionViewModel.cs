@@ -116,6 +116,17 @@ public partial class ConnectionViewModel : ObservableObject
         HasActiveSessions = ActiveSessions.Count > 0;
     }
 
+    /// <summary>
+    /// Closes all sessions without prompting. Used during application shutdown, when WPF can no longer create dialogs.
+    /// </summary>
+    public void CloseAllSessionsSilently()
+    {
+        foreach (var session in ActiveSessions.ToList())
+        {
+            CloseSessionInternal(session);
+        }
+    }
+
     [RelayCommand]
     private async Task CloseAllSessions()
     {
@@ -134,10 +145,7 @@ public partial class ConnectionViewModel : ObservableObject
             }
         }
 
-        foreach (var session in ActiveSessions.ToList())
-        {
-            CloseSessionInternal(session);
-        }
+        CloseAllSessionsSilently();
     }
 
     [RelayCommand]
