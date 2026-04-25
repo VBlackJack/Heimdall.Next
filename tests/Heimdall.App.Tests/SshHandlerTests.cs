@@ -17,8 +17,6 @@
 using System.IO;
 using Heimdall.App.Services.Handlers;
 using Heimdall.Core.Security;
-using Heimdall.Terminal;
-using Heimdall.Terminal.ConPty;
 
 namespace Heimdall.App.Tests;
 
@@ -127,25 +125,32 @@ public sealed class SshHandlerTests
     }
 
     [Fact]
-    public void CreatePlinkTerminalSession_WithPasswordFile_UsesPipeMode()
+    public void ShouldPromptForPlinkPassword_WithPasswordFile_ReturnsFalse()
     {
-        using var session = SshHandler.CreatePlinkTerminalSession(@"C:\Temp\heimdall-pw.txt");
+        var shouldPrompt = SshHandler.ShouldPromptForPlinkPassword(
+            @"C:\Temp\heimdall-pw.txt",
+            keyPath: null);
 
-        Assert.IsType<PipeModeSession>(session);
+        Assert.False(shouldPrompt);
     }
 
     [Fact]
-    public void CreatePlinkTerminalSession_WithoutPasswordFile_UsesConPtyWhenAvailable()
+    public void ShouldPromptForPlinkPassword_WithKeyPath_ReturnsFalse()
     {
-        using var session = SshHandler.CreatePlinkTerminalSession(passwordFilePath: null);
+        var shouldPrompt = SshHandler.ShouldPromptForPlinkPassword(
+            passwordFilePath: null,
+            keyPath: @"C:\keys\id_ed25519.ppk");
 
-        if (ConPtySession.IsAvailable)
-        {
-            Assert.IsType<ConPtySession>(session);
-        }
-        else
-        {
-            Assert.IsType<PipeModeSession>(session);
-        }
+        Assert.False(shouldPrompt);
+    }
+
+    [Fact]
+    public void ShouldPromptForPlinkPassword_WithoutPasswordOrKey_ReturnsTrue()
+    {
+        var shouldPrompt = SshHandler.ShouldPromptForPlinkPassword(
+            passwordFilePath: null,
+            keyPath: null);
+
+        Assert.True(shouldPrompt);
     }
 }

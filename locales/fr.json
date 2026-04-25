@@ -47,6 +47,8 @@
   "ErrorSshPassphraseRequired": "La cl\u00e9 SSH n\u00e9cessite une passphrase. Configurez la passphrase de cl\u00e9 ou chargez-la dans un agent SSH.",
   "ErrorSshPassphraseRejected": "La passphrase de la cl\u00e9 SSH a \u00e9t\u00e9 rejet\u00e9e.",
   "ErrorSshPasswordRejected": "Le mot de passe SSH a \u00e9t\u00e9 rejet\u00e9 par le serveur.",
+  "DialogSshPasswordPromptTitle": "Mot de passe SSH requis",
+  "DialogSshPasswordPromptMessage": "Saisissez le mot de passe SSH pour {0}.",
   "ErrorSshProtocolError": "Erreur de protocole SSH. Le serveur utilise peut-\u00eatre une version de protocole incompatible.",
   "ErrorSshTooManyAuthFailures": "Trop d'\u00e9checs d'authentification. R\u00e9duisez le nombre de cl\u00e9s charg\u00e9es dans les agents SSH.",
   "ErrorSshCancelled": "La connexion a \u00e9t\u00e9 annul\u00e9e.",

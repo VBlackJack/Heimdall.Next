@@ -80,6 +80,28 @@ public sealed class WpfDialogService(
     }
 
     /// <inheritdoc/>
+    public Task<string?> ShowPasswordInputAsync(
+        string title,
+        string prompt,
+        CancellationToken cancellationToken = default)
+    {
+        return InvokeOnUiThreadAsync(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var dialog = new PasswordInputDialog
+                {
+                    Title = title,
+                    Prompt = prompt,
+                    Owner = GetOwnerWindow()
+                };
+
+                return dialog.ShowDialog() == true ? dialog.ResultPassword : null;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -387,5 +409,21 @@ public sealed class WpfDialogService(
     private static Window? GetOwnerWindow()
     {
         return Application.Current?.MainWindow;
+    }
+
+    private static Task<T> InvokeOnUiThreadAsync<T>(Func<T> action, CancellationToken cancellationToken)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(action());
+        }
+
+        return dispatcher.InvokeAsync(
+                action,
+                System.Windows.Threading.DispatcherPriority.Normal,
+                cancellationToken)
+            .Task;
     }
 }
