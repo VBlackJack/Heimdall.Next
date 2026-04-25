@@ -17,6 +17,8 @@
 using System.IO;
 using Heimdall.App.Services.Handlers;
 using Heimdall.Core.Security;
+using Heimdall.Terminal;
+using Heimdall.Terminal.ConPty;
 
 namespace Heimdall.App.Tests;
 
@@ -122,5 +124,28 @@ public sealed class SshHandlerTests
         Assert.True(targetIndex > hostKeyIndex);
         Assert.True(targetIndex > passwordFileIndex);
         Assert.EndsWith(" bastion@example.com", arguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CreatePlinkTerminalSession_WithPasswordFile_UsesPipeMode()
+    {
+        using var session = SshHandler.CreatePlinkTerminalSession(@"C:\Temp\heimdall-pw.txt");
+
+        Assert.IsType<PipeModeSession>(session);
+    }
+
+    [Fact]
+    public void CreatePlinkTerminalSession_WithoutPasswordFile_UsesConPtyWhenAvailable()
+    {
+        using var session = SshHandler.CreatePlinkTerminalSession(passwordFilePath: null);
+
+        if (ConPtySession.IsAvailable)
+        {
+            Assert.IsType<ConPtySession>(session);
+        }
+        else
+        {
+            Assert.IsType<PipeModeSession>(session);
+        }
     }
 }
