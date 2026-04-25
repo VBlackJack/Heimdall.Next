@@ -49,7 +49,16 @@ public sealed class PlinkTunnelRunner : IDisposable
 
     private Process? _process;
     private string? _pwFilePath;
+    private Task? _drainTask;
+    private CancellationTokenSource? _drainCts;
     private bool _disposed;
+
+    /// <summary>
+    /// How long <see cref="Stop"/> waits for the stderr drain task to finish
+    /// before forcibly killing the process. Kept conservative to avoid
+    /// blocking application shutdown on a stuck pipe read.
+    /// </summary>
+    private static readonly TimeSpan DrainJoinTimeout = TimeSpan.FromMilliseconds(500);
 
     public PlinkTunnelRunner(
         int portCheckIntervalMs = 2000,
@@ -146,15 +155,19 @@ public sealed class PlinkTunnelRunner : IDisposable
         }
 
         // Continuously drain stderr in the background to prevent buffer saturation.
-        // Uses the cancellation token so the drain terminates cleanly on Stop().
-        _ = Task.Run(async () =>
+        // The drain is owned by an internal CTS so Stop() can both cancel and
+        // synchronously join it, eliminating "fire and forget" thread-pool
+        // exceptions when the process is killed before the pipe drains.
+        _drainCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var drainToken = _drainCts.Token;
+        _drainTask = Task.Run(async () =>
         {
             try
             {
                 while (_process is { HasExited: false } && _process.StandardError is not null)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var line = await _process.StandardError.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                    drainToken.ThrowIfCancellationRequested();
+                    var line = await _process.StandardError.ReadLineAsync(drainToken).ConfigureAwait(false);
                     if (line is null) break;
                     if (!string.IsNullOrWhiteSpace(line))
                     {
@@ -164,7 +177,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
             catch (OperationCanceledException) { /* Clean shutdown */ }
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] stderr drain: {ex.Message}"); }
-        }, cancellationToken);
+        }, drainToken);
 
         try
         {
@@ -200,9 +213,39 @@ public sealed class PlinkTunnelRunner : IDisposable
 
     /// <summary>
     /// Stops the plink tunnel process and cleans up temporary files.
+    /// Cancels the stderr drain task and joins it (with a short timeout)
+    /// before killing the process so background reads don't outlive the
+    /// pipe they were attached to.
     /// </summary>
     public void Stop()
     {
+        // Signal the drain to stop and wait briefly for it to release the pipe.
+        try
+        {
+            _drainCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The CTS may have been disposed by an earlier Stop() / Dispose();
+            // safe to ignore — the drain task is already gone.
+        }
+
+        if (_drainTask is not null)
+        {
+            try
+            {
+                _drainTask.Wait(DrainJoinTimeout);
+            }
+            catch (AggregateException)
+            {
+                // Drain failures are already logged inside the drain Task itself.
+            }
+            _drainTask = null;
+        }
+
+        _drainCts?.Dispose();
+        _drainCts = null;
+
         if (_process is not null)
         {
             try

@@ -122,7 +122,10 @@ public sealed class SshShellSession : IDisposable
             height: 0,
             bufferSize: ReadBufferSize);
 
-        _readCts = new CancellationTokenSource();
+        // Link the read-loop CTS to the external cancellation token so
+        // a cancel signal from the caller propagates all the way down to
+        // the pipe read, instead of being swallowed once Connect completes.
+        _readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _readLoopTask = Task.Run(() => ReadLoopAsync(_readCts.Token), _readCts.Token);
     }
 
