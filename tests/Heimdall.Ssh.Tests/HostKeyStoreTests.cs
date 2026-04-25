@@ -502,4 +502,24 @@ public class HostKeyStoreTests
         Assert.False(result.FirstUse);
         Assert.Equal("SHA256:originalkey", result.StoredFingerprint);
     }
+
+    // ── ConstantTimeEquals ─────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", true)]
+    [InlineData("SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "SHA256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", false)]
+    [InlineData("SHA256:short", "SHA256:longer-fingerprint-string", false)]
+    [InlineData("", "", true)]
+    public void ConstantTimeEquals_MatchesByValueRegardlessOfLength(string a, string b, bool expected)
+    {
+        Assert.Equal(expected, HostKeyStore.ConstantTimeEquals(a, b));
+    }
+
+    [Fact]
+    public void ConstantTimeEquals_NullOperands_ReturnsFalse()
+    {
+        Assert.False(HostKeyStore.ConstantTimeEquals(null!, "x"));
+        Assert.False(HostKeyStore.ConstantTimeEquals("x", null!));
+        Assert.False(HostKeyStore.ConstantTimeEquals(null!, null!));
+    }
 }

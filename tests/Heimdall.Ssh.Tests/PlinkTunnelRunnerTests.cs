@@ -290,4 +290,90 @@ public class PlinkTunnelRunnerTests : IDisposable
         Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(null));
         Assert.Equal(string.Empty, PlinkTunnelRunner.SanitizeForLog(string.Empty));
     }
+
+    // ── Secret redaction in stderr drain ────────────────────────────
+
+    [Theory]
+    [InlineData("connecting with password=hunter2", "connecting with [REDACTED]")]
+    [InlineData("Bearer abcdef0123456789", "[REDACTED]")]
+    [InlineData("token: abc-123-def", "[REDACTED]")]
+    [InlineData("passphrase = 's3cr3t!'", "[REDACTED]")]
+    [InlineData("secret=topsecret continuing", "[REDACTED] continuing")]
+    public void SanitizeForLog_RedactsCredentialAssignments(string raw, string expected)
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(raw);
+        Assert.Equal(expected, sanitized);
+    }
+
+    [Theory]
+    [InlineData("plink -pwfile C:\\temp\\heimdall_pw_xxx.tmp -ssh user@host",
+                "plink [REDACTED] -ssh user@host")]
+    [InlineData("trying with -pw mySecret target", "trying with [REDACTED] target")]
+    public void SanitizeForLog_RedactsPlinkCredentialFlags(string raw, string expected)
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(raw);
+        Assert.Equal(expected, sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_DoesNotRedactBenignText()
+    {
+        const string benign = "Tunnel established on local port 13389";
+        Assert.Equal(benign, PlinkTunnelRunner.SanitizeForLog(benign));
+    }
+
+    // ── Stop() lifecycle ────────────────────────────────────────────
+
+    [Fact]
+    public void Stop_WithoutStart_IsNoOpAndIdempotent()
+    {
+        // Exercise the new drain-task join path: Stop() must tolerate being
+        // called when Start was never invoked, and a second call must also
+        // be safe (no double-Dispose, no AggregateException leaking).
+        _runner.Stop();
+        _runner.Stop();
+    }
+
+    [Fact]
+    public void Dispose_WithoutStart_IsNoOpAndIdempotent()
+    {
+        var runner = new PlinkTunnelRunner();
+
+        runner.Dispose();
+        runner.Dispose();
+    }
+
+    // ── Options object ───────────────────────────────────────────────
+
+    [Fact]
+    public void Constructor_AcceptsOptionsObject()
+    {
+        // Smoke test: construction with a custom options object must not
+        // throw and must produce a usable runner.
+        var options = new PlinkTunnelRunnerOptions(
+            PortCheckIntervalMs: 250,
+            KillGracePeriodMs: 1000,
+            StderrReadTimeoutMs: 5000);
+
+        using var runner = new PlinkTunnelRunner(options);
+
+        // Stop without Start must still be safe with custom timings.
+        runner.Stop();
+    }
+
+    [Fact]
+    public void Options_Default_MatchesHistoricalConstants()
+    {
+        // The Default record must keep the historical constants so the
+        // parameterless ctor and Default-based ctor are observably equivalent.
+        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.PortCheckIntervalMs);
+        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.KillGracePeriodMs);
+        Assert.Equal(10000, PlinkTunnelRunnerOptions.Default.StderrReadTimeoutMs);
+    }
+
+    [Fact]
+    public void Constructor_NullOptions_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new PlinkTunnelRunner((PlinkTunnelRunnerOptions)null!));
+    }
 }

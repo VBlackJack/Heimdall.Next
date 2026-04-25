@@ -50,12 +50,23 @@ including this one.
 
 ### Pageant shared-memory DACL
 
-`PageantClient.SendMessage` creates a named file mapping using the default DACL
-of the process token. This restricts access to the current Windows user, which
-is sufficient for the stated threat model. For environments requiring explicit
-SACLs or same-user malware isolation, update the mapping creation in
-`src/Heimdall.Ssh/Pageant/PageantClient.cs` to supply an explicit
-`SECURITY_ATTRIBUTES` structure.
+`PageantClient.SendMessage` creates a named file mapping with **two layers of
+hardening** against same-session userland snooping:
+
+1. **Self-only DACL** via `SecurityAttributesScope.CreateSelfOnly` — the
+   mapping handle is created with an explicit `SECURITY_ATTRIBUTES` whose SDDL
+   is `D:P(A;;FA;;;<currentUserSid>)`, denying access even to other processes
+   running under the **same** Windows user.
+2. **Cryptographically random mapping name** —
+   `RandomNumberGenerator.GetHexString(16)` provides 64 bits of entropy in the
+   mapping name, defeating opportunistic enumeration by a malicious process
+   that knows Heimdall's PID.
+
+The IPC handshake additionally verifies that the Pageant window is owned by a
+process whose name is in the trusted whitelist
+(`pageant`, `putty`, `plink`, `pscp`, `psftp`, `kitty`, `winscp`,
+`keepassxc-proxy`, `keepassxc`) before sending any agent traffic, mitigating
+window-class spoofing.
 
 ### CredentialAutofill visibility
 
@@ -131,6 +142,43 @@ real requests have a 5 s timeout. Pipe-not-found and timeout both return
 setting (`AppSettings.SshAgentPreference`); changes take effect on the next
 connection attempt without app restart.
 
+`OpenSshPipeAgent.SendRequest` is built on async pipe I/O
+(`NamedPipeClientStream` opened with `PipeOptions.Asynchronous`) and a
+linked timeout/cancellation token, replacing the best-effort `ReadTimeout`
+that `NamedPipeClientStream` silently ignores in some modes.
+
+### Host-key fingerprint comparison
+
+`HostKeyStore.Verify` compares stored vs presented fingerprints with
+`CryptographicOperations.FixedTimeEquals` (after a length-equality guard
+that is safe here because OpenSSH host-key fingerprints are fixed at
+`SHA256:` + 43 base64 chars). The pattern is local to `HostKeyStore` and
+should not be copied verbatim to variable-length secret comparisons.
+
+### known_hosts import — DoS bounds
+
+`KnownHostsParser` enforces two hard caps when consuming externally-supplied
+`known_hosts` files:
+
+- **`MaxLineLength = 65 536`** — lines longer than 64 KB are skipped with a
+  `MalformedLine` diagnostic; defends against a single giant line forcing a
+  large allocation.
+- **`MaxFileSizeBytes = 50 MB`** — files larger than 50 MB are refused
+  outright with a `FileLogger.Warn`. The importer streams via `StreamReader`
+  rather than `File.ReadAllText`, and wraps I/O in `try/catch` so a locked or
+  unreadable file degrades to an empty report instead of bubbling an
+  exception to the UI.
+
+### Subprocess argument hardening
+
+`PlinkTunnelRunner` builds the plink argument list via
+`ProcessStartInfo.ArgumentList` (no string concatenation), and the stderr
+drain task is **joined** at `Stop()` time before `Process.Kill()`, so the
+background reader cannot outlive the pipe it was attached to. The drain
+sanitizer (`SanitizeForLog`) redacts password / passphrase / token / bearer
+assignments and `-pw` / `-pwfile` flags in regexes so an unexpected stderr
+echo from plink cannot leak credentials into the application log.
+
 ## Security testing
 
 - Unit tests for TOFU verification:
@@ -153,6 +201,20 @@ connection attempt without app restart.
 - `TunnelManager` characterization tests (pre-refactor behaviour capture,
   still passing on the refactored code):
   `tests/Heimdall.Ssh.Tests/TunnelManagerTests.cs`.
+- Pageant `SECURITY_ATTRIBUTES` factory and self-only SDDL builder:
+  `tests/Heimdall.Ssh.Tests/PageantClientTests.cs`
+  (`BuildSelfOnlySddl_*`, `CreateSelfOnly_ManyAllocations_DoNotLeakOrThrow`).
+- Constant-time fingerprint compare:
+  `tests/Heimdall.Ssh.Tests/HostKeyStoreTests.cs`
+  (`ConstantTimeEquals_*`).
+- Stderr secret redaction:
+  `tests/Heimdall.Ssh.Tests/PlinkTunnelRunnerTests.cs`
+  (`SanitizeForLog_RedactsCredentialAssignments`,
+  `SanitizeForLog_RedactsPlinkCredentialFlags`).
+- known_hosts DoS caps and graceful I/O degradation:
+  `tests/Heimdall.Core.Tests/Ssh/KnownHostsParserTests.cs` and
+  `tests/Heimdall.Ssh.Tests/KnownHostsImportExportTests.cs`
+  (`ImportFile_OversizedFile_RejectedWithoutThrowing`, line-too-long cases).
 - Shell-injection regression tests: `InputValidator` coverage in
   `tests/Heimdall.Core.Tests`.
 - RDP file generation sanitization:

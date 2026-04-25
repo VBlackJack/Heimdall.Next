@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Runtime.Versioning;
+using System.Security.Principal;
 using Heimdall.Ssh.Pageant;
 
 namespace Heimdall.Ssh.Tests;
@@ -379,5 +381,59 @@ public class PageantClientTests
         ms.WriteByte((byte)(value >> 16));
         ms.WriteByte((byte)(value >> 8));
         ms.WriteByte((byte)value);
+    }
+
+    // ── SecurityAttributesScope DACL (self-only) ─────────────────────
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void BuildSelfOnlySddl_ProducesProtectedDaclWithSingleAce()
+    {
+        var sid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+
+        var sddl = SecurityAttributesScope.BuildSelfOnlySddl(sid);
+
+        Assert.Equal($"D:P(A;;FA;;;{sid.Value})", sddl);
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void BuildSelfOnlySddl_NullSid_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => SecurityAttributesScope.BuildSelfOnlySddl(null!));
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void CreateSelfOnly_ReturnsNonZeroPointerAndIsDisposable()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var scope = SecurityAttributesScope.CreateSelfOnly();
+        Assert.NotEqual(IntPtr.Zero, scope.Pointer);
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void CreateSelfOnly_ManyAllocations_DoNotLeakOrThrow()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        // Smoke test for the alloc/free symmetry post-P1-MEM-01: exercising
+        // the path many times must not leak handles or throw on the second
+        // allocation. We can't directly assert "no native leak" from xUnit
+        // without ETW instrumentation, but a tight loop catches the obvious
+        // regression where saPtr is never released.
+        for (var i = 0; i < 64; i++)
+        {
+            using var scope = SecurityAttributesScope.CreateSelfOnly();
+            Assert.NotEqual(IntPtr.Zero, scope.Pointer);
+        }
     }
 }

@@ -86,28 +86,42 @@ public sealed class OpenSshPipeAgent : ISshAgent
 
     internal byte[] SendRequest(byte[] request)
     {
+        return SendRequestAsync(request, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    internal async Task<byte[]> SendRequestAsync(byte[] request, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(request);
 
         using var pipe = CreatePipe();
-        pipe.Connect(_requestTimeoutMs);
+
+        // Connect has its own native timeout (mirrors the previous sync API);
+        // the cancellation token still allows caller-side abort.
+        await pipe.ConnectAsync(_requestTimeoutMs, cancellationToken).ConfigureAwait(false);
         pipe.ReadMode = PipeTransmissionMode.Byte;
-        if (pipe.CanTimeout)
-        {
-            pipe.ReadTimeout = _requestTimeoutMs;
-            pipe.WriteTimeout = _requestTimeoutMs;
-        }
 
-        pipe.Write(request, 0, request.Length);
-        pipe.Flush();
+        // The I/O phase gets a fresh timeout so a slow connect on a loaded
+        // CI runner does not eat into the read budget. Each phase therefore
+        // has up to _requestTimeoutMs to complete, matching the per-operation
+        // semantics of the previous synchronous ReadTimeout/WriteTimeout pair.
+        using var ioTimeoutCts = new CancellationTokenSource(_requestTimeoutMs);
+        using var ioLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, ioTimeoutCts.Token);
+        var ioToken = ioLinkedCts.Token;
 
-        var lengthBytes = ReadExact(pipe, sizeof(uint));
+        await pipe.WriteAsync(request.AsMemory(), ioToken).ConfigureAwait(false);
+        await pipe.FlushAsync(ioToken).ConfigureAwait(false);
+
+        var lengthBytes = new byte[sizeof(uint)];
+        await pipe.ReadExactlyAsync(lengthBytes.AsMemory(), ioToken).ConfigureAwait(false);
         var payloadLength = BinaryPrimitives.ReadUInt32BigEndian(lengthBytes);
         if (payloadLength == 0 || payloadLength > OpenSshAgentProtocol.MaxMessageLength)
         {
             throw new InvalidOperationException($"Invalid OpenSSH agent response length: {payloadLength}.");
         }
 
-        var payload = ReadExact(pipe, (int)payloadLength);
+        var payload = new byte[(int)payloadLength];
+        await pipe.ReadExactlyAsync(payload.AsMemory(), ioToken).ConfigureAwait(false);
+
         var response = new byte[sizeof(uint) + payload.Length];
         lengthBytes.CopyTo(response.AsSpan(0, sizeof(uint)));
         payload.CopyTo(response.AsSpan(sizeof(uint)));
@@ -120,25 +134,7 @@ public sealed class OpenSshPipeAgent : ISshAgent
             ".",
             _pipeName,
             PipeDirection.InOut,
-            PipeOptions.None);
-    }
-
-    private static byte[] ReadExact(Stream stream, int length)
-    {
-        var buffer = new byte[length];
-        var offset = 0;
-        while (offset < buffer.Length)
-        {
-            var read = stream.Read(buffer, offset, buffer.Length - offset);
-            if (read == 0)
-            {
-                throw new EndOfStreamException("OpenSSH agent closed the pipe before sending a full response.");
-            }
-
-            offset += read;
-        }
-
-        return buffer;
+            PipeOptions.Asynchronous);
     }
 
     private static string NormalizePipeName(string pipeName)

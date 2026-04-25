@@ -246,6 +246,64 @@ public sealed class KnownHostsImportExportTests : IDisposable
             targetService.GetEntry("roundtrip.example.com", 22)?.Fingerprint);
     }
 
+    [Fact]
+    public void ImportFile_NonExistentPath_ReturnsEmptyReportWithoutThrowing()
+    {
+        var (_, service) = CreateService();
+        var importer = new KnownHostsImporter(service);
+        var missing = Path.Combine(_rootPath, "does-not-exist", "known_hosts");
+
+        var report = importer.ImportFile(missing);
+
+        Assert.Equal(0, report.Imported);
+        Assert.Empty(report.Conflicts);
+    }
+
+    [Fact]
+    public void ImportFile_OversizedFile_RejectedWithoutThrowing()
+    {
+        Directory.CreateDirectory(_rootPath);
+        var path = Path.Combine(_rootPath, "oversized_known_hosts");
+        // Write a sparse file slightly larger than the cap. Use a single
+        // SetLength call to avoid materializing the bytes.
+        using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write))
+        {
+            stream.SetLength(KnownHostsParser.MaxFileSizeBytes + 1);
+        }
+
+        var (_, service) = CreateService();
+        var importer = new KnownHostsImporter(service);
+
+        var report = importer.ImportFile(path);
+
+        Assert.Equal(0, report.Imported);
+        Assert.Empty(report.Conflicts);
+        Assert.Empty(service.GetAllEntries());
+    }
+
+    [Fact]
+    public void ImportFile_LongLineInOtherwiseValidFile_EmitsDiagnosticsAndContinues()
+    {
+        var keyBlob = new byte[] { 0x10, 0x11, 0x12 };
+        var key = ToKey(keyBlob);
+        var hugeLine = new string('a', KnownHostsParser.MaxLineLength + 16);
+        var content = string.Join(
+            Environment.NewLine,
+            $"good.example.com ssh-ed25519 {key}",
+            hugeLine,
+            $"alsogood.example.com ssh-ed25519 {key}");
+        var path = WriteKnownHosts(content);
+
+        var (_, service) = CreateService();
+        var importer = new KnownHostsImporter(service);
+
+        var report = importer.ImportFile(path);
+
+        Assert.Equal(2, report.Imported);
+        Assert.NotNull(service.GetEntry("good.example.com", 22));
+        Assert.NotNull(service.GetEntry("alsogood.example.com", 22));
+    }
+
     private string WriteKnownHosts(string content)
     {
         Directory.CreateDirectory(_rootPath);

@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Ssh.Plink;
@@ -48,15 +49,30 @@ public sealed class PlinkTunnelRunner : IDisposable
 
     private Process? _process;
     private string? _pwFilePath;
+    private Task? _drainTask;
+    private CancellationTokenSource? _drainCts;
     private bool _disposed;
+
+    /// <summary>
+    /// How long <see cref="Stop"/> waits for the stderr drain task to finish
+    /// before forcibly killing the process. Kept conservative to avoid
+    /// blocking application shutdown on a stuck pipe read.
+    /// </summary>
+    private static readonly TimeSpan DrainJoinTimeout = TimeSpan.FromMilliseconds(500);
 
     public PlinkTunnelRunner(
         int portCheckIntervalMs = 2000,
         int killGracePeriodMs = 2000,
         int stderrReadTimeoutMs = 10000)
+        : this(new PlinkTunnelRunnerOptions(portCheckIntervalMs, killGracePeriodMs, stderrReadTimeoutMs))
     {
-        _portCheckInterval = TimeSpan.FromMilliseconds(portCheckIntervalMs);
-        _processKillGracePeriod = TimeSpan.FromMilliseconds(killGracePeriodMs);
+    }
+
+    public PlinkTunnelRunner(PlinkTunnelRunnerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _portCheckInterval = TimeSpan.FromMilliseconds(options.PortCheckIntervalMs);
+        _processKillGracePeriod = TimeSpan.FromMilliseconds(options.KillGracePeriodMs);
     }
 
     /// <summary>Whether the underlying plink process is running.</summary>
@@ -145,15 +161,19 @@ public sealed class PlinkTunnelRunner : IDisposable
         }
 
         // Continuously drain stderr in the background to prevent buffer saturation.
-        // Uses the cancellation token so the drain terminates cleanly on Stop().
-        _ = Task.Run(async () =>
+        // The drain is owned by an internal CTS so Stop() can both cancel and
+        // synchronously join it, eliminating "fire and forget" thread-pool
+        // exceptions when the process is killed before the pipe drains.
+        _drainCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var drainToken = _drainCts.Token;
+        _drainTask = Task.Run(async () =>
         {
             try
             {
                 while (_process is { HasExited: false } && _process.StandardError is not null)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var line = await _process.StandardError.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                    drainToken.ThrowIfCancellationRequested();
+                    var line = await _process.StandardError.ReadLineAsync(drainToken).ConfigureAwait(false);
                     if (line is null) break;
                     if (!string.IsNullOrWhiteSpace(line))
                     {
@@ -163,7 +183,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
             catch (OperationCanceledException) { /* Clean shutdown */ }
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] stderr drain: {ex.Message}"); }
-        }, cancellationToken);
+        }, drainToken);
 
         try
         {
@@ -199,9 +219,39 @@ public sealed class PlinkTunnelRunner : IDisposable
 
     /// <summary>
     /// Stops the plink tunnel process and cleans up temporary files.
+    /// Cancels the stderr drain task and joins it (with a short timeout)
+    /// before killing the process so background reads don't outlive the
+    /// pipe they were attached to.
     /// </summary>
     public void Stop()
     {
+        // Signal the drain to stop and wait briefly for it to release the pipe.
+        try
+        {
+            _drainCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The CTS may have been disposed by an earlier Stop() / Dispose();
+            // safe to ignore — the drain task is already gone.
+        }
+
+        if (_drainTask is not null)
+        {
+            try
+            {
+                _drainTask.Wait(DrainJoinTimeout);
+            }
+            catch (AggregateException)
+            {
+                // Drain failures are already logged inside the drain Task itself.
+            }
+            _drainTask = null;
+        }
+
+        _drainCts?.Dispose();
+        _drainCts = null;
+
         if (_process is not null)
         {
             try
@@ -399,6 +449,24 @@ public sealed class PlinkTunnelRunner : IDisposable
         return startInfo;
     }
 
+    /// <summary>
+    /// Match credential-like assignments such as <c>password=...</c>,
+    /// <c>passphrase: ...</c>, <c>token=...</c>, <c>bearer ...</c>.
+    /// </summary>
+    private static readonly Regex CredentialAssignmentPattern = new(
+        @"(?i)\b(password|passphrase|secret|token|bearer)\b\s*[:=]?\s*\S+",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// Match Plink-style credential CLI flags (<c>-pw</c>, <c>-pwfile</c>) and
+    /// the value that follows.
+    /// </summary>
+    private static readonly Regex PlinkCredentialFlagPattern = new(
+        @"(?i)-pw(?:file)?\s+\S+",
+        RegexOptions.Compiled);
+
+    private const string RedactedMarker = "[REDACTED]";
+
     internal static string SanitizeForLog(string? line)
     {
         if (string.IsNullOrEmpty(line))
@@ -420,13 +488,18 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
         }
 
+        // Redact known secret-bearing patterns. Done after the control-char
+        // pass so attackers cannot smuggle a regex break via embedded \0 etc.
+        var redacted = PlinkCredentialFlagPattern.Replace(builder.ToString(), RedactedMarker);
+        redacted = CredentialAssignmentPattern.Replace(redacted, RedactedMarker);
+
         const int maxLength = 256;
-        if (builder.Length <= maxLength)
+        if (redacted.Length <= maxLength)
         {
-            return builder.ToString();
+            return redacted;
         }
 
-        return $"{builder.ToString(0, maxLength)} [...]";
+        return $"{redacted[..maxLength]} [...]";
     }
 
     private static bool IsValidHost(string host)

@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Net;
+using Heimdall.App.Localization;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -131,14 +132,14 @@ internal sealed class SshHandler : IProtocolHandler
             && !agentRegistry.HasPlinkCompatibleAgent()
             && agentRegistry.HasAnyNonPlinkAgent())
         {
-            var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+            var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
             _connectionSm.SetError(server.Id, message);
             return new ConnectionResult(
                 false,
                 message,
                 null,
                 SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                    "ErrorPlinkOpenSshAgentUnsupported",
+                    SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported,
                     message));
         }
 
@@ -216,21 +217,21 @@ internal sealed class SshHandler : IProtocolHandler
                 var fallbackAgentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
                 if (!fallbackAgentRegistry.HasPlinkCompatibleAgent() && fallbackAgentRegistry.HasAnyNonPlinkAgent())
                 {
-                    var message = _localizer["ErrorPlinkOpenSshAgentUnsupported"];
+                    var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
                     _connectionSm.SetError(server.Id, message);
                     return new ConnectionResult(
                         false,
                         message,
                         null,
                         SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                            "ErrorPlinkOpenSshAgentUnsupported",
+                            SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported,
                             message,
                             failure.Code));
                 }
 
                 Core.Logging.FileLogger.Info(
                     $"SSH.NET auth failed ({failure.Code}), falling back to Plink: {failure.Message}");
-                SetStatusText?.Invoke(_localizer["StatusSshRetryingViaPlink"]);
+                SetStatusText?.Invoke(_localizer[SshLocalizationKeys.StatusSshRetryingViaPlink]);
                 return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, failure.Code, ct)
                     .ConfigureAwait(false);
             }
@@ -260,49 +261,49 @@ internal sealed class SshHandler : IProtocolHandler
         var puttyPath = ConnectionHelpers.ResolvePuttyPath(settings.PuttyPath, settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(puttyPath) || !File.Exists(puttyPath))
         {
-            var msg = _localizer["ErrorPuttyNotConfigured"];
+            var msg = _localizer[SshLocalizationKeys.ErrorPuttyNotConfigured];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
-                SshSessionDiagnosticFactory.CreateGenericFailure("ErrorPuttyNotConfigured", msg));
+                SshSessionDiagnosticFactory.CreateGenericFailure(SshLocalizationKeys.ErrorPuttyNotConfigured, msg));
         }
 
         if (!string.IsNullOrEmpty(server.SshUsername) &&
             !InputValidator.Validate(server.SshUsername, "SshUser"))
         {
-            var msg = _localizer["ErrorInvalidSshUsername"];
+            var msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
-                SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidSshUsername", msg));
+                SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
         }
 
         if (!IsValidSshHost(targetHost))
         {
-            var msg = _localizer["ErrorInvalidTargetHost"];
+            var msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
-                SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorInvalidTargetHost", msg));
+                SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
         }
 
         if (!InputValidator.ValidatePortRange(targetPort))
         {
             const string msg = "Invalid SSH target port.";
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorConnectionFailed", msg));
+            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
         }
 
         if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
         {
             _connectionSm.SetError(server.Id, keyPathError);
-            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure("ErrorConnectionFailed", keyPathError));
+            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
         }
 
         var target = !string.IsNullOrEmpty(server.SshUsername)
@@ -337,7 +338,7 @@ internal sealed class SshHandler : IProtocolHandler
                 false,
                 ex.Message,
                 null,
-                SshSessionDiagnosticFactory.CreateGenericFailure("ErrorConnectionFailed", ex.Message));
+                SshSessionDiagnosticFactory.CreateGenericFailure(SshLocalizationKeys.ErrorConnectionFailed, ex.Message));
         }
     }
 
@@ -357,15 +358,15 @@ internal sealed class SshHandler : IProtocolHandler
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
             var msg = originalFailure is not null
-                ? _localizer.Format("ErrorPlinkNotConfiguredWithReason", originalFailure)
-                : _localizer["ErrorPlinkNotConfigured"];
+                ? _localizer.Format(SshLocalizationKeys.ErrorPlinkNotConfiguredWithReason, originalFailure)
+                : _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
                 SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                    "ErrorPlinkNotConfigured",
+                    SshLocalizationKeys.ErrorPlinkNotConfigured,
                     msg,
                     originalFailure));
         }
@@ -373,37 +374,37 @@ internal sealed class SshHandler : IProtocolHandler
         if (!string.IsNullOrEmpty(server.SshUsername) &&
             !InputValidator.Validate(server.SshUsername, "SshUser"))
         {
-            var msg = _localizer["ErrorInvalidSshUsername"];
+            var msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
-                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidSshUsername", msg));
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
         }
 
         if (!IsValidSshHost(targetHost))
         {
-            var msg = _localizer["ErrorInvalidTargetHost"];
+            var msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(
                 false,
                 msg,
                 null,
-                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorInvalidTargetHost", msg));
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
         }
 
         if (!InputValidator.ValidatePortRange(targetPort))
         {
             const string msg = "Invalid SSH target port.";
             _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorConnectionFailed", msg));
+            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
         }
 
         if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
         {
             _connectionSm.SetError(server.Id, keyPathError);
-            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure("ErrorConnectionFailed", keyPathError));
+            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
         }
 
         var target = !string.IsNullOrEmpty(server.SshUsername)
@@ -519,7 +520,7 @@ internal sealed class SshHandler : IProtocolHandler
                         message,
                         null,
                         SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                            "ErrorSshCancelled",
+                            SshLocalizationKeys.ErrorSshCancelled,
                             message,
                             SshFailureCode.Cancelled));
                 }
@@ -546,7 +547,7 @@ internal sealed class SshHandler : IProtocolHandler
                     message,
                     null,
                     SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                        "ErrorSshCancelled",
+                        SshLocalizationKeys.ErrorSshCancelled,
                         message,
                         SshFailureCode.Cancelled));
             }
@@ -806,17 +807,17 @@ internal sealed class SshHandler : IProtocolHandler
         string storedFingerprint,
         string presentedFingerprint)
     {
-        var message = _localizer["ErrorHostKeyMismatch"];
-        if (string.Equals(message, "ErrorHostKeyMismatch", StringComparison.Ordinal))
+        var message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
+        if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
         {
             message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
         }
 
         var detail = _localizer.Format(
-            "ErrorHostKeyMismatchDetail",
+            SshLocalizationKeys.ErrorHostKeyMismatchDetail,
             storedFingerprint,
             presentedFingerprint);
-        if (string.Equals(detail, "ErrorHostKeyMismatchDetail", StringComparison.Ordinal))
+        if (string.Equals(detail, SshLocalizationKeys.ErrorHostKeyMismatchDetail, StringComparison.Ordinal))
         {
             detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
         }
@@ -826,8 +827,8 @@ internal sealed class SshHandler : IProtocolHandler
 
     private string BuildCancelledMessage()
     {
-        var message = _localizer["ErrorSshCancelled"];
-        return string.Equals(message, "ErrorSshCancelled", StringComparison.Ordinal)
+        var message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
+        return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
             ? "Connection was cancelled."
             : message;
     }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Logging;
 using Heimdall.Ssh;
 
 namespace Heimdall.Core.Ssh;
@@ -202,6 +203,15 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
     {
         if (!string.IsNullOrWhiteSpace(candidate) && !string.Equals(candidate, "unknown", StringComparison.OrdinalIgnoreCase))
         {
+            // Algorithms outside the OpenSSH allow-list are kept (back-compat with
+            // legacy entries) but logged so an operator can spot tampering or drift.
+            if (!KnownHostsParser.IsSupportedKeyType(candidate))
+            {
+                FileLogger.Warn(
+                    $"HostKeyTrustService: unrecognized host key algorithm '{candidate}' accepted; "
+                    + "verify the source of this entry.");
+            }
+
             return candidate;
         }
 
