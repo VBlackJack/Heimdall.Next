@@ -101,10 +101,26 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     public bool HasSelection => SelectionCount > 0;
 
     /// <summary>
+    /// Raised BEFORE the protocol-specific connect call, so subscribers can
+    /// mount a placeholder tab in a "Connecting" state. Today only the SSH
+    /// path fires this; other protocols still rely solely on
+    /// <see cref="SessionReady"/>. The event payload intentionally omits
+    /// <c>ISessionResult</c> because no session exists yet.
+    /// </summary>
+    public event Action<string, string, string, string, ServerProfileDto, AppSettings>? SessionStarting;
+
+    /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
     /// Parameters: sessionId, originalServerId, displayName, connectionType, session result.
     /// </summary>
     public event Action<string, string, string, string, Core.Models.ISessionResult?>? SessionReady;
+
+    /// <summary>
+    /// Raised when a connect that previously fired
+    /// <see cref="SessionStarting"/> fails (any reason: result.Success false,
+    /// exception, cancellation). Subscribers should remove the placeholder tab.
+    /// </summary>
+    public event Action<string>? SessionStartFailed;
 
     /// <summary>
     /// Raised when an SSH connection fails with structured diagnostics and should surface a failed tab.
@@ -656,6 +672,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
         serverDto.Id = sessionId;
         _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
+        var sessionStartFired = false;
 
         try
         {
@@ -669,6 +686,9 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                     break;
 
                 case "SSH":
+                    sessionStartFired = true;
+                    SessionStarting?.Invoke(sessionId, originalId, server.DisplayName,
+                        "SSH", serverDto, settings);
                     result = await _connectionService.ConnectSshAsync(
                         serverDto, settings, cancellationToken);
                     break;
@@ -726,6 +746,11 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             }
 
             server.ConnectionState = "Error";
+            if (sessionStartFired)
+            {
+                SessionStartFailed?.Invoke(sessionId);
+            }
+
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.ConnectionFailed,
                 result.ErrorMessage ?? _localizer["ErrorConnectionFailed"],
@@ -733,12 +758,22 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            if (sessionStartFired)
+            {
+                SessionStartFailed?.Invoke(sessionId);
+            }
+
             _connectionSm.Reset(sessionId);
             return new BulkConnectOutcome(BulkConnectOutcomeStatus.Cancelled, null);
         }
         catch (Exception ex)
         {
             var failure = Ssh.FailureClassifier.Classify(ex);
+            if (sessionStartFired)
+            {
+                SessionStartFailed?.Invoke(sessionId);
+            }
+
             _connectionSm.SetError(sessionId, failure.Message);
             server.ConnectionState = "Error";
             return new BulkConnectOutcome(

@@ -15,6 +15,7 @@
  */
 
 using Heimdall.App.ViewModels;
+using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Ssh;
@@ -68,6 +69,23 @@ public interface IEmbeddedSessionManager
         string displayName,
         string connectionType,
         ISessionResult session,
+        AppSettings? settings = null);
+
+    /// <summary>
+    /// Creates an SSH host control in a Connecting state before the SSH session exists.
+    /// </summary>
+    EmbeddedSshView CreateConnectingSshHostControl(
+        SessionTabViewModel sessionTab,
+        string displayName,
+        ServerProfileDto server,
+        AppSettings? settings = null);
+
+    /// <summary>
+    /// Attaches a freshly-connected SSH or terminal session to a pre-mounted SSH host control.
+    /// </summary>
+    void AttachSshSession(
+        SessionTabViewModel sessionTab,
+        ISessionResult sessionResult,
         AppSettings? settings = null);
 
     /// <summary>
