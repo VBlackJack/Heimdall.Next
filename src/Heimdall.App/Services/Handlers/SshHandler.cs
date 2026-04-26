@@ -592,7 +592,17 @@ internal sealed class SshHandler : IProtocolHandler
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-        return new ConnectionResult(true, null, new TerminalSessionResult(terminalSession));
+        return new ConnectionResult(true, null, new TerminalSessionResult(
+            terminalSession,
+            BuildDisplayEndpoint(server)));
+    }
+
+    private static string BuildDisplayEndpoint(ServerProfileDto server)
+    {
+        var user = string.IsNullOrWhiteSpace(server.SshUsername) ? "?" : server.SshUsername;
+        var host = string.IsNullOrWhiteSpace(server.RemoteServer) ? "?" : server.RemoteServer;
+        var port = server.SshPort > 0 ? server.SshPort : DefaultPorts.Ssh;
+        return $"{user}@{host}:{port}";
     }
 
     internal static bool ShouldPromptForPlinkPassword(string? passwordFilePath, string? keyPath)

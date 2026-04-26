@@ -272,9 +272,14 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         Heimdall.Terminal.ITerminalSession terminalSession,
         SessionTabViewModel sessionTab,
         string displayName,
-        int keepAliveIntervalSeconds = 240)
+        int keepAliveIntervalSeconds = 240,
+        string? endpoint = null)
     {
-        InitializeConnecting(sessionTab, displayName, L("SshEndpointViaPlink"));
+        var endpointLabel = string.IsNullOrWhiteSpace(endpoint)
+            ? L("SshEndpointViaPlink")
+            : endpoint;
+
+        InitializeConnecting(sessionTab, displayName, endpointLabel);
         AttachTerminalSession(terminalSession, keepAliveIntervalSeconds);
     }
 

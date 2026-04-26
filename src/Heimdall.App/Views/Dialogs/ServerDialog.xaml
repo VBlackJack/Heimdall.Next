@@ -41,6 +41,38 @@
                 <Setter Property="Padding" Value="12"/>
             </Style>
 
+            <Style x:Key="SshAgentChipBorderStyle" TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSshFamilyConnection}" Value="True">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding AgentChipState}" Value="{x:Static vm:SshAgentChipState.Warn}">
+                        <Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding AgentChipState}" Value="{x:Static vm:SshAgentChipState.Ok}">
+                        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="SshAgentChipIconStyle" TargetType="TextBlock">
+                <Setter Property="Text" Value="&#x25CB;"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding AgentChipState}" Value="{x:Static vm:SshAgentChipState.Warn}">
+                        <Setter Property="Text" Value="&#x26A0;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding AgentChipState}" Value="{x:Static vm:SshAgentChipState.Ok}">
+                        <Setter Property="Text" Value="&#x2713;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="DiagramNodeStyle" TargetType="Border">
                 <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -683,20 +715,28 @@
                         </Style>
                     </Border.Style>
                     <StackPanel>
-                        <TextBlock x:Name="DlgSrv_BasicSshCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                        <TextBlock x:Name="DlgSrv_BasicSshCredentialsTitle"
+                                   Text="{loc:Translate ServerDialogSshCredentials}"
+                                   Style="{StaticResource DialogSectionTitleStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicSshCredentialsDesc"
+                                   Text="{loc:Translate ServerDialogSshCredentialsDesc}"
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                        <TextBlock x:Name="DlgSrv_BasicSshUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                        <TextBlock x:Name="DlgSrv_BasicSshUsernameLabel"
+                                   Text="{loc:Translate ServerDialogLabelUsername}"
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,14,0,4"/>
                         <TextBox x:Name="DlgSrv_BasicSshUsernameBox" TabIndex="10"
                                  AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
                                  Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
-                        <TextBlock x:Name="DlgSrv_BasicSshKeyLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                        <TextBlock x:Name="DlgSrv_BasicSshKeyLabel"
+                                   Text="{loc:Translate ServerDialogLabelSshKey}"
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,12,0,4"/>
                         <DockPanel>
                             <Button x:Name="DlgSrv_BasicBrowseBtn"
                                     DockPanel.Dock="Right"
                                     AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                    Command="{Binding BrowseSshKeyCommand}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Margin="8,0,0,0"
                                     Click="OnBrowseSshKeyClick"/>
@@ -715,6 +755,30 @@
                         <TextBlock x:Name="DlgSrv_BasicSshAuthHint" Text="{Binding SshAuthHint}"
                                    Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"
                                    TextWrapping="Wrap"/>
+                        <Border x:Name="DlgSrv_SshAgentChip"
+                                Margin="0,8,0,0"
+                                CornerRadius="{StaticResource CornerRadiusSm}"
+                                Padding="8,4"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                Cursor="Hand"
+                                ToolTip="{loc:Translate ServerDialogAgentChipTooltipRefresh}"
+                                Style="{StaticResource SshAgentChipBorderStyle}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftClick"
+                                              Command="{Binding RefreshAgentChipCommand}"/>
+                            </Border.InputBindings>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource SshAgentChipIconStyle}"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                           Margin="0,0,6,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding AgentChipText}"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </StackPanel>
+                        </Border>
                         <StackPanel Visibility="{Binding HasSshKeyPath, Converter={StaticResource BoolToVisibilityConverter}}">
                             <TextBlock x:Name="DlgSrv_BasicSshKeyPassphraseLabel"
                                        Text="{loc:Translate ServerDialogLabelKeyPassphrase}"
