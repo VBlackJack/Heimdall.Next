@@ -105,9 +105,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// mount a placeholder tab in a "Connecting" state. Today only the SSH
     /// path fires this; other protocols still rely solely on
     /// <see cref="SessionReady"/>. The event payload intentionally omits
-    /// <c>ISessionResult</c> because no session exists yet.
+    /// <c>ISessionResult</c> because no session exists yet, but includes the
+    /// linked cancellation source that can abort the in-flight SSH connect.
     /// </summary>
-    public event Action<string, string, string, string, ServerProfileDto, AppSettings>? SessionStarting;
+    public event Action<string, string, string, string, ServerProfileDto, AppSettings, CancellationTokenSource>? SessionStarting;
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
@@ -673,6 +674,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         serverDto.Id = sessionId;
         _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
         var sessionStartFired = false;
+        CancellationTokenSource? sessionStartCts = null;
 
         try
         {
@@ -686,11 +688,12 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                     break;
 
                 case "SSH":
+                    sessionStartCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     sessionStartFired = true;
                     SessionStarting?.Invoke(sessionId, originalId, server.DisplayName,
-                        "SSH", serverDto, settings);
+                        "SSH", serverDto, settings, sessionStartCts);
                     result = await _connectionService.ConnectSshAsync(
-                        serverDto, settings, cancellationToken);
+                        serverDto, settings, sessionStartCts.Token);
                     break;
 
                 case "SFTP":
@@ -785,6 +788,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            sessionStartCts?.Dispose();
             serverDto.Id = originalId;
         }
     }
