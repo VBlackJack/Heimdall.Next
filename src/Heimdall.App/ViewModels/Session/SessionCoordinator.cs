@@ -64,6 +64,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     private readonly IPostConnectSequenceRunner _postConnectSequenceRunner;
     private readonly IPostConnectStepResolver _postConnectStepResolver;
     private readonly IUiDispatcher _uiDispatcher;
+    private readonly Dictionary<string, ConnectingSessionCancellation> _connectingCancellations = [];
     private bool _disposed;
 
     /// <summary>
@@ -252,7 +253,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         string displayName,
         string connectionType,
         ServerProfileDto server,
-        AppSettings settings)
+        AppSettings settings,
+        CancellationTokenSource cancellationSource)
     {
         if (!string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase))
         {
@@ -262,7 +264,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         if (!_uiDispatcher.CheckAccess())
         {
             InvokeOnUi(() => OnSessionStarting(
-                sessionId, originalServerId, displayName, connectionType, server, settings));
+                sessionId, originalServerId, displayName, connectionType, server, settings, cancellationSource));
             return;
         }
 
@@ -277,6 +279,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
         tab.OriginalServerId = originalServerId;
         tab.FailureDetails = null;
+        TrackConnectingCancellation(sessionId, tab, cancellationSource);
         tab.HostControl = _embeddedSessionManager.CreateConnectingSshHostControl(
             tab, displayName, server, settings);
     }
@@ -292,6 +295,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             InvokeOnUi(() => OnSessionStartFailed(sessionId));
             return;
         }
+
+        ReleaseConnectingCancellation(sessionId);
 
         var tab = _main.Connection.ActiveSessions.FirstOrDefault(
             t => string.Equals(t.ServerId, sessionId, StringComparison.Ordinal));
@@ -336,6 +341,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             {
                 existingTab.OriginalServerId = originalServerId;
                 existingTab.FailureDetails = null;
+                ReleaseConnectingCancellation(sessionId);
                 _embeddedSessionManager.AttachSshSession(existingTab, session, _main.CurrentSettings);
                 existingTab.Status = _localizer["StatusConnected"];
                 CompleteReadySession(existingTab, sessionId, originalServerId, displayName, connectionType, session);
@@ -644,6 +650,36 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _uiDispatcher.Invoke(action);
     }
 
+    private void TrackConnectingCancellation(
+        string sessionId,
+        SessionTabViewModel tab,
+        CancellationTokenSource cancellationSource)
+    {
+        ReleaseConnectingCancellation(sessionId);
+
+        var tabCloseToken = _main.Split.GetSessionToken(tab);
+        var registration = tabCloseToken.CanBeCanceled
+            ? tabCloseToken.Register(static state =>
+            {
+                var source = (CancellationTokenSource)state!;
+                try { source.Cancel(); }
+                catch (ObjectDisposedException) { }
+            }, cancellationSource)
+            : default;
+
+        _connectingCancellations[sessionId] = new ConnectingSessionCancellation(
+            cancellationSource,
+            registration);
+    }
+
+    private void ReleaseConnectingCancellation(string sessionId)
+    {
+        if (_connectingCancellations.Remove(sessionId, out var cancellation))
+        {
+            cancellation.Dispose();
+        }
+    }
+
     // ── IDisposable ──────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -656,10 +692,28 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _main.ServerList.SessionStartFailed -= OnSessionStartFailed;
         _main.ServerList.SessionReady -= OnSessionReady;
         _main.ServerList.SessionFailed -= OnSessionFailed;
+
+        foreach (var cancellation in _connectingCancellations.Values)
+        {
+            cancellation.Dispose();
+        }
+        _connectingCancellations.Clear();
+
         // The 8 provider/callback wire-ups on Split + EmbeddedSessionManager
         // + ConnectionService are owned by external services and are left
         // in place on shutdown — clearing them could break other teardown
         // paths that still reference them. No harm in leaving the delegate
         // references since the owning services are themselves disposed.
+    }
+
+    private sealed class ConnectingSessionCancellation(
+        CancellationTokenSource source,
+        CancellationTokenRegistration tabCloseRegistration) : IDisposable
+    {
+        public void Dispose()
+        {
+            tabCloseRegistration.Dispose();
+            source.Dispose();
+        }
     }
 }
