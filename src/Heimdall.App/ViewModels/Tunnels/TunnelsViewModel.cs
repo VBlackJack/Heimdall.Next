@@ -253,10 +253,13 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     {
         RefreshList();
 
+        var status = _localizer.Format("StatusTunnelClosed", localPort);
         if (!string.IsNullOrEmpty(error))
         {
-            _main.StatusText = _localizer.Format("StatusTunnelClosed", localPort) + $" ({error})";
+            status += $" ({error})";
         }
+
+        _main.StatusText = status;
     }
 
     private void OnLocaleChanged(string _)
