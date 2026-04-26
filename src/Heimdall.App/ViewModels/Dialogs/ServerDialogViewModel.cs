@@ -224,9 +224,28 @@ public partial class ServerDialogViewModel : ObservableValidator
     public bool HasSshKeyPath => !string.IsNullOrWhiteSpace(SshKeyPath);
 
     /// <summary>
-    /// Returns the hint for the SSH password field.
+    /// Returns the hint that describes which SSH authentication method will be
+    /// attempted, based on the current state of the SSH credential fields.
+    /// Order of precedence matches <see cref="Heimdall.App.Services.Handlers.SshHandler"/>:
+    /// key path takes priority, then password (typed or preserved encrypted),
+    /// then SSH agent fallback.
     /// </summary>
-    public string SshAuthHint => L("ServerDialogSshAuthHintPassword");
+    public string SshAuthHint
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(SshKeyPath))
+            {
+                return L("ServerDialogSshAuthHintKey");
+            }
+            if (!string.IsNullOrEmpty(SshPassword)
+                || !string.IsNullOrEmpty(ExistingSshPasswordEncrypted))
+            {
+                return L("ServerDialogSshAuthHintPassword");
+            }
+            return L("ServerDialogSshAuthHintAgent");
+        }
+    }
 
     /// <summary>
     /// Returns the hint for the SSH key passphrase field.
@@ -236,11 +255,17 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnSshKeyPathChanged(string value)
     {
         OnPropertyChanged(nameof(HasSshKeyPath));
+        OnPropertyChanged(nameof(SshAuthHint));
         if (string.IsNullOrWhiteSpace(value))
         {
             SshKeyPassphrase = "";
             ExistingSshKeyPassphraseEncrypted = null;
         }
+    }
+
+    partial void OnSshPasswordChanged(string value)
+    {
+        OnPropertyChanged(nameof(SshAuthHint));
     }
 
     // --- Local Shell settings ---
