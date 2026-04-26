@@ -2360,6 +2360,8 @@
 
   "SshDisconnectedMessage": "Session disconnected unexpectedly.",
   "SshTerminalDisconnectMarker": "[Session ended: {0}]",
+  "SshConnectingTitle": "Connecting…",
+  "SshConnectingTitleWithName": "Connecting to {0}…",
   "BtnCloseOverlay": "Dismiss",
 
   "NetworkScannerTitle": "Network Scanner",
