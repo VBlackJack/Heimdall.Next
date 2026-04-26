@@ -22,6 +22,7 @@ namespace Heimdall.Core.Ssh;
 public enum HostKeyDecision
 {
     Accept,
+    TrustOnce,
     Reject
 }
 

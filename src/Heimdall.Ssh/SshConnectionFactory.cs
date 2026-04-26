@@ -341,6 +341,17 @@ public static class SshConnectionFactory
             return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
         }
 
+        if (decision == HostKeyDecision.TrustOnce)
+        {
+            trustService.TrustForSession(
+                verificationHost,
+                verificationPort,
+                result.Fingerprint,
+                presentation.Algorithm,
+                Convert.ToBase64String(presentation.HostKey));
+            return new PinnedFingerprintVerifier(verificationHost, verificationPort, result.Fingerprint);
+        }
+
         throw new HostKeyRejectedException(
             verificationHost,
             verificationPort,

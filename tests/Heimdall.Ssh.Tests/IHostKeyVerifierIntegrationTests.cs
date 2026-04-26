@@ -100,6 +100,29 @@ public sealed class IHostKeyVerifierIntegrationTests
     }
 
     [Fact]
+    public async Task FirstUseTrustOnce_ReturnsPinnedVerifier_WithoutPersisting()
+    {
+        var store = new HostKeyStore();
+        var verifier = new FixedDecisionVerifier(HostKeyDecision.TrustOnce);
+        var eventRaised = false;
+        store.HostKeyEvent += (_, _, _) => eventRaised = true;
+
+        var pinned = await ResolvePresentationAsync(store, verifier, FirstKey);
+        var fingerprint = HostKeyStore.ComputeFingerprint(FirstKey);
+
+        Assert.True(pinned.Matches(Host, Port, fingerprint));
+        Assert.Null(store.GetFingerprint(Host, Port));
+        Assert.False(eventRaised);
+        Assert.Equal(1, verifier.CallCount);
+
+        var rejectingVerifier = new FixedDecisionVerifier(HostKeyDecision.Reject);
+        var secondPinned = await ResolvePresentationAsync(store, rejectingVerifier, FirstKey);
+
+        Assert.True(secondPinned.Matches(Host, Port, fingerprint));
+        Assert.Equal(0, rejectingVerifier.CallCount);
+    }
+
+    [Fact]
     public async Task MismatchAccept_OverwritesStoredFingerprint_AndReturnsNewPin()
     {
         var store = new HostKeyStore();
@@ -113,6 +136,30 @@ public sealed class IHostKeyVerifierIntegrationTests
         Assert.NotNull(verifier.LastStoredFingerprint);
         Assert.Equal(HostKeyStore.ComputeFingerprint(DifferentKey), storedFingerprint);
         Assert.True(pinned.Matches(Host, Port, storedFingerprint!));
+    }
+
+    [Fact]
+    public async Task MismatchTrustOnce_PreservesStoredFingerprint_AndReturnsNewPin()
+    {
+        var store = new HostKeyStore();
+        var originalFingerprint = HostKeyStore.ComputeFingerprint(FirstKey);
+        var replacementFingerprint = HostKeyStore.ComputeFingerprint(DifferentKey);
+        store.Trust(Host, Port, originalFingerprint);
+        var verifier = new FixedDecisionVerifier(HostKeyDecision.TrustOnce);
+
+        var pinned = await ResolvePresentationAsync(store, verifier, DifferentKey);
+
+        Assert.Equal(1, verifier.CallCount);
+        Assert.Equal(originalFingerprint, verifier.LastStoredFingerprint);
+        Assert.Equal(originalFingerprint, store.GetFingerprint(Host, Port));
+        Assert.True(pinned.Matches(Host, Port, replacementFingerprint));
+
+        var rejectingVerifier = new FixedDecisionVerifier(HostKeyDecision.Reject);
+        var secondPinned = await ResolvePresentationAsync(store, rejectingVerifier, DifferentKey);
+
+        Assert.True(secondPinned.Matches(Host, Port, replacementFingerprint));
+        Assert.Equal(0, rejectingVerifier.CallCount);
+        Assert.Equal(originalFingerprint, store.GetFingerprint(Host, Port));
     }
 
     [Fact]

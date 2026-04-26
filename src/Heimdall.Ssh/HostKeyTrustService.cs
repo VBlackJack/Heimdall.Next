@@ -32,6 +32,9 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
     public HostKeyEntry? GetEntry(string host, int port)
         => TryFindStoredEntry(host, port, out _, out var entry) ? entry : null;
 
+    public HostKeyEntry? GetEffectiveEntry(string host, int port)
+        => _store.GetSessionEntry(host, port) ?? GetEntry(host, port);
+
     private bool TryFindStoredEntry(
         string host,
         int port,
@@ -83,8 +86,28 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(presentedFingerprint);
 
+        var sessionEntry = _store.GetSessionEntry(host, port);
+        if (sessionEntry is not null
+            && string.Equals(sessionEntry.Fingerprint, presentedFingerprint, StringComparison.Ordinal))
+        {
+            return new HostKeyVerifyResult(
+                Trusted: true,
+                FirstUse: false,
+                presentedFingerprint,
+                sessionEntry.Fingerprint);
+        }
+
         if (!TryFindStoredEntry(host, port, out var hostPort, out var existing))
         {
+            if (sessionEntry is not null)
+            {
+                return new HostKeyVerifyResult(
+                    Trusted: false,
+                    FirstUse: false,
+                    presentedFingerprint,
+                    sessionEntry.Fingerprint);
+            }
+
             return new HostKeyVerifyResult(
                 Trusted: true,
                 FirstUse: true,
@@ -116,6 +139,24 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
             FirstUse: false,
             presentedFingerprint,
             existing.Fingerprint);
+    }
+
+    public void TrustForSession(
+        string host,
+        int port,
+        string fingerprint,
+        string algorithm,
+        string? publicKeyBase64 = null)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(fingerprint);
+
+        _store.TrustForSession(
+            host,
+            port,
+            fingerprint,
+            NormalizeAlgorithm(algorithm),
+            publicKeyBase64);
     }
 
     public void Trust(

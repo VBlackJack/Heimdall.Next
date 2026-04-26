@@ -20,11 +20,15 @@ public interface IHostKeyTrustService
 {
     HostKeyEntry? GetEntry(string host, int port);
 
+    HostKeyEntry? GetEffectiveEntry(string host, int port);
+
     IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries();
 
     HostKeyVerifyResult Verify(string host, int port, string presentedFingerprint, string algorithm);
 
     void Trust(string host, int port, string fingerprint, string algorithm, HostKeySource source, string? publicKeyBase64 = null);
+
+    void TrustForSession(string host, int port, string fingerprint, string algorithm, string? publicKeyBase64 = null);
 
     void Import(string host, int port, string fingerprint, string algorithm, DateTimeOffset importedAt, string? publicKeyBase64 = null);
 
