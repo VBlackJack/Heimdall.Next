@@ -24,6 +24,7 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
+                        Content="Disconnect"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
@@ -32,6 +33,7 @@
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
+                        Content="Reconnect"
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
@@ -73,7 +75,7 @@
                         Margin="4,0"
                         VerticalAlignment="Center"
                         Visibility="Collapsed">
-                    <TextBlock x:Name="AdminBadgeText" Text=""
+                    <TextBlock x:Name="AdminBadgeText" Text="ADMIN"
                                FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="Bold"
                                Foreground="{DynamicResource BadgeTextBrush}"/>
                 </Border>
@@ -88,6 +90,7 @@
                         Margin="8,0,0,0"
                         VerticalAlignment="Center">
                     <TextBlock x:Name="BroadcastBadgeText"
+                               Text="BROADCAST"
                                FontSize="{StaticResource FontSizeSmallCaption}"
                                FontWeight="Bold"
                                Foreground="{DynamicResource ErrorTextBrush}"/>
@@ -180,6 +183,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="400">
                             <TextBlock x:Name="ReconnectMessageText"
+                                       Text="Session disconnected unexpectedly."
                                        FontSize="{StaticResource FontSizeSubtitle}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"
@@ -189,12 +193,14 @@
                                         HorizontalAlignment="Center"
                                         Margin="0,16,0,0">
                                 <Button x:Name="OverlayReconnectButton"
+                                        Content="Reconnect"
                                         Click="OnOverlayReconnectClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="16,6"
                                         FontSize="{StaticResource FontSizeBodyLarge}"
                                         Margin="0,0,8,0"/>
                                 <Button x:Name="OverlayCloseButton"
+                                        Content="Dismiss"
                                         Click="OnOverlayCloseClick"
                                         Style="{DynamicResource SecondaryButtonStyle}"
                                         Padding="16,6"
