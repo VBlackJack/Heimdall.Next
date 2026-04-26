@@ -122,18 +122,6 @@
             </DockPanel>
         </Border>
 
-        <!-- Connection progress indicator -->
-        <ProgressBar x:Name="SshLoadingBar"
-                     Grid.Row="1"
-                     VerticalAlignment="Top"
-                     Panel.ZIndex="1"
-                     Height="2"
-                     IsIndeterminate="True"
-                     Foreground="{DynamicResource AccentBrush}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     IsHitTestVisible="False"/>
-
         <!-- Terminal + Health panel container -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -207,6 +195,37 @@
                                         FontSize="{StaticResource FontSizeBodyLarge}"
                                         Margin="8,0,0,0"/>
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Initial connect overlay (visible until xterm.js signals ready) -->
+                    <Border x:Name="ConnectingOverlay"
+                            Style="{StaticResource FadeInPanelStyle}"
+                            Background="{DynamicResource OverlayBackground}"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="400">
+                            <TextBlock x:Name="ConnectingTitleText"
+                                       Text="Connecting…"
+                                       FontSize="{StaticResource FontSizeSubtitle}"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="ConnectingEndpointText"
+                                       Margin="0,8,0,0"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <ProgressBar IsIndeterminate="True"
+                                         Height="2"
+                                         Width="220"
+                                         Margin="0,16,0,0"
+                                         Foreground="{DynamicResource AccentBrush}"
+                                         Background="Transparent"
+                                         BorderThickness="0"/>
                         </StackPanel>
                     </Border>
                 </Grid>

@@ -275,6 +275,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         LocalizeButtons();
         SessionTitleText.Text = displayName;
         EndpointTextBlock.Text = endpoint;
+        UpdateConnectingOverlay(displayName, endpoint);
         UpdateStatus("Connected");
 
         _session.DataReceived += OnDataReceived;
@@ -306,7 +307,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         LocalizeButtons();
         SessionTitleText.Text = displayName;
-        EndpointTextBlock.Text = L("SshEndpointViaPlink");
+        var endpoint = L("SshEndpointViaPlink");
+        EndpointTextBlock.Text = endpoint;
+        UpdateConnectingOverlay(displayName, endpoint);
         UpdateStatus("Connected");
 
         _terminalDataHandler = OnTerminalDataReceived;
@@ -609,6 +612,31 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ReconnectOverlay.Visibility = Visibility.Collapsed;
     }
 
+    private void HideConnectingOverlay()
+    {
+        if (_disposed) return;
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(HideConnectingOverlay);
+            return;
+        }
+
+        ConnectingOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void UpdateConnectingOverlay(string displayName, string? endpoint)
+    {
+        if (_disposed) return;
+
+        ConnectingTitleText.Text = string.IsNullOrWhiteSpace(displayName)
+            ? L("SshConnectingTitle")
+            : string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                L("SshConnectingTitleWithName"), displayName);
+
+        ConnectingEndpointText.Text = endpoint ?? string.Empty;
+    }
+
     private async Task InitializeWebView2Async()
     {
         if (_disposed || _webViewInitializationStarted)
@@ -746,6 +774,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             FlushPendingTerminalMessages();
             ApplyInitialTerminalFocus();
+            HideConnectingOverlay();
             return;
         }
 
@@ -1390,6 +1419,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        HideConnectingOverlay();
         _webViewUnavailable = true;
         _terminalReady = false;
 
@@ -1491,9 +1521,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _ => status
         };
         StatusTextBlock.Text = displayText;
-
-        var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
-        SshLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
 
         var isDisconnected = string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase)
             || string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase);
