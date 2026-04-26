@@ -126,6 +126,14 @@ public partial class SettingsViewModel : ObservableValidator
     private int _sshTmoutResetInterval = 240;
 
     [ObservableProperty]
+    private bool _sshAutoReconnect;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 10, ErrorMessage = "SSH auto-reconnect attempts must be between 1 and 10.")]
+    private int _sshAutoReconnectAttempts = 3;
+
+    [ObservableProperty]
     private bool _sftpAutoOpenOnSsh = true;
 
     [ObservableProperty]
@@ -418,6 +426,8 @@ public partial class SettingsViewModel : ObservableValidator
         SshAgentPreference = settings.SshAgentPreference.ToString();
         AntiIdleInterval = settings.AntiIdleIntervalSeconds;
         SshTmoutResetInterval = settings.SshTmoutResetIntervalSeconds;
+        SshAutoReconnect = settings.SshAutoReconnect;
+        SshAutoReconnectAttempts = settings.SshAutoReconnectAttempts;
         SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
         X11ServerPath = settings.X11ServerPath ?? "";
         X11AutoStart = settings.X11AutoStart;
@@ -548,6 +558,8 @@ public partial class SettingsViewModel : ObservableValidator
             : SshAgentPreferenceEnum.AutoOpenSshFirst;
         settings.AntiIdleIntervalSeconds = AntiIdleInterval;
         settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
+        settings.SshAutoReconnect = SshAutoReconnect;
+        settings.SshAutoReconnectAttempts = SshAutoReconnectAttempts;
         settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
         settings.X11ServerPath = string.IsNullOrWhiteSpace(X11ServerPath) ? null : X11ServerPath;
         settings.X11AutoStart = X11AutoStart;

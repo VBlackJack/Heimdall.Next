@@ -48,6 +48,8 @@
     "syncKnownHostsAtStartup": false,
     "antiIdleIntervalSeconds": 60,
     "sshTmoutResetIntervalSeconds": 240,
+    "sshAutoReconnect": false,
+    "sshAutoReconnectAttempts": 3,
     "rdpDefaultMode": "Embedded",
     "rdpDefaultRedirectClipboard": true,
     "rdpDefaultRedirectDrives": false,
