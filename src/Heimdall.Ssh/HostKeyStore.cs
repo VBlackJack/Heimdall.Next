@@ -30,6 +30,7 @@ public sealed class HostKeyStore
 {
     private const string UnknownAlgorithm = "unknown";
     private readonly ConcurrentDictionary<string, HostKeyEntry> _trustedKeys = new();
+    private readonly ConcurrentDictionary<string, HostKeyEntry> _sessionTrustedKeys = new();
 
     /// <summary>
     /// Raised whenever a host key is explicitly trusted.
@@ -54,10 +55,26 @@ public sealed class HostKeyStore
         var key = HostKeyFormats.MakeKey(host, port);
         var fingerprint = ComputeFingerprint(hostKey);
 
+        var sessionEntry = GetSessionEntry(host, port);
+        if (sessionEntry is not null
+            && ConstantTimeEquals(sessionEntry.Fingerprint, fingerprint))
+        {
+            return new HostKeyVerifyResult(Trusted: true, FirstUse: false, fingerprint, sessionEntry.Fingerprint);
+        }
+
         if (_trustedKeys.TryGetValue(key, out var stored))
         {
             var match = ConstantTimeEquals(stored.Fingerprint, fingerprint);
             return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored.Fingerprint);
+        }
+
+        if (sessionEntry is not null)
+        {
+            return new HostKeyVerifyResult(
+                Trusted: false,
+                FirstUse: false,
+                fingerprint,
+                sessionEntry.Fingerprint);
         }
 
         // First use: trusted by TOFU policy
@@ -147,6 +164,18 @@ public sealed class HostKeyStore
     }
 
     /// <summary>
+    /// Get the session-only metadata entry for a host, or null if none was
+    /// trusted for this process lifetime.
+    /// </summary>
+    public HostKeyEntry? GetSessionEntry(string host, int port)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        return _sessionTrustedKeys.TryGetValue(HostKeyFormats.MakeKey(host, port), out var entry)
+            ? entry
+            : null;
+    }
+
+    /// <summary>
     /// Manually trust a host key (e.g., after user confirmation dialog).
     /// Trust uses upsert semantics and emits <see cref="HostKeyEvent"/> for persistence.
     /// </summary>
@@ -174,7 +203,33 @@ public sealed class HostKeyStore
             DateTimeOffset.UtcNow,
             string.IsNullOrWhiteSpace(algorithm) ? UnknownAlgorithm : algorithm,
             source);
+        _sessionTrustedKeys.TryRemove(key, out _);
         HostKeyEvent?.Invoke(key, fingerprint, true);
+    }
+
+    /// <summary>
+    /// Trust a host key for the current process only. This does not write to
+    /// persisted trust state and does not emit <see cref="HostKeyEvent"/>.
+    /// </summary>
+    public void TrustForSession(
+        string host,
+        int port,
+        string fingerprint,
+        string algorithm,
+        string? publicKeyBase64 = null)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(fingerprint);
+
+        var now = DateTimeOffset.UtcNow;
+        var key = HostKeyFormats.MakeKey(host, port);
+        _sessionTrustedKeys[key] = new HostKeyEntry(
+            fingerprint,
+            now,
+            now,
+            string.IsNullOrWhiteSpace(algorithm) ? UnknownAlgorithm : algorithm,
+            HostKeySource.UserConfirmed)
+        { PublicKeyBase64 = publicKeyBase64 };
     }
 
     /// <summary>
@@ -188,6 +243,7 @@ public sealed class HostKeyStore
         var normalized = NormalizeEntry(entry);
         var key = HostKeyFormats.MakeKey(host, port);
         _trustedKeys[key] = normalized;
+        _sessionTrustedKeys.TryRemove(key, out _);
         HostKeyEvent?.Invoke(key, normalized.Fingerprint, true);
     }
 
@@ -197,7 +253,9 @@ public sealed class HostKeyStore
     public bool Remove(string host, int port)
     {
         ArgumentNullException.ThrowIfNull(host);
-        return _trustedKeys.TryRemove(HostKeyFormats.MakeKey(host, port), out _);
+        var key = HostKeyFormats.MakeKey(host, port);
+        _sessionTrustedKeys.TryRemove(key, out _);
+        return _trustedKeys.TryRemove(key, out _);
     }
 
     /// <summary>
@@ -236,6 +294,7 @@ public sealed class HostKeyStore
         var normalized = NormalizeEntry(entry);
         var key = hostPort;
         _trustedKeys[key] = normalized;
+        _sessionTrustedKeys.TryRemove(key, out _);
         if (raiseEvent)
         {
             HostKeyEvent?.Invoke(key, normalized.Fingerprint, true);

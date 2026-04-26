@@ -411,7 +411,7 @@ internal sealed class SshHandler : IProtocolHandler
             ? $"{server.SshUsername}@{targetHost}"
             : targetHost;
 
-        var storedFingerprint = _hostKeyTrustService.GetEntry(targetHost, targetPort)?.Fingerprint;
+        var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
         string? hostKeyArg = storedFingerprint;
 
         if (!string.IsNullOrWhiteSpace(storedFingerprint))
@@ -458,6 +458,17 @@ internal sealed class SshHandler : IProtocolHandler
                     hostKeyArg = verifyPresentation.Fingerprint;
                     Core.Logging.FileLogger.Warn(
                         $"User accepted replacement host key for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
+                }
+                else if (decision == HostKeyDecision.TrustOnce)
+                {
+                    _hostKeyTrustService.TrustForSession(
+                        targetHost,
+                        targetPort,
+                        verifyPresentation.Fingerprint,
+                        verifyPresentation.Algorithm);
+                    hostKeyArg = verifyPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Warn(
+                        $"User trusted replacement host key for this session for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
                 }
                 else
                 {
@@ -510,6 +521,17 @@ internal sealed class SshHandler : IProtocolHandler
                     hostKeyArg = probedPresentation.Fingerprint;
                     Core.Logging.FileLogger.Info(
                         $"User trusted Plink host key for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");
+                }
+                else if (decision == HostKeyDecision.TrustOnce)
+                {
+                    _hostKeyTrustService.TrustForSession(
+                        targetHost,
+                        targetPort,
+                        probedPresentation.Fingerprint,
+                        probedPresentation.Algorithm);
+                    hostKeyArg = probedPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Info(
+                        $"User trusted Plink host key for this session for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");
                 }
                 else
                 {

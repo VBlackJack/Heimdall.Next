@@ -17,6 +17,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Ssh;
 
 namespace Heimdall.App.ViewModels.Dialogs;
@@ -65,7 +66,13 @@ public partial class HostKeyPromptDialogViewModel(
     public string AcceptButtonText => _localizer[
         IsMismatch ? "HostKeyAcceptDestructiveButton" : "HostKeyAcceptButton"];
 
+    public string TrustOnceButtonText => _localizer["HostKeyTrustOnceButton"];
+
     public string RejectButtonText => _localizer["HostKeyRejectButton"];
+
+    public bool TrustOnceIsDefault => IsMismatch;
+
+    public bool AcceptIsDefault => !TrustOnceIsDefault;
 
     public HostKeyDecision? Decision { get; private set; }
 
@@ -79,9 +86,29 @@ public partial class HostKeyPromptDialogViewModel(
     }
 
     [RelayCommand]
+    private void TrustOnce()
+    {
+        Decision = HostKeyDecision.TrustOnce;
+        CloseRequested?.Invoke(true);
+    }
+
+    [RelayCommand]
     private void Reject()
     {
         Decision = HostKeyDecision.Reject;
         CloseRequested?.Invoke(false);
+    }
+
+    [RelayCommand]
+    private void CopyFingerprint()
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(PresentedFingerprint);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[HostKeyPrompt] clipboard copy failed: {ex.Message}");
+        }
     }
 }

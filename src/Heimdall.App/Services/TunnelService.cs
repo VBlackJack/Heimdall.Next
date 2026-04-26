@@ -277,7 +277,7 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
-        var storedFingerprint = _hostKeyTrustService.GetEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
+        var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
         string? fingerprint = storedFingerprint;
 
         if (!string.IsNullOrWhiteSpace(storedFingerprint))
@@ -317,6 +317,17 @@ public sealed class TunnelService : ITunnelService
                     fingerprint = verifyPresentation.Fingerprint;
                     Core.Logging.FileLogger.Warn(
                         $"User accepted replacement tunnel host key for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
+                }
+                else if (decision == HostKeyDecision.TrustOnce)
+                {
+                    _hostKeyTrustService.TrustForSession(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        verifyPresentation.Fingerprint,
+                        verifyPresentation.Algorithm);
+                    fingerprint = verifyPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Warn(
+                        $"User trusted replacement tunnel host key for this session for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
                 }
                 else
                 {
@@ -361,6 +372,17 @@ public sealed class TunnelService : ITunnelService
                     fingerprint = probedPresentation.Fingerprint;
                     Core.Logging.FileLogger.Info(
                         $"User trusted tunnel host key for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");
+                }
+                else if (decision == HostKeyDecision.TrustOnce)
+                {
+                    _hostKeyTrustService.TrustForSession(
+                        gatewayParams.Host,
+                        gatewayParams.Port,
+                        probedPresentation.Fingerprint,
+                        probedPresentation.Algorithm);
+                    fingerprint = probedPresentation.Fingerprint;
+                    Core.Logging.FileLogger.Info(
+                        $"User trusted tunnel host key for this session for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");
                 }
                 else
                 {

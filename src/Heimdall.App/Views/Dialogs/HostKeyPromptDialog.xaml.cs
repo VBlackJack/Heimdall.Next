@@ -47,7 +47,14 @@ public partial class HostKeyPromptDialog : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyAutomationNames();
-        RejectButton.Focus();
+        if (_viewModel?.TrustOnceIsDefault == true)
+        {
+            TrustOnceButton.Focus();
+        }
+        else
+        {
+            AcceptButton.Focus();
+        }
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -84,8 +91,14 @@ public partial class HostKeyPromptDialog : Window
             RejectButton,
             localizer?["HostKeyRejectButton"] ?? vm.RejectButtonText);
         AutomationProperties.SetName(
+            TrustOnceButton,
+            vm.TrustOnceButtonText);
+        AutomationProperties.SetName(
             AcceptButton,
             vm.AcceptButtonText);
+        AutomationProperties.SetName(
+            CopyFingerprintButton,
+            localizer?["HostKeyCopyFingerprintButton"] ?? "Copy");
         AutomationProperties.SetName(
             PresentedFingerprintBox,
             localizer?["HostKeyPresentedFingerprintLabel"] ?? "Presented fingerprint");

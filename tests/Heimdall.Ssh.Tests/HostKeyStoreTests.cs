@@ -68,6 +68,39 @@ public class HostKeyStoreTests
     }
 
     [Fact]
+    public void Verify_SessionTrustedHost_MatchingKey_ReturnsTrustedWithoutPersisting()
+    {
+        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        var eventRaised = false;
+        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
+
+        _store.TrustForSession("server.example.com", 22, fingerprint, "ssh-ed25519");
+
+        var result = _store.Verify("server.example.com", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.False(result.FirstUse);
+        Assert.Equal(fingerprint, result.StoredFingerprint);
+        Assert.Null(_store.GetFingerprint("server.example.com", 22));
+        Assert.Empty(_store.GetAllTrusted());
+        Assert.False(eventRaised);
+    }
+
+    [Fact]
+    public void Verify_SessionTrustedHost_DoesNotSurviveFreshStore()
+    {
+        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        _store.TrustForSession("server.example.com", 22, fingerprint, "ssh-ed25519");
+
+        var freshStore = new HostKeyStore();
+        var result = freshStore.Verify("server.example.com", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.True(result.FirstUse);
+        Assert.Null(result.StoredFingerprint);
+    }
+
+    [Fact]
     public void Verify_DifferentPorts_AreSeparateEntries()
     {
         var fp22 = HostKeyStore.ComputeFingerprint(_sampleKey);

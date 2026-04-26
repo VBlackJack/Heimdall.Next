@@ -43,8 +43,19 @@
             <Style x:Key="AcceptButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsMismatch}" Value="True">
-                        <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
+                        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="TrustOnceButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding TrustOnceIsDefault}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -140,9 +151,26 @@
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            Text="{Binding Algorithm}"/>
 
-                <TextBlock Grid.Row="2"
-                           Style="{StaticResource DialogLabelStyle}"
-                           Text="{loc:Translate HostKeyPresentedFingerprintLabel}"/>
+                <Grid Grid.Row="2"
+                      Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource DialogLabelStyle}"
+                               Text="{loc:Translate HostKeyPresentedFingerprintLabel}"/>
+                    <Button x:Name="CopyFingerprintButton"
+                            Grid.Column="1"
+                            Content="{loc:Translate HostKeyCopyFingerprintButton}"
+                            Command="{Binding CopyFingerprintCommand}"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="6,2"
+                            MinHeight="0"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            ToolTip="{loc:Translate HostKeyCopyFingerprintTooltip}"
+                            AutomationProperties.Name="{loc:Translate HostKeyCopyFingerprintButton}"/>
+                </Grid>
                 <TextBox x:Name="PresentedFingerprintBox"
                          Grid.Row="3"
                          Margin="0,0,0,12"
@@ -178,8 +206,17 @@
                     Command="{Binding RejectCommand}"
                     Style="{StaticResource SecondaryButtonStyle}"
                     AutomationProperties.Name="{loc:Translate HostKeyRejectButton}"/>
+            <Button x:Name="TrustOnceButton"
+                    Margin="0,0,8,0"
+                    MinWidth="172"
+                    IsDefault="{Binding TrustOnceIsDefault}"
+                    Content="{Binding TrustOnceButtonText}"
+                    Command="{Binding TrustOnceCommand}"
+                    Style="{StaticResource TrustOnceButtonStyle}"
+                    AutomationProperties.Name="{Binding TrustOnceButtonText}"/>
             <Button x:Name="AcceptButton"
                     MinWidth="184"
+                    IsDefault="{Binding AcceptIsDefault}"
                     Content="{Binding AcceptButtonText}"
                     Command="{Binding AcceptCommand}"
                     Style="{StaticResource AcceptButtonStyle}"
