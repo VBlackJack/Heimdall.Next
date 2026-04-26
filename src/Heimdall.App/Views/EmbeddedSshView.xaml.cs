@@ -201,6 +201,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _sleepPreventionActive;
     private bool _userInitiatedDisconnect;
     private bool _isRecording;
+    private bool _localeChangeSubscribed;
 
     /// <summary>Localizer for translating user-facing strings. Set by EmbeddedSessionManager.</summary>
     public Core.Localization.LocalizationManager? Localizer
@@ -336,6 +337,12 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         IsVisibleChanged -= OnVisibilityChanged;
 
         _terminalReady = false;
+
+        if (_localeChangeSubscribed && _localizer is not null)
+        {
+            _localizer.LocaleChanged -= OnLocaleChanged;
+            _localeChangeSubscribed = false;
+        }
 
         if (_webViewInitialized && TryGetCoreWebView2(out var core, allowDuringDispose: true))
         {
@@ -1158,6 +1165,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private void LocalizeButtons()
     {
         if (_localizer is null) return;
+
+        if (!_localeChangeSubscribed)
+        {
+            _localizer.LocaleChanged += OnLocaleChanged;
+            _localeChangeSubscribed = true;
+        }
+
         DisconnectButton.Content = L("BtnDisconnectSession");
         ReconnectButton.Content = L("BtnReconnectSession");
         FallbackTitleText.Text = L("EmbeddedSshFallbackTitle");
@@ -1184,6 +1198,24 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
         System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, L("A11yCloseOverlay"));
         System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
+    }
+
+    private void OnLocaleChanged(string locale)
+    {
+        if (_disposed) return;
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() => OnLocaleChanged(locale));
+            return;
+        }
+
+        LocalizeButtons();
+
+        if (_healthPanelVisible)
+        {
+            LocalizeHealthLabels();
+        }
     }
 
     /// <summary>Show/hide the shield button for launching an elevated shell.</summary>
