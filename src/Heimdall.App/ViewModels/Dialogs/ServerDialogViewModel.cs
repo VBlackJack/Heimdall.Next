@@ -35,6 +35,14 @@ public enum SshAgentChipState
     Ok
 }
 
+public enum SshTestChipState
+{
+    Hidden,
+    InProgress,
+    Success,
+    Failure
+}
+
 /// <summary>
 /// ViewModel for the redesigned server add/edit dialog.
 /// Keeps the persisted DTO model intact while exposing UX-friendly
@@ -244,6 +252,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _agentChipText = "";
 
     [ObservableProperty]
+    private SshTestChipState _testChipState = SshTestChipState.Hidden;
+
+    [ObservableProperty]
+    private string _testChipText = "";
+
+    [ObservableProperty]
     private string _postConnectCommand = "";
 
     [ObservableProperty]
@@ -287,6 +301,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         OnPropertyChanged(nameof(HasSshKeyPath));
         OnPropertyChanged(nameof(SshAuthHint));
+        ResetTestChip();
         if (string.IsNullOrWhiteSpace(value))
         {
             SshKeyPassphrase = "";
@@ -297,7 +312,123 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnSshPasswordChanged(string value)
     {
         OnPropertyChanged(nameof(SshAuthHint));
+        ResetTestChip();
     }
+
+    [RelayCommand(CanExecute = nameof(CanTestSshConnection))]
+    private async Task TestSshConnectionAsync(CancellationToken ct)
+    {
+        TestChipState = SshTestChipState.InProgress;
+        TestChipText = L("ServerDialogTestChipInProgress");
+
+        try
+        {
+            var preflight = Heimdall.Ssh.AuthPreflightChecker.Check(
+                BuildTestConnectionParams(),
+                isTunnelMode: true);
+            if (!preflight.Success)
+            {
+                TestChipState = SshTestChipState.Failure;
+                TestChipText = string.Format(
+                    CultureInfo.CurrentCulture,
+                    L("ServerDialogTestChipFailure"),
+                    ResolvePreflightMessage(preflight));
+                return;
+            }
+
+            var probe = await Heimdall.Ssh.SshConnectionProbe.ProbeAsync(
+                    RemoteServer,
+                    SshPort,
+                    timeoutMs: 5000,
+                    ct)
+                .ConfigureAwait(true);
+
+            if (probe.Success)
+            {
+                TestChipState = SshTestChipState.Success;
+                TestChipText = string.Format(
+                    CultureInfo.CurrentCulture,
+                    L("ServerDialogTestChipSuccess"),
+                    probe.Banner ?? "?");
+                return;
+            }
+
+            TestChipState = SshTestChipState.Failure;
+            TestChipText = string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogTestChipFailure"),
+                probe.Message ?? L("ErrorSshTestConnectionFailed"));
+        }
+        catch (OperationCanceledException)
+        {
+            TestChipState = SshTestChipState.Hidden;
+            TestChipText = "";
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[ServerDialog] test connection failed: {ex.Message}");
+            TestChipState = SshTestChipState.Failure;
+            TestChipText = string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogTestChipFailure"),
+                ex.Message);
+        }
+    }
+
+    private bool CanTestSshConnection()
+        => IsSshFamilyConnection
+           && !string.IsNullOrWhiteSpace(RemoteServer)
+           && SshPort is > 0 and <= 65535;
+
+    private Heimdall.Ssh.SshConnectionParams BuildTestConnectionParams()
+    {
+        return new Heimdall.Ssh.SshConnectionParams
+        {
+            Host = RemoteServer,
+            Port = SshPort,
+            Username = string.IsNullOrWhiteSpace(SshUsername) ? "user" : SshUsername,
+            KeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath,
+            Password = !string.IsNullOrEmpty(SshPassword)
+                ? SshPassword
+                : !string.IsNullOrEmpty(ExistingSshPasswordEncrypted)
+                    ? "__preserved__"
+                    : null,
+            KeyPassphrase = !string.IsNullOrEmpty(SshKeyPassphrase)
+                ? SshKeyPassphrase
+                : !string.IsNullOrEmpty(ExistingSshKeyPassphraseEncrypted)
+                    ? "__preserved__"
+                    : null,
+            SshAgentPreference = _sshAgentPreference,
+            AgentForwarding = SshAgentForwarding,
+            Compression = SshCompression,
+            X11Forwarding = SshX11Forwarding,
+            ConnectTimeout = TimeSpan.FromSeconds(5)
+        };
+    }
+
+    private string ResolvePreflightMessage(Heimdall.Ssh.PreflightResult preflight)
+    {
+        var message = preflight.Message ?? L("ErrorSshTestConnectionFailed");
+        if (message.StartsWith("Error", StringComparison.Ordinal) && Localizer is not null)
+        {
+            var resolved = Localizer[message];
+            if (!string.Equals(resolved, message, StringComparison.Ordinal))
+            {
+                return resolved;
+            }
+        }
+
+        return message;
+    }
+
+    private void ResetTestChip()
+    {
+        TestChipState = SshTestChipState.Hidden;
+        TestChipText = "";
+    }
+
+    private void RaiseTestCommandCanExecuteChanged()
+        => TestSshConnectionCommand.NotifyCanExecuteChanged();
 
     [RelayCommand]
     private void RefreshAgentChip()
@@ -1105,6 +1236,8 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         RaiseDerivedStateChanged();
         RefreshAgentChipIfNeeded();
+        ResetTestChip();
+        RaiseTestCommandCanExecuteChanged();
     }
 
     partial void OnDisplayNameChanged(string value)
@@ -1126,6 +1259,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RefreshValidationSummary();
         }
         RaiseDerivedStateChanged();
+        ResetTestChip();
+        RaiseTestCommandCanExecuteChanged();
     }
 
     partial void OnRemotePortChanged(int value)
@@ -1148,6 +1283,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RefreshValidationSummary();
         }
         RaisePortDerivedStateChanged();
+        ResetTestChip();
+        RaiseTestCommandCanExecuteChanged();
     }
 
     partial void OnVncPortChanged(int value)

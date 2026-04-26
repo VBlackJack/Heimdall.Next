@@ -73,6 +73,44 @@
                 </Style.Triggers>
             </Style>
 
+            <Style x:Key="SshTestChipBorderStyle" TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.InProgress}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Success}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Failure}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="SshTestChipIconStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.InProgress}">
+                        <Setter Property="Text" Value="&#x23F3;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Success}">
+                        <Setter Property="Text" Value="&#x2713;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Failure}">
+                        <Setter Property="Text" Value="&#x2715;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="DiagramNodeStyle" TargetType="Border">
                 <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -755,6 +793,34 @@
                         <TextBlock x:Name="DlgSrv_BasicSshAuthHint" Text="{Binding SshAuthHint}"
                                    Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"
                                    TextWrapping="Wrap"/>
+                        <DockPanel Margin="0,8,0,0"
+                                   LastChildFill="False">
+                            <Button DockPanel.Dock="Left"
+                                    MinWidth="120"
+                                    Content="{loc:Translate ServerDialogTestConnectionButton}"
+                                    Command="{Binding TestSshConnectionCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    AutomationProperties.Name="{loc:Translate ServerDialogTestConnectionButton}"/>
+                        </DockPanel>
+                        <Border Margin="0,6,0,0"
+                                CornerRadius="{StaticResource CornerRadiusSm}"
+                                Padding="8,4"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                Style="{StaticResource SshTestChipBorderStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource SshTestChipIconStyle}"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                           Margin="0,0,6,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding TestChipText}"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="500"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </StackPanel>
+                        </Border>
                         <Border x:Name="DlgSrv_SshAgentChip"
                                 Margin="0,8,0,0"
                                 CornerRadius="{StaticResource CornerRadiusSm}"
