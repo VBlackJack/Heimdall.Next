@@ -2369,6 +2369,7 @@
   "WolFailed": "Failed to send Wake-on-LAN packet.",
 
   "SshDisconnectedMessage": "Session disconnected unexpectedly.",
+  "SshTerminalDisconnectMarker": "[Session ended: {0}]",
   "BtnCloseOverlay": "Dismiss",
 
   "NetworkScannerTitle": "Network Scanner",

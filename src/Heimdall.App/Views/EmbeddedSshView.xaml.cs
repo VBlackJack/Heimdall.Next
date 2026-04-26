@@ -883,7 +883,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             if (!string.IsNullOrWhiteSpace(errorMessage))
             {
-                var disconnectText = $"\r\n\x1b[90m[Session disconnected: {errorMessage}]\x1b[0m\r\n";
+                var template = L("SshTerminalDisconnectMarker");
+                var marker = string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                    template, errorMessage);
+                var disconnectText = $"\r\n\x1b[90m{marker}\x1b[0m\r\n";
                 QueueOutput(Encoding.UTF8.GetBytes(disconnectText));
             }
 
