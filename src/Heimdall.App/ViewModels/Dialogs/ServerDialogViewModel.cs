@@ -21,9 +21,19 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
+using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Dialogs;
+
+public enum SshAgentChipState
+{
+    Off,
+    Warn,
+    Ok
+}
 
 /// <summary>
 /// ViewModel for the redesigned server add/edit dialog.
@@ -32,13 +42,26 @@ namespace Heimdall.App.ViewModels.Dialogs;
 /// </summary>
 public partial class ServerDialogViewModel : ObservableValidator
 {
+    private const int AgentIdentityProbeTimeoutMs = 750;
+    private LocalizationManager? _localizer;
     private int _defaultRdpTunnelPort = DefaultPorts.RdpTunnel;
     private int _defaultSshTunnelPort = DefaultPorts.SshTunnel;
+    private SshAgentPreference _sshAgentPreference = SshAgentPreference.AutoOpenSshFirst;
 
     /// <summary>
     /// Localizer for translating validation error messages. Set by the dialog service.
     /// </summary>
-    public LocalizationManager? Localizer { get; set; }
+    public LocalizationManager? Localizer
+    {
+        get => _localizer;
+        set
+        {
+            _localizer = value;
+            OnPropertyChanged(nameof(SshAuthHint));
+            OnPropertyChanged(nameof(SshKeyPassphraseHint));
+            RefreshAgentChipIfNeeded();
+        }
+    }
 
     /// <summary>Application settings for configurable defaults.</summary>
     public AppSettings? Settings
@@ -48,6 +71,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             if (value is null) return;
             _defaultRdpTunnelPort = value.DefaultRdpTunnelPort;
             _defaultSshTunnelPort = value.DefaultSshTunnelPort;
+            _sshAgentPreference = value.SshAgentPreference;
+            RefreshAgentChipIfNeeded();
         }
     }
 
@@ -213,6 +238,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _sshMode = "Embedded";
 
     [ObservableProperty]
+    private SshAgentChipState _agentChipState = SshAgentChipState.Off;
+
+    [ObservableProperty]
+    private string _agentChipText = "";
+
+    [ObservableProperty]
     private string _postConnectCommand = "";
 
     [ObservableProperty]
@@ -266,6 +297,86 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnSshPasswordChanged(string value)
     {
         OnPropertyChanged(nameof(SshAuthHint));
+    }
+
+    [RelayCommand]
+    private void RefreshAgentChip()
+    {
+        if (!IsSshFamilyConnection)
+        {
+            AgentChipState = SshAgentChipState.Off;
+            AgentChipText = "";
+            return;
+        }
+
+        try
+        {
+            var registry = SshAgentRegistry.CreateDefault(_sshAgentPreference);
+            var (state, text) = ProbeAgent(registry);
+            AgentChipState = state;
+            AgentChipText = text;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[ServerDialog] agent chip probe failed: {ex.Message}");
+            AgentChipState = SshAgentChipState.Off;
+            AgentChipText = L("ServerDialogAgentChipOff");
+        }
+    }
+
+    private void RefreshAgentChipIfNeeded()
+    {
+        if (IsSshFamilyConnection)
+        {
+            RefreshAgentChip();
+            return;
+        }
+
+        AgentChipState = SshAgentChipState.Off;
+        AgentChipText = "";
+    }
+
+    private (SshAgentChipState State, string Text) ProbeAgent(SshAgentRegistry registry)
+    {
+        var availableAgents = registry.GetAvailableAgents();
+        if (availableAgents.Count == 0)
+        {
+            return (SshAgentChipState.Off, L("ServerDialogAgentChipOff"));
+        }
+
+        var counts = availableAgents
+            .Select(agent => (agent.Name, KeyCount: SafeGetIdentityCount(agent)))
+            .ToList();
+        var totalKeys = counts.Sum(agent => agent.KeyCount);
+        if (totalKeys == 0)
+        {
+            return (SshAgentChipState.Warn,
+                string.Format(CultureInfo.CurrentCulture, L("ServerDialogAgentChipWarn"), counts[0].Name));
+        }
+
+        var displayAgent = counts.FirstOrDefault(agent => agent.KeyCount > 0).Name ?? counts[0].Name;
+        return (SshAgentChipState.Ok,
+            string.Format(CultureInfo.CurrentCulture, L("ServerDialogAgentChipOk"), displayAgent, totalKeys));
+    }
+
+    private static int SafeGetIdentityCount(ISshAgent agent)
+    {
+        try
+        {
+            var task = Task.Run(() => agent.GetIdentities().Count);
+            if (!task.Wait(TimeSpan.FromMilliseconds(AgentIdentityProbeTimeoutMs)))
+            {
+                FileLogger.Warn($"SSH agent {agent.Name}: identity lookup timed out.");
+                return 0;
+            }
+
+            return task.GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"SSH agent {agent.Name}: identity lookup failed: {ex.GetBaseException().Message}");
+            return 0;
+        }
     }
 
     // --- Local Shell settings ---
@@ -779,16 +890,6 @@ public partial class ServerDialogViewModel : ObservableValidator
     }
 
     /// <summary>
-    /// Opens a file picker for SSH key selection.
-    /// The View layer handles the actual file dialog; this command signals intent.
-    /// </summary>
-    [RelayCommand]
-    private void BrowseSshKey()
-    {
-        // Intentionally empty: the View handles the actual file picker interaction.
-    }
-
-    /// <summary>
     /// Maps the current ViewModel state to a flat DTO for persistence.
     /// </summary>
     public ServerProfileDto ToDto()
@@ -1003,6 +1104,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
 
         RaiseDerivedStateChanged();
+        RefreshAgentChipIfNeeded();
     }
 
     partial void OnDisplayNameChanged(string value)

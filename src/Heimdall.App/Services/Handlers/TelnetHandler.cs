@@ -83,6 +83,9 @@ internal sealed class TelnetHandler : IProtocolHandler
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-        return new ConnectionResult(true, null, new TerminalSessionResult(session));
+        return new ConnectionResult(
+            true,
+            null,
+            new TerminalSessionResult(session, $"{server.RemoteServer}:{port}"));
     }
 }

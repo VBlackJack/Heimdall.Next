@@ -465,10 +465,6 @@ public partial class ServerDialog : Window
         DlgSrv_BasicRdpCredentialsDesc.Text = _localizer["ServerDialogRdpCredentialsDesc"];
         DlgSrv_BasicRdpUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
         DlgSrv_BasicRdpPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
-        DlgSrv_BasicSshCredentialsTitle.Text = _localizer["ServerDialogSshCredentials"];
-        DlgSrv_BasicSshCredentialsDesc.Text = _localizer["ServerDialogSshCredentialsDesc"];
-        DlgSrv_BasicSshUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
-        DlgSrv_BasicSshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
         System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_SshKeyPathBox, DlgSrv_BasicSshKeyLabel);
         DlgSrv_BasicBrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
         // SSH auth hints are bound to computed ViewModel properties.

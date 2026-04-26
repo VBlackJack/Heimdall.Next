@@ -128,7 +128,13 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is TerminalSessionResult termResult)
         {
-            return CreateTerminalSshView(sessionTab, termResult.Session, displayName, sshKeepAliveInterval, settings);
+            return CreateTerminalSshView(
+                sessionTab,
+                termResult.Session,
+                displayName,
+                sshKeepAliveInterval,
+                settings,
+                endpoint: termResult.Endpoint);
         }
 
         if (string.Equals(connectionType, "LOCAL", StringComparison.OrdinalIgnoreCase) &&
@@ -329,7 +335,13 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         if (string.Equals(connectionType, "TELNET", StringComparison.OrdinalIgnoreCase)
             && session is TerminalSessionResult telnetResult)
         {
-            return CreateTerminalSshView(sessionTab, telnetResult.Session, displayName, 0, settings);
+            return CreateTerminalSshView(
+                sessionTab,
+                telnetResult.Session,
+                displayName,
+                0,
+                settings,
+                endpoint: telnetResult.Endpoint);
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
@@ -421,10 +433,11 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         string displayName,
         int keepAliveIntervalSeconds,
         AppSettings? settings = null,
-        bool isElevated = false)
+        bool isElevated = false,
+        string? endpoint = null)
     {
         var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
-        view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds);
+        view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds, endpoint);
         if (isElevated)
         {
             view.SetElevatedIndicator(true);

@@ -42,8 +42,10 @@ public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort =
 /// <summary>Wraps an SSH.NET shell session.</summary>
 public sealed record SshSessionResult(SshShellSession Session) : ISessionResult;
 
-/// <summary>Wraps a terminal session (Plink pipe mode or ConPTY).</summary>
-public sealed record TerminalSessionResult(Heimdall.Terminal.ITerminalSession Session) : ISessionResult;
+/// <summary>Wraps a terminal session (Plink pipe mode, Telnet, or ConPTY).</summary>
+public sealed record TerminalSessionResult(
+    Heimdall.Terminal.ITerminalSession Session,
+    string? Endpoint = null) : ISessionResult;
 
 /// <summary>
 /// Bundles an SFTP browser session with the SSH connection parameters needed for sudo operations.
