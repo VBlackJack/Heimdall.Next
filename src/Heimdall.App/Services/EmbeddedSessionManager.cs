@@ -119,6 +119,9 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is SshSessionResult sshResult)
         {
+            // Legacy SSH materialization path. The normal SSH pipeline now mounts
+            // the view earlier via CreateConnectingSshHostControl and attaches here
+            // only as a defensive fallback if SessionStarting was bypassed.
             return CreateSshView(sessionTab, sshResult.Session, displayName, sshKeepAliveInterval, settings);
         }
 
@@ -330,6 +333,71 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="EmbeddedSshView"/> mounted in the "Connecting"
+    /// state before <c>SshHandler.ConnectAsync</c> has produced a session.
+    /// Use <see cref="AttachSshSession"/> once the session is available.
+    /// </summary>
+    public EmbeddedSshView CreateConnectingSshHostControl(
+        SessionTabViewModel sessionTab,
+        string displayName,
+        ServerProfileDto server,
+        AppSettings? settings = null)
+    {
+        ArgumentNullException.ThrowIfNull(sessionTab);
+        ArgumentNullException.ThrowIfNull(server);
+
+        var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
+        view.InitializeConnecting(sessionTab, displayName, BuildSshEndpointLabel(server));
+
+        WireBroadcast(view);
+        WireSplitRequested(view, sessionTab);
+        WireReconnectRequested(view, sessionTab);
+
+        return view;
+    }
+
+    /// <summary>
+    /// Attaches a freshly-connected SSH session result to a tab whose host
+    /// control was previously created by <see cref="CreateConnectingSshHostControl"/>.
+    /// </summary>
+    public void AttachSshSession(
+        SessionTabViewModel sessionTab,
+        ISessionResult sessionResult,
+        AppSettings? settings = null)
+    {
+        ArgumentNullException.ThrowIfNull(sessionTab);
+        ArgumentNullException.ThrowIfNull(sessionResult);
+
+        if (sessionTab.HostControl is not EmbeddedSshView view)
+        {
+            throw new InvalidOperationException(
+                "AttachSshSession expects the tab's HostControl to be an EmbeddedSshView created by CreateConnectingSshHostControl.");
+        }
+
+        var keepAlive = settings?.SshTmoutResetIntervalSeconds ?? 240;
+        switch (sessionResult)
+        {
+            case SshSessionResult sshResult:
+                view.AttachSession(sshResult.Session, keepAlive);
+                break;
+            case TerminalSessionResult terminalResult:
+                view.AttachTerminalSession(terminalResult.Session, keepAlive);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"AttachSshSession expects an SSH session result, got {sessionResult.GetType().Name}.");
+        }
+    }
+
+    private static string BuildSshEndpointLabel(ServerProfileDto server)
+    {
+        var user = string.IsNullOrWhiteSpace(server.SshUsername) ? "?" : server.SshUsername;
+        var host = string.IsNullOrWhiteSpace(server.RemoteServer) ? "?" : server.RemoteServer;
+        var port = server.SshPort > 0 ? server.SshPort : 22;
+        return $"{user}@{host}:{port}";
     }
 
     private EmbeddedSshView CreateSshView(

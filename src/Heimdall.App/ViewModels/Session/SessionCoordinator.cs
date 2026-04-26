@@ -143,7 +143,9 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         // Wire SSH reconnect: close the old session tab and re-connect from scratch
         _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
 
-        // Subscribe to ServerList.SessionReady to materialize the session tab
+        // Subscribe to ServerList session lifecycle events to materialize session tabs.
+        _main.ServerList.SessionStarting += OnSessionStarting;
+        _main.ServerList.SessionStartFailed += OnSessionStartFailed;
         _main.ServerList.SessionReady += OnSessionReady;
         _main.ServerList.SessionFailed += OnSessionFailed;
     }
@@ -241,6 +243,67 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     // ── Session lifecycle handlers ───────────────────────────────────
 
     /// <summary>
+    /// Handles the SSH-only session-starting event by mounting the tab and
+    /// its embedded terminal view before the SSH connect call completes.
+    /// </summary>
+    private void OnSessionStarting(
+        string sessionId,
+        string originalServerId,
+        string displayName,
+        string connectionType,
+        ServerProfileDto server,
+        AppSettings settings)
+    {
+        if (!string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!_uiDispatcher.CheckAccess())
+        {
+            InvokeOnUi(() => OnSessionStarting(
+                sessionId, originalServerId, displayName, connectionType, server, settings));
+            return;
+        }
+
+        var existingTab = _main.Connection.ActiveSessions.FirstOrDefault(
+            t => string.Equals(t.ServerId, sessionId, StringComparison.Ordinal));
+        if (existingTab is not null)
+        {
+            FileLogger.Warn($"SessionStarting ignored duplicate SSH tab for sessionId={sessionId}.");
+            return;
+        }
+
+        var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
+        tab.OriginalServerId = originalServerId;
+        tab.FailureDetails = null;
+        tab.HostControl = _embeddedSessionManager.CreateConnectingSshHostControl(
+            tab, displayName, server, settings);
+    }
+
+    /// <summary>
+    /// Removes the SSH placeholder tab if the connect attempt fails before
+    /// SessionReady can attach the real session.
+    /// </summary>
+    private void OnSessionStartFailed(string sessionId)
+    {
+        if (!_uiDispatcher.CheckAccess())
+        {
+            InvokeOnUi(() => OnSessionStartFailed(sessionId));
+            return;
+        }
+
+        var tab = _main.Connection.ActiveSessions.FirstOrDefault(
+            t => string.Equals(t.ServerId, sessionId, StringComparison.Ordinal));
+        if (tab is null)
+        {
+            return;
+        }
+
+        _main.Connection.CloseSessionCommand.Execute(tab);
+    }
+
+    /// <summary>
     /// Handles the session-ready event from <see cref="ServerListViewModel"/>
     /// by creating a session tab in <see cref="ConnectionViewModel"/>,
     /// recording the connect in the history log, resolving the tunnel
@@ -250,12 +313,37 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     /// </summary>
     private void OnSessionReady(string sessionId, string originalServerId, string displayName, string connectionType, ISessionResult? session)
     {
+        if (!_uiDispatcher.CheckAccess())
+        {
+            InvokeOnUi(() => OnSessionReady(sessionId, originalServerId, displayName, connectionType, session));
+            return;
+        }
+
         ConnectionHistory.RecordConnect(originalServerId, displayName, connectionType);
 
         if (session is null)
         {
             _main.StatusText = _localizer.Format("StatusConnected", displayName);
             return;
+        }
+
+        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+            && session is SshSessionResult or TerminalSessionResult)
+        {
+            var existingTab = _main.Connection.ActiveSessions.FirstOrDefault(
+                t => string.Equals(t.ServerId, sessionId, StringComparison.Ordinal));
+            if (existingTab is not null)
+            {
+                existingTab.OriginalServerId = originalServerId;
+                existingTab.FailureDetails = null;
+                _embeddedSessionManager.AttachSshSession(existingTab, session, _main.CurrentSettings);
+                existingTab.Status = _localizer["StatusConnected"];
+                CompleteReadySession(existingTab, sessionId, originalServerId, displayName, connectionType, session);
+                return;
+            }
+
+            FileLogger.Warn(
+                $"SessionReady for SSH sessionId={sessionId} had no pre-mounted tab; falling back to legacy materialization.");
         }
 
         var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
@@ -275,6 +363,17 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             ? _localizer["StatusConnectingProgress"]
             : _localizer["StatusConnected"];
 
+        CompleteReadySession(tab, sessionId, originalServerId, displayName, connectionType, session);
+    }
+
+    private void CompleteReadySession(
+        SessionTabViewModel tab,
+        string sessionId,
+        string originalServerId,
+        string displayName,
+        string connectionType,
+        ISessionResult session)
+    {
         // Resolve tunnel chain route for visual display in session header
         // (uses sessionId - correct for state machine lookup)
         tab.TunnelRoute = _main.Tunnels.ResolveRoute(sessionId);
@@ -553,6 +652,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        _main.ServerList.SessionStarting -= OnSessionStarting;
+        _main.ServerList.SessionStartFailed -= OnSessionStartFailed;
         _main.ServerList.SessionReady -= OnSessionReady;
         _main.ServerList.SessionFailed -= OnSessionFailed;
         // The 8 provider/callback wire-ups on Split + EmbeddedSessionManager
