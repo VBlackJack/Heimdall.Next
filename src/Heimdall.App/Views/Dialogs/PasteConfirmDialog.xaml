@@ -1,0 +1,138 @@
+<Window x:Class="Heimdall.App.Views.Dialogs.PasteConfirmDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Dialogs"
+        d:DataContext="{d:DesignInstance Type=vm:PasteConfirmDialogViewModel, IsDesignTimeCreatable=False}"
+        mc:Ignorable="d"
+        Title="{Binding Title}"
+        Width="640"
+        SizeToContent="Height"
+        MaxHeight="600"
+        MinWidth="560"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/DialogCommonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+            <Style x:Key="HeaderIconStyle" TargetType="Path">
+                <Setter Property="Width" Value="26"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Data" Value="{DynamicResource Geo.Status.Error}"/>
+                <Setter Property="Stretch" Value="Uniform"/>
+                <Setter Property="Fill" Value="{DynamicResource WarningBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+                        <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="HeaderTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="PasteButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDangerous}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="PreviewBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="IsReadOnly" Value="True"/>
+                <Setter Property="TextWrapping" Value="NoWrap"/>
+                <Setter Property="AcceptsReturn" Value="True"/>
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="FontFamily" Value="{StaticResource FontFamilyMonospace}"/>
+                <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="MaxHeight" Value="280"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="{StaticResource SpacingLg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,12">
+            <Path Style="{StaticResource HeaderIconStyle}"
+                  Margin="0,0,12,0"
+                  VerticalAlignment="Top"/>
+            <TextBlock Text="{Binding Title}"
+                       Style="{StaticResource HeaderTitleStyle}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="1"
+                   Text="{Binding Message}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,12"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+        <TextBox x:Name="PreviewTextBox"
+                 Grid.Row="2"
+                 Text="{Binding PreviewText, Mode=OneWay}"
+                 Style="{StaticResource PreviewBoxStyle}"/>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,8,0,0"
+                   FontSize="{StaticResource FontSizeCaption}"
+                   FontStyle="Italic"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="{Binding TruncationNotice}"
+                   Visibility="{Binding IsTruncated, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button x:Name="CancelButton"
+                    Margin="0,0,8,0"
+                    MinWidth="120"
+                    IsCancel="True"
+                    IsDefault="True"
+                    Content="{Binding CancelButtonText}"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    AutomationProperties.Name="{Binding CancelButtonText}"/>
+            <Button x:Name="PasteButton"
+                    MinWidth="120"
+                    Content="{Binding PasteButtonText}"
+                    Command="{Binding PasteCommand}"
+                    Style="{StaticResource PasteButtonStyle}"
+                    AutomationProperties.Name="{Binding PasteButtonText}"/>
+        </StackPanel>
+    </Grid>
+</Window>

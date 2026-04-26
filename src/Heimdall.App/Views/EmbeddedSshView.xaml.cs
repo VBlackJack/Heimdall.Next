@@ -30,6 +30,8 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Ssh;
 using Microsoft.Web.WebView2.Core;
+using AppDialogs = Heimdall.App.Views.Dialogs;
+using AppDialogViewModels = Heimdall.App.ViewModels.Dialogs;
 
 namespace Heimdall.App.Views;
 
@@ -1005,33 +1007,20 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                     {
                         var risk = Heimdall.Terminal.SmartPasteGuard.Evaluate(text);
 
-                        var owner = Window.GetWindow(this);
-
                         if (risk == Heimdall.Terminal.SmartPasteGuard.PasteRisk.Dangerous)
                         {
-                            var proceed = System.Windows.MessageBox.Show(
-                                owner,
-                                L("PasteWarningMessage"),
-                                L("PasteWarningTitle"),
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Warning);
-
-                            if (proceed != MessageBoxResult.Yes)
+                            if (!ConfirmPaste(
+                                text,
+                                AppDialogViewModels.PasteRisk.Dangerous))
                             {
                                 return;
                             }
                         }
                         else if (risk == Heimdall.Terminal.SmartPasteGuard.PasteRisk.MultiLine)
                         {
-                            int lineCount = text.Split('\n').Length;
-                            var proceed = System.Windows.MessageBox.Show(
-                                owner,
-                                string.Format(L("PasteMultiLineMessage"), lineCount),
-                                L("PasteMultiLineTitle"),
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Question);
-
-                            if (proceed != MessageBoxResult.Yes)
+                            if (!ConfirmPaste(
+                                text,
+                                AppDialogViewModels.PasteRisk.MultiLine))
                             {
                                 return;
                             }
@@ -1050,6 +1039,34 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         WriteToSession(message);
+    }
+
+    private bool ConfirmPaste(string text, AppDialogViewModels.PasteRisk risk)
+    {
+        var owner = Window.GetWindow(this);
+        if (_localizer is null)
+        {
+            return System.Windows.MessageBox.Show(
+                owner,
+                text,
+                risk == AppDialogViewModels.PasteRisk.Dangerous
+                    ? "Dangerous paste"
+                    : "Multi-line paste",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        var viewModel = new AppDialogViewModels.PasteConfirmDialogViewModel(
+            risk,
+            text,
+            _localizer);
+        var dialog = new AppDialogs.PasteConfirmDialog
+        {
+            Owner = owner,
+            DataContext = viewModel,
+        };
+
+        return dialog.ShowDialog() == true;
     }
 
     private void OnDataReceived(byte[] data)
