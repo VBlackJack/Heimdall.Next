@@ -1914,6 +1914,28 @@
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsSshAutoReconnectTitle" Text="{loc:Translate SettingsSshAutoReconnect}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{loc:Translate SettingsSshAutoReconnectDesc}" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <CheckBox x:Name="Mw_SettingsSshAutoReconnect"
+                                                      Content="{loc:Translate SettingsSshAutoReconnectEnable}"
+                                                      IsChecked="{Binding Settings.SshAutoReconnect}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      AutomationProperties.Name="{loc:Translate SettingsSshAutoReconnectEnable}"/>
+                                            <StackPanel Orientation="Horizontal"
+                                                        IsEnabled="{Binding Settings.SshAutoReconnect}"
+                                                        Margin="0,8,0,0">
+                                                <TextBlock x:Name="Mw_SettingsSshAutoReconnectAttemptsLabel"
+                                                           Text="{loc:Translate SettingsSshAutoReconnectMaxAttempts}"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           FontSize="{StaticResource FontSizeCaption}"
+                                                           Margin="0,0,8,0"/>
+                                                <TextBox Text="{Binding Settings.SshAutoReconnectAttempts, UpdateSourceTrigger=PropertyChanged}"
+                                                         Width="64"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsSshAutoReconnectAttemptsLabel}"/>
+                                            </StackPanel>
+                                        </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsAutoOpenSftp" Content="{loc:Translate SettingsLabelAutoOpenSftp}" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsX11PathLabel" Text="{loc:Translate SettingsLabelX11ServerPath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>

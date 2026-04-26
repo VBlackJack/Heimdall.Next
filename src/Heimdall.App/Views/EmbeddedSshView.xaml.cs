@@ -184,6 +184,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private Heimdall.Terminal.ITerminalSession? _terminalSession;
     private SessionTabViewModel? _sessionTab;
     private System.Threading.Timer? _keepAliveTimer;
+    private System.Threading.Timer? _autoReconnectTimer;
     private Action<ReadOnlyMemory<byte>>? _terminalDataHandler;
     private Action<int>? _terminalExitHandler;
     private Core.Localization.LocalizationManager? _localizer;
@@ -202,6 +203,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _userInitiatedDisconnect;
     private bool _isRecording;
     private bool _localeChangeSubscribed;
+    private int _autoReconnectAttempt;
+    private int _autoReconnectSecondsRemaining;
 
     /// <summary>Localizer for translating user-facing strings. Set by EmbeddedSessionManager.</summary>
     public Core.Localization.LocalizationManager? Localizer
@@ -350,6 +353,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         UpdateStatus("Connected");
         StartKeepAliveTimer(keepAliveIntervalSeconds);
         AcquireSleepPrevention();
+        _autoReconnectAttempt = 0;
     }
 
     /// <summary>
@@ -388,6 +392,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         UpdateStatus("Connected");
         StartKeepAliveTimer(keepAliveIntervalSeconds);
         AcquireSleepPrevention();
+        _autoReconnectAttempt = 0;
     }
 
     public void Dispose()
@@ -402,6 +407,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         StopHealthMonitor();
         StopTranscript();
         StopKeepAliveTimer();
+        StopAutoReconnectTimer();
         ReleaseSleepPrevention();
 
         Loaded -= OnLoaded;
@@ -649,6 +655,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        StopAutoReconnectTimer();
         Core.Logging.FileLogger.Info("EmbeddedSSH Reconnect requested by user");
         ReconnectRequested?.Invoke();
     }
@@ -660,6 +667,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        StopAutoReconnectTimer();
         HideReconnectOverlay();
         Core.Logging.FileLogger.Info("EmbeddedSSH Reconnect requested via overlay");
         ReconnectRequested?.Invoke();
@@ -670,14 +678,105 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         HideReconnectOverlay();
     }
 
+    private void OnAutoReconnectCancelClick(object sender, RoutedEventArgs e)
+    {
+        StopAutoReconnectTimer();
+        AutoReconnectOverlay.Visibility = Visibility.Collapsed;
+        Core.Logging.FileLogger.Info("EmbeddedSSH auto-reconnect cancelled by user");
+        ShowReconnectOverlay();
+    }
+
     private void ShowReconnectOverlay()
     {
+        AutoReconnectOverlay.Visibility = Visibility.Collapsed;
         ReconnectOverlay.Visibility = Visibility.Visible;
     }
 
     private void HideReconnectOverlay()
     {
         ReconnectOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private static int ComputeAutoReconnectDelaySeconds(int attempt)
+    {
+        return attempt switch
+        {
+            1 => 2,
+            2 => 5,
+            _ => 15,
+        };
+    }
+
+    private void StartAutoReconnectCountdown(int delaySeconds, int attempt, int maxAttempts)
+    {
+        if (_disposed) return;
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() =>
+                StartAutoReconnectCountdown(delaySeconds, attempt, maxAttempts));
+            return;
+        }
+
+        StopAutoReconnectTimer();
+        HideReconnectOverlay();
+        HideConnectingOverlay();
+
+        _autoReconnectSecondsRemaining = delaySeconds;
+        AutoReconnectMessageText.Text = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            L("SshAutoReconnectMessage"),
+            attempt,
+            maxAttempts);
+        UpdateAutoReconnectCountdownText();
+        AutoReconnectOverlay.Visibility = Visibility.Visible;
+
+        _autoReconnectTimer = new System.Threading.Timer(
+            _ => Dispatcher.BeginInvoke((Action)OnAutoReconnectTick),
+            null,
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+    }
+
+    private void OnAutoReconnectTick()
+    {
+        if (_disposed)
+        {
+            StopAutoReconnectTimer();
+            return;
+        }
+
+        _autoReconnectSecondsRemaining--;
+        if (_autoReconnectSecondsRemaining <= 0)
+        {
+            StopAutoReconnectTimer();
+            AutoReconnectOverlay.Visibility = Visibility.Collapsed;
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedSSH auto-reconnect attempt {_autoReconnectAttempt} firing");
+            ReconnectRequested?.Invoke();
+            return;
+        }
+
+        UpdateAutoReconnectCountdownText();
+    }
+
+    private void UpdateAutoReconnectCountdownText()
+    {
+        AutoReconnectCountdownText.Text = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            L("SshAutoReconnectCountdown"),
+            _autoReconnectSecondsRemaining);
+    }
+
+    private void StopAutoReconnectTimer()
+    {
+        if (_autoReconnectTimer is null)
+        {
+            return;
+        }
+
+        _autoReconnectTimer.Dispose();
+        _autoReconnectTimer = null;
     }
 
     private void HideConnectingOverlay()
@@ -997,10 +1096,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             PostTerminalMessage("session-ended:");
             UpdateStatus("Disconnected");
 
-            if (!_userInitiatedDisconnect)
+            if (_userInitiatedDisconnect)
             {
-                ShowReconnectOverlay();
+                return;
             }
+
+            var maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
+            if (TerminalSettings?.SshAutoReconnect == true
+                && _autoReconnectAttempt < maxAttempts)
+            {
+                _autoReconnectAttempt++;
+                var delay = ComputeAutoReconnectDelaySeconds(_autoReconnectAttempt);
+                StartAutoReconnectCountdown(delay, _autoReconnectAttempt, maxAttempts);
+                return;
+            }
+
+            ShowReconnectOverlay();
         });
     }
 
@@ -1275,6 +1386,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         FallbackMessageText.Text = L("EmbeddedSshFallbackMessage");
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
+        AutoReconnectCancelButton.Content = L("BtnCancelAutoReconnect");
         ReconnectMessageText.Text = L("SshDisconnectedMessage");
         AdminBadgeText.Text = L("AdminBadgeLabel");
         BroadcastBadgeText.Text = L("BroadcastBadgeLabel");
@@ -1294,6 +1406,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(ElevateButton, L("A11yElevateToRoot"));
         System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
         System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, L("A11yCloseOverlay"));
+        System.Windows.Automation.AutomationProperties.SetName(AutoReconnectCancelButton, L("A11yCancelAutoReconnect"));
         System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
     }
 
@@ -1312,6 +1425,17 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         if (_healthPanelVisible)
         {
             LocalizeHealthLabels();
+        }
+
+        if (AutoReconnectOverlay.Visibility == Visibility.Visible)
+        {
+            var maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
+            AutoReconnectMessageText.Text = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                L("SshAutoReconnectMessage"),
+                _autoReconnectAttempt,
+                maxAttempts);
+            UpdateAutoReconnectCountdownText();
         }
     }
 
@@ -1488,6 +1612,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         HideConnectingOverlay();
+        StopAutoReconnectTimer();
+        AutoReconnectOverlay.Visibility = Visibility.Collapsed;
         _webViewUnavailable = true;
         _terminalReady = false;
 

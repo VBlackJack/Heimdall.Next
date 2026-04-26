@@ -92,6 +92,8 @@ public sealed class AppSettings
     public bool SyncKnownHostsAtStartup { get; set; }
     public int AntiIdleIntervalSeconds { get; set; } = 60;
     public int SshTmoutResetIntervalSeconds { get; set; } = 240;
+    public bool SshAutoReconnect { get; set; }
+    public int SshAutoReconnectAttempts { get; set; } = 3;
 
     // RDP defaults
     public string RdpDefaultMode { get; set; } = "Embedded";

@@ -103,6 +103,8 @@ public static partial class SchemaValidator
             nameof(settings.RdpResizeEnableDelayMs));
         ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
             nameof(settings.SshKeepAliveIntervalSeconds));
+        ValidateRange(errors, settings.SshAutoReconnectAttempts, 1, 10,
+            nameof(settings.SshAutoReconnectAttempts));
         ValidateRange(errors, settings.PlinkPortCheckIntervalMs, 500, 30000,
             nameof(settings.PlinkPortCheckIntervalMs));
         ValidateRange(errors, settings.PlinkKillGracePeriodMs, 500, 30000,

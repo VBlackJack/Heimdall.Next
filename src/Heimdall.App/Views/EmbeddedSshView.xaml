@@ -198,6 +198,45 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Auto-reconnect countdown overlay -->
+                    <Border x:Name="AutoReconnectOverlay"
+                            Style="{StaticResource FadeInPanelStyle}"
+                            Visibility="Collapsed"
+                            Background="{DynamicResource OverlayBackground}"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="420">
+                            <TextBlock x:Name="AutoReconnectMessageText"
+                                       Text="Reconnecting…"
+                                       FontSize="{StaticResource FontSizeSubtitle}"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="AutoReconnectCountdownText"
+                                       Margin="0,8,0,0"
+                                       TextAlignment="Center"
+                                       FontSize="{StaticResource FontSizeBodyLarge}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <ProgressBar IsIndeterminate="True"
+                                         Height="2"
+                                         Width="220"
+                                         Margin="0,16,0,16"
+                                         Foreground="{DynamicResource AccentBrush}"
+                                         Background="Transparent"
+                                         BorderThickness="0"/>
+                            <Button x:Name="AutoReconnectCancelButton"
+                                    Content="Cancel"
+                                    Click="OnAutoReconnectCancelClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="16,6"
+                                    FontSize="{StaticResource FontSizeBodyLarge}"
+                                    HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Initial connect overlay (visible until xterm.js signals ready) -->
                     <Border x:Name="ConnectingOverlay"
                             Style="{StaticResource FadeInPanelStyle}"
