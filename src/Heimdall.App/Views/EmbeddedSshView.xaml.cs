@@ -261,28 +261,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         string endpoint,
         int keepAliveIntervalSeconds = 240)
     {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(sessionTab);
-
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(nameof(EmbeddedSshView));
-        }
-
-        _session = session;
-        _sessionTab = sessionTab;
-
-        LocalizeButtons();
-        SessionTitleText.Text = displayName;
-        EndpointTextBlock.Text = endpoint;
-        UpdateConnectingOverlay(displayName, endpoint);
-        UpdateStatus("Connected");
-
-        _session.DataReceived += OnDataReceived;
-        _session.Disconnected += OnDisconnected;
-
-        StartKeepAliveTimer(keepAliveIntervalSeconds);
-        AcquireSleepPrevention();
+        InitializeConnecting(sessionTab, displayName, endpoint);
+        AttachSession(session, keepAliveIntervalSeconds);
     }
 
     /// <summary>
@@ -294,7 +274,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         string displayName,
         int keepAliveIntervalSeconds = 240)
     {
-        ArgumentNullException.ThrowIfNull(terminalSession);
+        InitializeConnecting(sessionTab, displayName, L("SshEndpointViaPlink"));
+        AttachTerminalSession(terminalSession, keepAliveIntervalSeconds);
+    }
+
+    /// <summary>
+    /// Phase 1: prepares the view to display a "Connecting..." placeholder
+    /// without an active session. Sets the tab, header, endpoint, and overlay
+    /// text. Localizes the toolbar and transitions tab status to "Connecting".
+    /// Must be called exactly once, before AttachSession or AttachTerminalSession.
+    /// Keepalive and sleep prevention start only after a session is attached.
+    /// </summary>
+    public void InitializeConnecting(
+        SessionTabViewModel sessionTab,
+        string displayName,
+        string endpoint)
+    {
         ArgumentNullException.ThrowIfNull(sessionTab);
 
         if (_disposed)
@@ -302,22 +297,90 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             throw new ObjectDisposedException(nameof(EmbeddedSshView));
         }
 
-        _terminalSession = terminalSession;
+        if (_sessionTab is not null)
+        {
+            throw new InvalidOperationException("EmbeddedSshView already initialized.");
+        }
+
         _sessionTab = sessionTab;
 
         LocalizeButtons();
         SessionTitleText.Text = displayName;
-        var endpoint = L("SshEndpointViaPlink");
         EndpointTextBlock.Text = endpoint;
         UpdateConnectingOverlay(displayName, endpoint);
-        UpdateStatus("Connected");
+        UpdateStatus("Connecting");
+    }
 
+    /// <summary>
+    /// Phase 2: wires a freshly-connected SSH shell session to the view.
+    /// Hooks session events, starts keepalive, acquires sleep prevention, and
+    /// transitions tab status to "Connected".
+    /// </summary>
+    public void AttachSession(
+        SshShellSession session,
+        int keepAliveIntervalSeconds = 240)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(EmbeddedSshView));
+        }
+
+        if (_sessionTab is null)
+        {
+            throw new InvalidOperationException("InitializeConnecting must be called first.");
+        }
+
+        if (_session is not null || _terminalSession is not null)
+        {
+            throw new InvalidOperationException("Session already attached.");
+        }
+
+        _session = session;
+
+        _session.DataReceived += OnDataReceived;
+        _session.Disconnected += OnDisconnected;
+
+        UpdateStatus("Connected");
+        StartKeepAliveTimer(keepAliveIntervalSeconds);
+        AcquireSleepPrevention();
+    }
+
+    /// <summary>
+    /// Phase 2 variant: wires a freshly-connected terminal session to the view.
+    /// Hooks terminal events, starts keepalive, acquires sleep prevention, and
+    /// transitions tab status to "Connected".
+    /// </summary>
+    public void AttachTerminalSession(
+        Heimdall.Terminal.ITerminalSession terminalSession,
+        int keepAliveIntervalSeconds = 240)
+    {
+        ArgumentNullException.ThrowIfNull(terminalSession);
+
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(EmbeddedSshView));
+        }
+
+        if (_sessionTab is null)
+        {
+            throw new InvalidOperationException("InitializeConnecting must be called first.");
+        }
+
+        if (_session is not null || _terminalSession is not null)
+        {
+            throw new InvalidOperationException("Session already attached.");
+        }
+
+        _terminalSession = terminalSession;
         _terminalDataHandler = OnTerminalDataReceived;
         _terminalExitHandler = OnTerminalProcessExited;
 
         _terminalSession.DataReceived += _terminalDataHandler;
         _terminalSession.ProcessExited += _terminalExitHandler;
 
+        UpdateStatus("Connected");
         StartKeepAliveTimer(keepAliveIntervalSeconds);
         AcquireSleepPrevention();
     }
