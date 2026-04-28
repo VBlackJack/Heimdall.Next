@@ -156,7 +156,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         CreateHostControl();
-        UpdateSessionStatus("Connecting");
+        UpdateSessionStatus(RdpSessionStatus.Connecting);
     }
 
     public void SetOwningPane(SessionPaneModel pane)
@@ -255,7 +255,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _allowResolutionUpdates = false;
-            UpdateSessionStatus("Disconnecting");
+            UpdateSessionStatus(RdpSessionStatus.Disconnecting);
             _rdpHost.Disconnect();
         }
         catch (Exception ex)
@@ -408,7 +408,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             // Post-connect flush removed: layout is already stable after pre-connect + post-handle flushes.
             // The third flush added ~50-150ms latency with no airspace benefit since Connect() is async.
-            UpdateSessionStatus("Connecting");
+            UpdateSessionStatus(RdpSessionStatus.Connecting);
 
             if (!string.IsNullOrWhiteSpace(password))
             {
@@ -465,7 +465,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _connectedAtUtc = DateTime.UtcNow;
             _allowResolutionUpdates = false;
             ClearPaneDiagnostic();
-            UpdateSessionStatus("Connected");
+            UpdateSessionStatus(RdpSessionStatus.Connected);
             FlushLayoutPipeline("on-connected");
 
             if (_server is not null && _server.RdpAntiIdle && _antiIdleIntervalSeconds > 0)
@@ -518,7 +518,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(reason));
-            UpdateSessionStatus("Disconnected");
+            UpdateSessionStatus(RdpSessionStatus.Disconnected);
             ShowReconnectOverlay();
         });
     }
@@ -536,7 +536,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             CancelAutofill();
             _allowResolutionUpdates = false;
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromFatalError(errorCode));
-            UpdateSessionStatus("Error");
+            UpdateSessionStatus(RdpSessionStatus.Error);
             ShowReconnectOverlay();
         });
     }
@@ -561,7 +561,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             _allowResolutionUpdates = false;
-            UpdateSessionStatus("Reconnecting");
+            UpdateSessionStatus(RdpSessionStatus.Reconnecting);
         });
     }
 
@@ -573,7 +573,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             ClearPaneDiagnostic();
-            UpdateSessionStatus("Connected");
+            UpdateSessionStatus(RdpSessionStatus.Connected);
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
@@ -683,34 +683,47 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    private void UpdateSessionStatus(string status)
+    private void UpdateSessionStatus(RdpSessionStatus status)
     {
+        var invariantCode = RdpSessionStatusKeys.GetInvariantCode(status);
+        var localizedLabel = GetLocalizedStatusLabel(status);
+
         if (_sessionTab is not null)
         {
-            _sessionTab.Status = status;
+            _sessionTab.Status = invariantCode;
         }
 
-        StatusTextBlock.Text = status;
+        StatusTextBlock.Text = localizedLabel;
 
-        var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
+        var isConnecting = status is RdpSessionStatus.Connecting
+            or RdpSessionStatus.Preparing;
         RdpLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
 
-        DisconnectButton.IsEnabled = !_disposed
-            && !string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase);
+        DisconnectButton.IsEnabled = !_disposed && status is not RdpSessionStatus.Disconnected;
         StatusTextBlock.Foreground = GetBrush(
-            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
-                ? "ErrorBrush"
-                : "TextPrimaryBrush",
-            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
-                ? Brushes.IndianRed
-                : Brushes.White);
+            status is RdpSessionStatus.Error ? "ErrorBrush" : "TextPrimaryBrush",
+            status is RdpSessionStatus.Error ? Brushes.IndianRed : Brushes.White);
+    }
+
+    private string GetLocalizedStatusLabel(RdpSessionStatus status)
+    {
+        var key = RdpSessionStatusKeys.GetKey(status);
+        if (status == RdpSessionStatus.Reconnecting && _localizer is not null)
+        {
+            // F1 transitional state: F2 will pass the real reconnect attempt count.
+            return _localizer[key]
+                .Replace(" (attempt {0})", string.Empty, StringComparison.Ordinal)
+                .Replace(" (tentative {0})", string.Empty, StringComparison.Ordinal);
+        }
+
+        return L(key);
     }
 
     private void HandleFailure(string message, Exception ex)
     {
         Core.Logging.FileLogger.Error(message, ex);
         _allowResolutionUpdates = false;
-        UpdateSessionStatus("Error");
+        UpdateSessionStatus(RdpSessionStatus.Error);
         StatusTextBlock.Text = _localizer?.Format("RdpStatusErrorDetail", message, ex.Message)
             ?? $"{message} {ex.Message}";
     }
@@ -1056,8 +1069,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         var localPort = _tunnelPort ?? server.LocalPort;
+        var format = _localizer?["RdpEndpointTunneledFormat"]
+            ?? "{0}:{1} via localhost:{2}";
         return string.Format(
-            "{0}:{1} via localhost:{2}",
+            format,
             server.RemoteServer,
             server.RemotePort,
             localPort);
