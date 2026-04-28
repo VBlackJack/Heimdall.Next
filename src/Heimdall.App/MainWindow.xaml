@@ -1326,6 +1326,12 @@
                                             Padding="6,2" Margin="4,0,0,0"
                                             ToolTip="{loc:Translate TooltipCollapseTunnelPanel}"
                                             AutomationProperties.Name="{loc:Translate A11yCollapseTunnelPanel}"/>
+                                    <Button x:Name="Mw_TunnelPanelNewBtn" DockPanel.Dock="Right"
+                                            Content="{loc:Translate TunnelsBtnNew}"
+                                            Command="{Binding Tunnels.NewTunnelCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"
+                                            AutomationProperties.Name="{loc:Translate TunnelsBtnNew}"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content="{loc:Translate TunnelsBtnCloseAll}"
                                             Command="{Binding Tunnels.CloseAllCommand}"
@@ -1405,6 +1411,7 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn x:Name="Mw_TpColGateway" Header="{loc:Translate TunnelsColGateway}" Binding="{Binding ServerName}" Width="*"/>
+                                        <DataGridTextColumn x:Name="Mw_TpColLabel" Header="{loc:Translate TunnelPanelColLabel}" Binding="{Binding Label}" Width="90"/>
                                         <DataGridTextColumn x:Name="Mw_TpColLocal" Header="{loc:Translate TunnelPanelColLocal}" Binding="{Binding LocalPort}" Width="60"/>
                                         <DataGridTextColumn x:Name="Mw_TpColRemote" Header="{loc:Translate TunnelPanelColRemote}" Binding="{Binding RemoteHost}" Width="*"/>
                                         <DataGridTextColumn x:Name="Mw_TpColPort" Header="{loc:Translate TunnelPanelColPort}" Binding="{Binding RemotePort}" Width="50"/>
@@ -1449,6 +1456,11 @@
                     <TextBlock x:Name="Mw_TunnelsTitle" Text="{loc:Translate TunnelsSectionTitle}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="Mw_TunnelsNewBtn" Content="{loc:Translate TunnelsBtnNew}"
+                                Command="{Binding Tunnels.NewTunnelCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                                AutomationProperties.Name="{loc:Translate TunnelsBtnNew}"/>
                         <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content="{loc:Translate TunnelsBtnCloseSelected}"
                                 Command="{Binding Tunnels.CloseCommand}"
                                 CommandParameter="{Binding Tunnels.SelectedItem}"
@@ -1509,6 +1521,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn x:Name="Mw_TunnelsColGateway" Header="{loc:Translate TunnelsColGateway}" Binding="{Binding ServerName}" Width="*"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColLabel" Header="{loc:Translate TunnelsColLabel}" Binding="{Binding Label}" Width="120"/>
                             <DataGridTextColumn x:Name="Mw_TunnelsColLocalPort" Header="{loc:Translate TunnelsColLocalPort}" Binding="{Binding LocalPort}" Width="90"/>
                             <DataGridTextColumn x:Name="Mw_TunnelsColRemoteHost" Header="{loc:Translate TunnelsColRemoteHost}" Binding="{Binding RemoteHost}" Width="*"/>
                             <DataGridTextColumn x:Name="Mw_TunnelsColRemotePort" Header="{loc:Translate TunnelsColRemotePort}" Binding="{Binding RemotePort}" Width="90"/>

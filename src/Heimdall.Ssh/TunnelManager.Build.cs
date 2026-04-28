@@ -137,7 +137,8 @@ public sealed partial class TunnelManager
         string remoteHost,
         int remotePort,
         int socksProxyPort,
-        int remoteBindPort)
+        int remoteBindPort,
+        string? label = null)
     {
         return new TunnelInfo(
             gatewayHost,
@@ -146,7 +147,11 @@ public sealed partial class TunnelManager
             remotePort,
             DateTime.UtcNow,
             IsAlive: true)
-        { SocksProxyPort = socksProxyPort, RemoteBindPort = remoteBindPort };
+        {
+            SocksProxyPort = socksProxyPort,
+            RemoteBindPort = remoteBindPort,
+            Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim()
+        };
     }
 
     private TunnelResult RegisterTunnelSession(
