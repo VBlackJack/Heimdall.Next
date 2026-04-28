@@ -813,7 +813,43 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void ShowReconnectOverlay()
     {
-        ReconnectMessageText.Text = L("RdpDisconnectedMessage");
+        var diagnostic = _ownerPane?.FailureDetails
+                         ?? _sessionTab?.PrimaryPane?.FailureDetails;
+
+        var hasDiagnosticMessage = diagnostic is not null
+            && !string.IsNullOrWhiteSpace(diagnostic.MessageKey);
+
+        var primary = hasDiagnosticMessage
+            ? L(diagnostic!.MessageKey)
+            : L("RdpDisconnectedMessage");
+
+        ReconnectMessageText.Text = primary;
+
+        var hasSpecificPrimary = hasDiagnosticMessage
+            && !string.Equals(diagnostic!.MessageKey, "RdpDisconnectedMessage", StringComparison.Ordinal);
+
+        if (hasSpecificPrimary)
+        {
+            ReconnectSecondaryText.Text = L("RdpDisconnectedMessage");
+            ReconnectSecondaryText.Visibility = System.Windows.Visibility.Visible;
+        }
+        else
+        {
+            ReconnectSecondaryText.Text = string.Empty;
+            ReconnectSecondaryText.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
+        if (diagnostic?.Code is int code)
+        {
+            ReconnectCodeText.Text = $"#{code}";
+            ReconnectCodeText.Visibility = System.Windows.Visibility.Visible;
+        }
+        else
+        {
+            ReconnectCodeText.Text = string.Empty;
+            ReconnectCodeText.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
         System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
