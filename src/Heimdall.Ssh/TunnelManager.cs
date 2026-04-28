@@ -95,7 +95,8 @@ public sealed partial class TunnelManager : IDisposable
         int keepAliveIntervalSeconds = 30,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
-        int remoteLocalPort = 0)
+        int remoteLocalPort = 0,
+        string? label = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
@@ -154,7 +155,8 @@ public sealed partial class TunnelManager : IDisposable
                 remoteHost,
                 remotePort,
                 socksProxyPort,
-                remoteBindPort);
+                remoteBindPort,
+                label);
 
             var session = context.CreateSession(info);
 
@@ -188,7 +190,8 @@ public sealed partial class TunnelManager : IDisposable
         IHostKeyVerifier? verifier = null,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
-        int remoteLocalPort = 0)
+        int remoteLocalPort = 0,
+        string? label = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayChain);
@@ -203,7 +206,8 @@ public sealed partial class TunnelManager : IDisposable
         {
             return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore,
                     verifier,
-                    socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort)
+                    socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort,
+                    label: label)
                 .ConfigureAwait(false);
         }
 
@@ -320,7 +324,8 @@ public sealed partial class TunnelManager : IDisposable
                 remoteHost,
                 remotePort,
                 socksProxyPort,
-                remoteBindPort);
+                remoteBindPort,
+                label);
 
             return RegisterTunnelSession(context.CreateSession(tunnelInfo), localPort, tunnelInfo);
         }

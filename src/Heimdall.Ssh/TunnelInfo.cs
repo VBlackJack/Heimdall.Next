@@ -42,4 +42,9 @@ public sealed record TunnelInfo(
     /// Port opened on the remote server for reverse forwarding, or 0 if disabled.
     /// </summary>
     public int RemoteBindPort { get; init; }
+
+    /// <summary>
+    /// Optional user-facing label for manually created tunnels.
+    /// </summary>
+    public string? Label { get; init; }
 }

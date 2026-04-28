@@ -15,12 +15,20 @@
  */
 
 using System.Collections.ObjectModel;
+using System.Windows;
+using Heimdall.App.Localization;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.App.Views.Dialogs;
+using Heimdall.Core.Configuration;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
+using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Tunnels;
 
@@ -44,6 +52,8 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     private readonly LocalizationManager _localizer;
     private readonly TunnelManager _tunnelManager;
     private readonly ConnectionStateMachine _connectionSm;
+    private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
     private bool _disposed;
 
     /// <summary>
@@ -53,12 +63,16 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         MainViewModel main,
         LocalizationManager localizer,
         TunnelManager tunnelManager,
-        ConnectionStateMachine connectionSm)
+        ConnectionStateMachine connectionSm,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier)
     {
         _main = main;
         _localizer = localizer;
         _tunnelManager = tunnelManager;
         _connectionSm = connectionSm;
+        _hostKeyStore = hostKeyStore;
+        _hostKeyVerifier = hostKeyVerifier;
 
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
@@ -181,6 +195,150 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         {
             FileLogger.Warn($"[TunnelsViewModel] clipboard copy: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Opens a user-requested local-forward tunnel without creating a
+    /// synthetic server profile.
+    /// </summary>
+    [RelayCommand]
+    private async Task NewTunnelAsync()
+    {
+        var settings = _main.CurrentSettings;
+        if (settings is null)
+        {
+            _main.StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localizer["StatusManualTunnelFailed"],
+                _localizer["NewTunnelSettingsUnavailable"]);
+            return;
+        }
+
+        var gateways = settings.SshGateways;
+        var activePorts = _tunnelManager.GetActiveTunnels()
+            .Select(t => t.LocalPort)
+            .ToHashSet();
+        var vm = new NewTunnelDialogViewModel(gateways, _localizer, activePorts);
+        var dialog = new NewTunnelDialog
+        {
+            Owner = Application.Current?.MainWindow,
+            DataContext = vm
+        };
+
+        if (dialog.ShowDialog() != true || vm.SelectedGateway is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await OpenManualTunnelAsync(vm, settings, CancellationToken.None)
+                .ConfigureAwait(true);
+
+            if (!result.Success)
+            {
+                _main.StatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localizer["StatusManualTunnelFailed"],
+                    result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed]);
+                return;
+            }
+
+            _main.StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localizer["StatusManualTunnelOpened"],
+                vm.LocalPort,
+                vm.RemoteHost.Trim(),
+                vm.RemotePort);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[TunnelsViewModel] manual open: {ex.Message}");
+            _main.StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localizer["StatusManualTunnelFailed"],
+                ex.Message);
+        }
+    }
+
+    private async Task<TunnelResult> OpenManualTunnelAsync(
+        NewTunnelDialogViewModel vm,
+        AppSettings settings,
+        CancellationToken ct)
+    {
+        List<SshConnectionParams> chain;
+        try
+        {
+            chain = GatewayChainResolver.ResolveChain(
+                vm.SelectedGateway!.Id,
+                settings.SshGateways,
+                ConnectionHelpers.DecryptPassword,
+                sshAgentPreference: settings.SshAgentPreference);
+        }
+        catch (Exception ex)
+        {
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+        }
+
+        var agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+        if (chain.Any(hop => hop.AgentForwarding)
+            && !agentRegistry.HasPlinkCompatibleAgent()
+            && agentRegistry.HasAnyNonPlinkAgent())
+        {
+            var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
+            return new TunnelResult(false, null, message, SshFailureCode.PageantKeyUnavailable);
+        }
+
+        var preflight = AuthPreflightChecker.Check(chain[0], isTunnelMode: true);
+        if (!preflight.Success)
+        {
+            return new TunnelResult(
+                false,
+                null,
+                ResolvePreflightMessage(preflight.Message),
+                preflight.FailureCode);
+        }
+
+        var remoteHost = vm.RemoteHost.Trim();
+        var label = string.IsNullOrWhiteSpace(vm.Label) ? null : vm.Label.Trim();
+        if (chain.Count == 1)
+        {
+            return await _tunnelManager.OpenTunnelAsync(
+                    chain[0],
+                    remoteHost,
+                    vm.RemotePort,
+                    vm.LocalPort,
+                    ct,
+                    hostKeyStore: _hostKeyStore,
+                    verifier: _hostKeyVerifier,
+                    keepAliveIntervalSeconds: settings.SshKeepAliveIntervalSeconds,
+                    label: label)
+                .ConfigureAwait(false);
+        }
+
+        return await _tunnelManager.OpenChainedTunnelAsync(
+                chain,
+                remoteHost,
+                vm.RemotePort,
+                vm.LocalPort,
+                ct,
+                hostKeyStore: _hostKeyStore,
+                verifier: _hostKeyVerifier,
+                label: label)
+            .ConfigureAwait(false);
+    }
+
+    private string ResolvePreflightMessage(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return _localizer[SshLocalizationKeys.ErrorPreflightFailed];
+        }
+
+        var resolved = _localizer[message];
+        return string.Equals(resolved, message, StringComparison.Ordinal)
+            ? message
+            : resolved;
     }
 
     // ── Public helpers ───────────────────────────────────────────────

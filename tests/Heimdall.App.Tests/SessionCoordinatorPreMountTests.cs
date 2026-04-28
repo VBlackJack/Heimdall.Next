@@ -240,6 +240,7 @@ public sealed class SessionCoordinatorPreMountTests
                 appStatus,
                 tunnelManager,
                 hostKeyStore,
+                Heimdall.Core.Ssh.RejectingHostKeyVerifier.Instance,
                 dialogService,
                 embeddedSessionManager,
                 new ThemeService(configManager),

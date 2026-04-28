@@ -30,6 +30,7 @@ using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
@@ -294,6 +295,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ApplicationStatusMachine appStatus,
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
         IDialogService dialogService,
         IEmbeddedSessionManager embeddedSessionManager,
         ThemeService themeService,
@@ -328,7 +330,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
-        Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
+        Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm, hostKeyStore, hostKeyVerifier);
         Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager, _uiDispatcher);
         Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver, _uiDispatcher);
 
