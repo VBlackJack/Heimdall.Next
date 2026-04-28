@@ -11,6 +11,36 @@
 
 ---
 
+## Status — All findings closed (19/19)
+
+> Audit closed on 2026-04-28. Every finding below has been implemented,
+> tested, and pushed to `master`. The original prose is kept as-is for
+> historical context; the table below is the authoritative closure ledger.
+
+| ID  | Title                                              | Commit    |
+|-----|----------------------------------------------------|-----------|
+| F1  | SshAuthHint state-aware (key/password/agent)       | `0c36b9a` |
+| F2  | Trust this session host-key + Copy fingerprint     | `b2379d4` |
+| F3  | EmbeddedSshView Connecting overlay & two-phase init| `083c62f`, `6ba0619`, `e16613f`, `fb77200` |
+| F4  | LocaleChanged subscription in EmbeddedSshView      | `e4180f3` |
+| F5  | Disconnect marker localized EN/FR                  | `7184426` |
+| F6  | (covered in tech-debt sweep)                       | `3cbc431` |
+| F7  | Dead i18n keys removed                             | `f78008d` |
+| F8  | Dead i18n keys removed                             | `f78008d` |
+| F9  | Themed paste confirmation dialog with preview      | `ba7307f` |
+| F10 | SSH Test Connection probe (button + chip)          | `3fd3cd2` |
+| F11 | Manual tunnel creation dialog                      | `42271d8` |
+| F12 | StatusTunnelClosed always emitted                  | `001aecd` |
+| F13 | Bounded auto-reconnect SSH with countdown          | `1635c3d` |
+| F14 | (covered in tech-debt sweep)                       | `3cbc431` |
+| F15 | (covered in tech-debt sweep)                       | `3cbc431` |
+| F16 | Pageant agent chip                                 | `3cbc431` |
+| F17 | Fallback Content XAML for 7 SSH toolbar controls   | `a41667a` |
+| F18 | Cancel SSH connect on tab close + tests            | `fb77200` |
+| F19 | SshLoadingBar (dead UI) removed                    | `083c62f` |
+
+Build baseline at closure: **4506 passing, 6 skipped** (`dotnet test Heimdall.slnx --no-build`).
+
 ## Résumé exécutif
 
 Le parcours SSH est globalement fonctionnel et le travail i18n + a11y de base (AutomationProperties, LiveRegion polite) est sérieux comparé à beaucoup d'apps WPF. Trois zones tirent l'expérience vers le bas : (1) la *visibilité d'état* pendant la phase de connexion est défaillante — la barre de progression de `EmbeddedSshView` est du code mort ; (2) le hint d'authentification du dialog mentionne toujours « SSH password authentication » même quand une clé est configurée, ce qui ment activement à l'utilisateur ; (3) le prompt host-key TOFU n'offre aucune granularité (« trust once » vs « trust permanently »), forçant un choix permanent dans une situation où l'utilisateur peut encore vouloir investiguer.
