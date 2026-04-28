@@ -21,36 +21,18 @@ namespace Heimdall.App.Tests;
 
 public sealed class RdpHostDiagnosticFactoryTests
 {
-    [Fact]
-    public void FromDisconnect_WithKnownReason_UsesMappedMessageKey()
+    [Theory]
+    [InlineData(0, "RdpDisconnectNoInfo")]
+    [InlineData(516, "RdpDisconnectSocketConnectFailed")]
+    [InlineData(2055, "RdpDisconnectBadCredentials")]
+    [InlineData(99999, "RdpDisconnectUnknownCode")]
+    public void FromDisconnect_MapsReasonToMessageKey(int code, string expectedKey)
     {
-        var diagnostic = RdpHostDiagnosticFactory.FromDisconnect(516);
+        var diagnostic = RdpHostDiagnosticFactory.FromDisconnect(code);
 
         Assert.Equal(SessionFailureStage.RdpActiveXDisconnect, diagnostic.Stage);
-        Assert.Equal("RdpDisconnectSocketConnectFailed", diagnostic.MessageKey);
-        Assert.Equal(516, diagnostic.Code);
-        Assert.Null(diagnostic.Detail);
-    }
-
-    [Fact]
-    public void FromDisconnect_WithUnknownReason_UsesUnknownCodeMessageKey()
-    {
-        var diagnostic = RdpHostDiagnosticFactory.FromDisconnect(99999);
-
-        Assert.Equal(SessionFailureStage.RdpActiveXDisconnect, diagnostic.Stage);
-        Assert.Equal("RdpDisconnectUnknownCode", diagnostic.MessageKey);
-        Assert.Equal(99999, diagnostic.Code);
-        Assert.Null(diagnostic.Detail);
-    }
-
-    [Fact]
-    public void FromDisconnect_WithZeroReason_UsesNoInfoMessageKey()
-    {
-        var diagnostic = RdpHostDiagnosticFactory.FromDisconnect(0);
-
-        Assert.Equal(SessionFailureStage.RdpActiveXDisconnect, diagnostic.Stage);
-        Assert.Equal("RdpDisconnectNoInfo", diagnostic.MessageKey);
-        Assert.Equal(0, diagnostic.Code);
+        Assert.Equal(expectedKey, diagnostic.MessageKey);
+        Assert.Equal(code, diagnostic.Code);
         Assert.Null(diagnostic.Detail);
     }
 
