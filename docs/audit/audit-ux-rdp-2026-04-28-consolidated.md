@@ -320,6 +320,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-04 (consistency).
 
+**Status:** ✅ Closed — commit `73e8f9f` on 2026-04-29.
+
 ---
 
 ### F9 — Webcam redirection silently ineffective in embedded mode · 🟡 Medium
@@ -361,6 +363,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 **Suggested fix:** Change the predicate to `status is "Connecting" or "Reconnecting"` (and switch to enum after F1).
 
 **References:** Nielsen UX-01 (system status visibility).
+
+**Status:** ✅ Closed — commit `73e8f9f` on 2026-04-29 (alongside F8).
 
 ---
 
@@ -1032,7 +1036,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (8/33 closed)
+## Status — in progress (10/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1044,6 +1048,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F6 | External RDP marked Connected as soon as mstsc.exe starts | `8fbec1e` |
 | F12 | Settings RDP defaults incomplete — 5 missing redirections | `8ca6f9e` |
 | F4 | RdpUseGlobalDefaults checkbox has no runtime effect | `cd83d35` |
+| F8 | Embedded autofill timeout is hardcoded | `73e8f9f` |
+| F10 | Progress bar hidden during reconnecting | `73e8f9f` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
