@@ -1099,9 +1099,36 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         var hasDiagnosticMessage = diagnostic is not null
             && !string.IsNullOrWhiteSpace(diagnostic.MessageKey);
 
-        var primary = hasDiagnosticMessage
-            ? L(diagnostic!.MessageKey)
-            : L("RdpDisconnectedMessage");
+        string primary;
+        if (hasDiagnosticMessage)
+        {
+            var template = L(diagnostic!.MessageKey);
+            if (template.Contains("{0}", StringComparison.Ordinal)
+                && diagnostic.Code is int fatalCode)
+            {
+                try
+                {
+                    primary = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        template,
+                        fatalCode);
+                }
+                catch (FormatException ex)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"[EmbeddedRdpView] Format failed for key '{diagnostic.MessageKey}': {ex.Message}");
+                    primary = template;
+                }
+            }
+            else
+            {
+                primary = template;
+            }
+        }
+        else
+        {
+            primary = L("RdpDisconnectedMessage");
+        }
 
         ReconnectMessageText.Text = primary;
 
