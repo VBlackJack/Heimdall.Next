@@ -33,6 +33,7 @@ public enum ConnectionState
     LaunchingFtp,
     LaunchingTelnet,
     LaunchingCitrix,
+    LaunchedExternalClient,
     Connected,
     Disconnecting,
     Error

@@ -372,6 +372,59 @@ public class ConnectionStateMachineTests
     }
 
     [Fact]
+    public void CanTransition_LaunchingRdp_ToLaunchedExternalClient()
+    {
+        var sm = new ConnectionStateMachine();
+        Assert.True(sm.TryTransition("server-1", ConnectionState.Initializing));
+        Assert.True(sm.TryTransition("server-1", ConnectionState.ValidatingConfig));
+        Assert.True(sm.TryTransition("server-1", ConnectionState.LaunchingRdp));
+
+        var transitioned = sm.TryTransition("server-1", ConnectionState.LaunchedExternalClient);
+
+        Assert.True(transitioned);
+        Assert.Equal(ConnectionState.LaunchedExternalClient, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void LaunchedExternalClient_CanTransitionToDisconnected()
+    {
+        var sm = ArrangeAtLaunchedExternalClient("server-1");
+
+        Assert.True(sm.TryTransition("server-1", ConnectionState.Disconnected));
+        Assert.Equal(ConnectionState.Disconnected, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void LaunchedExternalClient_CanTransitionToError()
+    {
+        var sm = ArrangeAtLaunchedExternalClient("server-1");
+
+        Assert.True(sm.TryTransition("server-1", ConnectionState.Error));
+        Assert.Equal(ConnectionState.Error, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void LaunchedExternalClient_CannotTransitionBackToConnected()
+    {
+        var sm = ArrangeAtLaunchedExternalClient("server-1");
+
+        Assert.False(sm.TryTransition("server-1", ConnectionState.Connected));
+        Assert.Equal(ConnectionState.LaunchedExternalClient, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void LaunchedExternalClient_Metadata_UsesDedicatedStatusKey()
+    {
+        var metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchedExternalClient);
+
+        Assert.Equal("StatusLaunchedExternalClient", metadata.DisplayKey);
+        Assert.Equal("LogLaunchedExternalClient", metadata.LogKey);
+        Assert.False(metadata.IsTerminal);
+        Assert.True(metadata.AllowsUserAction);
+        Assert.False(metadata.IsProgress);
+    }
+
+    [Fact]
     public void FullDirectSshWorkflow_Succeeds()
     {
         Assert.True(_sm.TryTransition("srv", ConnectionState.Initializing));
@@ -719,6 +772,16 @@ public class ConnectionStateMachineTests
         // Local shell does not use tunnels
         Assert.False(ConnectionStateMachine.IsValidTransition(
             ConnectionState.TunnelEstablished, ConnectionState.LaunchingLocal));
+    }
+
+    private static ConnectionStateMachine ArrangeAtLaunchedExternalClient(string serverId)
+    {
+        var sm = new ConnectionStateMachine();
+        Assert.True(sm.TryTransition(serverId, ConnectionState.Initializing));
+        Assert.True(sm.TryTransition(serverId, ConnectionState.ValidatingConfig));
+        Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchingRdp));
+        Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchedExternalClient));
+        return sm;
     }
 }
 

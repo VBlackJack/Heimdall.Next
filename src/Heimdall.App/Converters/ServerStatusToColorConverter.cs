@@ -50,7 +50,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
         // State-based colors take priority over type-based colors
         return connectionState switch
         {
-            "connected" => ResolveBrush("SuccessBrush", Brushes.Green),
+            "connected" or "launchedexternalclient" => ResolveBrush("SuccessBrush", Brushes.Green),
             "error" => ResolveBrush("ErrorBrush", Brushes.Red),
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
