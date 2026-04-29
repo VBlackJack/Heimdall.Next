@@ -803,6 +803,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-08 (help / diagnosability).
 
+**Status:** ✅ Closed — commit `538e271` on 2026-04-28 (alongside F32).
+
 ---
 
 ### F31 — Anti-idle has no UI indicator · 🟢 Low
@@ -832,6 +834,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 **Suggested fix:** Either expand the regex to cover the top 5–10 European Windows locales (DE, ES, IT, PT, NL, PL — title strings are documented by Microsoft), or fall back to class-name matching only (the class names `Credential Dialog Xaml Host` and `Windows Security` don't depend on the OS locale).
 
 **References:** Nielsen UX-04 (consistency across locales).
+
+**Status:** ✅ Closed — commit `538e271` on 2026-04-28 (alongside F30).
 
 ---
 
@@ -1074,7 +1078,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (27/33 closed)
+## Status — in progress (29/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1106,6 +1110,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F33 | Anti-idle hint says mouse but code sends Shift | `5c0a7e2` |
 | F25 | Resolution menu presets hardcoded in XAML | `e8114c6` |
 | F28 | 3 timeout settings unreachable from UI | `e8114c6` |
+| F30 | RdpFatalError collapses all codes into one message | `538e271` |
+| F32 | Autofill regex matches EN/FR titles only | `538e271` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
