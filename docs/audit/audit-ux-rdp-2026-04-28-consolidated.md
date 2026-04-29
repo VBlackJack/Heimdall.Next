@@ -293,6 +293,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-01 (status visibility), UX-08 (help on silent failure). `CredentialAutofill.WaitAndFillAsync` already returns `bool`.
 
+**Status:** ✅ Closed — commit `1750409` on 2026-04-29.
+
 ---
 
 ### F8 — Embedded autofill timeout is hardcoded · 🟡 Medium
@@ -1020,7 +1022,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (4/33 closed)
+## Status — in progress (5/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1028,6 +1030,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F1 | Status text bypasses the i18n pipeline | `dcda468` |
 | F2 | Auto-reconnect status hides attempt count, reason, and cancel affordance | `9944f50` |
 | F3 | Reconnect overlay shown on user-initiated disconnect | `8a91d1f` |
+| F7 | Credential autofill is invisible to the user | `1750409` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
