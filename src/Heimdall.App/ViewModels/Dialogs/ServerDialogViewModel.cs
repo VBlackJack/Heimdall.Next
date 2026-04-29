@@ -19,6 +19,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
@@ -40,7 +41,8 @@ public enum SshTestChipState
     Hidden,
     InProgress,
     Success,
-    Failure
+    Failure,
+    Cancelled
 }
 
 /// <summary>
@@ -258,6 +260,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _testChipText = "";
 
     [ObservableProperty]
+    private bool _isTestingRdpConnection;
+
+    [ObservableProperty]
     private string _postConnectCommand = "";
 
     [ObservableProperty]
@@ -380,6 +385,109 @@ public partial class ServerDialogViewModel : ObservableValidator
            && !string.IsNullOrWhiteSpace(RemoteServer)
            && SshPort is > 0 and <= 65535;
 
+    [RelayCommand(CanExecute = nameof(CanTestRdpConnection))]
+    private async Task TestRdpConnectionAsync(CancellationToken ct)
+    {
+        IsTestingRdpConnection = true;
+        TestChipState = SshTestChipState.InProgress;
+        TestChipText = L("ServerDialogTestChipInProgress");
+
+        try
+        {
+            var tester = new RdpConnectivityTester();
+            var result = await tester.TestAsync(
+                    RemoteServer,
+                    RemotePort,
+                    TimeSpan.FromSeconds(5),
+                    ct)
+                .ConfigureAwait(true);
+
+            ApplyRdpTestResult(result);
+        }
+        catch (OperationCanceledException)
+        {
+            ApplyRdpTestResult(RdpConnectivityTestResult.Cancelled());
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[ServerDialog] RDP test connection failed: {ex.Message}");
+            TestChipState = SshTestChipState.Failure;
+            TestChipText = string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogTestChipFailure"),
+                ex.Message);
+        }
+        finally
+        {
+            IsTestingRdpConnection = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelRdpTest()
+    {
+        TestRdpConnectionCommand.Cancel();
+    }
+
+    private bool CanTestRdpConnection()
+        => IsRdpConnection
+           && !string.IsNullOrWhiteSpace(RemoteServer)
+           && RemotePort is > 0 and <= 65535;
+
+    private void ApplyRdpTestResult(RdpConnectivityTestResult result)
+    {
+        TestChipState = result.Outcome switch
+        {
+            RdpConnectivityTestOutcome.Success => SshTestChipState.Success,
+            RdpConnectivityTestOutcome.Cancelled => SshTestChipState.Cancelled,
+            _ => SshTestChipState.Failure
+        };
+
+        var wrapperKey = result.Outcome == RdpConnectivityTestOutcome.Success
+            ? "ServerDialogTestChipSuccess"
+            : result.Outcome == RdpConnectivityTestOutcome.Cancelled
+                ? "{0}"
+                : "ServerDialogTestChipFailure";
+
+        var detail = FormatRdpTestResult(result);
+        TestChipText = string.Equals(wrapperKey, "{0}", StringComparison.Ordinal)
+            ? detail
+            : string.Format(CultureInfo.CurrentCulture, L(wrapperKey), detail);
+    }
+
+    private string FormatRdpTestResult(RdpConnectivityTestResult result)
+    {
+        return result.Outcome switch
+        {
+            RdpConnectivityTestOutcome.Success => string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogRdpTestSuccess"),
+                result.ResolvedAddress ?? "?",
+                (int)Math.Round(result.TcpElapsed?.TotalMilliseconds ?? 0)),
+            RdpConnectivityTestOutcome.Invalid => string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogRdpTestInvalid"),
+                result.Detail ?? string.Empty),
+            RdpConnectivityTestOutcome.DnsTimeout => L("ServerDialogRdpTestDnsTimeout"),
+            RdpConnectivityTestOutcome.DnsFailed => string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogRdpTestDnsFailed"),
+                result.Detail ?? string.Empty),
+            RdpConnectivityTestOutcome.DnsNoResults => L("ServerDialogRdpTestDnsNoResults"),
+            RdpConnectivityTestOutcome.TcpTimeout => string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogRdpTestTcpTimeout"),
+                result.ResolvedAddress ?? "?"),
+            RdpConnectivityTestOutcome.TcpFailed => string.Format(
+                CultureInfo.CurrentCulture,
+                L("ServerDialogRdpTestTcpFailed"),
+                result.ResolvedAddress ?? "?",
+                result.Detail ?? result.SocketError?.ToString() ?? string.Empty),
+            RdpConnectivityTestOutcome.Cancelled => L("ServerDialogRdpTestCancelled"),
+            _ => L("ServerDialogRdpTestCancelled")
+        };
+    }
+
     private Heimdall.Ssh.SshConnectionParams BuildTestConnectionParams()
     {
         return new Heimdall.Ssh.SshConnectionParams
@@ -428,7 +536,10 @@ public partial class ServerDialogViewModel : ObservableValidator
     }
 
     private void RaiseTestCommandCanExecuteChanged()
-        => TestSshConnectionCommand.NotifyCanExecuteChanged();
+    {
+        TestSshConnectionCommand.NotifyCanExecuteChanged();
+        TestRdpConnectionCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand]
     private void RefreshAgentChip()
@@ -1282,6 +1393,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RefreshValidationSummary();
         }
         RaisePortDerivedStateChanged();
+        ResetTestChip();
+        RaiseTestCommandCanExecuteChanged();
     }
 
     partial void OnSshPortChanged(int value)
