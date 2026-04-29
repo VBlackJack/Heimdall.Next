@@ -737,6 +737,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **Suggested fix:** Wire `EmbeddedRdpView` to subscribe to `ConnectionStateMachine.StateChanged` for its server ID and surface the localized `Status*` keys (`StatusEstablishingTunnel`, `StatusConnecting`, etc.) the metadata table already provides.
 
+**Status:** ✅ Closed — commit `4704aa4` on 2026-04-29. Outcome B: `EmbeddedRdpView` is constructed after `RdpHandler.ConnectAsync` has already emitted the early pre-launch states (`ValidatingConfig`, `EstablishingTunnel`, `TunnelEstablished`, `LaunchingRdp`). The view now reads the current state-machine state when it initializes, subscribes for later state changes, and syncs COM callbacks back into the state machine (`Connected`, `Disconnecting`, `Disconnected`, `Error`). Showing the tunnel sub-phases in the embedded header would require mounting an RDP placeholder before `ConnectAsync`, mirroring the SSH-only `SessionStarting` path; that architectural move is out of scope for this audit closure.
+
 **References:** Nielsen UX-01 (granular status feedback).
 
 ---
@@ -1082,7 +1084,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (32/33 closed)
+## Status — All findings closed (33/33)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1118,24 +1120,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F32 | Autofill regex matches EN/FR titles only | `538e271` |
 | F29 | EnsureHostHandle retry budget exhaustion has no user signal | `ed945f0` |
 | F24 | Performance flags use imperative code-behind sync | `ba4fa6a` |
-
-Once a finding is closed by a Codex commit, append a status line under its detailed entry:
-
-```
-**Status:** ✅ Closed — commit `<short-sha>` on YYYY-MM-DD.
-```
-
-After all 33 findings are closed, replace this section with:
-
-```
-## Status — All findings closed (33/33)
-
-| # | Title | Closed in |
-|---|---|---|
-…ledger…
-```
-
-(Mirrors the `audit-ux-ssh-2026-04-25.md` final structure.)
+| F26 | "Connecting" doesn't differentiate sub-phases | `4704aa4` |
 
 ---
 
