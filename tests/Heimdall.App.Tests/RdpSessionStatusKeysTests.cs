@@ -118,6 +118,34 @@ public sealed class RdpSessionStatusKeysTests
             $"Locale key '{key}' is missing from fr.json");
     }
 
+    [Theory]
+    [InlineData("RdpAspectPreserve")]
+    [InlineData("RdpAspect16x9")]
+    [InlineData("RdpAspect4x3")]
+    [InlineData("RdpAspect21x9")]
+    public void AspectRatioKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("RdpAspectPreserve")]
+    [InlineData("RdpAspect16x9")]
+    [InlineData("RdpAspect4x3")]
+    [InlineData("RdpAspect21x9")]
+    public void AspectRatioKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
     [Fact]
     public void ExternalClientStatusKey_IsPresentInEnglish()
     {

@@ -1520,6 +1520,11 @@
                                                           Style="{StaticResource DialogFormComboBoxStyle}">
                                                     <ComboBoxItem x:Name="DlgSrv_AspectStretch" Content="" Tag="Stretch"/>
                                                     <ComboBoxItem x:Name="DlgSrv_AspectPreserve" Content="" Tag="Preserve"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_AspectAuto" Content="" Tag="Auto"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_AspectDynamic" Content="" Tag="Dynamic"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_Aspect16x9" Content="" Tag="16:9"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_Aspect4x3" Content="" Tag="4:3"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_Aspect21x9" Content="" Tag="21:9"/>
                                                 </ComboBox>
                                                 <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                                 <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
