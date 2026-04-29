@@ -783,8 +783,37 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _rdpFullScreen;
 
+    private const int PerfDisableWallpaperFlag = 0x01;
+    private const int PerfDisableDragFlag = 0x02;
+    private const int PerfDisableAnimationsFlag = 0x04;
+    private const int PerfDisableThemesFlag = 0x08;
+    private const int PerfDisableCursorShadowFlag = 0x20;
+    private const int PerfEnableFontSmoothingFlag = 0x80;
+    private const int PerfEnableCompositionFlag = 0x100;
+
     [ObservableProperty]
     private int _rdpPerformanceFlags;
+
+    [ObservableProperty]
+    private bool _rdpPerfDisableWallpaper;
+
+    [ObservableProperty]
+    private bool _rdpPerfDisableDrag;
+
+    [ObservableProperty]
+    private bool _rdpPerfDisableAnimations;
+
+    [ObservableProperty]
+    private bool _rdpPerfDisableThemes;
+
+    [ObservableProperty]
+    private bool _rdpPerfDisableCursorShadow;
+
+    [ObservableProperty]
+    private bool _rdpPerfEnableFontSmoothing;
+
+    [ObservableProperty]
+    private bool _rdpPerfEnableComposition;
 
     [ObservableProperty]
     private bool _rdpDisableUdp;
@@ -1137,6 +1166,37 @@ public partial class ServerDialogViewModel : ObservableValidator
             ?? LocalPortError ?? AudioModeError ?? ColorDepthError;
     }
 
+    partial void OnRdpPerformanceFlagsChanged(int value)
+    {
+        DecomposePerformanceFlags(value);
+    }
+
+    private int ComposePerformanceFlags()
+    {
+        var flags = 0;
+
+        if (RdpPerfDisableWallpaper) flags |= PerfDisableWallpaperFlag;
+        if (RdpPerfDisableDrag) flags |= PerfDisableDragFlag;
+        if (RdpPerfDisableAnimations) flags |= PerfDisableAnimationsFlag;
+        if (RdpPerfDisableThemes) flags |= PerfDisableThemesFlag;
+        if (RdpPerfDisableCursorShadow) flags |= PerfDisableCursorShadowFlag;
+        if (RdpPerfEnableFontSmoothing) flags |= PerfEnableFontSmoothingFlag;
+        if (RdpPerfEnableComposition) flags |= PerfEnableCompositionFlag;
+
+        return flags;
+    }
+
+    private void DecomposePerformanceFlags(int flags)
+    {
+        RdpPerfDisableWallpaper = (flags & PerfDisableWallpaperFlag) != 0;
+        RdpPerfDisableDrag = (flags & PerfDisableDragFlag) != 0;
+        RdpPerfDisableAnimations = (flags & PerfDisableAnimationsFlag) != 0;
+        RdpPerfDisableThemes = (flags & PerfDisableThemesFlag) != 0;
+        RdpPerfDisableCursorShadow = (flags & PerfDisableCursorShadowFlag) != 0;
+        RdpPerfEnableFontSmoothing = (flags & PerfEnableFontSmoothingFlag) != 0;
+        RdpPerfEnableComposition = (flags & PerfEnableCompositionFlag) != 0;
+    }
+
     /// <summary>
     /// Maps the current ViewModel state to a flat DTO for persistence.
     /// </summary>
@@ -1227,7 +1287,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpAutoReconnect = RdpAutoReconnect,
             RdpAdminMode = RdpAdminMode,
             RdpFullScreen = RdpFullScreen,
-            RdpPerformanceFlags = RdpPerformanceFlags,
+            RdpPerformanceFlags = ComposePerformanceFlags(),
             RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
@@ -1327,6 +1387,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RdpAdminMode = dto.RdpAdminMode;
         vm.RdpFullScreen = dto.RdpFullScreen;
         vm.RdpPerformanceFlags = dto.RdpPerformanceFlags;
+        vm.DecomposePerformanceFlags(dto.RdpPerformanceFlags);
         vm.RdpDisableUdp = dto.RdpDisableUdp;
         vm.RdpGateway = dto.RdpGateway ?? "";
         vm.SelectedGatewayId = dto.SshGatewayId ?? "";
