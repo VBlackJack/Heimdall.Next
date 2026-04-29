@@ -64,6 +64,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private DispatcherTimer? _autofillFilledTimer;
     private RdpActiveXHost? _rdpHost;
     private ServerProfileDto? _server;
+    private AppSettings? _settings;
     private SessionPaneModel? _ownerPane;
     private SessionTabViewModel? _sessionTab;
 
@@ -128,6 +129,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     public void InitializeSession(
         ServerProfileDto server,
         SessionTabViewModel sessionTab,
+        AppSettings settings,
         int antiIdleIntervalSeconds = 60,
         Core.Localization.LocalizationManager? localizer = null,
         int? tunnelPort = null,
@@ -135,6 +137,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
+        ArgumentNullException.ThrowIfNull(settings);
 
         if (_disposed)
         {
@@ -147,6 +150,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         _server = server;
+        _settings = settings;
         _sessionTab = sessionTab;
         _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
         _localizer = localizer;
@@ -389,7 +393,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void BeginConnect()
     {
-        if (_disposed || _rdpHost is null || _server is null)
+        var settings = _settings;
+        if (_disposed || _rdpHost is null || _server is null || settings is null)
         {
             return;
         }
@@ -432,10 +437,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
             }
 
-            _rdpHost.SetDisplay(width, height, NormalizeColorDepth(_server.RdpColorDepth));
+            _rdpHost.SetDisplay(width, height, RdpProfileResolver.ResolveColorDepth(_server, settings));
             _lastAppliedWidth = width;
             _lastAppliedHeight = height;
-            _rdpHost.SetRedirections(BuildRedirections(_server));
+            _rdpHost.SetRedirections(RdpProfileResolver.BuildRedirections(_server, settings));
 
             if (!_eventSinkAttached)
             {
@@ -1251,16 +1256,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         return CredentialProtector.Unprotect(server.RdpPasswordEncrypted);
     }
 
-    private static int NormalizeColorDepth(int colorDepth)
-    {
-        return colorDepth switch
-        {
-            <= 16 => 16,
-            <= 24 => 24,
-            _ => 32
-        };
-    }
-
     /// <summary>
     /// Suppresses the reconnect overlay for explicit user disconnects and clean-exit COM codes.
     /// </summary>
@@ -1282,30 +1277,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             "21:9" => AspectRatio.Ratio21x9,
             _ when Enum.TryParse<AspectRatio>(aspectRatio, true, out var parsed) => parsed,
             _ => AspectRatio.Stretch
-        };
-    }
-
-    private static RdpRedirectionOptions BuildRedirections(ServerProfileDto server)
-    {
-        return new RdpRedirectionOptions
-        {
-            Clipboard = server.RdpRedirectClipboard,
-            Drives = server.RdpRedirectDrives,
-            Printers = server.RdpRedirectPrinters,
-            ComPorts = server.RdpRedirectComPorts,
-            SmartCards = server.RdpRedirectSmartCards,
-            Usb = server.RdpRedirectUsb,
-            Webcam = server.RdpRedirectWebcam,
-            AudioCapture = server.RdpAudioCapture,
-            AudioMode = server.RdpAudioMode,
-            MultiMonitor = server.RdpMultiMonitor,
-            DynamicResolution = server.RdpDynamicResolution,
-            Nla = server.RdpNla,
-            BitmapCaching = server.RdpBitmapCaching,
-            Compression = server.RdpCompression,
-            AutoReconnect = server.RdpAutoReconnect,
-            PerformanceFlags = server.RdpPerformanceFlags,
-            DisableUdp = server.RdpDisableUdp
         };
     }
 
