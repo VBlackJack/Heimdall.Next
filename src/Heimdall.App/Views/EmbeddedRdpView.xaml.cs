@@ -27,6 +27,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Core.StateMachine;
 using Heimdall.Rdp;
 using Heimdall.Rdp.ActiveX;
 using WinForms = System.Windows.Forms;
@@ -72,6 +73,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private AppSettings? _settings;
     private SessionPaneModel? _ownerPane;
     private SessionTabViewModel? _sessionTab;
+    private ConnectionStateMachine? _connectionStateMachine;
 
     private Core.Localization.LocalizationManager? _localizer;
     private int? _tunnelPort;
@@ -82,6 +84,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _disposed;
     private bool _allowResolutionUpdates;
     private bool _sleepPreventionActive;
+    private bool _comDrivenStatusActive;
 
     /// <summary>
     /// One-shot flag set when the header bar explicitly initiates the disconnect.
@@ -138,7 +141,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         int antiIdleIntervalSeconds = 60,
         Core.Localization.LocalizationManager? localizer = null,
         int? tunnelPort = null,
-        int resizeEnableDelayMs = 10000)
+        int resizeEnableDelayMs = 10000,
+        ConnectionStateMachine? connectionStateMachine = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -161,6 +165,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _localizer = localizer;
         _tunnelPort = tunnelPort;
         _initialResizeEnableDelay = TimeSpan.FromMilliseconds(resizeEnableDelayMs);
+        _connectionStateMachine = connectionStateMachine;
+        if (_connectionStateMachine is not null)
+        {
+            _connectionStateMachine.StateChanged += OnConnectionStateChanged;
+        }
+
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
@@ -192,7 +202,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         PopulateResolutionMenu();
         CreateHostControl();
-        UpdateSessionStatus(RdpSessionStatus.Connecting);
+        UpdateConnectingStatusFromStateMachineOrDefault();
     }
 
     public void SetOwningPane(SessionPaneModel pane)
@@ -210,6 +220,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         _disposed = true;
         Core.Logging.FileLogger.Info("EmbeddedRDP Dispose started");
+
+        if (_connectionStateMachine is not null)
+        {
+            _connectionStateMachine.StateChanged -= OnConnectionStateChanged;
+            _connectionStateMachine = null;
+        }
 
         Loaded -= OnLoaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
@@ -294,6 +310,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _userInitiatedDisconnect = true;
             _allowResolutionUpdates = false;
+            TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
             _rdpHost.Disconnect();
         }
@@ -315,6 +332,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled auto-reconnect");
             _userInitiatedDisconnect = true;
             _rdpHost.CancelAutoReconnect = true;
+            TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
         }
         catch (Exception ex)
@@ -511,7 +529,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             // Post-connect flush removed: layout is already stable after pre-connect + post-handle flushes.
             // The third flush added ~50-150ms latency with no airspace benefit since Connect() is async.
-            UpdateSessionStatus(RdpSessionStatus.Connecting);
+            UpdateConnectingStatusFromStateMachineOrDefault();
 
             if (!string.IsNullOrWhiteSpace(password))
             {
@@ -551,6 +569,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             return;
         }
+
+        _comDrivenStatusActive = true;
+        TryTransitionConnectionState(ConnectionState.Connected);
 
         Dispatcher.Invoke(() =>
         {
@@ -635,6 +656,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         var wasUserInitiated = _userInitiatedDisconnect;
         _userInitiatedDisconnect = false;
         var suppressOverlay = ShouldSuppressReconnectOverlay(wasUserInitiated, reason);
+        TryTransitionConnectionState(ConnectionState.Disconnected);
 
         Dispatcher.Invoke(() =>
         {
@@ -665,6 +687,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             return;
         }
+
+        var fatalMessage = _localizer?.Format("RdpStatusFatalErrorDetail", errorCode)
+            ?? $"Remote Desktop reported a fatal error ({errorCode}).";
+        SetConnectionStateError(fatalMessage);
 
         Dispatcher.Invoke(() =>
         {
@@ -889,6 +915,109 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         _autofillFilledTimer?.Stop();
         UpdateAutofillState(RdpAutofillState.None);
+    }
+
+    private void OnConnectionStateChanged(
+        string serverId,
+        ConnectionState previousState,
+        ConnectionState newState,
+        string? errorMessage)
+    {
+        _ = previousState;
+        _ = errorMessage;
+
+        if (_server is null
+            || !ShouldHandleStateChange(serverId, _server.Id, _comDrivenStatusActive, _disposed))
+        {
+            return;
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            ApplyConnectionStateStatus(newState);
+        }
+        else
+        {
+            Dispatcher.Invoke(() => ApplyConnectionStateStatus(newState));
+        }
+    }
+
+    private void UpdateConnectingStatusFromStateMachineOrDefault()
+    {
+        UpdateSessionStatus(RdpSessionStatus.Connecting);
+        ApplyCurrentConnectionStateStatus();
+    }
+
+    private void ApplyCurrentConnectionStateStatus()
+    {
+        if (_connectionStateMachine is null || _server is null || _comDrivenStatusActive)
+        {
+            return;
+        }
+
+        var state = _connectionStateMachine.GetState(_server.Id);
+        if (state is ConnectionState.Disconnected)
+        {
+            return;
+        }
+
+        ApplyConnectionStateStatus(state);
+    }
+
+    private void ApplyConnectionStateStatus(ConnectionState state)
+    {
+        var metadata = ConnectionStateMachine.GetMetadata(state);
+        if (string.IsNullOrWhiteSpace(metadata.DisplayKey))
+        {
+            return;
+        }
+
+        StatusTextBlock.Text = FormatConnectionStateStatus(metadata.DisplayKey);
+        RdpLoadingBar.Visibility = metadata.IsProgress ? Visibility.Visible : Visibility.Collapsed;
+        StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
+    }
+
+    private string FormatConnectionStateStatus(string statusKey)
+    {
+        if (_localizer is null)
+        {
+            return statusKey;
+        }
+
+        return statusKey switch
+        {
+            "StatusConnecting" => _localizer.Format(statusKey, BuildConnectionStateTarget()),
+            "StatusEstablishingTunnel" => _localizer.Format(statusKey, BuildConnectionStateTarget()),
+            "StatusTunnelEstablished" => _localizer.Format(statusKey, _tunnelPort ?? 0),
+            _ => L(statusKey),
+        };
+    }
+
+    private string BuildConnectionStateTarget()
+        => _server is null
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(_server.RemoteServer)
+                ? _server.DisplayName
+                : _server.RemoteServer;
+
+    private void TryTransitionConnectionState(ConnectionState state)
+    {
+        if (_connectionStateMachine is null || _server is null)
+        {
+            return;
+        }
+
+        _connectionStateMachine.TryTransition(_server.Id, state);
+    }
+
+    private void SetConnectionStateError(string message)
+    {
+        if (_connectionStateMachine is null || _server is null)
+        {
+            return;
+        }
+
+        _connectionStateMachine.SetError(_server.Id, message);
     }
 
     private void UpdateSessionStatus(
@@ -1424,6 +1553,16 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// </summary>
     internal static bool ShouldSuppressReconnectOverlay(bool userInitiated, int reason)
         => userInitiated || reason is 0 or 1 or 2 or 3;
+
+    internal static bool ShouldHandleStateChange(
+        string serverId,
+        string? targetServerId,
+        bool comDrivenStatusActive,
+        bool disposed)
+        => !disposed
+            && !comDrivenStatusActive
+            && !string.IsNullOrWhiteSpace(targetServerId)
+            && string.Equals(serverId, targetServerId, StringComparison.Ordinal);
 
     private static AspectRatio ParseAspectRatio(string? aspectRatio)
     {
