@@ -171,6 +171,8 @@ Show a brief toast/inline status instead, and consider auto-closing the tab when
 
 **References:** Nielsen UX-04 (consistency between intent and feedback).
 
+**Status:** ✅ Closed — commit `8a91d1f` on 2026-04-29.
+
 ---
 
 ### F4 — `RdpUseGlobalDefaults` checkbox has no runtime effect · 🟠 High
@@ -1018,13 +1020,14 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (3/33 closed)
+## Status — in progress (4/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
 | F5 | Reconnect overlay loses the decoded disconnect reason | `51c4de3` |
 | F1 | Status text bypasses the i18n pipeline | `dcda468` |
 | F2 | Auto-reconnect status hides attempt count, reason, and cancel affordance | `9944f50` |
+| F3 | Reconnect overlay shown on user-initiated disconnect | `8a91d1f` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
