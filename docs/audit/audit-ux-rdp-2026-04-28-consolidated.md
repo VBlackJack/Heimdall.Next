@@ -347,6 +347,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-04 (consistency between control state and effect).
 
+**Status:** ✅ Closed — commit `726c788` on 2026-04-29 (alongside F15).
+
 ---
 
 ### F10 — Progress bar hidden during reconnecting · 🟡 Medium
@@ -476,6 +478,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 - Add a "Open in fullscreen" toggle and wire `FullScreen`.
 
 **References:** Nielsen UX-04 (consistency between embedded and external modes).
+
+**Status:** ✅ Closed — commit `726c788` on 2026-04-29 (alongside F9).
 
 ---
 
@@ -1058,7 +1062,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (20/33 closed)
+## Status — in progress (22/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1083,6 +1087,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F13 | Manual resolution change ignored during stabilization | `c6b33b6` |
 | F21 | No Send Ctrl+Alt+Del helper for the embedded RDP surface | `c6b33b6` |
 | F16 | Disconnect message wording lacks actionability | `b48d8d1` |
+| F9 | Webcam silently ineffective in embedded mode | `726c788` |
+| F15 | External `.rdp` ignores resolution / AdminMode / FullScreen unreachable | `726c788` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
