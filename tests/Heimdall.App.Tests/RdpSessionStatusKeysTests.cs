@@ -284,6 +284,46 @@ public sealed class RdpSessionStatusKeysTests
             $"Locale key '{key}' is missing from fr.json");
     }
 
+    [Theory]
+    [InlineData("ServerDialogRdpTestButton")]
+    [InlineData("ServerDialogRdpTestCancel")]
+    [InlineData("ServerDialogRdpTestSuccess")]
+    [InlineData("ServerDialogRdpTestInvalid")]
+    [InlineData("ServerDialogRdpTestDnsTimeout")]
+    [InlineData("ServerDialogRdpTestDnsFailed")]
+    [InlineData("ServerDialogRdpTestDnsNoResults")]
+    [InlineData("ServerDialogRdpTestTcpTimeout")]
+    [InlineData("ServerDialogRdpTestTcpFailed")]
+    [InlineData("ServerDialogRdpTestCancelled")]
+    public void RdpTestConnectionKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("ServerDialogRdpTestButton")]
+    [InlineData("ServerDialogRdpTestCancel")]
+    [InlineData("ServerDialogRdpTestSuccess")]
+    [InlineData("ServerDialogRdpTestInvalid")]
+    [InlineData("ServerDialogRdpTestDnsTimeout")]
+    [InlineData("ServerDialogRdpTestDnsFailed")]
+    [InlineData("ServerDialogRdpTestDnsNoResults")]
+    [InlineData("ServerDialogRdpTestTcpTimeout")]
+    [InlineData("ServerDialogRdpTestTcpFailed")]
+    [InlineData("ServerDialogRdpTestCancelled")]
+    public void RdpTestConnectionKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
     [Fact]
     public void RdpStatusReconnecting_HasAttemptAndCapPlaceholdersInEnglish()
     {

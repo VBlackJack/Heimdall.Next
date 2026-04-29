@@ -90,6 +90,10 @@
                         <Setter Property="Visibility" Value="Visible"/>
                         <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Cancelled}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                    </DataTrigger>
                 </Style.Triggers>
             </Style>
 
@@ -107,6 +111,10 @@
                     <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Failure}">
                         <Setter Property="Text" Value="&#x2715;"/>
                         <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TestChipState}" Value="{x:Static vm:SshTestChipState.Cancelled}">
+                        <Setter Property="Text" Value="&#x25CB;"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -734,6 +742,43 @@
                         <PasswordBox x:Name="RdpPasswordBox" TabIndex="11"
                                      AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
                                      Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <DockPanel Margin="0,8,0,0"
+                                   LastChildFill="False">
+                            <Button DockPanel.Dock="Left"
+                                    MinWidth="140"
+                                    Content="{loc:Translate ServerDialogRdpTestButton}"
+                                    Command="{Binding TestRdpConnectionCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    AutomationProperties.Name="{loc:Translate ServerDialogRdpTestButton}"/>
+                            <Button DockPanel.Dock="Left"
+                                    MinWidth="90"
+                                    Margin="6,0,0,0"
+                                    Content="{loc:Translate ServerDialogRdpTestCancel}"
+                                    Command="{Binding CancelRdpTestCommand}"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    Visibility="{Binding IsTestingRdpConnection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    AutomationProperties.Name="{loc:Translate ServerDialogRdpTestCancel}"/>
+                        </DockPanel>
+                        <Border Margin="0,6,0,0"
+                                CornerRadius="{StaticResource CornerRadiusSm}"
+                                Padding="8,4"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                Style="{StaticResource SshTestChipBorderStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource SshTestChipIconStyle}"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                           Margin="0,0,6,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding TestChipText}"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="500"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           AutomationProperties.LiveSetting="Polite"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
