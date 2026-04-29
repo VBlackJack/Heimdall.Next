@@ -511,8 +511,13 @@ public partial class ServerDialog : Window
         DlgSrv_SessionModeLabel.Text = _localizer["ServerDialogLabelSessionMode"];
         DlgSrv_RdpModeEmbedded.Content = _localizer["ServerDialogModeEmbedded"];
         DlgSrv_RdpModeExternal.Content = _localizer["ServerDialogModeExternal"];
-        DlgSrv_AspectStretch.Content = _localizer["ServerDialogAspectStretch"];
-        DlgSrv_AspectPreserve.Content = _localizer["ServerDialogAspectPreserve"];
+        DlgSrv_AspectStretch.Content = _localizer["RdpAspectStretch"];
+        DlgSrv_AspectPreserve.Content = _localizer["RdpAspectPreserve"];
+        DlgSrv_AspectAuto.Content = _localizer["RdpAspectAuto"];
+        DlgSrv_AspectDynamic.Content = _localizer["RdpAspectDynamic"];
+        DlgSrv_Aspect16x9.Content = _localizer["RdpAspect16x9"];
+        DlgSrv_Aspect4x3.Content = _localizer["RdpAspect4x3"];
+        DlgSrv_Aspect21x9.Content = _localizer["RdpAspect21x9"];
         DlgSrv_AspectRatioLabel.Text = _localizer["ServerDialogLabelAspectRatio"];
         DlgSrv_AudioModeLabel.Text = _localizer["ServerDialogLabelAudioMode"];
         DlgSrv_ColorDepthLabel.Text = _localizer["ServerDialogLabelColorDepth"];
