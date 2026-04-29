@@ -680,6 +680,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-03 (error prevention), prior SSH UX audit (`audit-ux-ssh-2026-04-25.md` F10 "Test Connection").
 
+**Status:** ✅ Closed — commit `56055bf` on 2026-04-28.
+
 ---
 
 ### F24 — Performance flags use imperative code-behind sync · 🟢 Low
@@ -1062,7 +1064,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (22/33 closed)
+## Status — in progress (23/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1089,6 +1091,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F16 | Disconnect message wording lacks actionability | `b48d8d1` |
 | F9 | Webcam silently ineffective in embedded mode | `726c788` |
 | F15 | External `.rdp` ignores resolution / AdminMode / FullScreen unreachable | `726c788` |
+| F23 | No "test connection" / pre-connect validation for RDP profiles | `56055bf` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
