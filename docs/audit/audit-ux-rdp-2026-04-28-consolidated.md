@@ -433,6 +433,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 - Disable the resolution button (with a tooltip "Stabilizing connection — available in {x} s") while `_allowResolutionUpdates == false`.
 - Better: queue the user's choice and apply it as soon as `EnableResolutionUpdatesAsync` finishes. Show a transient `RdpStatusOptimizingDisplay` ("Optimizing display…") status during the window.
 
+**Status:** ✅ Closed — commit `c6b33b6` on 2026-04-29 (alongside F21).
+
 **References:** Nielsen UX-01 (status visibility), UX-04 (predictability).
 
 ---
@@ -620,6 +622,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 **Observed:** No such control. The user can use `Ctrl+Alt+End` in external mstsc mode (which works because mstsc handles it natively); embedded mode has no equivalent.
 
 **Suggested fix:** Add a header-bar button (next to Resolution) that calls `IMsRdpClient.SendOnVirtualChannel` or, simpler: dispatch `WM_KEYDOWN`/`WM_KEYUP` with `VK_CTRL + VK_MENU + VK_DELETE` to the deepest child window of the host (similar to the anti-idle Shift key path).
+
+**Status:** ✅ Closed — commit `c6b33b6` on 2026-04-29 (alongside F13).
 
 **References:** Nielsen UX-06 (efficiency for power users), platform conventions for RDP clients.
 
@@ -1052,7 +1056,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (17/33 closed)
+## Status — in progress (19/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1074,6 +1078,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F19 | Citrix capture polling without progress feedback | `70403b8` |
 | F20 | Citrix Terminate without confirmation | `70403b8` |
 | F27 | CitrixUseSso always visible | `70403b8` |
+| F13 | Manual resolution change ignored during stabilization | `c6b33b6` |
+| F21 | No Send Ctrl+Alt+Del helper for the embedded RDP surface | `c6b33b6` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
