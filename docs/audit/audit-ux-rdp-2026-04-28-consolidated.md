@@ -789,6 +789,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-03 (visible failure mode).
 
+**Status:** ✅ Closed — commit `ed945f0` on 2026-04-28.
+
 ---
 
 ### F30 — `RdpFatalError` collapses all error codes into one message · 🟢 Low
@@ -1078,7 +1080,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (29/33 closed)
+## Status — in progress (31/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1112,6 +1114,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F28 | 3 timeout settings unreachable from UI | `e8114c6` |
 | F30 | RdpFatalError collapses all codes into one message | `538e271` |
 | F32 | Autofill regex matches EN/FR titles only | `538e271` |
+| F29 | EnsureHostHandle retry budget exhaustion has no user signal | `ed945f0` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
