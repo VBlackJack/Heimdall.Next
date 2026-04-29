@@ -173,6 +173,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             SplitButton.ToolTip = L("TooltipSplitSession");
             ResolutionButton.ToolTip = L("TooltipChangeResolution");
             SendCtrlAltDelButton.ToolTip = L("TooltipSendCtrlAltDel");
+            AntiIdleBadge.ToolTip = L("TooltipAntiIdleActive");
 
             // Accessibility: automation names for toolbar buttons
             System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
@@ -180,6 +181,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
             System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
             System.Windows.Automation.AutomationProperties.SetName(SendCtrlAltDelButton, L("A11ySendCtrlAltDel"));
+            System.Windows.Automation.AutomationProperties.SetName(AntiIdleBadge, L("A11yAntiIdleActive"));
             System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
         }
 
@@ -981,6 +983,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         ResolutionMenu.IsOpen = true;
     }
 
+    private void OnAntiIdleBadgeClick(object sender, RoutedEventArgs e)
+    {
+        if (_antiIdleTimer is null)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info(
+            "EmbeddedRDP user disabled anti-idle for the current session");
+        StopAntiIdleTimer();
+    }
+
     private void OnResolutionMenuClick(object sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem item || item.Tag is not string tag)
@@ -1171,6 +1185,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _antiIdleTimer.Start();
         Core.Logging.FileLogger.Info(
             $"RDP anti-idle timer started ({intervalSeconds}s interval)");
+        AntiIdleBadge.Visibility = Visibility.Visible;
     }
 
     private void StopAntiIdleTimer()
@@ -1183,6 +1198,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _antiIdleTimer.Stop();
         _antiIdleTimer = null;
         Core.Logging.FileLogger.Info("RDP anti-idle timer stopped");
+
+        if (!_disposed)
+        {
+            AntiIdleBadge.Visibility = Visibility.Collapsed;
+        }
     }
 
     [SupportedOSPlatform("windows")]
