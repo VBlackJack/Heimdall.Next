@@ -83,9 +83,21 @@ public sealed record VncSessionResult(
 public sealed record FtpSessionBundle(FtpBrowser Browser) : ISessionResult;
 
 /// <summary>
+/// Describes which Citrix launch path was selected for the current session.
+/// </summary>
+public enum CitrixLaunchMode
+{
+    Unknown = 0,
+    SelfServiceCache,
+    IcaFile,
+    StoreFront
+}
+
+/// <summary>
 /// Wraps a Citrix Workspace process handle for session lifecycle management.
 /// </summary>
 public sealed record CitrixSessionResult(
     Process? Process,
     string? StoreFrontUrl = null,
-    string? AppName = null) : ISessionResult;
+    string? AppName = null,
+    CitrixLaunchMode Mode = CitrixLaunchMode.Unknown) : ISessionResult;

@@ -59,6 +59,9 @@ internal sealed class CitrixHandler : IProtocolHandler
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingCitrix);
 
         Process? process = null;
+        var mode = CitrixLaunchMode.Unknown;
+        string? resultStoreFrontUrl = null;
+        string? resultAppName = null;
         try
         {
             if (!string.IsNullOrWhiteSpace(server.CitrixLaunchCommandLine))
@@ -66,11 +69,12 @@ internal sealed class CitrixHandler : IProtocolHandler
                 if (server.CitrixLaunchCommandLine.AsSpan().IndexOfAny(
                     ['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
                 {
-                    var msg = _localizer["CitrixNoConnectionConfigured"];
+                    var msg = _localizer["CitrixLaunchCommandRejected"];
                     _connectionSm.SetError(server.Id, msg);
                     return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
+                mode = CitrixLaunchMode.SelfServiceCache;
                 var selfServicePath = ResolveSelfServicePath();
                 if (selfServicePath is null)
                 {
@@ -104,6 +108,7 @@ internal sealed class CitrixHandler : IProtocolHandler
             else if (!string.IsNullOrWhiteSpace(server.CitrixIcaFilePath) &&
                      File.Exists(server.CitrixIcaFilePath))
             {
+                mode = CitrixLaunchMode.IcaFile;
                 process = Process.Start(new ProcessStartInfo
                 {
                     FileName = server.CitrixIcaFilePath,
@@ -120,6 +125,9 @@ internal sealed class CitrixHandler : IProtocolHandler
                     return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
+                mode = CitrixLaunchMode.StoreFront;
+                resultStoreFrontUrl = validatedStoreFrontUrl;
+                resultAppName = server.CitrixAppName;
                 var launcher = ResolveCitrixLauncher();
                 if (launcher is null)
                 {
@@ -150,7 +158,7 @@ internal sealed class CitrixHandler : IProtocolHandler
             return Task.FromResult(new ConnectionResult(
                 true,
                 null,
-                new CitrixSessionResult(process, server.CitrixStoreFrontUrl, server.CitrixAppName)));
+                new CitrixSessionResult(process, resultStoreFrontUrl, resultAppName, mode)));
         }
         catch (Exception ex)
         {

@@ -106,4 +106,22 @@ public sealed class CitrixHandlerTests
         Assert.Equal("CitrixInvalidStoreFrontUrl", result.ErrorMessage);
         Assert.Null(result.Session);
     }
+
+    [Fact]
+    public async Task ConnectAsync_RejectsShellMetacharacters_WithDedicatedMessage()
+    {
+        var handler = new CitrixHandler(new ConnectionStateMachine(), new LocalizationManager());
+        var server = new ServerProfileDto
+        {
+            Id = "srv-citrix-rejected-command",
+            DisplayName = "Citrix test",
+            CitrixLaunchCommandLine = "launch | malicious"
+        };
+
+        var result = await handler.ConnectAsync(server, new AppSettings(), CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("CitrixLaunchCommandRejected", result.ErrorMessage);
+        Assert.Null(result.Session);
+    }
 }
