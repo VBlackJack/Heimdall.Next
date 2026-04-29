@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.App.Services;
@@ -68,6 +70,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private CancellationTokenSource? _autofillCts;
     private DispatcherTimer? _antiIdleTimer;
     private DispatcherTimer? _autofillFilledTimer;
+    private DispatcherTimer? _stabilizationTimer;
     private RdpActiveXHost? _rdpHost;
     private ServerProfileDto? _server;
     private AppSettings? _settings;
@@ -85,6 +88,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _allowResolutionUpdates;
     private bool _sleepPreventionActive;
     private bool _comDrivenStatusActive;
+    private bool _escapeHookRegistered;
 
     /// <summary>
     /// One-shot flag set when the header bar explicitly initiates the disconnect.
@@ -97,6 +101,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private int _manualResolutionWidth;
     private int _manualResolutionHeight;
     private DateTime _connectedAtUtc;
+    private DateTime _stabilizationDeadlineUtc;
 
     /// <summary>
     /// Raised when the user clicks the Split button in the header strip.
@@ -124,6 +129,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         };
 
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         SurfaceContainer.SizeChanged += OnSurfaceContainerSizeChanged;
     }
 
@@ -178,26 +184,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         if (_localizer is not null)
         {
-            DisconnectButton.Content = L("BtnDisconnectSession");
-            CancelReconnectButton.Content = L("BtnCancelReconnect");
-            ResMenuFit.Header = L("RdpResolutionFitToWindow");
-
-            // Tooltips
-            DisconnectButton.ToolTip = L("TooltipDisconnectSession");
-            CancelReconnectButton.ToolTip = L("TooltipCancelReconnect");
-            SplitButton.ToolTip = L("TooltipSplitSession");
             ResolutionButton.ToolTip = L("TooltipChangeResolution");
-            SendCtrlAltDelButton.ToolTip = L("TooltipSendCtrlAltDel");
-            AntiIdleBadge.ToolTip = L("TooltipAntiIdleActive");
-
-            // Accessibility: automation names for toolbar buttons
-            System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
-            System.Windows.Automation.AutomationProperties.SetName(CancelReconnectButton, L("A11yCancelReconnect"));
-            System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
-            System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
-            System.Windows.Automation.AutomationProperties.SetName(SendCtrlAltDelButton, L("A11ySendCtrlAltDel"));
-            System.Windows.Automation.AutomationProperties.SetName(AntiIdleBadge, L("A11yAntiIdleActive"));
-            System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
         }
 
         PopulateResolutionMenu();
@@ -220,6 +207,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         _disposed = true;
         Core.Logging.FileLogger.Info("EmbeddedRDP Dispose started");
+        UnregisterEscapeHook();
 
         if (_connectionStateMachine is not null)
         {
@@ -228,10 +216,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         Loaded -= OnLoaded;
+        Unloaded -= OnUnloaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
         _resizeTimer.Stop();
         _autofillFilledTimer?.Stop();
         _autofillFilledTimer = null;
+        StopStabilizationCountdown();
         StopAntiIdleTimer();
         ReleaseSleepPrevention();
         CancelAutofill();
@@ -284,9 +274,42 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Core.Logging.FileLogger.Info("EmbeddedRDP Dispose completed");
     }
 
+    internal IntPtr GetRdpKeyboardInputHandle()
+    {
+        return FormsHost.Child is WinForms.Control control && control.IsHandleCreated
+            ? control.Handle
+            : IntPtr.Zero;
+    }
+
+    internal void FocusRdpToolbarFromEscapeHook()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(FocusRdpToolbarFromEscapeHook));
+            return;
+        }
+
+        _ = DisconnectButton.Focus();
+        _ = Keyboard.Focus(DisconnectButton);
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_disposed || !_initialized || _connectStarted)
+        if (_disposed || !_initialized)
+        {
+            return;
+        }
+
+        RegisterEscapeHook();
+
+        if (_connectStarted)
         {
             return;
         }
@@ -296,6 +319,32 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             $"EmbeddedRDP Loaded: isVisible={IsVisible} formsVisible={FormsHost.IsVisible} formsSize={FormsHost.ActualWidth:0.##}x{FormsHost.ActualHeight:0.##} surfaceSize={SurfaceContainer.ActualWidth:0.##}x{SurfaceContainer.ActualHeight:0.##}");
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(BeginConnect));
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        UnregisterEscapeHook();
+    }
+
+    private void RegisterEscapeHook()
+    {
+        if (_escapeHookRegistered)
+        {
+            return;
+        }
+
+        _escapeHookRegistered = RdpKeyboardEscapeHook.Register(this, _settings?.RdpReleaseFocusShortcut);
+    }
+
+    private void UnregisterEscapeHook()
+    {
+        if (!_escapeHookRegistered)
+        {
+            return;
+        }
+
+        RdpKeyboardEscapeHook.Unregister(this);
+        _escapeHookRegistered = false;
     }
 
     private void OnDisconnectClick(object sender, RoutedEventArgs e)
@@ -310,6 +359,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _userInitiatedDisconnect = true;
             _allowResolutionUpdates = false;
+            StopStabilizationCountdown();
             TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
             _rdpHost.Disconnect();
@@ -601,6 +651,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
+                StartStabilizationCountdown(_initialResizeEnableDelay);
                 _ = EnableResolutionUpdatesAsync();
             }
         });
@@ -620,10 +671,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
         {
+            StopStabilizationCountdown();
             return;
         }
 
         _allowResolutionUpdates = true;
+        StopStabilizationCountdown();
         Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
 
         var (queuedWidth, queuedHeight) = GetDisplayDimensions();
@@ -662,6 +715,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             CancelAutofill();
             StopAntiIdleTimer();
+            StopStabilizationCountdown();
             ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
 
@@ -695,6 +749,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            StopStabilizationCountdown();
             _allowResolutionUpdates = false;
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromFatalError(errorCode));
             UpdateSessionStatus(RdpSessionStatus.Error);
@@ -721,6 +776,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         Dispatcher.Invoke(() =>
         {
+            StopStabilizationCountdown();
             _allowResolutionUpdates = false;
             UpdateSessionStatus(RdpSessionStatus.Reconnecting, attemptCount);
         });
@@ -738,6 +794,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
+                StartStabilizationCountdown(_initialResizeEnableDelay);
                 _ = EnableResolutionUpdatesAsync();
             }
         });
@@ -1223,6 +1280,68 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
     private string L(string key) => _localizer?[key] ?? key;
 
+    private void StartStabilizationCountdown(TimeSpan delay)
+    {
+        StopStabilizationCountdown();
+
+        if (_localizer is null || delay <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        _stabilizationDeadlineUtc = DateTime.UtcNow + delay;
+        _stabilizationTimer = new DispatcherTimer(
+            TimeSpan.FromSeconds(1),
+            DispatcherPriority.Background,
+            OnStabilizationTimerTick,
+            Dispatcher);
+        _stabilizationTimer.Start();
+        UpdateStabilizationDisplay();
+    }
+
+    private void OnStabilizationTimerTick(object? sender, EventArgs e)
+    {
+        UpdateStabilizationDisplay();
+    }
+
+    private void UpdateStabilizationDisplay()
+    {
+        var localizer = _localizer;
+        if (localizer is null)
+        {
+            StopStabilizationCountdown();
+            return;
+        }
+
+        var remaining = _stabilizationDeadlineUtc - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+        {
+            StopStabilizationCountdown();
+            return;
+        }
+
+        var seconds = (int)Math.Ceiling(remaining.TotalSeconds);
+        StabilizingStatusText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["RdpStabilizingStatus"],
+            seconds);
+        StabilizingSeparator.Visibility = System.Windows.Visibility.Visible;
+        StabilizingStatusText.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void StopStabilizationCountdown()
+    {
+        if (_stabilizationTimer is not null)
+        {
+            _stabilizationTimer.Stop();
+            _stabilizationTimer.Tick -= OnStabilizationTimerTick;
+            _stabilizationTimer = null;
+        }
+
+        StabilizingSeparator.Visibility = System.Windows.Visibility.Collapsed;
+        StabilizingStatusText.Visibility = System.Windows.Visibility.Collapsed;
+    }
+
     private void ShowReconnectOverlay()
     {
         var diagnostic = _ownerPane?.FailureDetails
@@ -1289,11 +1408,40 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ReconnectCodeText.Visibility = System.Windows.Visibility.Collapsed;
         }
 
-        OverlayReconnectButton.Content = L("BtnReconnectSession");
-        OverlayCloseButton.Content = L("BtnCloseOverlay");
-        System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
-        System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, L("A11yCloseOverlay"));
+        ApplyOverlaySeverity(ResolveOverlaySeverity(diagnostic));
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private static RdpActiveXHost.RdpDisconnectSeverity ResolveOverlaySeverity(
+        Core.SessionDiagnostics.SessionDiagnostic? diagnostic)
+    {
+        if (diagnostic?.MessageKey == "RdpStatusFatalErrorDetail")
+        {
+            return RdpActiveXHost.RdpDisconnectSeverity.TerminalError;
+        }
+
+        return diagnostic?.Code is int code
+            ? RdpActiveXHost.GetDisconnectSeverity(code)
+            : RdpActiveXHost.RdpDisconnectSeverity.TerminalError;
+    }
+
+    private void ApplyOverlaySeverity(RdpActiveXHost.RdpDisconnectSeverity severity)
+    {
+        var (brushKey, glyph) = ResolveSeverityVisual(severity);
+        OverlaySeverityStrip.SetResourceReference(Border.BackgroundProperty, brushKey);
+        OverlaySeverityIcon.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
+        OverlaySeverityIcon.Text = glyph;
+    }
+
+    private static (string BrushKey, string Glyph) ResolveSeverityVisual(
+        RdpActiveXHost.RdpDisconnectSeverity severity)
+    {
+        return severity switch
+        {
+            RdpActiveXHost.RdpDisconnectSeverity.Transient => ("InfoBrush", "\uE7BA"),
+            RdpActiveXHost.RdpDisconnectSeverity.AuthIssue => ("WarningBrush", "\uE192"),
+            _ => ("ErrorBrush", "\uE783")
+        };
     }
 
     private void OnOverlayReconnectClick(object sender, RoutedEventArgs e)

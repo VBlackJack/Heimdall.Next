@@ -463,6 +463,32 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         _ => null
     };
 
+    /// <summary>
+    /// Groups disconnect codes by user actionability: transient failures are
+    /// likely retryable, auth issues need credential/account action, and
+    /// terminal errors usually need admin or protocol remediation.
+    /// </summary>
+    public enum RdpDisconnectSeverity
+    {
+        Transient,
+        AuthIssue,
+        TerminalError
+    }
+
+    /// <summary>
+    /// Translates an MsTscAx disconnect reason code into an overlay severity.
+    /// Unknown and clean-exit codes default to terminal because they are not
+    /// expected to be displayed by the reconnect overlay.
+    /// </summary>
+    public static RdpDisconnectSeverity GetDisconnectSeverity(int reason) => reason switch
+    {
+        260 or 264 or 516 or 772 or 2308 or 2825 or 3080 or 4360
+            => RdpDisconnectSeverity.Transient,
+        2055 or 2567 or 3335 or 3591 or 3847
+            => RdpDisconnectSeverity.AuthIssue,
+        _ => RdpDisconnectSeverity.TerminalError
+    };
+
     #endregion
 
     #region Private apply methods (late-bound COM property access)

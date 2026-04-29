@@ -219,6 +219,7 @@
 
             <!-- Protocol card button style (Step 1 selector) -->
             <Style x:Key="ProtocolCardButtonStyle" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
                 <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="2"/>
