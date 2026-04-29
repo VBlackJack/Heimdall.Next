@@ -263,6 +263,10 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-01 (status visibility), UX-04 (consistency: embedded mode does not have this problem).
 
+**Status:** ✅ Closed — commit `8fbec1e` on 2026-04-29.
+
+**Note:** The "Bring mstsc to front" button suggested in the original audit is intentionally deferred — it requires a new `EmbeddedExternalRdpView` that does not exist today and is a separate finding scope.
+
 ---
 
 ### F7 — Credential autofill is invisible to the user · 🟠 High
@@ -1022,7 +1026,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (5/33 closed)
+## Status — in progress (6/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1031,6 +1035,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F2 | Auto-reconnect status hides attempt count, reason, and cancel affordance | `9944f50` |
 | F3 | Reconnect overlay shown on user-initiated disconnect | `8a91d1f` |
 | F7 | Credential autofill is invisible to the user | `1750409` |
+| F6 | External RDP marked Connected as soon as mstsc.exe starts | `8fbec1e` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
