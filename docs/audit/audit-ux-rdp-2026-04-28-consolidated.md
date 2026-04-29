@@ -517,6 +517,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 - `CertificateWarning`: "...The certificate is self-signed, expired, or untrusted. To connect, ensure the certificate's CA is in your trusted store, or import it manually."
 - `CredSspPolicyError`: "...CredSSP versions don't match. Update either client or server (Microsoft KB4093492)."
 
+**Status:** ✅ Closed — commit `b48d8d1` on 2026-04-29.
+
 **References:** Nielsen UX-03 (error recovery messages must be actionable).
 
 ---
@@ -1056,7 +1058,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (19/33 closed)
+## Status — in progress (20/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1080,6 +1082,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F27 | CitrixUseSso always visible | `70403b8` |
 | F13 | Manual resolution change ignored during stabilization | `c6b33b6` |
 | F21 | No Send Ctrl+Alt+Del helper for the embedded RDP surface | `c6b33b6` |
+| F16 | Disconnect message wording lacks actionability | `b48d8d1` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
