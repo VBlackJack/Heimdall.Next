@@ -386,6 +386,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-05 (recognition over recall — show all options).
 
+**Status:** ✅ Closed — commit `0e97c81` on 2026-04-29.
+
 ---
 
 ### F12 — Settings RDP defaults incomplete · 🟡 Medium
@@ -1036,7 +1038,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (10/33 closed)
+## Status — in progress (11/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1050,6 +1052,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F4 | RdpUseGlobalDefaults checkbox has no runtime effect | `cd83d35` |
 | F8 | Embedded autofill timeout is hardcoded | `73e8f9f` |
 | F10 | Progress bar hidden during reconnecting | `73e8f9f` |
+| F11 | AspectRatio ComboBox underexposed | `0e97c81` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
