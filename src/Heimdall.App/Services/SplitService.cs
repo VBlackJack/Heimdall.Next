@@ -41,6 +41,7 @@ public sealed class SplitService : ISplitService
     private readonly IEmbeddedSessionManager _sessionManager;
     private readonly IConnectionService _connectionService;
     private readonly ToolRegistry _toolRegistry;
+    private readonly IDialogService _dialogService;
 
     /// <summary>
     /// Per-session cancellation tokens. Cancelled when a session tab is closed
@@ -67,7 +68,8 @@ public sealed class SplitService : ISplitService
         TunnelManager tunnelManager,
         IEmbeddedSessionManager sessionManager,
         IConnectionService connectionService,
-        ToolRegistry toolRegistry)
+        ToolRegistry toolRegistry,
+        IDialogService dialogService)
     {
         _configManager = configManager;
         _localizer = localizer;
@@ -76,6 +78,7 @@ public sealed class SplitService : ISplitService
         _sessionManager = sessionManager;
         _connectionService = connectionService;
         _toolRegistry = toolRegistry;
+        _dialogService = dialogService;
 
         LayoutMemory = new SplitLayoutMemory(configManager.ConfigPath);
     }
@@ -162,7 +165,10 @@ public sealed class SplitService : ISplitService
                 return;
             }
 
-            ForceEmbeddedMode(serverDto);
+            if (ForceEmbeddedMode(serverDto))
+            {
+                NotifyForcedEmbeddedMode(serverDto);
+            }
 
             // Create loading pane and insert into tree immediately (shows loading overlay).
             // OriginalServerId set early for proper cleanup if pane is closed during connection.
@@ -532,7 +538,10 @@ public sealed class SplitService : ISplitService
                 return;
             }
 
-            ForceEmbeddedMode(serverDto);
+            if (ForceEmbeddedMode(serverDto))
+            {
+                NotifyForcedEmbeddedMode(serverDto);
+            }
 
             var result = await ConnectByProtocolAsync(serverDto, settings, ct);
 
@@ -767,12 +776,33 @@ public sealed class SplitService : ISplitService
     /// <summary>
     /// Forces embedded mode for split panes (external processes cannot be docked).
     /// </summary>
-    private static void ForceEmbeddedMode(ServerProfileDto serverDto)
+    internal static bool ForceEmbeddedMode(ServerProfileDto serverDto)
     {
+        var convertedExternalRdp = false;
         if (string.Equals(serverDto.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+        {
+            convertedExternalRdp = string.Equals(
+                serverDto.RdpMode,
+                "External",
+                StringComparison.OrdinalIgnoreCase);
             serverDto.RdpMode = "Embedded";
+        }
+
         if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
+        {
             serverDto.SshMode = "Embedded";
+        }
+
+        return convertedExternalRdp;
+    }
+
+    private void NotifyForcedEmbeddedMode(ServerProfileDto serverDto)
+    {
+        Core.Logging.FileLogger.Info(
+            $"SplitService converted '{serverDto.DisplayName}' from External to Embedded for split-pane hosting");
+        _dialogService.ShowInfo(
+            _localizer["SplitForcedEmbeddedTitle"],
+            _localizer.Format("SplitForcedEmbeddedMessage", serverDto.DisplayName));
     }
 
     /// <summary>
