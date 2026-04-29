@@ -172,12 +172,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             CancelReconnectButton.ToolTip = L("TooltipCancelReconnect");
             SplitButton.ToolTip = L("TooltipSplitSession");
             ResolutionButton.ToolTip = L("TooltipChangeResolution");
+            SendCtrlAltDelButton.ToolTip = L("TooltipSendCtrlAltDel");
 
             // Accessibility: automation names for toolbar buttons
             System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
             System.Windows.Automation.AutomationProperties.SetName(CancelReconnectButton, L("A11yCancelReconnect"));
             System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
             System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
+            System.Windows.Automation.AutomationProperties.SetName(SendCtrlAltDelButton, L("A11ySendCtrlAltDel"));
             System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
         }
 
@@ -310,6 +312,46 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         catch (Exception ex)
         {
             HandleFailure("Cancel reconnect failed.", ex);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendCtrlAltDelClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            var hwnd = _rdpHost.HostHandle;
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var target = hwnd;
+            var child = NativeMethods.FindWindowEx(hwnd, IntPtr.Zero, null, null);
+            while (child != IntPtr.Zero)
+            {
+                target = child;
+                child = NativeMethods.FindWindowEx(target, IntPtr.Zero, null, null);
+            }
+
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_CONTROL, IntPtr.Zero);
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_MENU, IntPtr.Zero);
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_DELETE, IntPtr.Zero);
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_DELETE, IntPtr.Zero);
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_MENU, IntPtr.Zero);
+            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_CONTROL, IntPtr.Zero);
+
+            Core.Logging.FileLogger.Info(
+                "EmbeddedRDP user sent Ctrl+Alt+Del to the remote session");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Send Ctrl+Alt+Del failed: {ex.Message}");
         }
     }
 
@@ -551,6 +593,24 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         _allowResolutionUpdates = true;
         Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
+
+        var (queuedWidth, queuedHeight) = GetDisplayDimensions();
+        if (queuedWidth > 0 && queuedHeight > 0
+            && (queuedWidth != _lastAppliedWidth || queuedHeight != _lastAppliedHeight))
+        {
+            try
+            {
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedRDP applying queued resolution after stabilization: {queuedWidth}x{queuedHeight}");
+                _rdpHost.UpdateResolution(queuedWidth, queuedHeight);
+                _lastAppliedWidth = queuedWidth;
+                _lastAppliedHeight = queuedHeight;
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] queued resolution flush: {ex.Message}");
+            }
+        }
     }
 
     private void OnRdpDisconnected(int reason)
@@ -853,6 +913,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         RdpLoadingBar.Visibility = isProgress ? Visibility.Visible : Visibility.Collapsed;
 
         DisconnectButton.IsEnabled = !_disposed && status is not RdpSessionStatus.Disconnected;
+        SendCtrlAltDelButton.IsEnabled = !_disposed && status is RdpSessionStatus.Connected;
         CancelReconnectButton.Visibility = status == RdpSessionStatus.Reconnecting
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -1296,6 +1357,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         internal const uint WM_KEYDOWN = 0x0100;
         internal const uint WM_KEYUP = 0x0101;
         internal static readonly IntPtr VK_SHIFT = new(0x10);
+        internal static readonly IntPtr VK_CONTROL = new(0x11);
+        internal static readonly IntPtr VK_MENU = new(0x12);
+        internal static readonly IntPtr VK_DELETE = new(0x2E);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern uint SetThreadExecutionState(uint esFlags);

@@ -191,6 +191,30 @@ public sealed class RdpSessionStatusKeysTests
     }
 
     [Theory]
+    [InlineData("TooltipSendCtrlAltDel")]
+    [InlineData("A11ySendCtrlAltDel")]
+    public void SendCtrlAltDelKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("TooltipSendCtrlAltDel")]
+    [InlineData("A11ySendCtrlAltDel")]
+    public void SendCtrlAltDelKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
+    [Theory]
     [InlineData("CitrixLaunchCommandRejected")]
     [InlineData("CitrixModeCacheLaunch")]
     [InlineData("CitrixModeIcaFile")]
