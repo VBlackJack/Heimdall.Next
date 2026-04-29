@@ -86,6 +86,20 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
                                AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="AutofillSeparator"
+                               Text=" &#x2022; "
+                               Margin="6,0,0,0"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"/>
+                    <TextBlock x:Name="AutofillStatusText"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"
+                               AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
             </DockPanel>
         </Border>
