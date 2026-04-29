@@ -67,6 +67,7 @@
     "rdpDefaultBitmapCaching": true,
     "rdpDefaultCompression": true,
     "rdpDefaultAutoReconnect": true,
+    "rdpReleaseFocusShortcut": "Ctrl+Alt+Home",
     "enableSessionPersistence": false,
     "maxEmbeddedSessions": 10,
     "embeddedRdpTimeoutMs": 30000,

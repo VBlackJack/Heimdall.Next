@@ -92,6 +92,34 @@ public sealed class RdpImportDialogViewModelTests
         Assert.False(vm.Rows[2].IsSelected);
     }
 
+    [Fact]
+    public async Task RowAccessibleSummary_IncludesSourceParseErrorAndConflict()
+    {
+        var localizer = await CreateLocalizerAsync();
+        var row = new RdpImportRowViewModel(
+            new RdpImportPreviewEntry
+            {
+                SourceFilePath = "C:\\broken.rdp",
+                ProposedName = "Broken",
+                Candidate = new ServerProfileDto
+                {
+                    DisplayName = "Broken",
+                    RemoteServer = "",
+                    RemotePort = 3389,
+                    ConnectionType = "RDP"
+                },
+                HasParseError = true,
+                ParseErrorMessage = "invalid host",
+                HasNameConflict = true,
+                ConflictingExistingName = "Broken"
+            },
+            localizer);
+
+        Assert.Contains("broken.rdp", row.RowAccessibleSummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("invalid host", row.RowAccessibleSummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(row.ConflictText, row.RowAccessibleSummary, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static async Task<RdpImportDialogViewModel> CreateViewModelAsync()
     {
         var localizer = await CreateLocalizerAsync();

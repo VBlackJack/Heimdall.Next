@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
              mc:Ignorable="d"
@@ -22,14 +23,20 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
+                        Content="{loc:Translate BtnDisconnectSession}"
                         Click="OnDisconnectClick"
+                        ToolTip="{loc:Translate TooltipDisconnectSession}"
+                        AutomationProperties.Name="{loc:Translate A11yDisconnectSession}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
                 <Button x:Name="CancelReconnectButton"
                         DockPanel.Dock="Right"
+                        Content="{loc:Translate BtnCancelReconnect}"
                         Click="OnCancelReconnectClick"
+                        ToolTip="{loc:Translate TooltipCancelReconnect}"
+                        AutomationProperties.Name="{loc:Translate A11yCancelReconnect}"
                         Visibility="Collapsed"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
@@ -40,6 +47,8 @@
                         Content="&#xE765;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSendCtrlAltDelClick"
+                        ToolTip="{loc:Translate TooltipSendCtrlAltDel}"
+                        AutomationProperties.Name="{loc:Translate A11ySendCtrlAltDel}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2"
                         FontSize="{StaticResource FontSizeBody}"
@@ -49,6 +58,8 @@
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
+                        ToolTip="{loc:Translate TooltipSplitSession}"
+                        AutomationProperties.Name="{loc:Translate A11ySplitSession}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
                 <Button x:Name="ResolutionButton"
@@ -56,11 +67,15 @@
                         Content="&#xE740;"
                         FontFamily="Segoe MDL2 Assets"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        AutomationProperties.Name="{loc:Translate A11yChangeResolution}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         Click="OnResolutionButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
-                            <MenuItem x:Name="ResMenuFit" Click="OnResolutionMenuClick" Tag="Fit"/>
+                            <MenuItem x:Name="ResMenuFit"
+                                      Header="{loc:Translate RdpResolutionFitToWindow}"
+                                      Click="OnResolutionMenuClick"
+                                      Tag="Fit"/>
                             <Separator/>
                             <!-- Preset items populated dynamically by PopulateResolutionMenu()
                                  from AppSettings.RdpResolutionPresets, with a built-in fallback. -->
@@ -85,6 +100,7 @@
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
+                               AutomationProperties.Name="{loc:Translate A11yConnectionStatus}"
                                AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock x:Name="AutofillSeparator"
                                Text=" &#x2022; "
@@ -100,8 +116,24 @@
                                VerticalAlignment="Center"
                                Visibility="Collapsed"
                                AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="StabilizingSeparator"
+                               Text=" &#x2022; "
+                               Margin="6,0,0,0"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"/>
+                    <TextBlock x:Name="StabilizingStatusText"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"
+                               AutomationProperties.LiveSetting="Polite"/>
                     <Button x:Name="AntiIdleBadge"
                             Click="OnAntiIdleBadgeClick"
+                            ToolTip="{loc:Translate TooltipAntiIdleActive}"
+                            AutomationProperties.Name="{loc:Translate A11yAntiIdleActive}"
                             Visibility="Collapsed"
                             Margin="8,0,0,0"
                             Padding="4,1"
@@ -141,6 +173,23 @@
                 <StackPanel VerticalAlignment="Center"
                             HorizontalAlignment="Center"
                             MaxWidth="460">
+                    <Border x:Name="OverlaySeverityStrip"
+                            Height="4"
+                            Margin="0,0,0,16"
+                            HorizontalAlignment="Stretch"
+                            Background="{DynamicResource ErrorBrush}"
+                            CornerRadius="2"/>
+                    <TextBlock x:Name="OverlaySeverityIcon"
+                               Margin="0,0,0,12"
+                               HorizontalAlignment="Center"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="32"
+                               Text="&#xE783;"
+                               Foreground="{DynamicResource ErrorBrush}"
+                               Focusable="False"
+                               IsHitTestVisible="False"
+                               AutomationProperties.Name=""
+                               AutomationProperties.IsOffscreenBehavior="Onscreen"/>
                     <TextBlock x:Name="ReconnectMessageText"
                                FontSize="{StaticResource FontSizeSubtitle}"
                                FontWeight="SemiBold"
@@ -166,12 +215,16 @@
                                 Margin="0,16,0,0">
                         <Button x:Name="OverlayReconnectButton"
                                 Click="OnOverlayReconnectClick"
+                                Content="{loc:Translate BtnReconnectSession}"
+                                AutomationProperties.Name="{loc:Translate A11yReconnectSession}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="16,6"
                                 FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="0,0,8,0"/>
                         <Button x:Name="OverlayCloseButton"
                                 Click="OnOverlayCloseClick"
+                                Content="{loc:Translate BtnCloseOverlay}"
+                                AutomationProperties.Name="{loc:Translate A11yCloseOverlay}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="16,6"
                                 FontSize="{StaticResource FontSizeBodyLarge}"

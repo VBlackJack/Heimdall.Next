@@ -341,6 +341,43 @@ public partial class RdpImportRowViewModel : ObservableObject
 
     public string SkippedMappingsText => _localizer["DialogImportRdpStatusPartialMapping"];
 
+    public string ConflictAccessibleName => _localizer.Format("A11yRdpImportConflictForName", ProposedName);
+
+    public string RowAccessibleSummary
+    {
+        get
+        {
+            var segments = new List<string> { SourceFileName };
+
+            if (HasParseError)
+            {
+                segments.Add(_localizer.Format("A11yRdpImportSummaryParseError", ParseErrorText));
+            }
+
+            if (HasPasswordBlob)
+            {
+                segments.Add(PasswordText);
+            }
+
+            if (HasNameConflict)
+            {
+                segments.Add(ConflictText);
+            }
+
+            if (HasUnknownKeys)
+            {
+                segments.Add(UnknownKeysText);
+            }
+
+            if (HasSkippedMappings)
+            {
+                segments.Add(SkippedMappingsText);
+            }
+
+            return string.Join(", ", segments);
+        }
+    }
+
     [ObservableProperty]
     private bool _isSelected;
 

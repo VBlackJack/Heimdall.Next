@@ -127,6 +127,24 @@
     <sys:Double x:Key="IconSizeHero">48</sys:Double>
 
     <!-- ========================================================= -->
+    <!-- Focus                                                     -->
+    <!-- ========================================================= -->
+    <Style x:Key="AppFocusVisualStyle">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="2"
+                               StrokeThickness="2"
+                               Stroke="{DynamicResource AccentBrush}"
+                               SnapsToDevicePixels="True"
+                               RadiusX="4"
+                               RadiusY="4"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================================= -->
     <!-- Window                                                    -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedWindowStyle" TargetType="{x:Type Window}">
@@ -173,6 +191,7 @@
     <!-- Buttons                                                   -->
     <!-- ========================================================= -->
     <Style x:Key="PrimaryButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
@@ -218,6 +237,7 @@
     </Style>
 
     <Style x:Key="ToolbarGhostButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
@@ -269,6 +289,7 @@
     </Style>
 
     <Style x:Key="SecondaryButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -338,6 +359,7 @@
     <!-- TextBox                                                   -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ValidationErrorTemplate}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -433,6 +455,7 @@
     <!-- PasswordBox                                               -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedPasswordBoxStyle" TargetType="{x:Type PasswordBox}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -646,6 +669,7 @@
     <!-- ComboBox                                                  -->
     <!-- ========================================================= -->
     <Style x:Key="ComboBoxToggleButtonStyle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -697,6 +721,7 @@
     </Style>
 
     <Style x:Key="ThemedComboBoxItemStyle" TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
@@ -743,6 +768,7 @@
     <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource ThemedComboBoxItemStyle}"/>
 
     <Style x:Key="ThemedComboBoxStyle" TargetType="{x:Type ComboBox}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -922,6 +948,7 @@
     <Style TargetType="{x:Type TabControl}" BasedOn="{StaticResource ThemedTabControlStyle}"/>
 
     <Style x:Key="ThemedTabItemStyle" TargetType="{x:Type TabItem}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="16,10"/>
@@ -1051,6 +1078,7 @@
     </Style>
 
     <Style x:Key="ThemedTreeViewItemStyle" TargetType="{x:Type TreeViewItem}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Padding" Value="2,1"/>
@@ -1169,6 +1197,7 @@
     </Style>
 
     <Style x:Key="ThemedMenuItemStyle" TargetType="{x:Type MenuItem}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
@@ -1285,6 +1314,7 @@
     <!-- CheckBox / RadioButton                                    -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedCheckBoxStyle" TargetType="{x:Type CheckBox}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
@@ -1356,6 +1386,7 @@
     <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource ThemedCheckBoxStyle}"/>
 
     <Style x:Key="ThemedRadioButtonStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
@@ -1462,6 +1493,7 @@
     <Style TargetType="{x:Type ListBox}" BasedOn="{StaticResource ThemedListBoxStyle}"/>
 
     <Style x:Key="ThemedListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
@@ -1512,6 +1544,7 @@
     <!-- Expander                                                  -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedExpanderToggleStyle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
@@ -1817,6 +1850,7 @@
     </ControlTemplate>
 
     <Style x:Key="ThemedSliderStyle" TargetType="{x:Type Slider}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="MinHeight" Value="24"/>
@@ -2077,6 +2111,7 @@
     <!-- top of the left sidebar.                                  -->
     <!-- ========================================================= -->
     <Style x:Key="SidebarTabStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
