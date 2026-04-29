@@ -114,6 +114,17 @@ public sealed class AppSettings
     public bool RdpDefaultCompression { get; set; } = true;
     public bool RdpDefaultAutoReconnect { get; set; } = true;
 
+    /// <summary>
+    /// User-configurable resolution presets shown in the embedded RDP session
+    /// header's resolution menu. Values are formatted as "WIDTHxHEIGHT". Empty
+    /// or null falls back to the built-in 10-preset set.
+    /// </summary>
+    public string[] RdpResolutionPresets { get; set; } =
+    [
+        "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
+        "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
+    ];
+
     // Session
     public bool EnableSessionPersistence { get; set; }
     public int MaxEmbeddedSessions { get; set; } = 10;

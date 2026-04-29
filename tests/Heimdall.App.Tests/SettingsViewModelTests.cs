@@ -72,6 +72,43 @@ public sealed class SettingsViewModelTests
         Assert.False(settings.RdpDefaultAudioCapture);
     }
 
+    [Fact]
+    public void RdpResolutionPresets_DefaultMatchesBuiltInSet()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(10, settings.RdpResolutionPresets.Length);
+        Assert.Equal("1920x1080", settings.RdpResolutionPresets[0]);
+        Assert.Contains("3840x2160", settings.RdpResolutionPresets);
+    }
+
+    [Fact]
+    public async Task SaveThenLoad_PreservesResolutionPresetsAndAdvancedTimeouts()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.RdpResolutionPresets = ["2560x1080", "3440x1440"];
+        viewModel.RdpResizeEnableDelayMs = 5000;
+        viewModel.RdpArtifactCleanupDelayMs = 7000;
+        viewModel.RdpCredentialAutofillTimeoutMs = 60000;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        var saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.Equal(new[] { "2560x1080", "3440x1440" }, saved.RdpResolutionPresets);
+        Assert.Equal(5000, saved.RdpResizeEnableDelayMs);
+        Assert.Equal(7000, saved.RdpArtifactCleanupDelayMs);
+        Assert.Equal(60000, saved.RdpCredentialAutofillTimeoutMs);
+
+        var reloaded = CreateViewModel(new FakeConfigManager());
+        reloaded.LoadFromSettings(saved);
+
+        Assert.Equal(new[] { "2560x1080", "3440x1440" }, reloaded.RdpResolutionPresets);
+        Assert.Equal(5000, reloaded.RdpResizeEnableDelayMs);
+        Assert.Equal(7000, reloaded.RdpArtifactCleanupDelayMs);
+        Assert.Equal(60000, reloaded.RdpCredentialAutofillTimeoutMs);
+    }
+
     private static SettingsViewModel CreateViewModel(FakeConfigManager config)
     {
         var localizer = new LocalizationManager();

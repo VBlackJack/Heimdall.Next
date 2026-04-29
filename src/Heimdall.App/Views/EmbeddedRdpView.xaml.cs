@@ -44,6 +44,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
     private static readonly TimeSpan AutofillFilledDisplayDuration = TimeSpan.FromSeconds(3);
+    private static readonly string[] DefaultResolutionPresets =
+    [
+        "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
+        "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
+    ];
 
     /// <summary>
     /// Transient state of the embedded credential autofill watcher.
@@ -185,6 +190,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
         }
 
+        PopulateResolutionMenu();
         CreateHostControl();
         UpdateSessionStatus(RdpSessionStatus.Connecting);
     }
@@ -981,6 +987,50 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         ResolutionMenu.PlacementTarget = ResolutionButton;
         ResolutionMenu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Populates the resolution context menu from AppSettings.RdpResolutionPresets,
+    /// with a built-in fallback when the setting is missing or empty.
+    /// </summary>
+    private void PopulateResolutionMenu()
+    {
+        while (ResolutionMenu.Items.Count > 2)
+        {
+            ResolutionMenu.Items.RemoveAt(2);
+        }
+
+        var presets = _settings?.RdpResolutionPresets is { Length: > 0 } configured
+            ? configured
+            : DefaultResolutionPresets;
+
+        foreach (var preset in presets)
+        {
+            if (string.IsNullOrWhiteSpace(preset))
+            {
+                continue;
+            }
+
+            var parts = preset.Trim().Split(new[] { 'x', 'X' }, StringSplitOptions.TrimEntries);
+            if (parts.Length != 2
+                || !int.TryParse(parts[0], out var width)
+                || !int.TryParse(parts[1], out var height)
+                || width <= 0
+                || height <= 0)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"EmbeddedRDP skipping malformed resolution preset: '{preset}'");
+                continue;
+            }
+
+            var item = new MenuItem
+            {
+                Header = $"{width} x {height}",
+                Tag = $"{width}x{height}"
+            };
+            item.Click += OnResolutionMenuClick;
+            ResolutionMenu.Items.Add(item);
+        }
     }
 
     private void OnAntiIdleBadgeClick(object sender, RoutedEventArgs e)

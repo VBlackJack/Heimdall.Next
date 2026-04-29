@@ -235,6 +235,9 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private int _rdpDefaultAudioMode;
 
+    [ObservableProperty]
+    private string[] _rdpResolutionPresets = [];
+
     // --- Security ---
 
     [ObservableProperty]
@@ -288,6 +291,15 @@ public partial class SettingsViewModel : ObservableValidator
     [NotifyDataErrorInfo]
     [Range(5000, 600000, ErrorMessage = "External tool timeout must be between 5000 and 600000 ms.")]
     private int _externalToolTimeoutMs = 60000;
+
+    [ObservableProperty]
+    private int _rdpResizeEnableDelayMs = 10000;
+
+    [ObservableProperty]
+    private int _rdpArtifactCleanupDelayMs = 10000;
+
+    [ObservableProperty]
+    private int _rdpCredentialAutofillTimeoutMs = 90000;
 
     // --- Collections ---
 
@@ -479,6 +491,7 @@ public partial class SettingsViewModel : ObservableValidator
         RdpDefaultBitmapCaching = settings.RdpDefaultBitmapCaching;
         RdpDefaultCompression = settings.RdpDefaultCompression;
         RdpDefaultAudioMode = settings.RdpDefaultAudioMode;
+        RdpResolutionPresets = settings.RdpResolutionPresets ?? [];
 
         // Security
         UseExternalCredentialProvider = settings.UseExternalCredentialProvider;
@@ -493,6 +506,9 @@ public partial class SettingsViewModel : ObservableValidator
         TunnelEstablishmentDelayMs = settings.TunnelEstablishmentDelayMs;
         EmbeddedRdpTimeoutMs = settings.EmbeddedRdpTimeoutMs;
         ExternalToolTimeoutMs = settings.ExternalToolTimeoutMs;
+        RdpResizeEnableDelayMs = settings.RdpResizeEnableDelayMs;
+        RdpArtifactCleanupDelayMs = settings.RdpArtifactCleanupDelayMs;
+        RdpCredentialAutofillTimeoutMs = settings.RdpCredentialAutofillTimeoutMs;
 
         UnsubscribeExternalToolTracking();
 
@@ -616,6 +632,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.RdpDefaultBitmapCaching = RdpDefaultBitmapCaching;
         settings.RdpDefaultCompression = RdpDefaultCompression;
         settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
+        settings.RdpResolutionPresets = RdpResolutionPresets;
 
         // Security
         settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
@@ -630,6 +647,9 @@ public partial class SettingsViewModel : ObservableValidator
         settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
         settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
         settings.ExternalToolTimeoutMs = ExternalToolTimeoutMs;
+        settings.RdpResizeEnableDelayMs = RdpResizeEnableDelayMs;
+        settings.RdpArtifactCleanupDelayMs = RdpArtifactCleanupDelayMs;
+        settings.RdpCredentialAutofillTimeoutMs = RdpCredentialAutofillTimeoutMs;
 
         // UI state
         settings.ShowToolsPanel = ShowToolsPanel;
