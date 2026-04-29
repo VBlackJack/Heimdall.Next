@@ -229,11 +229,52 @@ internal sealed class RdpHandler : IProtocolHandler
                     RdpSessionDiagnosticFactory.FromMstscLaunchException(launchEx));
             }
 
-            using var launchedMstscProcess = mstscProcess;
-            var mstscPid = mstscProcess?.Id ?? 0;
+            var mstscPid = mstscProcess.Id;
             Core.Logging.FileLogger.Info(
                 $"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
-            _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+
+            var serverIdForExitClosure = server.Id;
+            var displayNameForExitClosure = server.DisplayName;
+            var stateMachineForExitClosure = _connectionSm;
+
+            mstscProcess.Exited += (_, _) =>
+            {
+                var exitCode = -1;
+                try
+                {
+                    exitCode = mstscProcess.ExitCode;
+                }
+                catch (InvalidOperationException)
+                {
+                    // The process may already be cleaned up by the OS.
+                }
+
+                Core.Logging.FileLogger.Info(
+                    $"External mstsc.exe exited PID={mstscPid} ExitCode={exitCode} server={displayNameForExitClosure}");
+
+                try
+                {
+                    stateMachineForExitClosure.TryTransition(
+                        serverIdForExitClosure,
+                        ConnectionState.Disconnected);
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"State transition on mstsc.exe exit failed: {ex.Message}");
+                }
+
+                try
+                {
+                    mstscProcess.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"mstsc.exe Process.Dispose failed: {ex.Message}");
+                }
+            };
+            mstscProcess.EnableRaisingEvents = true;
+            _connectionSm.TryTransition(server.Id, ConnectionState.LaunchedExternalClient);
 
             if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
             {

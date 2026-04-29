@@ -119,6 +119,26 @@ public sealed class RdpSessionStatusKeysTests
     }
 
     [Fact]
+    public void ExternalClientStatusKey_IsPresentInEnglish()
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty("StatusLaunchedExternalClient", out _),
+            "Locale key 'StatusLaunchedExternalClient' is missing from en.json");
+    }
+
+    [Fact]
+    public void ExternalClientStatusKey_IsPresentInFrench()
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty("StatusLaunchedExternalClient", out _),
+            "Locale key 'StatusLaunchedExternalClient' is missing from fr.json");
+    }
+
+    [Fact]
     public void RdpStatusReconnecting_HasAttemptAndCapPlaceholdersInEnglish()
     {
         using var document = LoadLocaleDocument("en");
