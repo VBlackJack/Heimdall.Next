@@ -2006,6 +2006,7 @@
                                                       TabIndex="88"
                                                       AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                       IsChecked="{Binding CitrixUseSso}"
+                                                      ToolTip="{loc:Translate CitrixUseSsoTooltip}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,8,0,0"/>
                                         </StackPanel>

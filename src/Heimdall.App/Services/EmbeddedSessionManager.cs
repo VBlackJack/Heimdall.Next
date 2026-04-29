@@ -296,8 +296,8 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             && session is CitrixSessionResult citrix)
         {
             var view = new EmbeddedCitrixView();
-            view.InitializeSession(citrix, sessionTab, displayName, _localizer);
-            view.SetConnectionInfo(citrix.StoreFrontUrl, citrix.AppName);
+            view.InitializeSession(citrix, sessionTab, displayName, _localizer, _dialogService);
+            view.SetConnectionInfo(citrix.StoreFrontUrl, citrix.AppName, citrix.Mode);
             return view;
         }
 

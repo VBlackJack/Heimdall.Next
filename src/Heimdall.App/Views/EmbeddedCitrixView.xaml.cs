@@ -51,6 +51,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     private CitrixSessionResult? _session;
     private SessionTabViewModel? _sessionTab;
     private LocalizationManager? _localizer;
+    private IDialogService? _dialogService;
     private DispatcherTimer? _healthTimer;
     private WinForms.Panel? _hostPanel;
     private IntPtr _capturedHwnd;
@@ -104,14 +105,17 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         CitrixSessionResult session,
         SessionTabViewModel sessionTab,
         string displayName,
-        LocalizationManager? localizer = null)
+        LocalizationManager? localizer = null,
+        IDialogService? dialogService = null)
     {
         _session = session;
         _sessionTab = sessionTab;
         _localizer = localizer;
+        _dialogService = dialogService;
 
         TerminateButton.Content = localizer?["BtnTerminateSession"] ?? "Terminate";
         BringToFrontButton.Content = localizer?["BtnBringToFront"] ?? "Bring to Front";
+        CancelCaptureButton.Content = localizer?["CitrixCancelCapture"] ?? "Cancel";
 
         // Tooltips
         TerminateButton.ToolTip = localizer?["TooltipDisconnectSession"] ?? "Disconnect session";
@@ -123,6 +127,10 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
         SessionTitleText.Text = displayName;
         TitleText.Text = displayName;
+        CaptureLoadingText.Text = localizer?["CitrixCaptureSearching"] ?? "Locating Citrix session window...";
+        CaptureLoadingPanel.Visibility = Visibility.Visible;
+        InfoPanel.Visibility = Visibility.Collapsed;
+        EmbeddedContainer.Visibility = Visibility.Collapsed;
         UpdateStatus(true);
 
         _healthTimer = new DispatcherTimer
@@ -139,7 +147,10 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     /// <summary>
     /// Populates the info panel with StoreFront URL and application name.
     /// </summary>
-    public void SetConnectionInfo(string? storeFrontUrl, string? appName)
+    public void SetConnectionInfo(
+        string? storeFrontUrl,
+        string? appName,
+        CitrixLaunchMode mode = CitrixLaunchMode.Unknown)
     {
         StoreFrontText.Text = !string.IsNullOrWhiteSpace(storeFrontUrl)
             ? _localizer?.Format("CitrixStoreFrontLabel", storeFrontUrl) ?? $"StoreFront: {storeFrontUrl}"
@@ -148,6 +159,14 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         AppNameText.Text = !string.IsNullOrWhiteSpace(appName)
             ? _localizer?.Format("CitrixAppNameLabel", appName) ?? $"Application: {appName}"
             : string.Empty;
+
+        ActiveModeText.Text = mode switch
+        {
+            CitrixLaunchMode.SelfServiceCache => _localizer?["CitrixModeCacheLaunch"] ?? "Mode: SelfService cache",
+            CitrixLaunchMode.IcaFile => _localizer?["CitrixModeIcaFile"] ?? "Mode: ICA file",
+            CitrixLaunchMode.StoreFront => _localizer?["CitrixModeStoreFront"] ?? "Mode: StoreFront",
+            _ => string.Empty
+        };
     }
 
     // Citrix process names to scan (covers different Workspace versions)
@@ -193,11 +212,23 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
         Core.Logging.FileLogger.Info($"Citrix: {existingPids.Count} existing Citrix process(es) before launch");
 
+        var extendedMessageShown = false;
         for (int attempt = 1; attempt <= WindowCaptureMaxAttempts; attempt++)
         {
-            if (_disposed) return;
+            if (_disposed || !_captureInProgress) return;
 
             await Task.Delay(WindowCapturePollIntervalMs);
+            if (_disposed || !_captureInProgress) return;
+
+            if (!extendedMessageShown && attempt * WindowCapturePollIntervalMs >= 10_000)
+            {
+                extendedMessageShown = true;
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    CaptureLoadingText.Text = _localizer?["CitrixCaptureSearchingExtended"]
+                        ?? "Still searching... (this can take up to 30 seconds)";
+                });
+            }
 
             // Scan for new Citrix processes
             var newPids = new HashSet<int>();
@@ -268,7 +299,11 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 _captureInProgress = false;
                 Core.Logging.FileLogger.Info(
                     $"Citrix: capturing hwnd=0x{bestHwnd.ToInt64():X} (area={bestArea}px)");
-                await Dispatcher.InvokeAsync(() => EmbedWindow(bestHwnd));
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    CaptureLoadingPanel.Visibility = Visibility.Collapsed;
+                    EmbedWindow(bestHwnd);
+                });
                 return;
             }
         }
@@ -278,9 +313,26 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         Core.Logging.FileLogger.Info("Citrix: window capture timed out after 30s, using external mode");
         await Dispatcher.InvokeAsync(() =>
         {
-            BringToFrontButton.Visibility = Visibility.Visible;
-            StatusTextBlock.Text = _localizer?["CitrixStatusExternal"] ?? "External window";
+            ShowExternalFallback();
         });
+    }
+
+    private void OnCancelCaptureClick(object sender, RoutedEventArgs e)
+    {
+        if (!_captureInProgress) return;
+
+        Core.Logging.FileLogger.Info("Citrix: user cancelled window capture, falling back to external mode");
+        _captureInProgress = false;
+        ShowExternalFallback();
+    }
+
+    private void ShowExternalFallback()
+    {
+        CaptureLoadingPanel.Visibility = Visibility.Collapsed;
+        EmbeddedContainer.Visibility = Visibility.Collapsed;
+        InfoPanel.Visibility = Visibility.Visible;
+        BringToFrontButton.Visibility = Visibility.Visible;
+        StatusTextBlock.Text = _localizer?["CitrixStatusExternal"] ?? "External window";
     }
 
     /// <summary>
@@ -307,6 +359,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
             _embedded = true;
 
             // Show embedded container, hide info panel
+            CaptureLoadingPanel.Visibility = Visibility.Collapsed;
             EmbeddedContainer.Visibility = Visibility.Visible;
             InfoPanel.Visibility = Visibility.Collapsed;
             BringToFrontButton.Visibility = Visibility.Collapsed;
@@ -321,8 +374,8 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Warn($"Citrix: SetParent failed: {ex.Message}");
             // Fall back to external mode
-            BringToFrontButton.Visibility = Visibility.Visible;
             _embedded = false;
+            ShowExternalFallback();
         }
     }
 
@@ -360,8 +413,20 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         catch (InvalidOperationException ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] bring to front: {ex.Message}"); }
     }
 
-    private void OnTerminateClick(object sender, RoutedEventArgs e)
+    private async void OnTerminateClick(object sender, RoutedEventArgs e)
     {
+        if (_session?.Process is null || _session.Process.HasExited) return;
+
+        if (_dialogService is not null && _localizer is not null)
+        {
+            var confirmed = await _dialogService.ShowConfirmAsync(
+                _localizer["CitrixConfirmTerminateTitle"],
+                _localizer["CitrixConfirmTerminateMessage"],
+                "warning");
+
+            if (!confirmed || _disposed) return;
+        }
+
         ReleaseEmbeddedWindow();
 
         if (_session?.Process is not null && !_session.Process.HasExited)

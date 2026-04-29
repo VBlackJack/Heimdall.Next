@@ -60,6 +60,40 @@
             </DockPanel>
         </Border>
 
+        <!-- Capture-in-progress overlay -->
+        <Border x:Name="CaptureLoadingPanel" Grid.Row="1"
+                Margin="{StaticResource SpacingXl}"
+                Padding="{StaticResource SpacingXl}"
+                CornerRadius="{StaticResource CornerRadiusXl}"
+                Background="{DynamicResource CardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Visibility="Collapsed">
+            <StackPanel MaxWidth="460">
+                <ProgressBar IsIndeterminate="True"
+                             Height="2"
+                             Margin="0,0,0,16"
+                             Background="Transparent"
+                             BorderThickness="0"/>
+                <TextBlock x:Name="CaptureLoadingText"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"/>
+                <Button x:Name="CancelCaptureButton"
+                        Content=""
+                        Click="OnCancelCaptureClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,6"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
         <!-- Embedded window host (SetParent mode) -->
         <Grid x:Name="EmbeddedContainer" Grid.Row="1" Visibility="Collapsed"
               ClipToBounds="True" Background="{DynamicResource BackgroundBrush}">
@@ -97,6 +131,13 @@
                 <TextBlock x:Name="AppNameText"
                            Margin="0,4,0,0"
                            FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"/>
+                <TextBlock x:Name="ActiveModeText"
+                           Margin="0,8,0,0"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           FontStyle="Italic"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"/>
