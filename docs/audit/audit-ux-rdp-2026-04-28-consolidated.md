@@ -144,6 +144,8 @@ The localization keys exist in `locales/en.json` / `locales/fr.json` — `RdpSta
 
 **References:** Nielsen UX-01, UX-02, UX-08.
 
+**Status:** ✅ Closed — commit `9944f50` on 2026-04-29.
+
 ---
 
 ### F3 — Reconnect overlay shown on user-initiated disconnect · 🟠 High
@@ -1016,12 +1018,13 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (2/33 closed)
+## Status — in progress (3/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
 | F5 | Reconnect overlay loses the decoded disconnect reason | `51c4de3` |
 | F1 | Status text bypasses the i18n pipeline | `dcda468` |
+| F2 | Auto-reconnect status hides attempt count, reason, and cancel affordance | `9944f50` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
