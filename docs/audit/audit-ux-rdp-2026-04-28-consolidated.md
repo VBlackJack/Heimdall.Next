@@ -699,6 +699,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-04 (consistency with the rest of the dialog's MVVM pattern).
 
+**Status:** ✅ Closed — commit `ba4fa6a` on 2026-04-28.
+
 ---
 
 ### F25 — Resolution menu presets hardcoded · 🟢 Low
@@ -1080,7 +1082,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (31/33 closed)
+## Status — in progress (32/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1115,6 +1117,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F30 | RdpFatalError collapses all codes into one message | `538e271` |
 | F32 | Autofill regex matches EN/FR titles only | `538e271` |
 | F29 | EnsureHostHandle retry budget exhaustion has no user signal | `ed945f0` |
+| F24 | Performance flags use imperative code-behind sync | `ba4fa6a` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
