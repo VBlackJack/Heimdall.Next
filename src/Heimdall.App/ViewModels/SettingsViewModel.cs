@@ -209,6 +209,21 @@ public partial class SettingsViewModel : ObservableValidator
     private bool _rdpDefaultRedirectPrinters;
 
     [ObservableProperty]
+    private bool _rdpDefaultRedirectComPorts;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectSmartCards;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectWebcam;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectUsb;
+
+    [ObservableProperty]
+    private bool _rdpDefaultAudioCapture;
+
+    [ObservableProperty]
     private bool _rdpDefaultAutoReconnect = true;
 
     [ObservableProperty]
@@ -455,6 +470,11 @@ public partial class SettingsViewModel : ObservableValidator
         RdpDefaultRedirectClipboard = settings.RdpDefaultRedirectClipboard;
         RdpDefaultRedirectDrives = settings.RdpDefaultRedirectDrives;
         RdpDefaultRedirectPrinters = settings.RdpDefaultRedirectPrinters;
+        RdpDefaultRedirectComPorts = settings.RdpDefaultRedirectComPorts;
+        RdpDefaultRedirectSmartCards = settings.RdpDefaultRedirectSmartCards;
+        RdpDefaultRedirectWebcam = settings.RdpDefaultRedirectWebcam;
+        RdpDefaultRedirectUsb = settings.RdpDefaultRedirectUsb;
+        RdpDefaultAudioCapture = settings.RdpDefaultAudioCapture;
         RdpDefaultAutoReconnect = settings.RdpDefaultAutoReconnect;
         RdpDefaultBitmapCaching = settings.RdpDefaultBitmapCaching;
         RdpDefaultCompression = settings.RdpDefaultCompression;
@@ -587,6 +607,11 @@ public partial class SettingsViewModel : ObservableValidator
         settings.RdpDefaultRedirectClipboard = RdpDefaultRedirectClipboard;
         settings.RdpDefaultRedirectDrives = RdpDefaultRedirectDrives;
         settings.RdpDefaultRedirectPrinters = RdpDefaultRedirectPrinters;
+        settings.RdpDefaultRedirectComPorts = RdpDefaultRedirectComPorts;
+        settings.RdpDefaultRedirectSmartCards = RdpDefaultRedirectSmartCards;
+        settings.RdpDefaultRedirectWebcam = RdpDefaultRedirectWebcam;
+        settings.RdpDefaultRedirectUsb = RdpDefaultRedirectUsb;
+        settings.RdpDefaultAudioCapture = RdpDefaultAudioCapture;
         settings.RdpDefaultAutoReconnect = RdpDefaultAutoReconnect;
         settings.RdpDefaultBitmapCaching = RdpDefaultBitmapCaching;
         settings.RdpDefaultCompression = RdpDefaultCompression;

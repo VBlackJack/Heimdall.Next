@@ -2221,6 +2221,11 @@
                                         <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="{loc:Translate ServerDialogRedirectClipboard}" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsRdpDrives" Content="{loc:Translate ServerDialogRedirectDrives}" IsChecked="{Binding Settings.RdpDefaultRedirectDrives}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsRdpPrinters" Content="{loc:Translate ServerDialogRedirectPrinters}" IsChecked="{Binding Settings.RdpDefaultRedirectPrinters}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpComPorts" Content="{loc:Translate ServerDialogRedirectComPorts}" IsChecked="{Binding Settings.RdpDefaultRedirectComPorts}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpSmartCards" Content="{loc:Translate ServerDialogRedirectSmartCards}" IsChecked="{Binding Settings.RdpDefaultRedirectSmartCards}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpWebcam" Content="{loc:Translate ServerDialogRedirectWebcam}" IsChecked="{Binding Settings.RdpDefaultRedirectWebcam}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpUsb" Content="{loc:Translate ServerDialogRedirectUsb}" IsChecked="{Binding Settings.RdpDefaultRedirectUsb}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpAudioCapture" Content="{loc:Translate RdpAudioCapture}" IsChecked="{Binding Settings.RdpDefaultAudioCapture}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
