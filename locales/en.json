@@ -2374,6 +2374,7 @@
   "RdpStatusPreparing": "Preparing the embedded Remote Desktop session.",
   "RdpStatusWaiting": "Waiting for the Remote Desktop control to connect.",
   "RdpStatusReconnecting": "Reconnecting (attempt {0} of {1})...",
+  "RdpSurfaceNotReady": "The Remote Desktop rendering surface failed to initialize within the expected window. Please retry the connection. If the problem persists, try moving the window to a different screen or relaunching the session.",
   "RdpDisconnectNoInfo": "The session ended without additional information.",
   "RdpDisconnectLocalUser": "You disconnected the session.",
   "RdpDisconnectUserLogoff": "You logged off from the remote session.",

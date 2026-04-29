@@ -465,6 +465,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 }
 
                 Core.Logging.FileLogger.Warn("EmbeddedRDP continuing even though the visual surface did not report as ready.");
+                SetPaneDiagnostic(new SessionDiagnostic(
+                    SessionFailureStage.RdpActiveXDisconnect,
+                    "RdpSurfaceNotReady"));
             }
 
             FlushLayoutPipeline("pre-connect");

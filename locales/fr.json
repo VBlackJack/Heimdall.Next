@@ -2370,6 +2370,7 @@
   "RdpStatusPreparing": "Pr\u00e9paration de la session Bureau \u00e0 distance.",
   "RdpStatusWaiting": "En attente de la connexion du contr\u00f4le Bureau \u00e0 distance.",
   "RdpStatusReconnecting": "Reconnexion (tentative {0} sur {1})...",
+  "RdpSurfaceNotReady": "La surface de rendu du Bureau \u00e0 distance n'a pas r\u00e9ussi \u00e0 s'initialiser dans le d\u00e9lai attendu. Veuillez r\u00e9essayer la connexion. Si le probl\u00e8me persiste, essayez de d\u00e9placer la fen\u00eatre sur un autre \u00e9cran ou de relancer la session.",
   "RdpDisconnectNoInfo": "La session s'est termin\u00e9e sans information suppl\u00e9mentaire.",
   "RdpDisconnectLocalUser": "Vous avez d\u00e9connect\u00e9 la session.",
   "RdpDisconnectUserLogoff": "Vous vous \u00eates d\u00e9connect\u00e9 de la session distante.",
