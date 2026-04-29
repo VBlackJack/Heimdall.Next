@@ -62,6 +62,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _disposed;
     private bool _allowResolutionUpdates;
     private bool _sleepPreventionActive;
+
+    /// <summary>
+    /// One-shot flag set when the header bar explicitly initiates the disconnect.
+    /// </summary>
+    private bool _userInitiatedDisconnect;
     private int _antiIdleIntervalSeconds;
     private int _beginConnectAttempt;
     private int _lastAppliedWidth;
@@ -257,6 +262,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         try
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
+            _userInitiatedDisconnect = true;
             _allowResolutionUpdates = false;
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
             _rdpHost.Disconnect();
@@ -277,6 +283,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         try
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled auto-reconnect");
+            _userInitiatedDisconnect = true;
             _rdpHost.CancelAutoReconnect = true;
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
         }
@@ -533,12 +540,26 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
+        var wasUserInitiated = _userInitiatedDisconnect;
+        _userInitiatedDisconnect = false;
+        var suppressOverlay = ShouldSuppressReconnectOverlay(wasUserInitiated, reason);
+
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
             StopAntiIdleTimer();
             ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
+
+            if (suppressOverlay)
+            {
+                ClearPaneDiagnostic();
+                UpdateSessionStatus(RdpSessionStatus.Disconnected);
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedRDP suppressed reconnect overlay: userInitiated={wasUserInitiated} reason={reason}");
+                return;
+            }
+
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(reason));
             UpdateSessionStatus(RdpSessionStatus.Disconnected);
             ShowReconnectOverlay();
@@ -1151,6 +1172,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _ => 32
         };
     }
+
+    /// <summary>
+    /// Suppresses the reconnect overlay for explicit user disconnects and clean-exit COM codes.
+    /// </summary>
+    internal static bool ShouldSuppressReconnectOverlay(bool userInitiated, int reason)
+        => userInitiated || reason is 0 or 1 or 2 or 3;
 
     private static AspectRatio ParseAspectRatio(string? aspectRatio)
     {
