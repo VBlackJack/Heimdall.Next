@@ -254,6 +254,36 @@ public sealed class RdpSessionStatusKeysTests
             $"Locale key '{key}' is missing from fr.json");
     }
 
+    [Theory]
+    [InlineData("RdpRedirectWebcamHint")]
+    [InlineData("RdpAdminMode")]
+    [InlineData("RdpAdminModeHint")]
+    [InlineData("RdpFullScreen")]
+    [InlineData("RdpFullScreenHint")]
+    public void ModeAwareRdpKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("RdpRedirectWebcamHint")]
+    [InlineData("RdpAdminMode")]
+    [InlineData("RdpAdminModeHint")]
+    [InlineData("RdpFullScreen")]
+    [InlineData("RdpFullScreenHint")]
+    public void ModeAwareRdpKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
     [Fact]
     public void RdpStatusReconnecting_HasAttemptAndCapPlaceholdersInEnglish()
     {

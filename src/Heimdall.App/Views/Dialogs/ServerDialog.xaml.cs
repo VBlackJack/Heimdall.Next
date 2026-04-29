@@ -555,6 +555,8 @@ public partial class ServerDialog : Window
         DlgSrv_BitmapCacheCb.Content = _localizer["ServerDialogBitmapCaching"];
         DlgSrv_RdpCompressionCb.Content = _localizer["ServerDialogRdpCompressionCb"];
         DlgSrv_AutoReconnectCb.Content = _localizer["ServerDialogAutoReconnect"];
+        DlgSrv_RdpAdminModeCb.Content = _localizer["RdpAdminMode"];
+        DlgSrv_RdpFullScreenCb.Content = _localizer["RdpFullScreen"];
 
         // RDP Experience
         DlgSrv_RdpExperienceExpander.Header = _localizer["RdpPerformanceTitle"];
@@ -575,6 +577,8 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfEnableFontSmoothingCb, _localizer["RdpPerfEnableFontSmoothing"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfEnableCompositionCb, _localizer["RdpPerfEnableComposition"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_DisableUdpCb, _localizer["RdpDisableUdp"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RdpAdminModeCb, _localizer["RdpAdminMode"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RdpFullScreenCb, _localizer["RdpFullScreen"]);
 
         // Decompose bitmask into individual checkboxes
         if (DataContext is ViewModels.Dialogs.ServerDialogViewModel vm)

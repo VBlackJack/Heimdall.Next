@@ -107,6 +107,8 @@ public sealed class ServerProfileDto
     public bool RdpBitmapCaching { get; set; } = true;
     public bool RdpCompression { get; set; } = true;
     public bool RdpAutoReconnect { get; set; } = true;
+    public bool RdpAdminMode { get; set; }
+    public bool RdpFullScreen { get; set; }
     public int RdpPerformanceFlags { get; set; }
     public bool RdpDisableUdp { get; set; }
     public string? RdpGateway { get; set; }

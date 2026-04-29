@@ -667,6 +667,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _rdpAutoReconnect = true;
 
     [ObservableProperty]
+    private bool _rdpAdminMode;
+
+    [ObservableProperty]
+    private bool _rdpFullScreen;
+
+    [ObservableProperty]
     private int _rdpPerformanceFlags;
 
     [ObservableProperty]
@@ -1108,6 +1114,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpBitmapCaching = RdpBitmapCaching,
             RdpCompression = RdpCompression,
             RdpAutoReconnect = RdpAutoReconnect,
+            RdpAdminMode = RdpAdminMode,
+            RdpFullScreen = RdpFullScreen,
             RdpPerformanceFlags = RdpPerformanceFlags,
             RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
@@ -1205,6 +1213,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RdpBitmapCaching = dto.RdpBitmapCaching;
         vm.RdpCompression = dto.RdpCompression;
         vm.RdpAutoReconnect = dto.RdpAutoReconnect;
+        vm.RdpAdminMode = dto.RdpAdminMode;
+        vm.RdpFullScreen = dto.RdpFullScreen;
         vm.RdpPerformanceFlags = dto.RdpPerformanceFlags;
         vm.RdpDisableUdp = dto.RdpDisableUdp;
         vm.RdpGateway = dto.RdpGateway ?? "";

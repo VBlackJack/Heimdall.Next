@@ -1587,7 +1587,23 @@
                                             <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb" TabIndex="73" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb"
+                                                      TabIndex="73"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                      IsChecked="{Binding RdpRedirectWebcam}"
+                                                      ToolTip="{loc:Translate RdpRedirectWebcamHint}"
+                                                      ToolTipService.ShowOnDisabled="True"
+                                                      Margin="0,6,0,0">
+                                                <CheckBox.Style>
+                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RdpMode}" Value="Embedded">
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </CheckBox.Style>
+                                            </CheckBox>
                                             <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                     </Expander>
@@ -1610,6 +1626,40 @@
                                             <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpCompression}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RdpAdminModeCb"
+                                                      TabIndex="88"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                      IsChecked="{Binding RdpAdminMode}"
+                                                      ToolTip="{loc:Translate RdpAdminModeHint}"
+                                                      Margin="0,12,0,0">
+                                                <CheckBox.Style>
+                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RdpMode}" Value="External">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </CheckBox.Style>
+                                            </CheckBox>
+                                            <CheckBox x:Name="DlgSrv_RdpFullScreenCb"
+                                                      TabIndex="89"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                      IsChecked="{Binding RdpFullScreen}"
+                                                      ToolTip="{loc:Translate RdpFullScreenHint}"
+                                                      Margin="0,6,0,0">
+                                                <CheckBox.Style>
+                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RdpMode}" Value="External">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </CheckBox.Style>
+                                            </CheckBox>
                                         </StackPanel>
                                     </Expander>
 
