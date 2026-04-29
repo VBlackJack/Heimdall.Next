@@ -716,6 +716,10 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-06 (efficiency / power-user flexibility).
 
+**Status:** ✅ Closed — commit `e8114c6` on 2026-04-28 (alongside F28).
+
+**Note:** the "Custom…" menu item and visual list editor were deferred per follow-up scope. Presets are now configurable via `AppSettings.RdpResolutionPresets` / JSON, with the previous 10 values kept as defaults.
+
 ---
 
 ### F26 — "Connecting" doesn't differentiate sub-phases · 🟢 Low
@@ -768,6 +772,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 **Suggested fix:** Add a collapsed "Advanced timeouts" section with three `TextBox`-bound fields (numeric input). Annotate each with units (ms) and acceptable ranges.
 
 **References:** Nielsen UX-06 (power-user efficiency).
+
+**Status:** ✅ Closed — commit `e8114c6` on 2026-04-28 (alongside F25).
 
 ---
 
@@ -1068,7 +1074,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (25/33 closed)
+## Status — in progress (27/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1098,6 +1104,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F23 | No "test connection" / pre-connect validation for RDP profiles | `56055bf` |
 | F31 | Anti-idle has no UI indicator | `5c0a7e2` |
 | F33 | Anti-idle hint says mouse but code sends Shift | `5c0a7e2` |
+| F25 | Resolution menu presets hardcoded in XAML | `e8114c6` |
+| F28 | 3 timeout settings unreachable from UI | `e8114c6` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
