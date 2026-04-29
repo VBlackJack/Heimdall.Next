@@ -701,11 +701,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         try
         {
+            var timeoutMs = _settings?.RdpCredentialAutofillTimeoutMs ?? 90000;
             var filled = await CredentialAutofill.WaitAndFillAsync(
                 Environment.ProcessId,
                 hostHint,
                 password,
-                TimeSpan.FromSeconds(90),
+                TimeSpan.FromMilliseconds(timeoutMs),
                 cancellationToken).ConfigureAwait(false);
 
             if (filled)
@@ -846,9 +847,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         StatusTextBlock.Text = localizedLabel;
 
-        var isConnecting = status is RdpSessionStatus.Connecting
-            or RdpSessionStatus.Preparing;
-        RdpLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
+        var isProgress = status is RdpSessionStatus.Connecting
+            or RdpSessionStatus.Preparing
+            or RdpSessionStatus.Reconnecting;
+        RdpLoadingBar.Visibility = isProgress ? Visibility.Visible : Visibility.Collapsed;
 
         DisconnectButton.IsEnabled = !_disposed && status is not RdpSessionStatus.Disconnected;
         CancelReconnectButton.Visibility = status == RdpSessionStatus.Reconnecting
