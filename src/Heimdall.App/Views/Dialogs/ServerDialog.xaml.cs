@@ -157,17 +157,6 @@ public partial class ServerDialog : Window
             return;
         }
 
-        // Recompose performance flags bitmask from individual checkboxes (TS_PERF_* constants)
-        var flags = 0;
-        if (DlgSrv_PerfDisableWallpaperCb.IsChecked == true) flags |= 0x01;
-        if (DlgSrv_PerfDisableDragCb.IsChecked == true) flags |= 0x02;
-        if (DlgSrv_PerfDisableAnimationsCb.IsChecked == true) flags |= 0x04;
-        if (DlgSrv_PerfDisableThemesCb.IsChecked == true) flags |= 0x08;
-        if (DlgSrv_PerfDisableCursorShadowCb.IsChecked == true) flags |= 0x20;
-        if (DlgSrv_PerfEnableFontSmoothingCb.IsChecked == true) flags |= 0x80;
-        if (DlgSrv_PerfEnableCompositionCb.IsChecked == true) flags |= 0x100;
-        vm.RdpPerformanceFlags = flags;
-
         // Transfer PasswordBox values if they exist in the visual tree
         var sshPwBox = FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox;
         var sshKeyPassphraseBox = FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox;
@@ -579,18 +568,6 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_DisableUdpCb, _localizer["RdpDisableUdp"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RdpAdminModeCb, _localizer["RdpAdminMode"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RdpFullScreenCb, _localizer["RdpFullScreen"]);
-
-        // Decompose bitmask into individual checkboxes
-        if (DataContext is ViewModels.Dialogs.ServerDialogViewModel vm)
-        {
-            DlgSrv_PerfDisableWallpaperCb.IsChecked = (vm.RdpPerformanceFlags & 0x01) != 0;
-            DlgSrv_PerfDisableDragCb.IsChecked = (vm.RdpPerformanceFlags & 0x02) != 0;
-            DlgSrv_PerfDisableAnimationsCb.IsChecked = (vm.RdpPerformanceFlags & 0x04) != 0;
-            DlgSrv_PerfDisableThemesCb.IsChecked = (vm.RdpPerformanceFlags & 0x08) != 0;
-            DlgSrv_PerfDisableCursorShadowCb.IsChecked = (vm.RdpPerformanceFlags & 0x20) != 0;
-            DlgSrv_PerfEnableFontSmoothingCb.IsChecked = (vm.RdpPerformanceFlags & 0x80) != 0;
-            DlgSrv_PerfEnableCompositionCb.IsChecked = (vm.RdpPerformanceFlags & 0x100) != 0;
-        }
 
         // SSH options
         DlgSrv_SshOptionsTitle.Text = _localizer["ServerDialogSshOptions"];
