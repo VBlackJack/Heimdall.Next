@@ -141,15 +141,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (_localizer is not null)
         {
             DisconnectButton.Content = L("BtnDisconnectSession");
+            CancelReconnectButton.Content = L("BtnCancelReconnect");
             ResMenuFit.Header = L("RdpResolutionFitToWindow");
 
             // Tooltips
             DisconnectButton.ToolTip = L("TooltipDisconnectSession");
+            CancelReconnectButton.ToolTip = L("TooltipCancelReconnect");
             SplitButton.ToolTip = L("TooltipSplitSession");
             ResolutionButton.ToolTip = L("TooltipChangeResolution");
 
             // Accessibility: automation names for toolbar buttons
             System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
+            System.Windows.Automation.AutomationProperties.SetName(CancelReconnectButton, L("A11yCancelReconnect"));
             System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
             System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
             System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
@@ -261,6 +264,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         catch (Exception ex)
         {
             HandleFailure("Disconnect failed.", ex);
+        }
+    }
+
+    private void OnCancelReconnectClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed || _rdpHost is null)
+        {
+            return;
+        }
+
+        try
+        {
+            Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled auto-reconnect");
+            _rdpHost.CancelAutoReconnect = true;
+            UpdateSessionStatus(RdpSessionStatus.Disconnecting);
+        }
+        catch (Exception ex)
+        {
+            HandleFailure("Cancel reconnect failed.", ex);
         }
     }
 
@@ -561,7 +583,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             _allowResolutionUpdates = false;
-            UpdateSessionStatus(RdpSessionStatus.Reconnecting);
+            UpdateSessionStatus(RdpSessionStatus.Reconnecting, attemptCount);
         });
     }
 
@@ -683,10 +705,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    private void UpdateSessionStatus(RdpSessionStatus status)
+    private void UpdateSessionStatus(
+        RdpSessionStatus status,
+        int? reconnectAttempt = null)
     {
         var invariantCode = RdpSessionStatusKeys.GetInvariantCode(status);
-        var localizedLabel = GetLocalizedStatusLabel(status);
+        string localizedLabel;
+
+        if (status == RdpSessionStatus.Reconnecting && _localizer is not null)
+        {
+            var attempt = reconnectAttempt ?? 1;
+            localizedLabel = _localizer.Format(
+                RdpSessionStatusKeys.GetKey(status),
+                attempt,
+                RdpActiveXHost.MaxAutoReconnectAttempts);
+        }
+        else
+        {
+            localizedLabel = L(RdpSessionStatusKeys.GetKey(status));
+        }
 
         if (_sessionTab is not null)
         {
@@ -700,23 +737,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         RdpLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
 
         DisconnectButton.IsEnabled = !_disposed && status is not RdpSessionStatus.Disconnected;
+        CancelReconnectButton.Visibility = status == RdpSessionStatus.Reconnecting
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         StatusTextBlock.Foreground = GetBrush(
             status is RdpSessionStatus.Error ? "ErrorBrush" : "TextPrimaryBrush",
             status is RdpSessionStatus.Error ? Brushes.IndianRed : Brushes.White);
-    }
-
-    private string GetLocalizedStatusLabel(RdpSessionStatus status)
-    {
-        var key = RdpSessionStatusKeys.GetKey(status);
-        if (status == RdpSessionStatus.Reconnecting && _localizer is not null)
-        {
-            // F1 transitional state: F2 will pass the real reconnect attempt count.
-            return _localizer[key]
-                .Replace(" (attempt {0})", string.Empty, StringComparison.Ordinal)
-                .Replace(" (tentative {0})", string.Empty, StringComparison.Ordinal);
-        }
-
-        return L(key);
     }
 
     private void HandleFailure(string message, Exception ex)

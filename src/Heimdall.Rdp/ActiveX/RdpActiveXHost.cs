@@ -36,6 +36,11 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     public const string DefaultMsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
     public const string NotSafeForScriptingClsid = "A0F46F0A-3B66-4B79-A7A1-1C70A6BF37E1";
 
+    /// <summary>
+    /// Maximum number of auto-reconnect attempts MsTscAx performs before giving up.
+    /// </summary>
+    public const int MaxAutoReconnectAttempts = 20;
+
     /// <summary>TCP keep-alive interval in milliseconds (60 seconds).</summary>
     private const int KeepAliveIntervalMs = 60_000;
 
@@ -569,7 +574,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
         if (_pendingRedirections.AutoReconnect)
         {
-            TrySetDynamic("MaxReconnectAttempts", () => adv.MaxReconnectAttempts = 20);
+            TrySetDynamic("MaxReconnectAttempts", () => adv.MaxReconnectAttempts = MaxAutoReconnectAttempts);
         }
 
         // USB / PnP device redirection

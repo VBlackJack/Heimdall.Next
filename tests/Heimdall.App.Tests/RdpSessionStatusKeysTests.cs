@@ -52,22 +52,64 @@ public sealed class RdpSessionStatusKeysTests
     [Fact]
     public void EveryEnumValue_ResolvesToLocaleKeyPresentInEnglish()
     {
-        var localesPath = FindLocalesPath();
-        var enJsonPath = Path.Combine(localesPath, "en.json");
-
-        Assert.True(File.Exists(enJsonPath), $"en.json not found at {enJsonPath}");
-
-        using var document = JsonDocument.Parse(File.ReadAllText(enJsonPath));
-        var root = document.RootElement;
+        using var document = LoadLocaleDocument("en");
 
         foreach (var status in Enum.GetValues<RdpSessionStatus>())
         {
             var key = RdpSessionStatusKeys.GetKey(status);
 
             Assert.True(
-                root.TryGetProperty(key, out _),
+                document.RootElement.TryGetProperty(key, out _),
                 $"Locale key '{key}' for {status} is missing from en.json");
         }
+    }
+
+    [Theory]
+    [InlineData("BtnCancelReconnect")]
+    [InlineData("TooltipCancelReconnect")]
+    [InlineData("A11yCancelReconnect")]
+    public void CancelReconnectKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("BtnCancelReconnect")]
+    [InlineData("TooltipCancelReconnect")]
+    [InlineData("A11yCancelReconnect")]
+    public void CancelReconnectKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
+    [Fact]
+    public void RdpStatusReconnecting_HasAttemptAndCapPlaceholdersInEnglish()
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(document.RootElement.TryGetProperty("RdpStatusReconnecting", out var value));
+        var reconnecting = value.GetString() ?? string.Empty;
+
+        Assert.Contains("{0}", reconnecting);
+        Assert.Contains("{1}", reconnecting);
+    }
+
+    private static JsonDocument LoadLocaleDocument(string locale)
+    {
+        var localesPath = FindLocalesPath();
+        var jsonPath = Path.Combine(localesPath, $"{locale}.json");
+
+        Assert.True(File.Exists(jsonPath), $"{locale}.json not found at {jsonPath}");
+
+        return JsonDocument.Parse(File.ReadAllText(jsonPath));
     }
 
     private static string FindLocalesPath()

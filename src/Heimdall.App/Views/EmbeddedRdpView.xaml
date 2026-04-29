@@ -27,6 +27,14 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
+                <Button x:Name="CancelReconnectButton"
+                        DockPanel.Dock="Right"
+                        Click="OnCancelReconnectClick"
+                        Visibility="Collapsed"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="{StaticResource FontSizeCaption}"
+                        Margin="8,0,0,0"/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
