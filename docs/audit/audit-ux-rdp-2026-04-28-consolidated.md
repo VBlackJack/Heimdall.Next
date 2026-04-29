@@ -204,7 +204,11 @@ Show a brief toast/inline status instead, and consider auto-closing the tab when
 
 **References:** Nielsen UX-04 (consistency between control state and effect), UX-03 (error prevention — currently the user is silently misled).
 
-**Notes — disagreement resolution:** Codex declined to flag this finding under the assumption that "behavior is wired through redirection construction". A search of the source confirms `RdpUseGlobalDefaults` exists only in `ServerProfileDto`, `ServerDialogViewModel`, `ServerListViewModel.Bulk`, `MigrationService`, `RdpImportService` — never in any handler or view that builds the connect-time options. The arbitration retains this as a High finding.
+**Notes — disagreement resolution:** Codex declined to flag this finding under the assumption that "behavior is wired through redirection construction". A search of the source confirmed `RdpUseGlobalDefaults` existed only in `ServerProfileDto`, `ServerDialogViewModel`, `ServerListViewModel.Bulk`, `MigrationService`, `RdpImportService` — never in any handler or view that built the connect-time options. The arbitration retained this as a High finding.
+
+**Status:** ✅ Closed — commit `cd83d35` on 2026-04-29.
+
+**Disagreement resolution outcome:** the wiring was indeed missing as Cowork verified during consolidation. F4 is now wired via `RdpProfileResolver` with strict-override semantics: `RdpUseGlobalDefaults = true` always reads from `AppSettings.RdpDefault*` for the 16 governable fields. The disagreement is settled in favor of the High classification.
 
 ---
 
@@ -1028,7 +1032,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (7/33 closed)
+## Status — in progress (8/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1039,6 +1043,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F7 | Credential autofill is invisible to the user | `1750409` |
 | F6 | External RDP marked Connected as soon as mstsc.exe starts | `8fbec1e` |
 | F12 | Settings RDP defaults incomplete — 5 missing redirections | `8ca6f9e` |
+| F4 | RdpUseGlobalDefaults checkbox has no runtime effect | `cd83d35` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
@@ -1060,4 +1065,4 @@ After all 33 findings are closed, replace this section with:
 
 ---
 
-*Consolidated audit: 0 🔴 / 7 🟠 / 16 🟡 / 10 🟢 = 33 findings. Cowork F1–F30 + Codex F1–F11 mapped, 4 Codex-only findings adopted (F6, F22, F23, F33), Cowork F24+F25 merged into F7 with severity promoted to High, 1 disagreement preserved (F4 retained as High over Codex's choice not to flag, with evidence in Notes). Reproducibility: a third independent pass on the same unmodified codebase should confirm this list within ±2 findings on the Low end.*
+*Consolidated audit: 0 🔴 / 7 🟠 / 16 🟡 / 10 🟢 = 33 findings. Cowork F1–F30 + Codex F1–F11 mapped, 4 Codex-only findings adopted (F6, F22, F23, F33), Cowork F24+F25 merged into F7 with severity promoted to High, 1 disagreement resolved (F4 retained as High over Codex's choice not to flag, then closed via `RdpProfileResolver`; evidence and outcome in Notes). Reproducibility: a third independent pass on the same unmodified codebase should confirm this list within ±2 findings on the Low end.*
