@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.StateMachine;
@@ -120,30 +121,11 @@ internal sealed class RdpHandler : IProtocolHandler
                 Host = rdpHost,
                 Port = rdpPort,
                 Username = server.RdpUsername,
-                ColorDepth = server.RdpColorDepth > 0 ? server.RdpColorDepth : 32,
+                ColorDepth = RdpProfileResolver.ResolveColorDepth(server, settings),
                 FullScreen = false,
                 AdminMode = false,
                 GatewayHostname = server.RdpGateway,
-                Redirections = new Heimdall.Rdp.RdpRedirectionOptions
-                {
-                    Clipboard = server.RdpRedirectClipboard,
-                    Drives = server.RdpRedirectDrives,
-                    Printers = server.RdpRedirectPrinters,
-                    ComPorts = server.RdpRedirectComPorts,
-                    SmartCards = server.RdpRedirectSmartCards,
-                    Webcam = server.RdpRedirectWebcam,
-                    Usb = server.RdpRedirectUsb,
-                    AudioMode = server.RdpAudioMode,
-                    AudioCapture = server.RdpAudioCapture,
-                    MultiMonitor = server.RdpMultiMonitor,
-                    DynamicResolution = server.RdpDynamicResolution,
-                    Nla = server.RdpNla,
-                    BitmapCaching = server.RdpBitmapCaching,
-                    Compression = server.RdpCompression,
-                    AutoReconnect = server.RdpAutoReconnect,
-                    PerformanceFlags = server.RdpPerformanceFlags,
-                    DisableUdp = server.RdpDisableUdp
-                }
+                Redirections = RdpProfileResolver.BuildRedirections(server, settings)
             });
 
             if (OperatingSystem.IsWindows())
