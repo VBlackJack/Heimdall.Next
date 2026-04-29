@@ -636,6 +636,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-04 (predictability).
 
+**Status:** ✅ Closed — commit `8805cfc` on 2026-04-29.
+
 ---
 
 ### F23 — No "test connection" / pre-connect validation for RDP profiles · 🟡 Medium
@@ -1038,7 +1040,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (11/33 closed)
+## Status — in progress (12/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1053,6 +1055,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F8 | Embedded autofill timeout is hardcoded | `73e8f9f` |
 | F10 | Progress bar hidden during reconnecting | `73e8f9f` |
 | F11 | AspectRatio ComboBox underexposed | `0e97c81` |
+| F22 | Split mode silently overrides external RDP profiles to embedded | `8805cfc` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
