@@ -43,11 +43,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private TimeSpan _initialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
+    private static readonly TimeSpan AutofillFilledDisplayDuration = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// Transient state of the embedded credential autofill watcher.
+    /// </summary>
+    private enum RdpAutofillState
+    {
+        None,
+        Searching,
+        Filled,
+        TimedOut,
+        Failed
+    }
 
     private readonly DispatcherTimer _resizeTimer;
 
     private CancellationTokenSource? _autofillCts;
     private DispatcherTimer? _antiIdleTimer;
+    private DispatcherTimer? _autofillFilledTimer;
     private RdpActiveXHost? _rdpHost;
     private ServerProfileDto? _server;
     private SessionPaneModel? _ownerPane;
@@ -186,6 +200,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Loaded -= OnLoaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
         _resizeTimer.Stop();
+        _autofillFilledTimer?.Stop();
+        _autofillFilledTimer = null;
         StopAntiIdleTimer();
         ReleaseSleepPrevention();
         CancelAutofill();
@@ -676,6 +692,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private async Task TryAutofillCredentialsAsync(string password, string hostHint, CancellationToken cancellationToken)
     {
+        Dispatcher.Invoke(() => UpdateAutofillState(RdpAutofillState.Searching));
+
         try
         {
             var filled = await CredentialAutofill.WaitAndFillAsync(
@@ -685,20 +703,33 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 TimeSpan.FromSeconds(90),
                 cancellationToken).ConfigureAwait(false);
 
-            if (!filled)
+            if (filled)
+            {
+                Dispatcher.Invoke(() => UpdateAutofillState(RdpAutofillState.Filled));
+            }
+            else
             {
                 Core.Logging.FileLogger.Warn(
                     $"EmbeddedRDP CredUI autofill timed out for hostHint={hostHint}");
+                Dispatcher.Invoke(() => UpdateAutofillState(RdpAutofillState.TimedOut));
             }
         }
         catch (OperationCanceledException)
         {
             // Session connected or was disposed before a credential dialog appeared.
+            if (!_disposed)
+            {
+                Dispatcher.Invoke(() => UpdateAutofillState(RdpAutofillState.None));
+            }
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn(
                 $"Embedded RDP credential autofill failed: {ex.Message}");
+            if (!_disposed)
+            {
+                Dispatcher.Invoke(() => UpdateAutofillState(RdpAutofillState.Failed));
+            }
         }
     }
 
@@ -724,6 +755,63 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             cts.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Updates the credential autofill sub-status in the header.
+    /// </summary>
+    private void UpdateAutofillState(RdpAutofillState state)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => UpdateAutofillState(state));
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        _autofillFilledTimer?.Stop();
+
+        var key = state switch
+        {
+            RdpAutofillState.Searching => "RdpAutofillSearching",
+            RdpAutofillState.Filled => "RdpAutofillFilled",
+            RdpAutofillState.TimedOut => "RdpAutofillTimedOut",
+            RdpAutofillState.Failed => "RdpAutofillFailed",
+            _ => null
+        };
+
+        if (key is null)
+        {
+            AutofillStatusText.Text = string.Empty;
+            AutofillStatusText.Visibility = Visibility.Collapsed;
+            AutofillSeparator.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AutofillStatusText.Text = L(key);
+        AutofillStatusText.Visibility = Visibility.Visible;
+        AutofillSeparator.Visibility = Visibility.Visible;
+
+        if (state == RdpAutofillState.Filled)
+        {
+            _autofillFilledTimer ??= new DispatcherTimer(
+                AutofillFilledDisplayDuration,
+                DispatcherPriority.Background,
+                OnAutofillFilledTimerTick,
+                Dispatcher);
+            _autofillFilledTimer.Interval = AutofillFilledDisplayDuration;
+            _autofillFilledTimer.Start();
+        }
+    }
+
+    private void OnAutofillFilledTimerTick(object? sender, EventArgs e)
+    {
+        _autofillFilledTimer?.Stop();
+        UpdateAutofillState(RdpAutofillState.None);
     }
 
     private void UpdateSessionStatus(
