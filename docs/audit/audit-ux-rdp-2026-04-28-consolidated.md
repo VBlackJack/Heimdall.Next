@@ -811,6 +811,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 
 **References:** Nielsen UX-01 (visibility), UX-05 (recognition over recall — show what's running).
 
+**Status:** ✅ Closed — commit `5c0a7e2` on 2026-04-28 (alongside F33).
+
 ---
 
 ### F32 — Autofill regex matches EN/FR titles only · 🟢 Low
@@ -844,6 +846,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 **Suggested fix:** Update the hint to say "Periodically sends a harmless Shift tap to keep the remote session active." Or switch the implementation to actual `WM_MOUSEMOVE` events to match the existing wording. Consider exposing the anti-idle method in advanced settings if both approaches are supported later.
 
 **References:** Nielsen UX-04 (consistency between described and actual behavior).
+
+**Status:** ✅ Closed — commit `5c0a7e2` on 2026-04-28 (alongside F31).
 
 ---
 
@@ -1064,7 +1068,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (23/33 closed)
+## Status — in progress (25/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1092,6 +1096,8 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F9 | Webcam silently ineffective in embedded mode | `726c788` |
 | F15 | External `.rdp` ignores resolution / AdminMode / FullScreen unreachable | `726c788` |
 | F23 | No "test connection" / pre-connect validation for RDP profiles | `56055bf` |
+| F31 | Anti-idle has no UI indicator | `5c0a7e2` |
+| F33 | Anti-idle hint says mouse but code sends Shift | `5c0a7e2` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
