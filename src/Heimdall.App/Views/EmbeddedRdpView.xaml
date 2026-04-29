@@ -109,6 +109,22 @@
                                VerticalAlignment="Center"
                                Visibility="Collapsed"
                                AutomationProperties.LiveSetting="Polite"/>
+                    <Button x:Name="AntiIdleBadge"
+                            Click="OnAntiIdleBadgeClick"
+                            Visibility="Collapsed"
+                            Margin="8,0,0,0"
+                            Padding="4,1"
+                            VerticalAlignment="Center"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE945;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </DockPanel>
         </Border>

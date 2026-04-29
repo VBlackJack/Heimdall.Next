@@ -215,6 +215,48 @@ public sealed class RdpSessionStatusKeysTests
     }
 
     [Theory]
+    [InlineData("TooltipAntiIdleActive")]
+    [InlineData("A11yAntiIdleActive")]
+    public void AntiIdleIndicatorKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("TooltipAntiIdleActive")]
+    [InlineData("A11yAntiIdleActive")]
+    public void AntiIdleIndicatorKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
+    [Fact]
+    public void AntiIdleHint_MentionsShiftInEnglish()
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(document.RootElement.TryGetProperty("RdpAntiIdleHint", out var value));
+        Assert.Contains("Shift", value.GetString() ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AntiIdleHint_MentionsMajInFrench()
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(document.RootElement.TryGetProperty("RdpAntiIdleHint", out var value));
+        Assert.Contains("Maj", value.GetString() ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("CitrixLaunchCommandRejected")]
     [InlineData("CitrixModeCacheLaunch")]
     [InlineData("CitrixModeIcaFile")]
