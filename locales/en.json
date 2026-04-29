@@ -2016,8 +2016,6 @@
   "ServerDialogLabelColorDepth": "Color depth",
   "ServerDialogModeEmbedded": "Embedded",
   "ServerDialogModeExternal": "External",
-  "ServerDialogAspectStretch": "Stretch",
-  "ServerDialogAspectPreserve": "Preserve",
   "ServerDialogAudioDisabled": "Disabled",
   "ServerDialogAudioLocal": "Local playback",
   "ServerDialogAudioRemote": "Remote playback",
