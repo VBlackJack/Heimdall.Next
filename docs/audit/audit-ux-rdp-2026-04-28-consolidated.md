@@ -448,6 +448,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **Suggested fix:** Update the gotcha in `CLAUDE.md` to "10 s" (and ideally cross-reference `AppSettings.RdpResizeEnableDelayMs`).
 
+**Status:** ✅ Closed — applied locally in `CLAUDE.md` (file not tracked in Git per project convention; correction is "Resolution updates blocked 10s … Configurable via `AppSettings.RdpResizeEnableDelayMs` (default 10000 ms)").
+
 **References:** Internal documentation accuracy.
 
 ---
@@ -534,6 +536,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 - Add a small mode indicator in `EmbeddedCitrixView.SessionInfoText` or `StoreFrontText` showing the active mode (Cache / ICA file / StoreFront).
 - In ServerDialog Citrix section, show a warning when more than one launch field is populated explaining the precedence.
 
+**Status:** ✅ Closed — commit `70403b8` on 2026-04-29.
+
 **References:** Nielsen UX-04 (predictability).
 
 ---
@@ -550,6 +554,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 **Observed:** Error message is `CitrixNoConnectionConfigured` ("No Citrix StoreFront URL or ICA file configured.") — wrong: the user *did* configure something, validation just rejected it.
 
 **Suggested fix:** Add a dedicated `CitrixLaunchCommandRejected` localization key with text like "The Citrix launch command was rejected because it contains forbidden characters (`|`, `&`, `;`, `` ` ``, `$`, newlines)." Use it on the validation failure path.
+
+**Status:** ✅ Closed — commit `70403b8` on 2026-04-29.
 
 **References:** Nielsen UX-03 (specific error messages).
 
@@ -575,6 +581,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 - Add a Cancel button that aborts the polling and falls back to external mode immediately.
 - Codex broadening: add a StoreBrowse discovery / test action in the dialog (let users pick the published app from the cached StoreFront list rather than typing it manually); validate app names before save when possible.
 
+**Status:** ✅ Closed — commit `70403b8` on 2026-04-29.
+
 **References:** Nielsen UX-01 (system status visibility), UX-02 (user control).
 
 ---
@@ -593,6 +601,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 **Suggested fix:** Before `Process.Kill()`, show a confirmation dialog with localized text "Terminate the Citrix session? Unsaved work in the remote application will be lost." Default button: Cancel.
 
 Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and falls back to `Kill` after a timeout.
+
+**Status:** ✅ Closed — commit `70403b8` on 2026-04-29.
 
 **References:** Nielsen UX-02 (user control — confirmation for destructive action).
 
@@ -725,6 +735,8 @@ Optional: add a "Disconnect" path that sends a graceful `WM_CLOSE` first and fal
 **Observed:** Always visible. Confusing for users on personal machines / non-domain-joined environments.
 
 **Suggested fix:** Add a tooltip "Use Single Sign-On with the current Windows Kerberos identity. Requires a domain-joined client."
+
+**Status:** ✅ Closed — commit `70403b8` on 2026-04-29.
 
 **References:** Nielsen UX-08 (contextual help).
 
@@ -1040,7 +1052,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (12/33 closed)
+## Status — in progress (17/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1056,6 +1068,12 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F10 | Progress bar hidden during reconnecting | `73e8f9f` |
 | F11 | AspectRatio ComboBox underexposed | `0e97c81` |
 | F22 | Split mode silently overrides external RDP profiles to embedded | `8805cfc` |
+| F14 | Documentation drift on stabilization delay | applied locally |
+| F17 | Citrix mode precedence not surfaced | `70403b8` |
+| F18 | Misleading shell-rejection error | `70403b8` |
+| F19 | Citrix capture polling without progress feedback | `70403b8` |
+| F20 | Citrix Terminate without confirmation | `70403b8` |
+| F27 | CitrixUseSso always visible | `70403b8` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
