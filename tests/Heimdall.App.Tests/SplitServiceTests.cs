@@ -52,16 +52,17 @@ public sealed class SplitServiceTests : IDisposable
         _localizer = new LocalizationManager();
         _toolRegistry = new ToolRegistry();
 
-        // All 7 SplitService dependencies are sealed (Moq cannot mock sealed
+        // All 8 SplitService dependencies are sealed (Moq cannot mock sealed
         // types at runtime). We pass real instances for the three that the
-        // targeted methods actually read, and null! for the four that the
+        // targeted methods actually read, and null! for the five that the
         // targeted code paths never touch: ConnectionStateMachine and
         // TunnelManager are only invoked by the "server pane" branch of
         // CloseAllPanes (we only build tool-pane / empty trees) and by
         // CleanupOrphanedPane / ReleaseOldConnectionState (not tested here);
         // EmbeddedSessionManager is only invoked by the positive path of
         // SplitSessionWithTool (we only test its guard short-circuits);
-        // ConnectionService is only invoked by the async connection flows.
+        // ConnectionService and DialogService are only invoked by the async
+        // connection flows.
         _sut = new SplitService(
             _configManager,
             _localizer,
@@ -69,7 +70,8 @@ public sealed class SplitServiceTests : IDisposable
             tunnelManager: null!,
             sessionManager: null!,
             connectionService: null!,
-            _toolRegistry);
+            _toolRegistry,
+            dialogService: null!);
     }
 
     public void Dispose()
@@ -303,6 +305,38 @@ public sealed class SplitServiceTests : IDisposable
         Assert.Equal(SplitService.MaxPanesPerTab, SplitTreeHelper.CountLeaves(session.RootContent));
         // LocalizationManager has no strings loaded so the key is returned verbatim.
         Assert.Equal("SplitMaxPanesReached", capturedStatus);
+    }
+
+    // ── Category F: Forced embedded mode policy ────────────────────────
+
+    [Fact]
+    public void ForceEmbeddedMode_RdpExternal_ReturnsTrue_AndSetsEmbedded()
+    {
+        var server = new ServerProfileDto
+        {
+            ConnectionType = "RDP",
+            RdpMode = "External"
+        };
+
+        var converted = SplitService.ForceEmbeddedMode(server);
+
+        Assert.True(converted);
+        Assert.Equal("Embedded", server.RdpMode);
+    }
+
+    [Fact]
+    public void ForceEmbeddedMode_RdpEmbedded_ReturnsFalse_AndKeepsEmbedded()
+    {
+        var server = new ServerProfileDto
+        {
+            ConnectionType = "RDP",
+            RdpMode = "Embedded"
+        };
+
+        var converted = SplitService.ForceEmbeddedMode(server);
+
+        Assert.False(converted);
+        Assert.Equal("Embedded", server.RdpMode);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

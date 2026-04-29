@@ -219,7 +219,8 @@ public sealed class SessionCoordinatorPreMountTests
                 tunnelManager,
                 embeddedSessionManager,
                 connectionService,
-                toolRegistry);
+                toolRegistry,
+                dialogService);
             var dispatcher = new FakeUiDispatcher();
             var connection = new ConnectionViewModel(localizer, dialogService, splitService);
             var serverList = new ServerListViewModel(

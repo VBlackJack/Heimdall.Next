@@ -2655,6 +2655,8 @@
   "SplitDropToMerge": "Deposer pour diviser",
   "SplitMaxPanesReached": "Nombre maximum de panneaux atteint (8).",
   "SplitMergeBlockedByTool": "Fusion bloquee : un outil dans l'onglet source est occupe.",
+  "SplitForcedEmbeddedTitle": "Le mode split necessite une session integree",
+  "SplitForcedEmbeddedMessage": "{0} est configure en mode externe (mstsc.exe), mais les panneaux de split ne peuvent heberger que des sessions integrees. Ce split utilisera le mode integre. Ouvrez le serveur dans un onglet normal pour conserver le mode externe.",
   "LogSplitSwapped": "Panneaux inverses pour '{0}'.",
   "LogSplitOrientationToggled": "Orientation changee pour '{0}' en {1}.",
   "RdpDisconnectedMessage": "La session Bureau a distance s'est terminee.",
