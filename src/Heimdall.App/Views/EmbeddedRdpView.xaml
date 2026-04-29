@@ -35,6 +35,15 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
+                <Button x:Name="SendCtrlAltDelButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE765;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnSendCtrlAltDelClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Margin="4,0"/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
