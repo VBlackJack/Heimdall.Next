@@ -42,7 +42,7 @@ internal static class RdpHostDiagnosticFactory
     {
         return new SessionDiagnostic(
             SessionFailureStage.RdpActiveXDisconnect,
-            "RdpFatalError",
+            "RdpStatusFatalErrorDetail",
             errorCode,
             null);
     }

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.IO;
+using System.Text.Json;
 using Heimdall.App.Views.EmbeddedRdp;
 using Heimdall.Core.SessionDiagnostics;
 
@@ -37,14 +39,26 @@ public sealed class RdpHostDiagnosticFactoryTests
     }
 
     [Fact]
-    public void FromFatalError_UsesFatalErrorMessageKey()
+    public void FromFatalError_UsesFatalErrorDetailMessageKey()
     {
         var diagnostic = RdpHostDiagnosticFactory.FromFatalError(260);
 
         Assert.Equal(SessionFailureStage.RdpActiveXDisconnect, diagnostic.Stage);
-        Assert.Equal("RdpFatalError", diagnostic.MessageKey);
+        Assert.Equal("RdpStatusFatalErrorDetail", diagnostic.MessageKey);
         Assert.Equal(260, diagnostic.Code);
         Assert.Null(diagnostic.Detail);
+    }
+
+    [Fact]
+    public void FatalErrorDetailTemplate_HasCodePlaceholderInBothLocales()
+    {
+        using var en = LoadLocaleDocument("en");
+        Assert.True(en.RootElement.TryGetProperty("RdpStatusFatalErrorDetail", out var enValue));
+        Assert.Contains("{0}", enValue.GetString() ?? string.Empty, StringComparison.Ordinal);
+
+        using var fr = LoadLocaleDocument("fr");
+        Assert.True(fr.RootElement.TryGetProperty("RdpStatusFatalErrorDetail", out var frValue));
+        Assert.Contains("{0}", frValue.GetString() ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -54,5 +68,43 @@ public sealed class RdpHostDiagnosticFactoryTests
         var resolutionFailure = RdpHostDiagnosticFactory.FromDisconnect(4360);
 
         Assert.NotEqual(socketFailure.MessageKey, resolutionFailure.MessageKey);
+    }
+
+    private static JsonDocument LoadLocaleDocument(string locale)
+    {
+        var localesPath = FindLocalesPath();
+        var jsonPath = Path.Combine(localesPath, $"{locale}.json");
+
+        Assert.True(File.Exists(jsonPath), $"{locale}.json not found at {jsonPath}");
+
+        return JsonDocument.Parse(File.ReadAllText(jsonPath));
+    }
+
+    private static string FindLocalesPath()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir, "locales");
+            if (Directory.Exists(candidate) &&
+                File.Exists(Path.Combine(candidate, "en.json")))
+            {
+                return candidate;
+            }
+
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        var fallback = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..", "..", "locales"));
+
+        if (Directory.Exists(fallback))
+        {
+            return fallback;
+        }
+
+        throw new DirectoryNotFoundException(
+            "Cannot find locales/ directory. Ensure the test runs from the repository.");
     }
 }

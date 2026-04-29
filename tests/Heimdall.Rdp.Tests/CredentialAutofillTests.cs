@@ -21,6 +21,35 @@ namespace Heimdall.Rdp.Tests;
 
 public sealed class CredentialAutofillTests
 {
+    [Theory]
+    [InlineData("Windows Security")]
+    [InlineData("S\u00e9curit\u00e9 de Windows")]
+    [InlineData("Securite Windows")]
+    [InlineData("Windows-Sicherheit")]
+    [InlineData("Seguridad de Windows")]
+    [InlineData("Sicurezza di Windows")]
+    [InlineData("Seguran\u00e7a do Windows")]
+    [InlineData("Windows-beveiliging")]
+    [InlineData("Zabezpieczenia systemu Windows")]
+    [InlineData("Credential")]
+    [InlineData("Credenziale")]
+    [InlineData("Credencial")]
+    [InlineData("Anmeldeinformation")]
+    [InlineData("mstsc.exe")]
+    public void TitlePattern_MatchesKnownCredentialDialogTitles(string title)
+    {
+        Assert.Matches(CredentialAutofill.TitlePattern, title);
+    }
+
+    [Theory]
+    [InlineData("Notepad")]
+    [InlineData("File Explorer")]
+    [InlineData("")]
+    public void TitlePattern_DoesNotMatchUnrelatedTitles(string title)
+    {
+        Assert.DoesNotMatch(CredentialAutofill.TitlePattern, title);
+    }
+
     [Fact]
     public void SelectCredentialDialogTarget_ReturnsNull_ForUnmatchedBrokerWindows()
     {

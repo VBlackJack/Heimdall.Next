@@ -101,10 +101,19 @@ public static partial class CredentialAutofill
 
     /// <summary>
     /// Regex pattern matching credential dialog titles across supported locales.
-    /// Covers: "Windows Security" (EN), "Securite Windows" (FR), and mstsc prompts.
+    /// Covers common Windows Security and CredUI titles, plus mstsc prompts.
     /// </summary>
-    private static readonly Regex TitlePattern = new(
-        @"Windows Security|S[e\u00e9]curit[e\u00e9](\s+de)?\s+Windows|Credential|mstsc",
+    internal static readonly Regex TitlePattern = new(
+        @"Windows Security"
+        + @"|S[e\u00e9]curit[e\u00e9](\s+de)?\s+Windows"
+        + @"|Windows-Sicherheit"
+        + @"|Seguridad de Windows"
+        + @"|Sicurezza di Windows"
+        + @"|Seguran[c\u00e7]a do Windows"
+        + @"|Windows-beveiliging"
+        + @"|Zabezpieczenia systemu Windows"
+        + @"|Credential|Credenziale|Credencial|Anmeldeinformation"
+        + @"|mstsc",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>Regex pattern matching password fields in UI Automation trees.</summary>
