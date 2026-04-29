@@ -400,6 +400,8 @@ This is the single highest-leverage UX fix in the RDP path: the data is there, t
 
 **References:** Nielsen UX-04 (consistency).
 
+**Status:** ✅ Closed — commit `8ca6f9e` on 2026-04-29.
+
 ---
 
 ### F13 — Manual resolution change ignored during stabilization · 🟡 Medium
@@ -1026,7 +1028,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 
 ---
 
-## Status — in progress (6/33 closed)
+## Status — in progress (7/33 closed)
 
 | # | Title | Closed in |
 |---|---|---|
@@ -1036,6 +1038,7 @@ A note for the next pass: a pure visual capture session will be required to conf
 | F3 | Reconnect overlay shown on user-initiated disconnect | `8a91d1f` |
 | F7 | Credential autofill is invisible to the user | `1750409` |
 | F6 | External RDP marked Connected as soon as mstsc.exe starts | `8fbec1e` |
+| F12 | Settings RDP defaults incomplete — 5 missing redirections | `8ca6f9e` |
 
 Once a finding is closed by a Codex commit, append a status line under its detailed entry:
 
