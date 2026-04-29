@@ -121,9 +121,11 @@ internal sealed class RdpHandler : IProtocolHandler
                 Host = rdpHost,
                 Port = rdpPort,
                 Username = server.RdpUsername,
+                Width = settings.DefaultResolutionWidth > 0 ? settings.DefaultResolutionWidth : 1920,
+                Height = settings.DefaultResolutionHeight > 0 ? settings.DefaultResolutionHeight : 1080,
                 ColorDepth = RdpProfileResolver.ResolveColorDepth(server, settings),
-                FullScreen = false,
-                AdminMode = false,
+                FullScreen = server.RdpFullScreen,
+                AdminMode = server.RdpAdminMode,
                 GatewayHostname = server.RdpGateway,
                 Redirections = RdpProfileResolver.BuildRedirections(server, settings)
             });
