@@ -60,6 +60,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private const string RedirectionUsbGlyph = "\uE88E";
     private const string RedirectionAudioGlyph = "\uE7F6";
     private const string RedirectionMultiMonitorGlyph = "\uE7F4";
+    private const string HealthHealthyGlyph = "\uE73E";
+    private const string HealthFaultedGlyph = "\uE783";
+    private const string HealthTransitionalGlyph = "\uE7BA";
+    private const string HealthIdleGlyph = "\uE946";
     private static readonly string[] DefaultResolutionPresets =
     [
         "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
@@ -1318,6 +1322,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (litSegments == 0)
         {
             ConnectionPhaseStepper.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetName(ConnectionPhaseStepper, L("A11yConnectionPhaseStepper"));
             return;
         }
 
@@ -1326,6 +1331,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         SetPhaseSegmentState(PhaseSegmentConnecting, litSegments >= 2);
         SetPhaseSegmentState(PhaseSegmentLoading, litSegments >= 3);
         SetPhaseSegmentState(PhaseSegmentConnected, litSegments >= 4);
+
+        UpdatePhaseStepperAutomationName(litSegments);
     }
 
     private static void SetPhaseSegmentState(Border segment, bool isLit)
@@ -1333,6 +1340,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         segment.SetResourceReference(
             Border.BackgroundProperty,
             isLit ? "AccentBrush" : "TextDisabledBrush");
+    }
+
+    private void UpdatePhaseStepperAutomationName(int litSegments)
+    {
+        var statusKey = RdpConnectionPhasePolicy.GetStatusKey(_connectionPhase);
+        if (_localizer is null || statusKey is null)
+        {
+            return;
+        }
+
+        const int totalSegments = 4;
+        var phaseLabel = _localizer[statusKey];
+        AutomationProperties.SetName(
+            ConnectionPhaseStepper,
+            _localizer.Format(
+                "A11yRdpPhaseAnnouncementFormat",
+                phaseLabel,
+                litSegments,
+                totalSegments));
     }
 
     private void UpdateVisibilityForPhase()
@@ -1358,11 +1384,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _sessionStatus,
             wasUserInitiatedDisconnectOverride ?? _userInitiatedDisconnect);
 
-        HealthDot.SetResourceReference(
+        var brushKey = ResolveHealthDotBrushKey(state);
+        HealthDotColor.SetResourceReference(
             Border.BackgroundProperty,
-            ResolveHealthDotBrushKey(state));
+            brushKey);
+        HealthDotGlyph.Text = ResolveHealthDotGlyph(state);
+        HealthDotGlyph.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            brushKey);
 
         var label = L(ResolveHealthDotLabelKey(state));
+        AutomationProperties.SetName(HealthDot, label);
         var endpoint = _server is null ? string.Empty : BuildEndpointText(_server);
         HealthDot.ToolTip = string.IsNullOrWhiteSpace(endpoint)
             ? label
@@ -1377,6 +1409,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _ => "TextDisabledBrush"
     };
 
+    private static string ResolveHealthDotGlyph(RdpHealthDotState state) => state switch
+    {
+        RdpHealthDotState.Healthy => HealthHealthyGlyph,
+        RdpHealthDotState.Transitional => HealthTransitionalGlyph,
+        RdpHealthDotState.Faulted => HealthFaultedGlyph,
+        _ => HealthIdleGlyph
+    };
+
     private static string ResolveHealthDotLabelKey(RdpHealthDotState state) => state switch
     {
         RdpHealthDotState.Healthy => "RdpHealthDotHealthy",
@@ -1387,8 +1427,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void UpdateRedirectionIndicators()
     {
-        if (_localizer is null
-            || _pendingRedirections is null
+        if (_pendingRedirections is null
             || _rdpHost is null
             || !_rdpHost.IsConnected)
         {
@@ -1451,15 +1490,22 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         string labelKey,
         bool isActive)
     {
-        var label = L(labelKey);
-        var state = L(isActive ? "RdpRedirectionStateOn" : "RdpRedirectionStateOff");
-
         icon.Text = glyph;
-        icon.ToolTip = label;
         icon.SetResourceReference(
             TextBlock.ForegroundProperty,
             isActive ? "AccentBrush" : "TextDisabledBrush");
-        AutomationProperties.SetName(icon, $"{label}: {state}");
+        icon.TextDecorations = isActive ? null : TextDecorations.Strikethrough;
+
+        if (_localizer is null)
+        {
+            return;
+        }
+
+        var label = _localizer[labelKey];
+        var helpText = _localizer.Format(
+            isActive ? "RdpRedirectionStatusOnFormat" : "RdpRedirectionStatusOffFormat",
+            label);
+        AutomationProperties.SetHelpText(icon, helpText);
     }
 
     private void OnConnectionStateChanged(
@@ -1961,6 +2007,27 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             primary = L("RdpDisconnectedMessage");
         }
 
+        var severity = ResolveOverlaySeverity(diagnostic);
+        var prefixKey = severity switch
+        {
+            RdpActiveXHost.RdpDisconnectSeverity.Transient => "RdpDisconnectSeverityPrefixNotice",
+            RdpActiveXHost.RdpDisconnectSeverity.AuthIssue => "RdpDisconnectSeverityPrefixWarning",
+            RdpActiveXHost.RdpDisconnectSeverity.TerminalError => "RdpDisconnectSeverityPrefixError",
+            _ => null
+        };
+
+        if (prefixKey is not null && _localizer is not null)
+        {
+            var prefix = _localizer[prefixKey];
+            if (!string.IsNullOrWhiteSpace(prefix))
+            {
+                primary = _localizer.Format(
+                    "RdpDisconnectMessagePrefixFormat",
+                    prefix,
+                    primary);
+            }
+        }
+
         ReconnectMessageText.Text = primary;
 
         var hasSpecificPrimary = hasDiagnosticMessage
@@ -1990,7 +2057,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ReconnectCodeText.Visibility = System.Windows.Visibility.Collapsed;
         }
 
-        ApplyOverlaySeverity(ResolveOverlaySeverity(diagnostic));
+        ApplyOverlaySeverity(severity);
         OverlayCopyErrorButton.Visibility = System.Windows.Visibility.Visible;
         OverlayEditProfileButton.Visibility = RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode)
             ? System.Windows.Visibility.Visible
