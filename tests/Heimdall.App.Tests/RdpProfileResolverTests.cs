@@ -179,9 +179,14 @@ public sealed class RdpProfileResolverTests
     }
 
     [Theory]
+    [InlineData(0, 16)]
     [InlineData(8, 16)]
+    [InlineData(16, 16)]
     [InlineData(20, 24)]
+    [InlineData(24, 24)]
+    [InlineData(32, 32)]
     [InlineData(40, 32)]
+    [InlineData(64, 32)]
     public void ResolveColorDepth_NormalizesToSupportedValues(int raw, int expected)
     {
         var server = new ServerProfileDto

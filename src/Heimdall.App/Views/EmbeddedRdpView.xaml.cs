@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -47,6 +48,16 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
     private static readonly TimeSpan AutofillFilledDisplayDuration = TimeSpan.FromSeconds(3);
+    private const string EnterFullscreenGlyph = "\uE1D9";
+    private const string ExitFullscreenGlyph = "\uE799";
+    private const string RedirectionClipboardGlyph = "\uE16D";
+    private const string RedirectionDrivesGlyph = "\uEDA2";
+    private const string RedirectionPrintersGlyph = "\uE749";
+    private const string RedirectionComPortsGlyph = "\uE7BC";
+    private const string RedirectionSmartCardsGlyph = "\uE192";
+    private const string RedirectionUsbGlyph = "\uE88E";
+    private const string RedirectionAudioGlyph = "\uE7F6";
+    private const string RedirectionMultiMonitorGlyph = "\uE7F4";
     private static readonly string[] DefaultResolutionPresets =
     [
         "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
@@ -71,7 +82,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private DispatcherTimer? _antiIdleTimer;
     private DispatcherTimer? _autofillFilledTimer;
     private DispatcherTimer? _stabilizationTimer;
+    private DispatcherTimer? _reconnectElapsedTimer;
     private RdpActiveXHost? _rdpHost;
+    private RdpRedirectionOptions? _pendingRedirections;
     private ServerProfileDto? _server;
     private AppSettings? _settings;
     private SessionPaneModel? _ownerPane;
@@ -81,6 +94,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private Core.Localization.LocalizationManager? _localizer;
     private int? _tunnelPort;
 
+    private RdpConnectionPhase _connectionPhase = RdpConnectionPhase.None;
     private bool _initialized;
     private bool _connectStarted;
     private bool _eventSinkAttached;
@@ -89,6 +103,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _sleepPreventionActive;
     private bool _comDrivenStatusActive;
     private bool _escapeHookRegistered;
+    private bool _isFullscreen;
 
     /// <summary>
     /// One-shot flag set when the header bar explicitly initiates the disconnect.
@@ -102,6 +117,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private int _manualResolutionHeight;
     private DateTime _connectedAtUtc;
     private DateTime _stabilizationDeadlineUtc;
+    private DateTime? _reconnectStartUtc;
 
     /// <summary>
     /// Raised when the user clicks the Split button in the header strip.
@@ -135,9 +151,16 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     public void SetFullscreen(bool isFullscreen)
     {
+        _isFullscreen = isFullscreen;
         SessionHeaderBar.Visibility = isFullscreen
             ? System.Windows.Visibility.Collapsed
             : System.Windows.Visibility.Visible;
+        FullscreenButton.Content = isFullscreen ? ExitFullscreenGlyph : EnterFullscreenGlyph;
+    }
+
+    public void ToggleFullscreen()
+    {
+        SetFullscreen(!_isFullscreen);
     }
 
     public void InitializeSession(
@@ -222,9 +245,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _autofillFilledTimer?.Stop();
         _autofillFilledTimer = null;
         StopStabilizationCountdown();
+        StopReconnectElapsedTracking();
         StopAntiIdleTimer();
         ReleaseSleepPrevention();
         CancelAutofill();
+        TransitionPhase(RdpConnectionPhase.None);
+        HideRedirectionIndicators();
         _allowResolutionUpdates = false;
 
         // CRITICAL: Hide the FormsHost FIRST to prevent WPF ArrangeOverride
@@ -333,7 +359,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
-        _escapeHookRegistered = RdpKeyboardEscapeHook.Register(this, _settings?.RdpReleaseFocusShortcut);
+        _escapeHookRegistered = RdpKeyboardEscapeHook.Register(
+            this,
+            new RdpHookShortcuts(
+                _settings?.RdpReleaseFocusShortcut,
+                _settings?.RdpFullscreenToggleShortcut));
     }
 
     private void UnregisterEscapeHook()
@@ -360,6 +390,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _userInitiatedDisconnect = true;
             _allowResolutionUpdates = false;
             StopStabilizationCountdown();
+            StopReconnectElapsedTracking();
+            TransitionPhase(RdpConnectionPhase.None);
             TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
             _rdpHost.Disconnect();
@@ -377,11 +409,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
+        TransitionPhase(RdpConnectionPhase.Preparing);
+
         try
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled auto-reconnect");
             _userInitiatedDisconnect = true;
             _rdpHost.CancelAutoReconnect = true;
+            StopReconnectElapsedTracking();
             TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
         }
@@ -391,10 +426,71 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    [SupportedOSPlatform("windows")]
-    private void OnSendCtrlAltDelClick(object sender, RoutedEventArgs e)
+    private void OnCancelConnectClick(object sender, RoutedEventArgs e)
     {
-        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
+        if (_disposed || _rdpHost is null)
+        {
+            return;
+        }
+
+        try
+        {
+            Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled in-progress connection");
+            _userInitiatedDisconnect = true;
+            _allowResolutionUpdates = false;
+            StopStabilizationCountdown();
+            StopReconnectElapsedTracking();
+            TransitionPhase(RdpConnectionPhase.None);
+            _rdpHost.CancelAutoReconnect = true;
+            TryTransitionConnectionState(ConnectionState.Disconnecting);
+            UpdateSessionStatus(RdpSessionStatus.Disconnecting);
+            _rdpHost.Disconnect();
+        }
+        catch (Exception ex)
+        {
+            HandleFailure("Cancel connection failed.", ex);
+        }
+    }
+
+    private void OnFullscreenButtonClick(object sender, RoutedEventArgs e)
+    {
+        ToggleFullscreen();
+    }
+
+    private void OnSendKeysButtonClick(object sender, RoutedEventArgs e)
+    {
+        SendKeysMenu.PlacementTarget = SendKeysButton;
+        SendKeysMenu.IsOpen = true;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysCtrlAltDelClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_CONTROL, NativeMethods.VK_MENU, NativeMethods.VK_DELETE);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysWindowsClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_LWIN);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysAltTabClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_MENU, NativeMethods.VK_TAB);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysCtrlEscClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_CONTROL, NativeMethods.VK_ESCAPE);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysPrintScreenClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_SNAPSHOT);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysEscapeClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote(NativeMethods.VK_ESCAPE);
+
+    [SupportedOSPlatform("windows")]
+    private void SendKeysToRemote(params byte[] virtualKeys)
+    {
+        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected || virtualKeys.Length == 0)
         {
             return;
         }
@@ -407,28 +503,45 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 return;
             }
 
-            var target = hwnd;
-            var child = NativeMethods.FindWindowEx(hwnd, IntPtr.Zero, null, null);
-            while (child != IntPtr.Zero)
+            var target = FindDeepestRdpChildWindow(hwnd);
+            foreach (var virtualKey in virtualKeys)
             {
-                target = child;
-                child = NativeMethods.FindWindowEx(target, IntPtr.Zero, null, null);
+                NativeMethods.PostMessage(
+                    target,
+                    NativeMethods.WM_KEYDOWN,
+                    new IntPtr(virtualKey),
+                    IntPtr.Zero);
             }
 
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_CONTROL, IntPtr.Zero);
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_MENU, IntPtr.Zero);
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_DELETE, IntPtr.Zero);
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_DELETE, IntPtr.Zero);
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_MENU, IntPtr.Zero);
-            NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_CONTROL, IntPtr.Zero);
+            for (var index = virtualKeys.Length - 1; index >= 0; index--)
+            {
+                NativeMethods.PostMessage(
+                    target,
+                    NativeMethods.WM_KEYUP,
+                    new IntPtr(virtualKeys[index]),
+                    IntPtr.Zero);
+            }
 
-            Core.Logging.FileLogger.Info(
-                "EmbeddedRDP user sent Ctrl+Alt+Del to the remote session");
+            Core.Logging.FileLogger.Info("EmbeddedRDP user sent keys to the remote session");
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Warn($"Send Ctrl+Alt+Del failed: {ex.Message}");
+            Core.Logging.FileLogger.Error("Send keys to the remote session failed.", ex);
         }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static IntPtr FindDeepestRdpChildWindow(IntPtr hwnd)
+    {
+        var target = hwnd;
+        var child = NativeMethods.FindWindowEx(hwnd, IntPtr.Zero, null, null);
+        while (child != IntPtr.Zero)
+        {
+            target = child;
+            child = NativeMethods.FindWindowEx(target, IntPtr.Zero, null, null);
+        }
+
+        return target;
     }
 
     private void OnSplitClick(object sender, RoutedEventArgs e)
@@ -561,7 +674,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _rdpHost.SetDisplay(width, height, RdpProfileResolver.ResolveColorDepth(_server, settings));
             _lastAppliedWidth = width;
             _lastAppliedHeight = height;
-            _rdpHost.SetRedirections(RdpProfileResolver.BuildRedirections(_server, settings));
+            _pendingRedirections = RdpProfileResolver.BuildRedirections(_server, settings);
+            _rdpHost.SetRedirections(_pendingRedirections);
 
             if (!_eventSinkAttached)
             {
@@ -576,6 +690,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             Core.Logging.FileLogger.Info("EmbeddedRDP calling Connect()...");
             _rdpHost.Connect();
+            TransitionPhase(RdpConnectionPhase.Connecting);
 
             // Post-connect flush removed: layout is already stable after pre-connect + post-handle flushes.
             // The third flush added ~50-150ms latency with no airspace benefit since Connect() is async.
@@ -639,7 +754,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _connectedAtUtc = DateTime.UtcNow;
             _allowResolutionUpdates = false;
             ClearPaneDiagnostic();
+            TransitionPhase(RdpConnectionPhase.Connected);
             UpdateSessionStatus(RdpSessionStatus.Connected);
+            UpdateRedirectionIndicators();
             FlushLayoutPipeline("on-connected");
 
             if (_server is not null && _server.RdpAntiIdle && _antiIdleIntervalSeconds > 0)
@@ -716,7 +833,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             CancelAutofill();
             StopAntiIdleTimer();
             StopStabilizationCountdown();
+            StopReconnectElapsedTracking();
             ReleaseSleepPrevention();
+            TransitionPhase(RdpConnectionPhase.None);
+            HideRedirectionIndicators();
             _allowResolutionUpdates = false;
 
             if (suppressOverlay)
@@ -750,6 +870,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             CancelAutofill();
             StopStabilizationCountdown();
+            StopReconnectElapsedTracking();
+            TransitionPhase(RdpConnectionPhase.None);
+            HideRedirectionIndicators();
             _allowResolutionUpdates = false;
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromFatalError(errorCode));
             UpdateSessionStatus(RdpSessionStatus.Error);
@@ -764,6 +887,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         Dispatcher.Invoke(() =>
         {
+            if (_connectionPhase is RdpConnectionPhase.Preparing or RdpConnectionPhase.Connecting)
+            {
+                TransitionPhase(RdpConnectionPhase.Loading);
+            }
+
             try { _rdpHost?.ClearPassword(); }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"EmbeddedRDP ClearPassword (login): {ex.Message}"); }
         });
@@ -777,6 +905,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             StopStabilizationCountdown();
+            TransitionPhase(RdpConnectionPhase.None);
+            StartReconnectElapsedTracking();
+            HideRedirectionIndicators();
             _allowResolutionUpdates = false;
             UpdateSessionStatus(RdpSessionStatus.Reconnecting, attemptCount);
         });
@@ -790,7 +921,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             ClearPaneDiagnostic();
+            StopReconnectElapsedTracking();
+            TransitionPhase(RdpConnectionPhase.Connected);
             UpdateSessionStatus(RdpSessionStatus.Connected);
+            UpdateRedirectionIndicators();
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
@@ -974,6 +1108,148 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         UpdateAutofillState(RdpAutofillState.None);
     }
 
+    private void TransitionPhase(RdpConnectionPhase newPhase)
+    {
+        if (newPhase == _connectionPhase)
+        {
+            return;
+        }
+
+        if (newPhase is RdpConnectionPhase.Preparing
+            or RdpConnectionPhase.Connecting
+            or RdpConnectionPhase.Loading
+            or RdpConnectionPhase.Connected)
+        {
+            StopReconnectElapsedTracking();
+        }
+
+        _connectionPhase = newPhase;
+        UpdatePhaseStepper();
+        UpdateVisibilityForPhase();
+
+        var statusKey = RdpConnectionPhasePolicy.GetStatusKey(newPhase);
+        if (statusKey is not null)
+        {
+            StatusTextBlock.Text = L(statusKey);
+        }
+    }
+
+    private void UpdatePhaseStepper()
+    {
+        var litSegments = RdpConnectionPhasePolicy.GetLitSegmentCount(_connectionPhase);
+        if (litSegments == 0)
+        {
+            ConnectionPhaseStepper.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        ConnectionPhaseStepper.Visibility = Visibility.Visible;
+        SetPhaseSegmentState(PhaseSegmentPreparing, litSegments >= 1);
+        SetPhaseSegmentState(PhaseSegmentConnecting, litSegments >= 2);
+        SetPhaseSegmentState(PhaseSegmentLoading, litSegments >= 3);
+        SetPhaseSegmentState(PhaseSegmentConnected, litSegments >= 4);
+    }
+
+    private static void SetPhaseSegmentState(Border segment, bool isLit)
+    {
+        segment.SetResourceReference(
+            Border.BackgroundProperty,
+            isLit ? "AccentBrush" : "TextDisabledBrush");
+    }
+
+    private void UpdateVisibilityForPhase()
+    {
+        var (cancelConnectVisible, disconnectVisible) =
+            RdpConnectionPhasePolicy.ResolveVisibility(_connectionPhase);
+
+        CancelConnectButton.Visibility = cancelConnectVisible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        CancelConnectButton.IsEnabled = !_disposed && cancelConnectVisible;
+
+        DisconnectButton.Visibility = disconnectVisible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        DisconnectButton.IsEnabled = !_disposed && disconnectVisible;
+    }
+
+    private void UpdateRedirectionIndicators()
+    {
+        if (_localizer is null
+            || _pendingRedirections is null
+            || _rdpHost is null
+            || !_rdpHost.IsConnected)
+        {
+            HideRedirectionIndicators();
+            return;
+        }
+
+        SetRedirectionIndicator(
+            RedirIconClipboard,
+            RedirectionClipboardGlyph,
+            "RdpRedirectionLabelClipboard",
+            _pendingRedirections.Clipboard);
+        SetRedirectionIndicator(
+            RedirIconDrives,
+            RedirectionDrivesGlyph,
+            "RdpRedirectionLabelDrives",
+            _pendingRedirections.Drives);
+        SetRedirectionIndicator(
+            RedirIconPrinters,
+            RedirectionPrintersGlyph,
+            "RdpRedirectionLabelPrinters",
+            _pendingRedirections.Printers);
+        SetRedirectionIndicator(
+            RedirIconComPorts,
+            RedirectionComPortsGlyph,
+            "RdpRedirectionLabelComPorts",
+            _pendingRedirections.ComPorts);
+        SetRedirectionIndicator(
+            RedirIconSmartCards,
+            RedirectionSmartCardsGlyph,
+            "RdpRedirectionLabelSmartCards",
+            _pendingRedirections.SmartCards);
+        SetRedirectionIndicator(
+            RedirIconUsb,
+            RedirectionUsbGlyph,
+            "RdpRedirectionLabelUsb",
+            _pendingRedirections.Usb);
+        SetRedirectionIndicator(
+            RedirIconAudio,
+            RedirectionAudioGlyph,
+            "RdpRedirectionLabelAudio",
+            _pendingRedirections.AudioMode != 0);
+        SetRedirectionIndicator(
+            RedirIconMultiMonitor,
+            RedirectionMultiMonitorGlyph,
+            "RdpRedirectionLabelMultiMonitor",
+            _pendingRedirections.MultiMonitor);
+
+        RedirectionIndicatorsPanel.Visibility = Visibility.Visible;
+    }
+
+    private void HideRedirectionIndicators()
+    {
+        RedirectionIndicatorsPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetRedirectionIndicator(
+        TextBlock icon,
+        string glyph,
+        string labelKey,
+        bool isActive)
+    {
+        var label = L(labelKey);
+        var state = L(isActive ? "RdpRedirectionStateOn" : "RdpRedirectionStateOff");
+
+        icon.Text = glyph;
+        icon.ToolTip = label;
+        icon.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            isActive ? "AccentBrush" : "TextDisabledBrush");
+        AutomationProperties.SetName(icon, $"{label}: {state}");
+    }
+
     private void OnConnectionStateChanged(
         string serverId,
         ConnectionState previousState,
@@ -1108,9 +1384,29 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             or RdpSessionStatus.Preparing
             or RdpSessionStatus.Reconnecting;
         RdpLoadingBar.Visibility = isProgress ? Visibility.Visible : Visibility.Collapsed;
+        if (status is RdpSessionStatus.Reconnecting)
+        {
+            RdpLoadingBar.IsIndeterminate = false;
+            RdpLoadingBar.Minimum = 0;
+            RdpLoadingBar.Maximum = RdpActiveXHost.MaxAutoReconnectAttempts;
+            RdpLoadingBar.Value = ResolveReconnectProgressValue(
+                reconnectAttempt ?? 0,
+                RdpActiveXHost.MaxAutoReconnectAttempts);
+        }
+        else
+        {
+            RdpLoadingBar.IsIndeterminate = true;
+            RdpLoadingBar.Value = 0;
+        }
 
-        DisconnectButton.IsEnabled = !_disposed && status is not RdpSessionStatus.Disconnected;
-        SendCtrlAltDelButton.IsEnabled = !_disposed && status is RdpSessionStatus.Connected;
+        if (status is not RdpSessionStatus.Connected)
+        {
+            HideRedirectionIndicators();
+        }
+
+        UpdateVisibilityForPhase();
+        FullscreenButton.IsEnabled = !_disposed;
+        SendKeysButton.IsEnabled = !_disposed && status is RdpSessionStatus.Connected;
         CancelReconnectButton.Visibility = status == RdpSessionStatus.Reconnecting
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -1119,10 +1415,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             status is RdpSessionStatus.Error ? Brushes.IndianRed : Brushes.White);
     }
 
+    internal static int ResolveReconnectProgressValue(int currentAttempt, int maxAttempts)
+    {
+        if (maxAttempts <= 0)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedRDP invalid auto-reconnect maxAttempts={maxAttempts}; progress reset to 0.");
+            return 0;
+        }
+
+        return Math.Clamp(currentAttempt, 0, maxAttempts);
+    }
+
     private void HandleFailure(string message, Exception ex)
     {
         Core.Logging.FileLogger.Error(message, ex);
         _allowResolutionUpdates = false;
+        StopReconnectElapsedTracking();
+        TransitionPhase(RdpConnectionPhase.None);
+        HideRedirectionIndicators();
         UpdateSessionStatus(RdpSessionStatus.Error);
         StatusTextBlock.Text = _localizer?.Format("RdpStatusErrorDetail", message, ex.Message)
             ?? $"{message} {ex.Message}";
@@ -1340,6 +1651,61 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         StabilizingSeparator.Visibility = System.Windows.Visibility.Collapsed;
         StabilizingStatusText.Visibility = System.Windows.Visibility.Collapsed;
+    }
+
+    private void StartReconnectElapsedTracking()
+    {
+        if (_reconnectStartUtc.HasValue || _localizer is null)
+        {
+            return;
+        }
+
+        _reconnectStartUtc = DateTime.UtcNow;
+        _reconnectElapsedTimer = new DispatcherTimer(
+            TimeSpan.FromSeconds(1),
+            DispatcherPriority.Background,
+            OnReconnectElapsedTick,
+            Dispatcher);
+        _reconnectElapsedTimer.Start();
+        UpdateReconnectElapsedDisplay();
+    }
+
+    private void OnReconnectElapsedTick(object? sender, EventArgs e)
+    {
+        UpdateReconnectElapsedDisplay();
+    }
+
+    private void UpdateReconnectElapsedDisplay()
+    {
+        var localizer = _localizer;
+        if (localizer is null || _reconnectStartUtc is null)
+        {
+            StopReconnectElapsedTracking();
+            return;
+        }
+
+        var elapsed = DateTime.UtcNow - _reconnectStartUtc.Value;
+        var seconds = Math.Max(0, (int)Math.Floor(elapsed.TotalSeconds));
+        ReconnectElapsedText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["RdpReconnectElapsedFormat"],
+            seconds);
+        ReconnectElapsedSeparator.Visibility = Visibility.Visible;
+        ReconnectElapsedText.Visibility = Visibility.Visible;
+    }
+
+    private void StopReconnectElapsedTracking()
+    {
+        if (_reconnectElapsedTimer is not null)
+        {
+            _reconnectElapsedTimer.Stop();
+            _reconnectElapsedTimer.Tick -= OnReconnectElapsedTick;
+            _reconnectElapsedTimer = null;
+        }
+
+        _reconnectStartUtc = null;
+        ReconnectElapsedSeparator.Visibility = Visibility.Collapsed;
+        ReconnectElapsedText.Visibility = Visibility.Collapsed;
     }
 
     private void ShowReconnectOverlay()
@@ -1590,8 +1956,16 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                     child = NativeMethods.FindWindowEx(target, IntPtr.Zero, null, null);
                 }
 
-                NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_SHIFT, IntPtr.Zero);
-                NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_SHIFT, IntPtr.Zero);
+                NativeMethods.PostMessage(
+                    target,
+                    NativeMethods.WM_KEYDOWN,
+                    new IntPtr(NativeMethods.VK_SHIFT),
+                    IntPtr.Zero);
+                NativeMethods.PostMessage(
+                    target,
+                    NativeMethods.WM_KEYUP,
+                    new IntPtr(NativeMethods.VK_SHIFT),
+                    IntPtr.Zero);
             }
 
             // Also keep the local display alive
@@ -1743,10 +2117,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         internal const uint WM_KEYDOWN = 0x0100;
         internal const uint WM_KEYUP = 0x0101;
-        internal static readonly IntPtr VK_SHIFT = new(0x10);
-        internal static readonly IntPtr VK_CONTROL = new(0x11);
-        internal static readonly IntPtr VK_MENU = new(0x12);
-        internal static readonly IntPtr VK_DELETE = new(0x2E);
+        internal const byte VK_SHIFT = 0x10;
+        internal const byte VK_CONTROL = 0x11;
+        internal const byte VK_MENU = 0x12;
+        internal const byte VK_ESCAPE = 0x1B;
+        internal const byte VK_DELETE = 0x2E;
+        internal const byte VK_TAB = 0x09;
+        internal const byte VK_SNAPSHOT = 0x2C;
+        internal const byte VK_LWIN = 0x5B;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern uint SetThreadExecutionState(uint esFlags);

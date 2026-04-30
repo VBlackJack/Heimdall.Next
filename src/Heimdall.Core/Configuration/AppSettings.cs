@@ -114,6 +114,7 @@ public sealed class AppSettings
     public bool RdpDefaultCompression { get; set; } = true;
     public bool RdpDefaultAutoReconnect { get; set; } = true;
     public string RdpReleaseFocusShortcut { get; set; } = "Ctrl+Alt+Home";
+    public string RdpFullscreenToggleShortcut { get; set; } = "F11";
 
     /// <summary>
     /// User-configurable resolution presets shown in the embedded RDP session
