@@ -336,6 +336,7 @@ public sealed class SessionCoordinatorPreMountTests
         public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
         public Func<bool>? IsBroadcastActive { get; set; }
         public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
+        public Action<string>? EditServerRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
         public int CreateHostControlCalls { get; private set; }

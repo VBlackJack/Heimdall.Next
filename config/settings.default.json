@@ -69,6 +69,7 @@
     "rdpDefaultAutoReconnect": true,
     "rdpReleaseFocusShortcut": "Ctrl+Alt+Home",
     "rdpFullscreenToggleShortcut": "F11",
+    "rdpDialogAdvancedDefault": false,
     "enableSessionPersistence": false,
     "maxEmbeddedSessions": 10,
     "embeddedRdpTimeoutMs": 30000,

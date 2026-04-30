@@ -99,4 +99,78 @@ public sealed class ServerDialogViewModelRdpOptionsTests
         Assert.True(vm.RdpPerfEnableFontSmoothing);
         Assert.False(vm.RdpPerfDisableThemes);
     }
+
+    [Fact]
+    public void Rdp_advanced_default_applies_when_add_dialog_selects_rdp()
+    {
+        var vm = new ServerDialogViewModel();
+
+        vm.Settings = new AppSettings { RdpDialogAdvancedDefault = true };
+
+        Assert.False(vm.IsAdvancedMode);
+
+        vm.IsProtocolSelected = true;
+
+        Assert.True(vm.IsAdvancedMode);
+    }
+
+    [Fact]
+    public void Rdp_advanced_default_false_closes_advanced_mode_when_applied()
+    {
+        var vm = new ServerDialogViewModel { IsAdvancedMode = true };
+
+        vm.Settings = new AppSettings { RdpDialogAdvancedDefault = false };
+        vm.IsProtocolSelected = true;
+
+        Assert.False(vm.IsAdvancedMode);
+    }
+
+    [Fact]
+    public void Rdp_advanced_default_applies_to_existing_rdp_profile()
+    {
+        var vm = ServerDialogViewModel.FromDto(new ServerProfileDto
+        {
+            ConnectionType = "RDP"
+        });
+
+        vm.Settings = new AppSettings { RdpDialogAdvancedDefault = true };
+
+        Assert.True(vm.IsAdvancedMode);
+    }
+
+    [Fact]
+    public void Rdp_advanced_default_does_not_apply_to_non_rdp_profile()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            ConnectionType = "SSH",
+            IsProtocolSelected = true
+        };
+
+        vm.Settings = new AppSettings { RdpDialogAdvancedDefault = true };
+
+        Assert.False(vm.IsAdvancedMode);
+    }
+
+    [Theory]
+    [InlineData("RDP", false, true, false, true)]
+    [InlineData("RDP", true, false, false, true)]
+    [InlineData("RDP", false, true, true, false)]
+    [InlineData("SSH", false, true, false, false)]
+    [InlineData("RDP", false, false, false, false)]
+    public void Rdp_advanced_default_persistence_policy_is_scoped_to_user_driven_rdp_changes(
+        string connectionType,
+        bool isEditMode,
+        bool isProtocolSelected,
+        bool isApplyingDefault,
+        bool expected)
+    {
+        var actual = ServerDialogAdvancedModePolicy.ShouldPersistRdpDefault(
+            connectionType,
+            isEditMode,
+            isProtocolSelected,
+            isApplyingDefault);
+
+        Assert.Equal(expected, actual);
+    }
 }

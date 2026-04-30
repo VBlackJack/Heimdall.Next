@@ -55,6 +55,13 @@ public interface IEmbeddedSessionManager
     Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded RDP view requests server profile editing.
+    /// Parameters: (string serverId).
+    /// Wired by MainViewModel to open the existing server edit flow.
+    /// </summary>
+    Action<string>? EditServerRequestedCallback { get; set; }
+
+    /// <summary>
     /// Optional callback for cross-tool navigation. Allows tool views to open other tools.
     /// Parameters: (string toolId, string title, ToolContext? context).
     /// Wired by MainViewModel to delegate to <c>OpenToolTabAsync</c>.

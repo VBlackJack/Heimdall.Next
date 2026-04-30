@@ -143,6 +143,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         // Wire SSH reconnect: close the old session tab and re-connect from scratch
         _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
+        _embeddedSessionManager.EditServerRequestedCallback = OnEditServerRequested;
 
         // Subscribe to ServerList session lifecycle events to materialize session tabs.
         _main.ServerList.SessionStarting += OnSessionStarting;
@@ -432,6 +433,32 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
     {
         _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
+    }
+
+    private void OnEditServerRequested(string serverId)
+    {
+        _ = SafeFireAndForgetAsync(OnEditServerRequestedAsync(serverId));
+    }
+
+    private async Task OnEditServerRequestedAsync(string serverId)
+    {
+        if (string.IsNullOrWhiteSpace(serverId))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!await _main.ServerList.EditServerByIdAsync(serverId, CancellationToken.None))
+            {
+                _main.StatusText = _localizer["ErrorServerNotFound"];
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error($"Open server profile failed for {serverId}", ex);
+            _main.StatusText = _localizer["ErrorServerNotFound"];
+        }
     }
 
     private async Task OnReconnectRequestedAsync(SessionTabViewModel tab, string serverId, string connectionType)

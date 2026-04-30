@@ -1633,23 +1633,41 @@
                                             <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb"
-                                                      TabIndex="73"
-                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                                      IsChecked="{Binding RdpRedirectWebcam}"
-                                                      ToolTip="{loc:Translate RdpRedirectWebcamHint}"
-                                                      ToolTipService.ShowOnDisabled="True"
-                                                      Margin="0,6,0,0">
-                                                <CheckBox.Style>
-                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding RdpMode}" Value="Embedded">
-                                                                <Setter Property="IsEnabled" Value="False"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </CheckBox.Style>
-                                            </CheckBox>
+                                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                <CheckBox x:Name="DlgSrv_RedirWebcamCb"
+                                                          TabIndex="73"
+                                                          AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                          IsChecked="{Binding RdpRedirectWebcam}"
+                                                          ToolTip="{loc:Translate RdpRedirectWebcamHint}"
+                                                          ToolTipService.ShowOnDisabled="True">
+                                                    <CheckBox.Style>
+                                                        <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RdpMode}" Value="Embedded">
+                                                                    <Setter Property="IsEnabled" Value="False"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </CheckBox.Style>
+                                                </CheckBox>
+                                                <TextBlock Margin="6,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="{StaticResource FontSizeCaption}"
+                                                           FontStyle="Italic"
+                                                           Foreground="{DynamicResource WarningBrush}"
+                                                           Text="{loc:Translate RdpRedirectWebcamExternalOnlyBadge}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RdpMode}" Value="Embedded">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                             <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                     </Expander>

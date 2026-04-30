@@ -16,6 +16,7 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 using Heimdall.Core.Models;
 
@@ -462,6 +463,36 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         4360 => "ResolutionChangeTimeout",
         _ => null
     };
+
+    /// <summary>
+    /// Formats a disconnect reason as a symbolic support code plus the raw numeric value.
+    /// </summary>
+    public static string FormatDisconnectCode(int reason)
+    {
+        var reasonKey = GetDisconnectReasonKey(reason);
+        var symbolicCode = reasonKey is null
+            ? "UNKNOWN"
+            : ToUpperSnakeCase(reasonKey);
+
+        return $"RDP_{symbolicCode} \u00B7 {reason}";
+    }
+
+    private static string ToUpperSnakeCase(string value)
+    {
+        var builder = new StringBuilder(value.Length + 8);
+        for (var i = 0; i < value.Length; i++)
+        {
+            var current = value[i];
+            if (i > 0 && char.IsUpper(current))
+            {
+                builder.Append('_');
+            }
+
+            builder.Append(char.ToUpperInvariant(current));
+        }
+
+        return builder.ToString();
+    }
 
     /// <summary>
     /// Groups disconnect codes by user actionability: transient failures are
