@@ -344,9 +344,14 @@
             <Border x:Name="ReconnectOverlay"
                     Style="{StaticResource FadeInPanelStyle}"
                     Visibility="Collapsed"
+                    Focusable="True"
+                    KeyboardNavigation.IsTabStop="False"
                     Background="{DynamicResource OverlayBackground}"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch">
+                    VerticalAlignment="Stretch"
+                    AutomationProperties.IsDialog="True"
+                    AutomationProperties.Name="{loc:Translate A11yRdpReconnectDialog}"
+                    PreviewKeyDown="OnReconnectOverlayPreviewKeyDown">
                 <StackPanel VerticalAlignment="Center"
                             HorizontalAlignment="Center"
                             MaxWidth="460">
@@ -401,7 +406,7 @@
                                 FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="0,0,8,0"/>
                         <Button x:Name="OverlayCopyErrorButton"
-                                TabIndex="2"
+                                TabIndex="1"
                                 Click="OnOverlayCopyErrorClick"
                                 Content="{loc:Translate BtnCopyErrorOverlay}"
                                 ToolTip="{loc:Translate TooltipCopyErrorOverlay}"
@@ -411,7 +416,7 @@
                                 FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="8,0,0,0"/>
                         <Button x:Name="OverlayEditProfileButton"
-                                TabIndex="3"
+                                TabIndex="2"
                                 Click="OnOverlayEditProfileClick"
                                 Content="{loc:Translate BtnEditProfileOverlay}"
                                 ToolTip="{loc:Translate TooltipEditProfileOverlay}"
@@ -422,7 +427,7 @@
                                 Margin="8,0,0,0"
                                 Visibility="Collapsed"/>
                         <Button x:Name="OverlayCloseButton"
-                                TabIndex="4"
+                                TabIndex="3"
                                 Click="OnOverlayCloseClick"
                                 Content="{loc:Translate BtnCloseOverlay}"
                                 AutomationProperties.Name="{loc:Translate A11yCloseOverlay}"

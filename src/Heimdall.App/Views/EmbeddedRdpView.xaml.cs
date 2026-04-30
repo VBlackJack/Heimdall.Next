@@ -33,6 +33,7 @@ using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Core.StateMachine;
 using Heimdall.Rdp;
 using Heimdall.Rdp.ActiveX;
+using Microsoft.Extensions.DependencyInjection;
 using WinForms = System.Windows.Forms;
 
 namespace Heimdall.App.Views;
@@ -105,6 +106,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _comDrivenStatusActive;
     private bool _escapeHookRegistered;
     private bool _isFullscreen;
+    private bool _disconnectConfirmInFlight;
 
     /// <summary>
     /// One-shot flag set when the header bar explicitly initiates the disconnect.
@@ -386,11 +388,54 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _escapeHookRegistered = false;
     }
 
-    private void OnDisconnectClick(object sender, RoutedEventArgs e)
+    private async void OnDisconnectClick(object sender, RoutedEventArgs e)
     {
         if (_disposed || _rdpHost is null)
         {
             return;
+        }
+
+        if (_settings?.RdpConfirmDisconnect == true)
+        {
+            if (_disconnectConfirmInFlight)
+            {
+                return;
+            }
+
+            var dialogService = (Application.Current as App)?.Services?.GetService<IDialogService>();
+            if (dialogService is not null)
+            {
+                try
+                {
+                    _disconnectConfirmInFlight = true;
+                    var confirmed = await dialogService.ShowConfirmAsync(
+                        _localizer?["RdpConfirmDisconnectTitle"] ?? "Disconnect",
+                        _localizer?.Format(
+                            "RdpConfirmDisconnectMessage",
+                            _server?.DisplayName ?? string.Empty)
+                        ?? "Disconnect from this session?",
+                        "warning");
+
+                    if (!confirmed)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"[EmbeddedRdpView] Disconnect confirmation failed: {ex.Message}");
+                }
+                finally
+                {
+                    _disconnectConfirmInFlight = false;
+                }
+
+                if (_disposed || _rdpHost is null)
+                {
+                    return;
+                }
+            }
         }
 
         try
@@ -1834,6 +1879,58 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            if (_disposed || ReconnectOverlay.Visibility != System.Windows.Visibility.Visible)
+            {
+                return;
+            }
+
+            var target = OverlayReconnectButton.IsVisible
+                ? (UIElement)OverlayReconnectButton
+                : OverlayCloseButton;
+            _ = target.Focus();
+            _ = Keyboard.Focus(target);
+        }));
+    }
+
+    private void OnReconnectOverlayPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            OnOverlayCloseClick(sender, e);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter
+            && Keyboard.FocusedElement is Button focusedButton
+            && IsWithinReconnectOverlay(focusedButton))
+        {
+            focusedButton.RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
+                focusedButton));
+            e.Handled = true;
+        }
+    }
+
+    private bool IsWithinReconnectOverlay(DependencyObject element)
+    {
+        for (var current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (ReferenceEquals(current, ReconnectOverlay))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string FormatOverlayCode(Core.SessionDiagnostics.SessionDiagnostic diagnostic)
