@@ -49,4 +49,26 @@ public sealed class RdpShortcutParserTests
 
         Assert.Equal(RdpShortcutParser.DefaultShortcut, parsed);
     }
+
+    [Fact]
+    public void ParseFullscreenOrDefault_ParsesF11WithoutModifiers()
+    {
+        var parsed = RdpShortcutParser.ParseFullscreenOrDefault("F11");
+
+        Assert.Equal(ModifierKeys.None, parsed.Modifiers);
+        Assert.Equal(Key.F11, parsed.Key);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("foo")]
+    [InlineData("Ctrl+")]
+    [InlineData("++")]
+    public void ParseFullscreenOrDefault_ReturnsDefaultForInvalidShortcuts(string? shortcut)
+    {
+        var parsed = RdpShortcutParser.ParseFullscreenOrDefault(shortcut);
+
+        Assert.Equal(RdpShortcutParser.DefaultFullscreenShortcut, parsed);
+    }
 }

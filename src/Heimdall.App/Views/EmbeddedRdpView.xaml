@@ -19,20 +19,25 @@
                 Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1">
+                BorderThickness="0,0,0,1"
+                KeyboardNavigation.TabNavigation="Local"
+                KeyboardNavigation.ControlTabNavigation="Local">
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
+                        TabIndex="0"
                         Content="{loc:Translate BtnDisconnectSession}"
                         Click="OnDisconnectClick"
                         ToolTip="{loc:Translate TooltipDisconnectSession}"
                         AutomationProperties.Name="{loc:Translate A11yDisconnectSession}"
+                        Visibility="Collapsed"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
                 <Button x:Name="CancelReconnectButton"
                         DockPanel.Dock="Right"
+                        TabIndex="0"
                         Content="{loc:Translate BtnCancelReconnect}"
                         Click="OnCancelReconnectClick"
                         ToolTip="{loc:Translate TooltipCancelReconnect}"
@@ -42,19 +47,70 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
-                <Button x:Name="SendCtrlAltDelButton"
+                <Button x:Name="CancelConnectButton"
                         DockPanel.Dock="Right"
-                        Content="&#xE765;"
+                        TabIndex="0"
+                        Content="{loc:Translate BtnCancelConnect}"
+                        Click="OnCancelConnectClick"
+                        ToolTip="{loc:Translate TooltipCancelConnect}"
+                        AutomationProperties.Name="{loc:Translate A11yCancelConnect}"
+                        Visibility="Collapsed"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="{StaticResource FontSizeCaption}"
+                        Margin="8,0,0,0"/>
+                <Button x:Name="FullscreenButton"
+                        DockPanel.Dock="Right"
+                        TabIndex="1"
+                        Content="&#xE1D9;"
                         FontFamily="Segoe MDL2 Assets"
-                        Click="OnSendCtrlAltDelClick"
-                        ToolTip="{loc:Translate TooltipSendCtrlAltDel}"
-                        AutomationProperties.Name="{loc:Translate A11ySendCtrlAltDel}"
+                        Click="OnFullscreenButtonClick"
+                        ToolTip="{loc:Translate TooltipFullscreenToggle}"
+                        AutomationProperties.Name="{loc:Translate A11yFullscreenToggle}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2"
                         FontSize="{StaticResource FontSizeBody}"
                         Margin="4,0"/>
+                <Button x:Name="SendKeysButton"
+                        DockPanel.Dock="Right"
+                        TabIndex="2"
+                        Content="&#xE92E;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnSendKeysButtonClick"
+                        ToolTip="{loc:Translate TooltipSendKeysMenu}"
+                        AutomationProperties.Name="{loc:Translate A11ySendKeysMenu}"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Margin="4,0">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="SendKeysMenu" FontFamily="Segoe UI">
+                            <MenuItem x:Name="SendKeysCtrlAltDel"
+                                      Header="{loc:Translate RdpSendKeysCtrlAltDel}"
+                                      Click="OnSendKeysCtrlAltDelClick"/>
+                            <Separator/>
+                            <MenuItem x:Name="SendKeysWindows"
+                                      Header="{loc:Translate RdpSendKeysWindows}"
+                                      Click="OnSendKeysWindowsClick"/>
+                            <MenuItem x:Name="SendKeysAltTab"
+                                      Header="{loc:Translate RdpSendKeysAltTab}"
+                                      Click="OnSendKeysAltTabClick"/>
+                            <MenuItem x:Name="SendKeysCtrlEsc"
+                                      Header="{loc:Translate RdpSendKeysCtrlEsc}"
+                                      Click="OnSendKeysCtrlEscClick"/>
+                            <Separator/>
+                            <MenuItem x:Name="SendKeysPrintScreen"
+                                      Header="{loc:Translate RdpSendKeysPrintScreen}"
+                                      Click="OnSendKeysPrintScreenClick"/>
+                            <MenuItem x:Name="SendKeysEscape"
+                                      Header="{loc:Translate RdpSendKeysEscape}"
+                                      Click="OnSendKeysEscapeClick"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
+                        TabIndex="3"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
@@ -64,6 +120,7 @@
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
                 <Button x:Name="ResolutionButton"
                         DockPanel.Dock="Right"
+                        TabIndex="4"
                         Content="&#xE740;"
                         FontFamily="Segoe MDL2 Assets"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
@@ -130,7 +187,54 @@
                                VerticalAlignment="Center"
                                Visibility="Collapsed"
                                AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="ReconnectElapsedSeparator"
+                               Text=" &#x2022; "
+                               Margin="6,0,0,0"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"/>
+                    <TextBlock x:Name="ReconnectElapsedText"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"
+                               AutomationProperties.LiveSetting="Polite"/>
+                    <StackPanel x:Name="ConnectionPhaseStepper"
+                                Orientation="Horizontal"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center"
+                                Focusable="False"
+                                KeyboardNavigation.IsTabStop="False"
+                                Visibility="Collapsed"
+                                AutomationProperties.Name="{loc:Translate A11yConnectionPhaseStepper}">
+                        <Border x:Name="PhaseSegmentPreparing"
+                                Width="14"
+                                Height="3"
+                                Margin="0,0,3,0"
+                                CornerRadius="1.5"
+                                Background="{DynamicResource TextDisabledBrush}"/>
+                        <Border x:Name="PhaseSegmentConnecting"
+                                Width="14"
+                                Height="3"
+                                Margin="0,0,3,0"
+                                CornerRadius="1.5"
+                                Background="{DynamicResource TextDisabledBrush}"/>
+                        <Border x:Name="PhaseSegmentLoading"
+                                Width="14"
+                                Height="3"
+                                Margin="0,0,3,0"
+                                CornerRadius="1.5"
+                                Background="{DynamicResource TextDisabledBrush}"/>
+                        <Border x:Name="PhaseSegmentConnected"
+                                Width="14"
+                                Height="3"
+                                CornerRadius="1.5"
+                                Background="{DynamicResource TextDisabledBrush}"/>
+                    </StackPanel>
                     <Button x:Name="AntiIdleBadge"
+                            TabIndex="5"
                             Click="OnAntiIdleBadgeClick"
                             ToolTip="{loc:Translate TooltipAntiIdleActive}"
                             AutomationProperties.Name="{loc:Translate A11yAntiIdleActive}"
@@ -148,6 +252,65 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <Border x:Name="RedirectionIndicatorsPanel"
+                            Margin="12,0,0,0"
+                            Padding="6,1"
+                            CornerRadius="4"
+                            Background="{DynamicResource CardBrush}"
+                            Focusable="False"
+                            KeyboardNavigation.IsTabStop="False"
+                            Visibility="Collapsed"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="RedirIconClipboard"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelClipboard}"/>
+                            <TextBlock x:Name="RedirIconDrives"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelDrives}"/>
+                            <TextBlock x:Name="RedirIconPrinters"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelPrinters}"/>
+                            <TextBlock x:Name="RedirIconComPorts"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelComPorts}"/>
+                            <TextBlock x:Name="RedirIconSmartCards"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelSmartCards}"/>
+                            <TextBlock x:Name="RedirIconUsb"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelUsb}"/>
+                            <TextBlock x:Name="RedirIconAudio"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Margin="0,0,6,0"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelAudio}"/>
+                            <TextBlock x:Name="RedirIconMultiMonitor"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelMultiMonitor}"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -159,7 +322,9 @@
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}">
                 <Grid x:Name="SurfaceContainer" ClipToBounds="True">
-                    <wfi:WindowsFormsHost x:Name="FormsHost"/>
+                    <wfi:WindowsFormsHost x:Name="FormsHost"
+                                          KeyboardNavigation.IsTabStop="False"
+                                          KeyboardNavigation.TabNavigation="None"/>
                 </Grid>
             </Border>
 
@@ -212,8 +377,10 @@
                                Visibility="Collapsed" />
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
-                                Margin="0,16,0,0">
+                                Margin="0,16,0,0"
+                                KeyboardNavigation.TabNavigation="Cycle">
                         <Button x:Name="OverlayReconnectButton"
+                                TabIndex="0"
                                 Click="OnOverlayReconnectClick"
                                 Content="{loc:Translate BtnReconnectSession}"
                                 AutomationProperties.Name="{loc:Translate A11yReconnectSession}"
@@ -222,6 +389,7 @@
                                 FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="0,0,8,0"/>
                         <Button x:Name="OverlayCloseButton"
+                                TabIndex="1"
                                 Click="OnOverlayCloseClick"
                                 Content="{loc:Translate BtnCloseOverlay}"
                                 AutomationProperties.Name="{loc:Translate A11yCloseOverlay}"

@@ -73,4 +73,24 @@ public sealed class RdpKeyboardEscapeHookTests : IDisposable
         Assert.Equal(0, RdpKeyboardEscapeHook.RegisteredViewCount);
         Assert.Equal([true, false], installEvents);
     }
+
+    [Fact]
+    public void Register_DuplicateShortcuts_LogsSingleWarningAndKeepsRegistration()
+    {
+        var installEvents = new List<bool>();
+        var warnings = new List<string>();
+        RdpKeyboardEscapeHook.InstallProbe = installEvents.Add;
+        RdpKeyboardEscapeHook.WarningProbe = warnings.Add;
+
+        var shortcuts = new RdpHookShortcuts("Ctrl+Alt+Home", "Ctrl+Alt+Home");
+
+        Assert.True(RdpKeyboardEscapeHook.RegisterForTests(new object(), shortcuts));
+        Assert.True(RdpKeyboardEscapeHook.RegisterForTests(new object(), shortcuts));
+
+        Assert.Equal(2, RdpKeyboardEscapeHook.RegisteredViewCount);
+        Assert.Equal([true], installEvents);
+        Assert.Single(warnings);
+        Assert.Contains("release-focus", warnings[0], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("precedence", warnings[0], StringComparison.OrdinalIgnoreCase);
+    }
 }
