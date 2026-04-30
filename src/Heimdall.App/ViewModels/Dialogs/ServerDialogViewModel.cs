@@ -57,6 +57,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     private int _defaultRdpTunnelPort = DefaultPorts.RdpTunnel;
     private int _defaultSshTunnelPort = DefaultPorts.SshTunnel;
     private SshAgentPreference _sshAgentPreference = SshAgentPreference.AutoOpenSshFirst;
+    private bool? _rdpDialogAdvancedDefault;
+    private bool _hasAppliedRdpDialogAdvancedDefault;
 
     /// <summary>
     /// Localizer for translating validation error messages. Set by the dialog service.
@@ -82,6 +84,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             _defaultRdpTunnelPort = value.DefaultRdpTunnelPort;
             _defaultSshTunnelPort = value.DefaultSshTunnelPort;
             _sshAgentPreference = value.SshAgentPreference;
+            ApplyRdpDialogAdvancedDefault(value.RdpDialogAdvancedDefault);
             RefreshAgentChipIfNeeded();
         }
     }
@@ -98,6 +101,14 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private bool _isAdvancedMode;
+
+    internal bool IsApplyingRdpDialogAdvancedDefault { get; private set; }
+
+    internal void ApplyRdpDialogAdvancedDefault(bool advancedDefault)
+    {
+        _rdpDialogAdvancedDefault = advancedDefault;
+        TryApplyRdpDialogAdvancedDefault();
+    }
 
     /// <summary>
     /// Whether the user has chosen a protocol (Step 1 complete).
@@ -124,12 +135,14 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         OnPropertyChanged(nameof(ShowProtocolSelector));
         OnPropertyChanged(nameof(ShowFormFields));
+        TryApplyRdpDialogAdvancedDefault();
     }
 
     partial void OnIsEditModeChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowProtocolSelector));
         OnPropertyChanged(nameof(ShowFormFields));
+        TryApplyRdpDialogAdvancedDefault();
     }
 
     /// <summary>
@@ -1417,9 +1430,31 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
 
         RaiseDerivedStateChanged();
+        TryApplyRdpDialogAdvancedDefault();
         RefreshAgentChipIfNeeded();
         ResetTestChip();
         RaiseTestCommandCanExecuteChanged();
+    }
+
+    private void TryApplyRdpDialogAdvancedDefault()
+    {
+        if (_hasAppliedRdpDialogAdvancedDefault
+            || !_rdpDialogAdvancedDefault.HasValue
+            || !ServerDialogAdvancedModePolicy.ShouldApplyRdpDefault(ConnectionType, IsEditMode, IsProtocolSelected))
+        {
+            return;
+        }
+
+        IsApplyingRdpDialogAdvancedDefault = true;
+        try
+        {
+            IsAdvancedMode = _rdpDialogAdvancedDefault.Value;
+            _hasAppliedRdpDialogAdvancedDefault = true;
+        }
+        finally
+        {
+            IsApplyingRdpDialogAdvancedDefault = false;
+        }
     }
 
     partial void OnDisplayNameChanged(string value)

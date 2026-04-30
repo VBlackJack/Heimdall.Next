@@ -95,6 +95,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private int? _tunnelPort;
 
     private RdpConnectionPhase _connectionPhase = RdpConnectionPhase.None;
+    private RdpSessionStatus _sessionStatus = RdpSessionStatus.Disconnecting;
     private bool _initialized;
     private bool _connectStarted;
     private bool _eventSinkAttached;
@@ -130,6 +131,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// The subscriber should close this session and open a new connection.
     /// </summary>
     public event Action? ReconnectRequested;
+
+    /// <summary>
+    /// Raised when the user clicks "Edit profile" in the disconnect overlay.
+    /// The subscriber opens the server profile editor for the current session.
+    /// </summary>
+    public event Action<string>? EditServerRequested;
 
     public EmbeddedRdpView()
     {
@@ -252,6 +259,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         TransitionPhase(RdpConnectionPhase.None);
         HideRedirectionIndicators();
         _allowResolutionUpdates = false;
+        _sessionStatus = RdpSessionStatus.Disconnecting;
+        UpdateHealthDot();
 
         // CRITICAL: Hide the FormsHost FIRST to prevent WPF ArrangeOverride
         // from trying to resize the COM control after it's been released
@@ -388,6 +397,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _userInitiatedDisconnect = true;
+            UpdateHealthDot();
             _allowResolutionUpdates = false;
             StopStabilizationCountdown();
             StopReconnectElapsedTracking();
@@ -415,6 +425,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled auto-reconnect");
             _userInitiatedDisconnect = true;
+            UpdateHealthDot();
             _rdpHost.CancelAutoReconnect = true;
             StopReconnectElapsedTracking();
             TryTransitionConnectionState(ConnectionState.Disconnecting);
@@ -437,6 +448,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP user cancelled in-progress connection");
             _userInitiatedDisconnect = true;
+            UpdateHealthDot();
             _allowResolutionUpdates = false;
             StopStabilizationCountdown();
             StopReconnectElapsedTracking();
@@ -843,6 +855,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             {
                 ClearPaneDiagnostic();
                 UpdateSessionStatus(RdpSessionStatus.Disconnected);
+                UpdateHealthDot(wasUserInitiated);
                 Core.Logging.FileLogger.Info(
                     $"EmbeddedRDP suppressed reconnect overlay: userInitiated={wasUserInitiated} reason={reason}");
                 return;
@@ -850,6 +863,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(reason));
             UpdateSessionStatus(RdpSessionStatus.Disconnected);
+            UpdateHealthDot(wasUserInitiated);
             ShowReconnectOverlay();
         });
     }
@@ -1132,6 +1146,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             StatusTextBlock.Text = L(statusKey);
         }
+
+        UpdateHealthDot();
     }
 
     private void UpdatePhaseStepper()
@@ -1172,6 +1188,40 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             : Visibility.Collapsed;
         DisconnectButton.IsEnabled = !_disposed && disconnectVisible;
     }
+
+    private void UpdateHealthDot(bool? wasUserInitiatedDisconnectOverride = null)
+    {
+        var state = RdpHealthDotPolicy.Resolve(
+            _connectionPhase,
+            _sessionStatus,
+            wasUserInitiatedDisconnectOverride ?? _userInitiatedDisconnect);
+
+        HealthDot.SetResourceReference(
+            Border.BackgroundProperty,
+            ResolveHealthDotBrushKey(state));
+
+        var label = L(ResolveHealthDotLabelKey(state));
+        var endpoint = _server is null ? string.Empty : BuildEndpointText(_server);
+        HealthDot.ToolTip = string.IsNullOrWhiteSpace(endpoint)
+            ? label
+            : string.Format(CultureInfo.CurrentCulture, "{0} - {1}", label, endpoint);
+    }
+
+    private static string ResolveHealthDotBrushKey(RdpHealthDotState state) => state switch
+    {
+        RdpHealthDotState.Healthy => "SuccessBrush",
+        RdpHealthDotState.Transitional => "WarningBrush",
+        RdpHealthDotState.Faulted => "ErrorBrush",
+        _ => "TextDisabledBrush"
+    };
+
+    private static string ResolveHealthDotLabelKey(RdpHealthDotState state) => state switch
+    {
+        RdpHealthDotState.Healthy => "RdpHealthDotHealthy",
+        RdpHealthDotState.Transitional => "RdpHealthDotTransitional",
+        RdpHealthDotState.Faulted => "RdpHealthDotFaulted",
+        _ => "RdpHealthDotIdle"
+    };
 
     private void UpdateRedirectionIndicators()
     {
@@ -1357,6 +1407,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         RdpSessionStatus status,
         int? reconnectAttempt = null)
     {
+        _sessionStatus = status;
         var invariantCode = RdpSessionStatusKeys.GetInvariantCode(status);
         string localizedLabel;
 
@@ -1413,6 +1464,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         StatusTextBlock.Foreground = GetBrush(
             status is RdpSessionStatus.Error ? "ErrorBrush" : "TextPrimaryBrush",
             status is RdpSessionStatus.Error ? Brushes.IndianRed : Brushes.White);
+        UpdateHealthDot();
     }
 
     internal static int ResolveReconnectProgressValue(int currentAttempt, int maxAttempts)
@@ -1763,9 +1815,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ReconnectSecondaryText.Visibility = System.Windows.Visibility.Collapsed;
         }
 
+        int? disconnectCode = null;
         if (diagnostic?.Code is int code)
         {
-            ReconnectCodeText.Text = $"#{code}";
+            disconnectCode = IsFatalErrorDiagnostic(diagnostic) ? null : code;
+            ReconnectCodeText.Text = FormatOverlayCode(diagnostic);
             ReconnectCodeText.Visibility = System.Windows.Visibility.Visible;
         }
         else
@@ -1775,7 +1829,28 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         ApplyOverlaySeverity(ResolveOverlaySeverity(diagnostic));
+        OverlayCopyErrorButton.Visibility = System.Windows.Visibility.Visible;
+        OverlayEditProfileButton.Visibility = RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode)
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private static string FormatOverlayCode(Core.SessionDiagnostics.SessionDiagnostic diagnostic)
+    {
+        if (diagnostic.Code is not int code)
+        {
+            return string.Empty;
+        }
+
+        return IsFatalErrorDiagnostic(diagnostic)
+            ? $"RDP_FATAL_ERROR \u00B7 {code}"
+            : RdpActiveXHost.FormatDisconnectCode(code);
+    }
+
+    private static bool IsFatalErrorDiagnostic(Core.SessionDiagnostics.SessionDiagnostic diagnostic)
+    {
+        return string.Equals(diagnostic.MessageKey, "RdpStatusFatalErrorDetail", StringComparison.Ordinal);
     }
 
     private static RdpActiveXHost.RdpDisconnectSeverity ResolveOverlaySeverity(
@@ -1814,6 +1889,59 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         ReconnectOverlay.Visibility = System.Windows.Visibility.Collapsed;
         ReconnectRequested?.Invoke();
+    }
+
+    private void OnOverlayCopyErrorClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var lines = new List<string>();
+        AddClipboardLine(lines, ReconnectMessageText);
+        if (ReconnectSecondaryText.Visibility == System.Windows.Visibility.Visible)
+        {
+            AddClipboardLine(lines, ReconnectSecondaryText);
+        }
+
+        if (ReconnectCodeText.Visibility == System.Windows.Visibility.Visible)
+        {
+            AddClipboardLine(lines, ReconnectCodeText);
+        }
+
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(string.Join(Environment.NewLine, lines));
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] Copy reconnect overlay error failed: {ex.Message}");
+        }
+    }
+
+    private static void AddClipboardLine(ICollection<string> lines, TextBlock textBlock)
+    {
+        if (!string.IsNullOrWhiteSpace(textBlock.Text))
+        {
+            lines.Add(textBlock.Text.Trim());
+        }
+    }
+
+    private void OnOverlayEditProfileClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed || string.IsNullOrWhiteSpace(_server?.Id))
+        {
+            return;
+        }
+
+        ReconnectOverlay.Visibility = System.Windows.Visibility.Collapsed;
+        EditServerRequested?.Invoke(_server.Id);
     }
 
     private void OnOverlayCloseClick(object sender, RoutedEventArgs e)

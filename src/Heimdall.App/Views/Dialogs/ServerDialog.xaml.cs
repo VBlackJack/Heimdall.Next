@@ -76,7 +76,7 @@ public partial class ServerDialog : Window
         if (_configManager is null || DataContext is not ServerDialogViewModel vm) return;
 
         var settings = await _configManager.LoadSettingsAsync();
-        vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
+        vm.ApplyRdpDialogAdvancedDefault(settings.RdpDialogAdvancedDefault);
         vm.PropertyChanged += OnViewModelPropertyChanged;
 
         // Set initial focus: edit mode → display name field, add mode → first protocol card
@@ -103,7 +103,16 @@ public partial class ServerDialog : Window
 
         if (e.PropertyName == nameof(ServerDialogViewModel.IsAdvancedMode))
         {
-            _ = _configManager.MergeSettingAsync(s => s.ServerDialogAdvancedMode = vm.IsAdvancedMode);
+            if (!ServerDialogAdvancedModePolicy.ShouldPersistRdpDefault(
+                    vm.ConnectionType,
+                    vm.IsEditMode,
+                    vm.IsProtocolSelected,
+                    vm.IsApplyingRdpDialogAdvancedDefault))
+            {
+                return;
+            }
+
+            _ = _configManager.MergeSettingAsync(s => s.RdpDialogAdvancedDefault = vm.IsAdvancedMode);
         }
     }
 

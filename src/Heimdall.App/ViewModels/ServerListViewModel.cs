@@ -1091,6 +1091,22 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         ApplyFilter(server.Id);
     }
 
+    internal async Task<bool> EditServerByIdAsync(string serverId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serverId);
+
+        var server = _allServers.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, serverId, StringComparison.Ordinal));
+
+        if (server is null)
+        {
+            return false;
+        }
+
+        await EditServerAsync(server, cancellationToken);
+        return true;
+    }
+
     [RelayCommand]
     private async Task DeleteServerAsync(ServerItemViewModel? server, CancellationToken cancellationToken)
     {
