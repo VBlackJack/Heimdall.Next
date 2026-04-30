@@ -118,6 +118,11 @@ public sealed class AppSettings
     public bool RdpDialogAdvancedDefault { get; set; }
 
     /// <summary>
+    /// When true, the embedded RDP Disconnect button asks for confirmation before tearing down the session.
+    /// </summary>
+    public bool RdpConfirmDisconnect { get; set; } = true;
+
+    /// <summary>
     /// User-configurable resolution presets shown in the embedded RDP session
     /// header's resolution menu. Values are formatted as "WIDTHxHEIGHT". Empty
     /// or null falls back to the built-in 10-preset set.

@@ -17,6 +17,7 @@
 using System.IO;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.StateMachine;
 
@@ -29,13 +30,16 @@ internal sealed class RdpHandler : IProtocolHandler
 {
     private readonly ITunnelService _tunnelService;
     private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
 
     public RdpHandler(
         ITunnelService tunnelService,
-        ConnectionStateMachine connectionSm)
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
+        _localizer = localizer;
     }
 
     public string Protocol => "RDP";
@@ -93,7 +97,7 @@ internal sealed class RdpHandler : IProtocolHandler
                 rdpPassword = ConnectionHelpers.DecryptPassword(server.RdpPasswordEncrypted);
                 if (rdpPassword is null)
                 {
-                    throw new InvalidOperationException("Failed to decrypt RDP password.");
+                    throw new InvalidOperationException(_localizer["RdpErrorDecryptPassword"]);
                 }
 
                 var credTarget = $"TERMSRV/{rdpHost}";
@@ -107,7 +111,7 @@ internal sealed class RdpHandler : IProtocolHandler
                         $"Failed to store RDP credentials: {credError ?? "unknown error"}");
                     return new ConnectionResult(
                         false,
-                        "Failed to store RDP credentials.",
+                        _localizer["RdpErrorStoreCredentials"],
                         null,
                         RdpSessionDiagnosticFactory.FromCredentialWriteFailure(credError));
                 }
@@ -204,7 +208,7 @@ internal sealed class RdpHandler : IProtocolHandler
 
             if (mstscProcess is null)
             {
-                var launchEx = new InvalidOperationException("mstsc.exe did not start.");
+                var launchEx = new InvalidOperationException(_localizer["RdpErrorMstscLaunch"]);
                 Core.Logging.FileLogger.Error("RDP launch failed", launchEx);
                 return new ConnectionResult(
                     false,
