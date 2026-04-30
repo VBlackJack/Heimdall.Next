@@ -15,8 +15,10 @@
  */
 
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -45,6 +47,7 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedRdpView : UserControl, IDisposable
 {
+    private const int BeginConnectMaxAttempts = 10;
     private TimeSpan _initialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
@@ -85,6 +88,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private readonly DispatcherTimer _resizeTimer;
 
     private CancellationTokenSource? _autofillCts;
+    private CancellationTokenSource? _stabilizationCts;
     private DispatcherTimer? _antiIdleTimer;
     private DispatcherTimer? _autofillFilledTimer;
     private DispatcherTimer? _transientToastTimer;
@@ -361,6 +365,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _autofillFilledTimer = null;
         StopTransientToastTimer();
         StopStabilizationCountdown();
+        _stabilizationCts?.Cancel();
+        _stabilizationCts?.Dispose();
+        _stabilizationCts = null;
         StopReconnectElapsedTracking();
         StopAntiIdleTimer();
         ReleaseSleepPrevention();
@@ -655,6 +662,67 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private void OnSendKeysEscapeClick(object sender, RoutedEventArgs e)
         => SendKeysToRemote("RdpSendKeysEscape", NativeMethods.VK_ESCAPE);
 
+    private void OnSendKeysShortcutsHelpClick(object sender, RoutedEventArgs e)
+    {
+        ShowShortcutsHelp();
+    }
+
+    private void ShowShortcutsHelp()
+    {
+        var localizer = _localizer;
+        if (_disposed || localizer is null)
+        {
+            return;
+        }
+
+        var releaseFocusShortcut = RdpShortcutParser.ParseOrDefault(_settings?.RdpReleaseFocusShortcut);
+        var fullscreenShortcut = RdpShortcutParser.ParseFullscreenOrDefault(_settings?.RdpFullscreenToggleShortcut);
+        var body = BuildShortcutsHelpContent(
+            localizer,
+            FormatShortcutForDisplay(releaseFocusShortcut),
+            FormatShortcutForDisplay(fullscreenShortcut));
+        var owner = Window.GetWindow(this);
+        var title = localizer["RdpShortcutsHelpTitle"];
+
+        if (owner is null)
+        {
+            MessageBox.Show(body, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        MessageBox.Show(owner, body, title, MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private static string BuildShortcutsHelpContent(
+        Core.Localization.LocalizationManager localizer,
+        string releaseFocusShortcut,
+        string fullscreenShortcut)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(localizer["RdpShortcutsHelpToolbarSection"]);
+        AppendHelpLine(builder, localizer["RdpShortcutsHelpDisconnect"]);
+        AppendHelpLine(builder, localizer["RdpShortcutsHelpSendKeysEntry"]);
+        AppendHelpLine(builder, localizer["RdpShortcutsHelpSplit"]);
+        AppendHelpLine(builder, localizer["RdpShortcutsHelpResolution"]);
+        AppendHelpLine(builder, localizer.Format("RdpShortcutsHelpFullscreen", fullscreenShortcut));
+        AppendHelpLine(builder, localizer.Format("RdpShortcutsHelpReleaseFocus", releaseFocusShortcut));
+        builder.AppendLine();
+        builder.AppendLine(localizer["RdpShortcutsHelpSendKeysSection"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysCtrlAltDel"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysWindows"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysAltTab"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysCtrlEsc"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysPrintScreen"]);
+        AppendHelpLine(builder, localizer["RdpSendKeysEscape"]);
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendHelpLine(StringBuilder builder, string text)
+    {
+        builder.Append("  ").AppendLine(text);
+    }
+
     [SupportedOSPlatform("windows")]
     private void SendKeysToRemote(string? feedbackLabelKey, params byte[] virtualKeys)
     {
@@ -814,7 +882,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             if (!IsVisualSurfaceReady())
             {
-                if (_beginConnectAttempt <= 10)
+                if (_beginConnectAttempt <= BeginConnectMaxAttempts)
                 {
                     Core.Logging.FileLogger.Warn("EmbeddedRDP visual surface is not ready; retrying after render pass.");
                     _ = RetryBeginConnectAsync();
@@ -885,6 +953,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private async Task RetryBeginConnectAsync()
     {
+        UpdateBeginConnectRetryStatus();
+
         try
         {
             await Task.Delay(BeginConnectRetryDelay);
@@ -901,6 +971,37 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(BeginConnect));
+    }
+
+    private void UpdateBeginConnectRetryStatus()
+    {
+        var localizer = _localizer;
+        if (_disposed || localizer is null)
+        {
+            return;
+        }
+
+        void ApplyStatus()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            StatusTextBlock.Text = localizer.Format(
+                "RdpStatusInitializingSurface",
+                _beginConnectAttempt,
+                BeginConnectMaxAttempts);
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            ApplyStatus();
+        }
+        else
+        {
+            Dispatcher.Invoke(ApplyStatus);
+        }
     }
 
     private void OnRdpConnected()
@@ -952,41 +1053,66 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private async Task EnableResolutionUpdatesAsync()
     {
+        _stabilizationCts?.Cancel();
+        _stabilizationCts?.Dispose();
+        var stabilizationCts = new CancellationTokenSource();
+        var stabilizationToken = stabilizationCts.Token;
+        _stabilizationCts = stabilizationCts;
+
         try
         {
-            await Task.Delay(_initialResizeEnableDelay);
+            try
+            {
+                await Task.Delay(_initialResizeEnableDelay, stabilizationToken);
+            }
+            catch (OperationCanceledException) when (stabilizationToken.IsCancellationRequested)
+            {
+                if (_disposed || !ReferenceEquals(_stabilizationCts, stabilizationCts))
+                {
+                    return;
+                }
+
+                Core.Logging.FileLogger.Info("EmbeddedRDP stabilization skipped by user");
+            }
+
+            if (_disposed || !ReferenceEquals(_stabilizationCts, stabilizationCts) || _rdpHost is null || !_rdpHost.IsConnected)
+            {
+                StopStabilizationCountdown();
+                return;
+            }
+
+            _allowResolutionUpdates = true;
+            StopStabilizationCountdown();
+            Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
+
+            var (queuedWidth, queuedHeight) = GetDisplayDimensions();
+            if (queuedWidth > 0 && queuedHeight > 0
+                && (queuedWidth != _lastAppliedWidth || queuedHeight != _lastAppliedHeight))
+            {
+                try
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedRDP applying queued resolution after stabilization: {queuedWidth}x{queuedHeight}");
+                    _rdpHost.UpdateResolution(queuedWidth, queuedHeight);
+                    _lastAppliedWidth = queuedWidth;
+                    _lastAppliedHeight = queuedHeight;
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] queued resolution flush: {ex.Message}");
+                }
+            }
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] resolution delay: {ex.Message}");
-            return;
         }
-
-        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
+        finally
         {
-            StopStabilizationCountdown();
-            return;
-        }
-
-        _allowResolutionUpdates = true;
-        StopStabilizationCountdown();
-        Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
-
-        var (queuedWidth, queuedHeight) = GetDisplayDimensions();
-        if (queuedWidth > 0 && queuedHeight > 0
-            && (queuedWidth != _lastAppliedWidth || queuedHeight != _lastAppliedHeight))
-        {
-            try
+            if (ReferenceEquals(_stabilizationCts, stabilizationCts))
             {
-                Core.Logging.FileLogger.Info(
-                    $"EmbeddedRDP applying queued resolution after stabilization: {queuedWidth}x{queuedHeight}");
-                _rdpHost.UpdateResolution(queuedWidth, queuedHeight);
-                _lastAppliedWidth = queuedWidth;
-                _lastAppliedHeight = queuedHeight;
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] queued resolution flush: {ex.Message}");
+                _stabilizationCts.Dispose();
+                _stabilizationCts = null;
             }
         }
     }
@@ -1749,15 +1875,20 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         ResolutionMenu.IsOpen = true;
     }
 
+    private void OnSkipStabilizationClick(object sender, RoutedEventArgs e)
+    {
+        RequestSkipStabilization();
+    }
+
     /// <summary>
     /// Populates the resolution context menu from AppSettings.RdpResolutionPresets,
     /// with a built-in fallback when the setting is missing or empty.
     /// </summary>
     private void PopulateResolutionMenu()
     {
-        while (ResolutionMenu.Items.Count > 2)
+        while (ResolutionMenu.Items.Count > 4)
         {
-            ResolutionMenu.Items.RemoveAt(2);
+            ResolutionMenu.Items.RemoveAt(4);
         }
 
         var presets = _settings?.RdpResolutionPresets is { Length: > 0 } configured
@@ -1851,6 +1982,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
     private string L(string key) => _localizer?[key] ?? key;
 
+    private void RequestSkipStabilization()
+    {
+        if (_disposed || _stabilizationCts is null || _stabilizationCts.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _stabilizationCts.Cancel();
+        ShowTransientToast(_localizer?["RdpStabilizationSkippedToast"] ?? string.Empty);
+    }
+
     private void StartStabilizationCountdown(TimeSpan delay)
     {
         StopStabilizationCountdown();
@@ -1868,6 +2010,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Dispatcher);
         _stabilizationTimer.Start();
         UpdateStabilizationDisplay();
+        ResMenuSkipStabilization.Visibility = System.Windows.Visibility.Visible;
+        ResMenuSkipStabilizationSeparator.Visibility = System.Windows.Visibility.Visible;
     }
 
     private void OnStabilizationTimerTick(object? sender, EventArgs e)
@@ -1911,6 +2055,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         StabilizingSeparator.Visibility = System.Windows.Visibility.Collapsed;
         StabilizingStatusText.Visibility = System.Windows.Visibility.Collapsed;
+        ResMenuSkipStabilization.Visibility = System.Windows.Visibility.Collapsed;
+        ResMenuSkipStabilizationSeparator.Visibility = System.Windows.Visibility.Collapsed;
     }
 
     private void StartReconnectElapsedTracking()
@@ -2179,26 +2325,27 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
-        var lines = new List<string>();
-        AddClipboardLine(lines, ReconnectMessageText);
+        var messageLines = new List<string>();
+        AddClipboardLine(messageLines, ReconnectMessageText);
         if (ReconnectSecondaryText.Visibility == System.Windows.Visibility.Visible)
         {
-            AddClipboardLine(lines, ReconnectSecondaryText);
+            AddClipboardLine(messageLines, ReconnectSecondaryText);
         }
 
         if (ReconnectCodeText.Visibility == System.Windows.Visibility.Visible)
         {
-            AddClipboardLine(lines, ReconnectCodeText);
+            AddClipboardLine(messageLines, ReconnectCodeText);
         }
 
-        if (lines.Count == 0)
+        if (messageLines.Count == 0)
         {
             return;
         }
 
         try
         {
-            Clipboard.SetText(string.Join(Environment.NewLine, lines));
+            Clipboard.SetText(BuildReconnectErrorReport(messageLines));
+            ShowTransientToast(_localizer?["RdpCopyErrorToast"] ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -2212,6 +2359,117 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             lines.Add(textBlock.Text.Trim());
         }
+    }
+
+    private string BuildReconnectErrorReport(IReadOnlyCollection<string> messageLines)
+    {
+        if (_localizer is null)
+        {
+            return string.Join(Environment.NewLine, messageLines);
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine(_localizer["RdpCopyErrorHeader"]);
+        AppendReportLine(
+            builder,
+            _localizer["RdpCopyErrorTimeLabel"],
+            DateTime.UtcNow.ToString("u", CultureInfo.InvariantCulture));
+
+        var server = BuildCopyErrorServerValue();
+        if (!string.IsNullOrWhiteSpace(server))
+        {
+            AppendReportLine(builder, _localizer["RdpCopyErrorServerLabel"], server);
+        }
+
+        if (_tunnelPort is int tunnelPort)
+        {
+            AppendReportLine(
+                builder,
+                _localizer["RdpCopyErrorTunnelLabel"],
+                _localizer.Format("RdpCopyErrorTunnelValueFormat", tunnelPort));
+        }
+
+        if (_connectedAtUtc != default)
+        {
+            AppendReportLine(
+                builder,
+                _localizer["RdpCopyErrorSessionLabel"],
+                _localizer.Format(
+                    "RdpCopyErrorSessionDurationFormat",
+                    FormatSessionDuration(DateTime.UtcNow - _connectedAtUtc)));
+        }
+
+        AppendReportLine(
+            builder,
+            _localizer["RdpCopyErrorAppLabel"],
+            BuildCopyErrorAppValue());
+        builder.AppendLine();
+
+        foreach (var line in messageLines)
+        {
+            builder.AppendLine(line);
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendReportLine(StringBuilder builder, string label, string value)
+    {
+        if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        builder.Append(label).Append(' ').AppendLine(value);
+    }
+
+    private string BuildCopyErrorServerValue()
+    {
+        if (_server is null)
+        {
+            return string.Empty;
+        }
+
+        var endpoint = string.Format(
+            CultureInfo.InvariantCulture,
+            "{0}:{1}",
+            _server.RemoteServer,
+            _server.RemotePort);
+        return string.IsNullOrWhiteSpace(_server.DisplayName)
+            ? endpoint
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                "{0} ({1})",
+                _server.DisplayName,
+                endpoint);
+    }
+
+    private static string BuildCopyErrorAppValue()
+    {
+        var assembly = typeof(EmbeddedRdpView).Assembly;
+        var appName = assembly.GetName().Name ?? nameof(EmbeddedRdpView);
+        var version = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion
+            ?? string.Empty;
+
+        return string.IsNullOrWhiteSpace(version)
+            ? appName
+            : string.Format(CultureInfo.InvariantCulture, "{0} v{1}", appName, version);
+    }
+
+    private static string FormatSessionDuration(TimeSpan duration)
+    {
+        if (duration < TimeSpan.Zero)
+        {
+            duration = TimeSpan.Zero;
+        }
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0}m {1:00}s",
+            (int)duration.TotalMinutes,
+            duration.Seconds);
     }
 
     private void OnOverlayEditProfileClick(object sender, RoutedEventArgs e)

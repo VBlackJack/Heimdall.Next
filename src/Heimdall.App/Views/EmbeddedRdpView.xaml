@@ -128,6 +128,10 @@
                             <MenuItem x:Name="SendKeysEscape"
                                       Header="{loc:Translate RdpSendKeysEscape}"
                                       Click="OnSendKeysEscapeClick"/>
+                            <Separator/>
+                            <MenuItem x:Name="SendKeysShortcutsHelp"
+                                      Header="{loc:Translate RdpShortcutsHelpMenuItem}"
+                                      Click="OnSendKeysShortcutsHelpClick"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
@@ -152,6 +156,12 @@
                         Click="OnResolutionButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
+                            <MenuItem x:Name="ResMenuSkipStabilization"
+                                      Header="{loc:Translate RdpResolutionSkipStabilization}"
+                                      Click="OnSkipStabilizationClick"
+                                      Visibility="Collapsed"/>
+                            <Separator x:Name="ResMenuSkipStabilizationSeparator"
+                                       Visibility="Collapsed"/>
                             <MenuItem x:Name="ResMenuFit"
                                       Header="{loc:Translate RdpResolutionFitToWindow}"
                                       Click="OnResolutionMenuClick"

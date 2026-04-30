@@ -22,6 +22,7 @@ public sealed class RdpDisconnectActionPolicyTests
 {
     [Theory]
     [InlineData(2055)]
+    [InlineData(2308)]
     [InlineData(2311)]
     [InlineData(2825)]
     [InlineData(3080)]
@@ -48,7 +49,6 @@ public sealed class RdpDisconnectActionPolicyTests
     [InlineData(1030)]
     [InlineData(1796)]
     [InlineData(2056)]
-    [InlineData(2308)]
     [InlineData(2567)]
     [InlineData(2822)]
     [InlineData(3335)]

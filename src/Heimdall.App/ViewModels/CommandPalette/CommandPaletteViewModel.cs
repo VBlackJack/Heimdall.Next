@@ -348,6 +348,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private async Task ConnectAdHocAsync(ServerItemViewModel server)
     {
         var connType = server.ConnectionType?.ToUpperInvariant() ?? "SSH";
+        var isAdHoc = server.Id.StartsWith("adhoc-", StringComparison.Ordinal);
 
         var dto = new ServerProfileDto
         {
@@ -394,19 +395,33 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         if (result.Success && result.Session is not null)
         {
             var tab = _main.Connection.AddSession(dto.Id, dto.DisplayName, connType);
+            if (isAdHoc)
+            {
+                tab.MarkAsAdHoc(dto);
+            }
+
             tab.HostControl = _embeddedSessionManager.CreateHostControl(
                 tab, dto.DisplayName, connType, result.Session, settings);
             if (tab.HostControl is EmbeddedRdpView rdpView)
             {
                 rdpView.SetOwningPane(tab.PrimaryPane);
             }
+
             tab.Status = _localizer["StatusConnected"];
             _main.StatusText = _localizer.Format("StatusConnected",
                 !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
         }
         else if (result.Success)
         {
-            // External mode: process launched, no embedded tab needed
+            // External mode: process launched; keep a lightweight tab so ad-hoc
+            // connections can still be persisted from the tab context menu.
+            if (isAdHoc)
+            {
+                var tab = _main.Connection.AddSession(dto.Id, dto.DisplayName, connType);
+                tab.MarkAsAdHoc(dto);
+                tab.Status = _localizer["StatusConnected"];
+            }
+
             _main.StatusText = _localizer.Format("StatusConnected",
                 !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
         }

@@ -15,6 +15,7 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.SessionDiagnostics;
 
@@ -47,11 +48,38 @@ public partial class SessionTabViewModel : ObservableObject
     private bool _isActive;
 
     /// <summary>
+    /// True when this session was started ad-hoc from the Command Palette
+    /// (typing a bare IP/hostname) and is not backed by a saved server profile.
+    /// </summary>
+    public bool IsAdHoc { get; private set; }
+
+    /// <summary>
+    /// Snapshot of the connection DTO captured when the ad-hoc session was
+    /// started. Used to seed the "Save as profile" dialog. Null for sessions
+    /// backed by an existing server profile.
+    /// </summary>
+    public ServerProfileDto? AdHocProfileSnapshot { get; private set; }
+
+    /// <summary>
     /// Returns the first leaf pane in the tree (the "primary" pane).
     /// Used for tab header display (title, icon, status).
     /// </summary>
     public SessionPaneModel PrimaryPane =>
         SplitTreeHelper.FirstLeaf(RootContent) ?? _emptyPane;
+
+    /// <summary>
+    /// Marks this tab as an ad-hoc session and stores the profile snapshot
+    /// used to seed a future saved profile.
+    /// </summary>
+    public void MarkAsAdHoc(ServerProfileDto snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        IsAdHoc = true;
+        AdHocProfileSnapshot = snapshot;
+        OnPropertyChanged(nameof(IsAdHoc));
+        OnPropertyChanged(nameof(AdHocProfileSnapshot));
+    }
 
     partial void OnRootContentChanged(ISplitContent value) => NotifyTreeDependentProperties();
 
