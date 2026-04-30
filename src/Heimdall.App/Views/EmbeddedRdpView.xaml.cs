@@ -49,6 +49,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
     private static readonly TimeSpan AutofillFilledDisplayDuration = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan TransientToastDuration = TimeSpan.FromSeconds(3);
     private const string EnterFullscreenGlyph = "\uE1D9";
     private const string ExitFullscreenGlyph = "\uE799";
     private const string RedirectionClipboardGlyph = "\uE16D";
@@ -82,6 +83,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private CancellationTokenSource? _autofillCts;
     private DispatcherTimer? _antiIdleTimer;
     private DispatcherTimer? _autofillFilledTimer;
+    private DispatcherTimer? _transientToastTimer;
     private DispatcherTimer? _stabilizationTimer;
     private DispatcherTimer? _reconnectElapsedTimer;
     private RdpActiveXHost? _rdpHost;
@@ -165,11 +167,111 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ? System.Windows.Visibility.Collapsed
             : System.Windows.Visibility.Visible;
         FullscreenButton.Content = isFullscreen ? ExitFullscreenGlyph : EnterFullscreenGlyph;
+
+        if (isFullscreen && _localizer is not null)
+        {
+            var shortcut = RdpShortcutParser.ParseFullscreenOrDefault(
+                _settings?.RdpFullscreenToggleShortcut);
+            ShowTransientToast(_localizer.Format(
+                "RdpFullscreenExitHint",
+                FormatShortcutForDisplay(shortcut)));
+        }
     }
 
     public void ToggleFullscreen()
     {
         SetFullscreen(!_isFullscreen);
+    }
+
+    private void ShowTransientToast(string message)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => ShowTransientToast(message));
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        StopTransientToastTimer();
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            TransientToastText.Text = string.Empty;
+            TransientToast.Visibility = System.Windows.Visibility.Collapsed;
+            return;
+        }
+
+        TransientToastText.Text = message;
+        TransientToast.Visibility = System.Windows.Visibility.Visible;
+        _transientToastTimer = new DispatcherTimer(
+            TransientToastDuration,
+            DispatcherPriority.Background,
+            OnTransientToastTick,
+            Dispatcher);
+        _transientToastTimer.Start();
+    }
+
+    private void OnTransientToastTick(object? sender, EventArgs e)
+    {
+        StopTransientToastTimer();
+        TransientToastText.Text = string.Empty;
+        TransientToast.Visibility = System.Windows.Visibility.Collapsed;
+    }
+
+    private void StopTransientToastTimer()
+    {
+        if (_transientToastTimer is null)
+        {
+            return;
+        }
+
+        _transientToastTimer.Stop();
+        _transientToastTimer.Tick -= OnTransientToastTick;
+        _transientToastTimer = null;
+    }
+
+    private static string FormatShortcutForDisplay(RdpShortcut shortcut)
+    {
+        var parts = new List<string>();
+
+        if (shortcut.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            parts.Add("Ctrl");
+        }
+
+        if (shortcut.Modifiers.HasFlag(ModifierKeys.Alt))
+        {
+            parts.Add("Alt");
+        }
+
+        if (shortcut.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            parts.Add("Shift");
+        }
+
+        if (shortcut.Modifiers.HasFlag(ModifierKeys.Windows))
+        {
+            parts.Add("Windows");
+        }
+
+        parts.Add(FormatKeyForDisplay(shortcut.Key));
+        return string.Join("+", parts);
+    }
+
+    private static string FormatKeyForDisplay(Key key)
+    {
+        return key switch
+        {
+            Key.Escape => "Esc",
+            Key.Return => "Enter",
+            Key.Back => "Backspace",
+            Key.Space => "Space",
+            _ => key.ToString()
+        };
     }
 
     public void InitializeSession(
@@ -253,6 +355,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _resizeTimer.Stop();
         _autofillFilledTimer?.Stop();
         _autofillFilledTimer = null;
+        StopTransientToastTimer();
         StopStabilizationCountdown();
         StopReconnectElapsedTracking();
         StopAntiIdleTimer();
@@ -522,30 +625,34 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysCtrlAltDelClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_CONTROL, NativeMethods.VK_MENU, NativeMethods.VK_DELETE);
+        => SendKeysToRemote(
+            "RdpSendKeysCtrlAltDel",
+            NativeMethods.VK_CONTROL,
+            NativeMethods.VK_MENU,
+            NativeMethods.VK_DELETE);
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysWindowsClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_LWIN);
+        => SendKeysToRemote("RdpSendKeysWindows", NativeMethods.VK_LWIN);
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysAltTabClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_MENU, NativeMethods.VK_TAB);
+        => SendKeysToRemote("RdpSendKeysAltTab", NativeMethods.VK_MENU, NativeMethods.VK_TAB);
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysCtrlEscClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_CONTROL, NativeMethods.VK_ESCAPE);
+        => SendKeysToRemote("RdpSendKeysCtrlEsc", NativeMethods.VK_CONTROL, NativeMethods.VK_ESCAPE);
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysPrintScreenClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_SNAPSHOT);
+        => SendKeysToRemote("RdpSendKeysPrintScreen", NativeMethods.VK_SNAPSHOT);
 
     [SupportedOSPlatform("windows")]
     private void OnSendKeysEscapeClick(object sender, RoutedEventArgs e)
-        => SendKeysToRemote(NativeMethods.VK_ESCAPE);
+        => SendKeysToRemote("RdpSendKeysEscape", NativeMethods.VK_ESCAPE);
 
     [SupportedOSPlatform("windows")]
-    private void SendKeysToRemote(params byte[] virtualKeys)
+    private void SendKeysToRemote(string? feedbackLabelKey, params byte[] virtualKeys)
     {
         if (_disposed || _rdpHost is null || !_rdpHost.IsConnected || virtualKeys.Length == 0)
         {
@@ -557,6 +664,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             var hwnd = _rdpHost.HostHandle;
             if (hwnd == IntPtr.Zero)
             {
+                ShowTransientToast(_localizer?["RdpSendKeysSentFailedToast"] ?? string.Empty);
                 return;
             }
 
@@ -579,10 +687,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                     IntPtr.Zero);
             }
 
+            if (feedbackLabelKey is not null && _localizer is not null)
+            {
+                var label = _localizer[feedbackLabelKey];
+                ShowTransientToast(_localizer.Format("RdpSendKeysSentToast", label));
+            }
+
             Core.Logging.FileLogger.Info("EmbeddedRDP user sent keys to the remote session");
         }
         catch (Exception ex)
         {
+            ShowTransientToast(_localizer?["RdpSendKeysSentFailedToast"] ?? string.Empty);
             Core.Logging.FileLogger.Error("Send keys to the remote session failed.", ex);
         }
     }
@@ -1149,7 +1264,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         AutofillStatusText.Visibility = Visibility.Visible;
         AutofillSeparator.Visibility = Visibility.Visible;
 
-        if (state == RdpAutofillState.Filled)
+        if (state is RdpAutofillState.Filled
+            or RdpAutofillState.TimedOut
+            or RdpAutofillState.Failed)
         {
             _autofillFilledTimer ??= new DispatcherTimer(
                 AutofillFilledDisplayDuration,

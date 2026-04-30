@@ -449,6 +449,27 @@
                          Background="Transparent"
                          BorderThickness="0"
                          IsHitTestVisible="False"/>
+
+            <Border x:Name="TransientToast"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,16,0,0"
+                    CornerRadius="{StaticResource CornerRadiusMd}"
+                    Padding="12,6"
+                    Background="{DynamicResource OverlayBackground}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False"
+                    Focusable="False"
+                    KeyboardNavigation.IsTabStop="False"
+                    Panel.ZIndex="50"
+                    AutomationProperties.LiveSetting="Polite"
+                    AutomationProperties.Name="{loc:Translate A11yRdpTransientToast}">
+                <TextBlock x:Name="TransientToastText"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}"/>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

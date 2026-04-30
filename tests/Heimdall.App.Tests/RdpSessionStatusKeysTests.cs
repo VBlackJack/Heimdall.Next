@@ -367,6 +367,32 @@ public sealed class RdpSessionStatusKeysTests
     }
 
     [Theory]
+    [InlineData("ServerDialogRdpUsernameWatermark")]
+    [InlineData("ServerDialogRdpUsernameHint")]
+    [InlineData("ServerDialogRdpUsingGlobalDefaultsBanner")]
+    public void RdpServerDialogProfileUxKeys_ArePresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("ServerDialogRdpUsernameWatermark")]
+    [InlineData("ServerDialogRdpUsernameHint")]
+    [InlineData("ServerDialogRdpUsingGlobalDefaultsBanner")]
+    public void RdpServerDialogProfileUxKeys_ArePresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
+    [Theory]
     [InlineData("SettingsRdpAdvancedTimeoutsHeader")]
     [InlineData("SettingsLabelRdpResizeEnableDelay")]
     [InlineData("SettingsLabelRdpArtifactCleanupDelay")]
@@ -401,6 +427,13 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("A11yRdpReconnectDialog")]
     [InlineData("RdpConfirmDisconnectTitle")]
     [InlineData("RdpConfirmDisconnectMessage")]
+    [InlineData("RdpBitmapCachingHint")]
+    [InlineData("RdpAutoReconnectHint")]
+    [InlineData("RdpDisableUdpHint")]
+    [InlineData("A11yRdpTransientToast")]
+    [InlineData("RdpFullscreenExitHint")]
+    [InlineData("RdpSendKeysSentToast")]
+    [InlineData("RdpSendKeysSentFailedToast")]
     public void RdpHandlerUserFacingErrorKeys_ArePresentInEnglish(string key)
     {
         using var document = LoadLocaleDocument("en");
@@ -417,6 +450,13 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("A11yRdpReconnectDialog")]
     [InlineData("RdpConfirmDisconnectTitle")]
     [InlineData("RdpConfirmDisconnectMessage")]
+    [InlineData("RdpBitmapCachingHint")]
+    [InlineData("RdpAutoReconnectHint")]
+    [InlineData("RdpDisableUdpHint")]
+    [InlineData("A11yRdpTransientToast")]
+    [InlineData("RdpFullscreenExitHint")]
+    [InlineData("RdpSendKeysSentToast")]
+    [InlineData("RdpSendKeysSentFailedToast")]
     public void RdpHandlerUserFacingErrorKeys_ArePresentInFrench(string key)
     {
         using var document = LoadLocaleDocument("fr");
