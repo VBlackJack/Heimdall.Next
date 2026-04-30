@@ -1008,6 +1008,58 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private async Task SaveAdHocAsProfileAsync(ServerProfileDto? template, CancellationToken cancellationToken)
+    {
+        if (template is null)
+        {
+            return;
+        }
+
+        var dialogVm = ServerDialogViewModel.FromDto(template);
+        dialogVm.DialogTitle = _localizer["DialogTitleAddServer"];
+        dialogVm.IsEditMode = false;
+        dialogVm.Origin = ProfileOrigin.Manual;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        PopulateServerDialogOptions(dialogVm, settings);
+        dialogVm.Settings = settings;
+
+        // Reset dirty state after initialization so saving is an explicit user choice.
+        dialogVm.IsDirty = false;
+
+        var result = await _dialogService.ShowServerDialogAsync(dialogVm);
+
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        var savedGatewayId = result.Server.SshGatewayId;
+        if (!string.Equals(settings.LastUsedGatewayId, savedGatewayId, StringComparison.Ordinal))
+        {
+            await _configManager.MergeSettingAsync(s => s.LastUsedGatewayId = savedGatewayId);
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        result.Server.Id = Guid.NewGuid().ToString();
+        result.Server.Origin = ProfileOrigin.Manual;
+        servers.Add(result.Server);
+        await _configManager.SaveServersAsync(servers);
+
+        _allServers.Add(ServerItemViewModel.FromDto(
+            result.Server,
+            ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
+            _connectionSm.GetState(result.Server.Id).ToString(),
+            BuildGatewayMap(settings),
+            _localizer));
+
+        RefreshLookupCollections(settings);
+        ApplyFilter(result.Server.Id);
+        OnPropertyChanged(nameof(Servers));
+        OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    [RelayCommand]
     private async Task EditServerAsync(ServerItemViewModel? server, CancellationToken cancellationToken)
     {
         if (server is null)

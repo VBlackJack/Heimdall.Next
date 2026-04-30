@@ -16,6 +16,7 @@
 
 using System.ComponentModel;
 using Heimdall.App.ViewModels;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.SessionDiagnostics;
 
 namespace Heimdall.App.Tests;
@@ -70,6 +71,28 @@ public sealed class SessionTabViewModelTests
         Assert.False(vm.HasFailureDetails);
         Assert.Contains(nameof(SessionTabViewModel.FailureDetails), changes);
         Assert.Contains(nameof(SessionTabViewModel.HasFailureDetails), changes);
+    }
+
+    [Fact]
+    public void MarkAsAdHoc_SetsFlagAndSnapshot()
+    {
+        var vm = new SessionTabViewModel();
+        var dto = new ServerProfileDto
+        {
+            Id = "adhoc-rdp-10.0.0.5",
+            DisplayName = "RDP to 10.0.0.5",
+            RemoteServer = "10.0.0.5",
+            ConnectionType = "RDP"
+        };
+
+        Assert.False(vm.IsAdHoc);
+        Assert.Null(vm.AdHocProfileSnapshot);
+        Assert.Throws<ArgumentNullException>(() => vm.MarkAsAdHoc(null!));
+
+        vm.MarkAsAdHoc(dto);
+
+        Assert.True(vm.IsAdHoc);
+        Assert.Same(dto, vm.AdHocProfileSnapshot);
     }
 
     private static void RecordChange(PropertyChangedEventArgs args, ICollection<string> changes)

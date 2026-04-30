@@ -21,9 +21,11 @@ namespace Heimdall.App.Views.EmbeddedRdp;
 /// </summary>
 internal static class RdpDisconnectActionPolicy
 {
+    // Profile-remediation disconnects include security/NLA issues; 2308 is included
+    // so users can disable NLA from the overlay's Edit profile button.
     public static bool ShouldOfferEditProfile(int? disconnectCode) => disconnectCode switch
     {
-        2055 or 2311 or 2825 or 3080 or 3848 or 4360 => true,
+        2055 or 2308 or 2311 or 2825 or 3080 or 3848 or 4360 => true,
         _ => false
     };
 }

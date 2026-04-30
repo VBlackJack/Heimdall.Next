@@ -421,6 +421,28 @@ public sealed class RdpSessionStatusKeysTests
     }
 
     [Theory]
+    [InlineData("RdpSurfaceNotReady")]
+    public void SurfaceNotReadyKey_IsPresentInEnglish(string key)
+    {
+        using var document = LoadLocaleDocument("en");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from en.json");
+    }
+
+    [Theory]
+    [InlineData("RdpSurfaceNotReady")]
+    public void SurfaceNotReadyKey_IsPresentInFrench(string key)
+    {
+        using var document = LoadLocaleDocument("fr");
+
+        Assert.True(
+            document.RootElement.TryGetProperty(key, out _),
+            $"Locale key '{key}' is missing from fr.json");
+    }
+
+    [Theory]
     [InlineData("RdpErrorDecryptPassword")]
     [InlineData("RdpErrorStoreCredentials")]
     [InlineData("RdpErrorMstscLaunch")]
@@ -432,6 +454,15 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("RdpDisconnectSeverityPrefixNotice")]
     [InlineData("RdpDisconnectSeverityPrefixWarning")]
     [InlineData("RdpDisconnectSeverityPrefixError")]
+    [InlineData("RdpCopyErrorHeader")]
+    [InlineData("RdpCopyErrorTimeLabel")]
+    [InlineData("RdpCopyErrorServerLabel")]
+    [InlineData("RdpCopyErrorTunnelLabel")]
+    [InlineData("RdpCopyErrorSessionLabel")]
+    [InlineData("RdpCopyErrorAppLabel")]
+    [InlineData("RdpCopyErrorTunnelValueFormat")]
+    [InlineData("RdpCopyErrorSessionDurationFormat")]
+    [InlineData("RdpCopyErrorToast")]
     [InlineData("RdpBitmapCachingHint")]
     [InlineData("RdpAutoReconnectHint")]
     [InlineData("RdpDisableUdpHint")]
@@ -439,8 +470,22 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("RdpFullscreenExitHint")]
     [InlineData("RdpRedirectionStatusOnFormat")]
     [InlineData("RdpRedirectionStatusOffFormat")]
+    [InlineData("RdpResolutionSkipStabilization")]
     [InlineData("RdpSendKeysSentToast")]
     [InlineData("RdpSendKeysSentFailedToast")]
+    [InlineData("RdpShortcutsHelpDisconnect")]
+    [InlineData("RdpShortcutsHelpFullscreen")]
+    [InlineData("RdpShortcutsHelpMenuItem")]
+    [InlineData("RdpShortcutsHelpReleaseFocus")]
+    [InlineData("RdpShortcutsHelpResolution")]
+    [InlineData("RdpShortcutsHelpSendKeysEntry")]
+    [InlineData("RdpShortcutsHelpSendKeysSection")]
+    [InlineData("RdpShortcutsHelpSplit")]
+    [InlineData("RdpShortcutsHelpTitle")]
+    [InlineData("RdpShortcutsHelpToolbarSection")]
+    [InlineData("RdpStabilizationSkippedToast")]
+    [InlineData("RdpStatusInitializingSurface")]
+    [InlineData("SessionSaveAsProfile")]
     public void RdpHandlerUserFacingErrorKeys_ArePresentInEnglish(string key)
     {
         using var document = LoadLocaleDocument("en");
@@ -462,6 +507,15 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("RdpDisconnectSeverityPrefixNotice")]
     [InlineData("RdpDisconnectSeverityPrefixWarning")]
     [InlineData("RdpDisconnectSeverityPrefixError")]
+    [InlineData("RdpCopyErrorHeader")]
+    [InlineData("RdpCopyErrorTimeLabel")]
+    [InlineData("RdpCopyErrorServerLabel")]
+    [InlineData("RdpCopyErrorTunnelLabel")]
+    [InlineData("RdpCopyErrorSessionLabel")]
+    [InlineData("RdpCopyErrorAppLabel")]
+    [InlineData("RdpCopyErrorTunnelValueFormat")]
+    [InlineData("RdpCopyErrorSessionDurationFormat")]
+    [InlineData("RdpCopyErrorToast")]
     [InlineData("RdpBitmapCachingHint")]
     [InlineData("RdpAutoReconnectHint")]
     [InlineData("RdpDisableUdpHint")]
@@ -469,31 +523,23 @@ public sealed class RdpSessionStatusKeysTests
     [InlineData("RdpFullscreenExitHint")]
     [InlineData("RdpRedirectionStatusOnFormat")]
     [InlineData("RdpRedirectionStatusOffFormat")]
+    [InlineData("RdpResolutionSkipStabilization")]
     [InlineData("RdpSendKeysSentToast")]
     [InlineData("RdpSendKeysSentFailedToast")]
+    [InlineData("RdpShortcutsHelpDisconnect")]
+    [InlineData("RdpShortcutsHelpFullscreen")]
+    [InlineData("RdpShortcutsHelpMenuItem")]
+    [InlineData("RdpShortcutsHelpReleaseFocus")]
+    [InlineData("RdpShortcutsHelpResolution")]
+    [InlineData("RdpShortcutsHelpSendKeysEntry")]
+    [InlineData("RdpShortcutsHelpSendKeysSection")]
+    [InlineData("RdpShortcutsHelpSplit")]
+    [InlineData("RdpShortcutsHelpTitle")]
+    [InlineData("RdpShortcutsHelpToolbarSection")]
+    [InlineData("RdpStabilizationSkippedToast")]
+    [InlineData("RdpStatusInitializingSurface")]
+    [InlineData("SessionSaveAsProfile")]
     public void RdpHandlerUserFacingErrorKeys_ArePresentInFrench(string key)
-    {
-        using var document = LoadLocaleDocument("fr");
-
-        Assert.True(
-            document.RootElement.TryGetProperty(key, out _),
-            $"Locale key '{key}' is missing from fr.json");
-    }
-
-    [Theory]
-    [InlineData("RdpSurfaceNotReady")]
-    public void SurfaceNotReadyKey_IsPresentInEnglish(string key)
-    {
-        using var document = LoadLocaleDocument("en");
-
-        Assert.True(
-            document.RootElement.TryGetProperty(key, out _),
-            $"Locale key '{key}' is missing from en.json");
-    }
-
-    [Theory]
-    [InlineData("RdpSurfaceNotReady")]
-    public void SurfaceNotReadyKey_IsPresentInFrench(string key)
     {
         using var document = LoadLocaleDocument("fr");
 

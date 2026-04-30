@@ -96,7 +96,7 @@
     <SolidColorBrush x:Key="FocusIndicatorBrush" Color="#9CEFFF"/>
 
     <!-- Overlay and feedback brushes -->
-    <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
+    <SolidColorBrush x:Key="OverlayBackground" Color="#B3000000"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66241C2C"/>
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
 

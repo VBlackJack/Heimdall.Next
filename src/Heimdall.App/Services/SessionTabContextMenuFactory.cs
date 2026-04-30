@@ -160,6 +160,17 @@ public sealed class SessionTabContextMenuFactory
             }
         };
         menu.Items.Add(duplicateItem);
+
+        if (session.IsAdHoc && session.AdHocProfileSnapshot is not null)
+        {
+            var saveAsProfileItem = new MenuItem
+            {
+                Header = vm.Localize("SessionSaveAsProfile")
+            };
+            saveAsProfileItem.Click += (_, _) =>
+                vm.ServerList.SaveAdHocAsProfileCommand.Execute(session.AdHocProfileSnapshot);
+            menu.Items.Add(saveAsProfileItem);
+        }
     }
 
     // ── Detach (branches on split state) ─────────────────────────────
