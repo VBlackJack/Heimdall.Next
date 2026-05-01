@@ -143,6 +143,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         // Wire SSH reconnect: close the old session tab and re-connect from scratch
         _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
+        _embeddedSessionManager.DisconnectRequestedCallback = OnDisconnectRequested;
         _embeddedSessionManager.EditServerRequestedCallback = OnEditServerRequested;
 
         // Subscribe to ServerList session lifecycle events to materialize session tabs.
@@ -306,7 +307,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             return;
         }
 
-        _main.Connection.CloseSessionCommand.Execute(tab);
+        _ = SafeFireAndForgetAsync(
+            _main.Connection.CloseSessionAsync(tab, DisconnectReason.FailedSession, confirm: false));
     }
 
     /// <summary>
@@ -435,6 +437,14 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
     }
 
+    private void OnDisconnectRequested(
+        SessionTabViewModel tab,
+        SessionPaneModel pane,
+        DisconnectReason reason)
+    {
+        _ = SafeFireAndForgetAsync(OnDisconnectRequestedAsync(tab, pane, reason));
+    }
+
     private void OnEditServerRequested(string serverId)
     {
         _ = SafeFireAndForgetAsync(OnEditServerRequestedAsync(serverId));
@@ -471,7 +481,10 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         try
         {
             // Close the old tab (disposes the dead session)
-            _main.Connection.CloseSessionCommand.Execute(tab);
+            await _main.Connection.CloseSessionAsync(
+                tab,
+                DisconnectReason.ReconnectInitiated,
+                confirm: false);
 
             // Re-connect through the server list's standard connection path
             var servers = await _configManager.LoadServersAsync();
@@ -498,6 +511,25 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             FileLogger.Error($"Reconnect failed for {serverId}", ex);
             _main.StatusText = _localizer.Format("StatusReconnectFailed", ex.Message);
         }
+    }
+
+    private async Task OnDisconnectRequestedAsync(
+        SessionTabViewModel tab,
+        SessionPaneModel pane,
+        DisconnectReason reason)
+    {
+        if (SplitTreeHelper.FindPane(tab.RootContent, pane.PaneId) is null)
+        {
+            return;
+        }
+
+        if (tab.IsSplit)
+        {
+            _main.ClosePane(tab, pane.PaneId, reason);
+            return;
+        }
+
+        await _main.Connection.CloseSessionAsync(tab, reason, confirm: false);
     }
 
     /// <summary>

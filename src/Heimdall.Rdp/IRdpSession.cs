@@ -64,8 +64,15 @@ public interface IRdpSession : IDisposable
     /// <summary>Disconnect the active RDP session.</summary>
     void Disconnect();
 
-    /// <summary>Update the remote session display resolution (requires IMsRdpClient7+).</summary>
-    void UpdateResolution(int width, int height);
+    /// <summary>Update the remote session display resolution and scale factors.</summary>
+    RdpDisplayUpdateResult UpdateResolution(
+        int width,
+        int height,
+        uint physicalWidthMm = 0,
+        uint physicalHeightMm = 0,
+        uint desktopScaleFactor = 100,
+        uint deviceScaleFactor = 100,
+        bool allowReconnectFallback = true);
 
     /// <summary>
     /// Returns the Windows Forms control that hosts the RDP ActiveX.

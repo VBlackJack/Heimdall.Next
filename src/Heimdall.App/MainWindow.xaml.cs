@@ -33,6 +33,7 @@ using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Onboarding;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
@@ -90,6 +91,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private bool _isRdpImportDragActive;
     private bool _suppressFileShareStartDialog;
     private OnboardingFlowViewModel? _onboardingVm;
+    private bool _threadPreprocessMessageHooked;
 
     public FileShareService FileShareService => _fileShareService;
 
@@ -281,6 +283,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         };
         viewModel.GetLocalizer().LocaleChanged += _localeChangedHandler;
 
+        PreviewKeyDown += OnWindowPreviewKeyDown;
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
         CommandPalettePopup.Closed += OnCommandPaletteClosed;
@@ -1044,13 +1047,19 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         // F1: show keyboard shortcut help
         _keyboardShortcutService.Register(Key.F1, ModifierKeys.None, ShowKeyboardShortcutHelp);
 
-        // F11: toggle fullscreen
-        _keyboardShortcutService.Register(Key.F11, ModifierKeys.None, ToggleFullscreen);
+        // F11: toggle fullscreen. Keep this strict even though the shortcut
+        // service treats None as laxist for legacy bindings; modified F11
+        // belongs to the focused app/session.
+        _keyboardShortcutService.Register(
+            Key.F11,
+            ModifierKeys.None,
+            ToggleFullscreen,
+            canExecute: () => Keyboard.Modifiers == ModifierKeys.None);
 
         // Escape: exit fullscreen (only when fullscreen)
         _keyboardShortcutService.Register(Key.Escape, ModifierKeys.None,
             ToggleFullscreen,
-            canExecute: () => _uiState.IsFullscreen);
+            canExecute: () => _uiState.IsFullscreen && Keyboard.Modifiers == ModifierKeys.None);
 
         // ── TreeView context menu ────────────────────────────────────
         // Apps key: open context menu (terminal-gated, modifier-laxist)
@@ -1828,6 +1837,105 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         rdpView.UpdateAspectRatio(ratioName);
     }
 
+    private async Task OnResolutionChangedAsync(SessionPaneModel pane, ResolutionChoice choice)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (pane.HostControl is not Views.EmbeddedRdpView rdpView) return;
+
+        switch (choice.Kind)
+        {
+            case ResolutionChoiceKind.Custom:
+                var input = await vm.DialogService.ShowInputAsync(
+                    vm.Localize("RdpResolutionCustomTitle"),
+                    vm.Localize("RdpResolutionCustomPrompt"),
+                    "1920x1080");
+                if (!TryParseCustomResolution(input, out var customPreset))
+                {
+                    vm.StatusText = vm.Localize("RdpResolutionCustomInvalid");
+                    return;
+                }
+
+                await rdpView.ApplyResolutionChoiceAsync(
+                    ResolutionChoice.Fixed(customPreset.Width, customPreset.Height));
+                break;
+
+            case ResolutionChoiceKind.SaveAsDefaultForServer:
+                await SaveRdpResolutionDefaultForServerAsync(vm, pane, rdpView);
+                break;
+
+            default:
+                await rdpView.ApplyResolutionChoiceAsync(choice);
+                break;
+        }
+    }
+
+    private static bool TryParseCustomResolution(string? input, out ResolutionPreset preset)
+    {
+        preset = default;
+        if (!ResolutionPresetCatalog.TryParse(input, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed.Width is < 200 or > 7680 || parsed.Height is < 200 or > 4320)
+        {
+            return false;
+        }
+
+        preset = new ResolutionPreset(
+            Heimdall.Rdp.RdpDisplayHelper.SnapToMultipleOf(parsed.Width, 4),
+            parsed.Height);
+        return preset.Width > 0;
+    }
+
+    private static async Task SaveRdpResolutionDefaultForServerAsync(
+        MainViewModel vm,
+        SessionPaneModel pane,
+        Views.EmbeddedRdpView rdpView)
+    {
+        var lookupId = !string.IsNullOrWhiteSpace(pane.OriginalServerId)
+            ? pane.OriginalServerId
+            : pane.ServerId;
+        if (string.IsNullOrWhiteSpace(lookupId))
+        {
+            vm.StatusText = vm.Localize("RdpResolutionSaveDefaultUnavailable");
+            return;
+        }
+
+        var servers = await vm.ConfigManager.LoadServersAsync();
+        var server = servers.FirstOrDefault(
+            s => string.Equals(s.Id, lookupId, StringComparison.Ordinal));
+        if (server is null)
+        {
+            vm.StatusText = vm.Localize("RdpResolutionSaveDefaultUnavailable");
+            return;
+        }
+
+        var choice = rdpView.GetCurrentResolutionChoice();
+        if (choice.Kind == ResolutionChoiceKind.Fixed)
+        {
+            // TODO(Phase 2 runtime): retire RdpDefaultResolutionWidth/Height once
+            // EmbeddedRdpView reads fixed profiles from RdpFixedWidth/Height.
+            server.RdpDefaultResolutionWidth = choice.Width;
+            server.RdpDefaultResolutionHeight = choice.Height;
+            server.RdpResolutionMode = RdpResolutionMode.Fixed;
+            server.RdpFixedWidth = choice.Width;
+            server.RdpFixedHeight = choice.Height;
+        }
+        else
+        {
+            server.RdpDefaultResolutionWidth = 0;
+            server.RdpDefaultResolutionHeight = 0;
+            server.RdpResolutionMode = RdpResolutionMode.FitWindow;
+            server.RdpFixedWidth = 0;
+            server.RdpFixedHeight = 0;
+            server.RdpDynamicResolution = true;
+        }
+
+        await vm.ConfigManager.SaveServersAsync(servers);
+        vm.StatusText = vm.Localize("RdpResolutionSaveDefaultDone");
+    }
+
     /// <summary>
     /// When switching to Tunnels/Scheduled/Settings while sessions are active,
     /// the Sessions Grid must stay visible (for sessions) but TreeView hides.
@@ -2201,6 +2309,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         => OnAspectRatioClick(sender, e);
 
     /// <inheritdoc />
+    void ISessionTabContextCallbacks.OnResolutionChanged(SessionPaneModel pane, ResolutionChoice choice)
+        => _ = OnResolutionChangedAsync(pane, choice);
+
+    /// <inheritdoc />
     void ISessionTabContextCallbacks.ToggleFullscreen()
         => ToggleFullscreen();
 
@@ -2425,8 +2537,34 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     /// <inheritdoc />
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        if (!_threadPreprocessMessageHooked)
+        {
+            ComponentDispatcher.ThreadPreprocessMessage += OnThreadPreprocessMessage;
+            _threadPreprocessMessageHooked = true;
+        }
+
+        InstallLowLevelKeyboardHook();
+    }
+
+    /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
+        StopFullscreenChrome();
+        DisposeLowLevelKeyboardHook();
+        if (_threadPreprocessMessageHooked)
+        {
+            ComponentDispatcher.ThreadPreprocessMessage -= OnThreadPreprocessMessage;
+            _threadPreprocessMessageHooked = false;
+        }
+
+        PreviewKeyDown -= OnWindowPreviewKeyDown;
+        KeyDown -= OnKeyDown;
+        PreviewMouseDown -= OnWindowPreviewMouseDown;
+
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
 
         // Unsubscribe from long-lived service/ViewModel events. The DataContext

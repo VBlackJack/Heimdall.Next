@@ -55,6 +55,13 @@ public interface IEmbeddedSessionManager
     Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded view requests user-driven disconnect.
+    /// Parameters: (SessionTabViewModel session, SessionPaneModel pane, DisconnectReason reason).
+    /// Wired by MainViewModel to close the owning pane or tab through the shared lifecycle path.
+    /// </summary>
+    Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
+
+    /// <summary>
     /// Optional callback invoked when an embedded RDP view requests server profile editing.
     /// Parameters: (string serverId).
     /// Wired by MainViewModel to open the existing server edit flow.
@@ -77,6 +84,11 @@ public interface IEmbeddedSessionManager
         string connectionType,
         ISessionResult session,
         AppSettings? settings = null);
+
+    /// <summary>
+    /// Tears down a hosted pane through the shared disconnect lifecycle.
+    /// </summary>
+    Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason);
 
     /// <summary>
     /// Creates an SSH host control in a Connecting state before the SSH session exists.

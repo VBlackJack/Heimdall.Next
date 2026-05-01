@@ -2682,46 +2682,65 @@
             <!-- Sessions overlay removed — now inside Servers Grid Column 2 -->
         </Grid>
 
-        <!-- FULLSCREEN EXIT ICON (small icon top-right, hidden by default) -->
-        <Button x:Name="FullscreenBar"
-                Grid.Row="0" Grid.RowSpan="3"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,2,4,0"
-                Width="24" Height="24"
-                Content="⛶"
-                FontSize="{StaticResource FontSizeSubtitle}"
-                Click="OnExitFullscreenClick"
-                Visibility="Collapsed"
-                Panel.ZIndex="999"
-                Opacity="0.6"
-                Cursor="Hand"
-                ToolTip="{loc:Translate TooltipExitFullscreenEsc}"
-                AutomationProperties.Name="{loc:Translate A11yExitFullscreen}">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0"/>
-                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="2">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-                                        <Setter Property="Opacity" Value="1"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Button.Style>
-        </Button>
+        <!-- Fullscreen exit chrome uses a Popup (own HWND) so it stays visible above ActiveX/WebView content. -->
+        <Popup x:Name="FullscreenChromePopup"
+               PlacementTarget="{Binding ElementName=MainWindowRoot}"
+               Placement="Relative"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               Focusable="False"
+               PopupAnimation="None"
+               IsOpen="False">
+            <Border x:Name="FullscreenChromeRoot"
+                    Opacity="0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="18"
+                    Padding="3"
+                    MouseEnter="OnFullscreenChromeMouseActivity"
+                    MouseMove="OnFullscreenChromeMouseActivity">
+                <Button x:Name="FullscreenBar"
+                        Width="42"
+                        Height="32"
+                        Content="&#xE799;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBodyLarge}"
+                        Click="OnExitFullscreenClick"
+                        Cursor="Hand"
+                        ToolTip="{loc:Translate TooltipExitFullscreenEsc}"
+                        AutomationProperties.Name="{loc:Translate A11yExitFullscreen}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="ButtonBorder"
+                                                Background="{TemplateBinding Background}"
+                                                CornerRadius="15">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ButtonBorder"
+                                                        Property="Background"
+                                                Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="Foreground"
+                                                        Value="{DynamicResource TextOnAccentBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Border>
+        </Popup>
 
         <Border x:Name="RdpImportDropOverlay"
                 Grid.Row="1"

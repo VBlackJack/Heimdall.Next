@@ -27,8 +27,13 @@ public static partial class SchemaValidator
     private const int MaxPort = 65535;
     private const int MinResolution = 640;
     private const int MaxResolution = 7680;
+    private const int MinRdpFixedDimension = 200;
+    private const int MaxRdpFixedWidth = 7680;
+    private const int MaxRdpFixedHeight = 4320;
     private const int MinColorDepth = 8;
     private const int MaxColorDepth = 32;
+    private const int MinRdpResizeDelayMs = 1000;
+    private const int MaxRdpResizeDelayMs = 30000;
     private const int MaxEmbeddedSessionsLimit = 20;
     private const int MinAntiIdleInterval = 10;
     private const int MaxAntiIdleInterval = 600;
@@ -210,8 +215,34 @@ public static partial class SchemaValidator
         ValidateRange(errors, server.RdpColorDepth,
             MinColorDepth, MaxColorDepth, nameof(server.RdpColorDepth));
         ValidateRange(errors, server.RdpAudioMode, 0, 2, nameof(server.RdpAudioMode));
+        ValidateRdpResolutionProfile(errors, server);
 
         return new ValidationResult(errors.Count == 0, errors);
+    }
+
+    private static void ValidateRdpResolutionProfile(List<string> errors, ServerProfileDto server)
+    {
+        if (server.RdpResolutionMode == RdpResolutionMode.Fixed)
+        {
+            ValidateRange(errors, server.RdpFixedWidth,
+                MinRdpFixedDimension, MaxRdpFixedWidth, nameof(server.RdpFixedWidth));
+            ValidateRange(errors, server.RdpFixedHeight,
+                MinRdpFixedDimension, MaxRdpFixedHeight, nameof(server.RdpFixedHeight));
+        }
+        else if (server.RdpFixedWidth < 0)
+        {
+            errors.Add($"{nameof(server.RdpFixedWidth)}: value {server.RdpFixedWidth} must be zero or positive.");
+        }
+        else if (server.RdpFixedHeight < 0)
+        {
+            errors.Add($"{nameof(server.RdpFixedHeight)}: value {server.RdpFixedHeight} must be zero or positive.");
+        }
+
+        if (server.RdpResizeEnableDelayMs.HasValue)
+        {
+            ValidateRange(errors, server.RdpResizeEnableDelayMs.Value,
+                MinRdpResizeDelayMs, MaxRdpResizeDelayMs, nameof(server.RdpResizeEnableDelayMs));
+        }
     }
 
     /// <summary>

@@ -18,6 +18,7 @@ using System.IO;
 using System.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -53,22 +54,16 @@ public sealed class SplitServiceTests : IDisposable
         _toolRegistry = new ToolRegistry();
 
         // All 8 SplitService dependencies are sealed (Moq cannot mock sealed
-        // types at runtime). We pass real instances for the three that the
-        // targeted methods actually read, and null! for the five that the
-        // targeted code paths never touch: ConnectionStateMachine and
-        // TunnelManager are only invoked by the "server pane" branch of
-        // CloseAllPanes (we only build tool-pane / empty trees) and by
-        // CleanupOrphanedPane / ReleaseOldConnectionState (not tested here);
-        // EmbeddedSessionManager is only invoked by the positive path of
-        // SplitSessionWithTool (we only test its guard short-circuits);
-        // ConnectionService and DialogService are only invoked by the async
-        // connection flows.
+        // types at runtime). We pass real instances for dependencies the
+        // targeted methods read and a tiny fake session manager for host
+        // teardown; the remaining connection dependencies are only invoked by
+        // async connection flows that are outside this fixture.
         _sut = new SplitService(
             _configManager,
             _localizer,
             connectionSm: null!,
             tunnelManager: null!,
-            sessionManager: null!,
+            sessionManager: new FakeEmbeddedSessionManager(),
             connectionService: null!,
             _toolRegistry,
             dialogService: null!);
@@ -393,5 +388,62 @@ public sealed class SplitServiceTests : IDisposable
         public void Initialize(ToolContext? context, LocalizationManager? localizer) { }
         public bool CanClose() => _canClose;
         public void Dispose() => Disposed = true;
+    }
+
+    private sealed class FakeEmbeddedSessionManager : IEmbeddedSessionManager
+    {
+        public Action<byte[], object?>? BroadcastCallback { get; set; }
+        public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
+        public Func<bool>? IsBroadcastActive { get; set; }
+        public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
+        public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
+        public Action<string>? EditServerRequestedCallback { get; set; }
+        public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
+
+        public object CreateHostControl(
+            SessionTabViewModel sessionTab,
+            string displayName,
+            string connectionType,
+            ISessionResult session,
+            AppSettings? settings = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+        {
+            if (pane.HostControl is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public EmbeddedSshView CreateConnectingSshHostControl(
+            SessionTabViewModel sessionTab,
+            string displayName,
+            ServerProfileDto server,
+            AppSettings? settings = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void AttachSshSession(
+            SessionTabViewModel sessionTab,
+            ISessionResult sessionResult,
+            AppSettings? settings = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public object CreateToolControl(
+            SessionTabViewModel sessionTab,
+            string toolId,
+            ToolContext? context,
+            AppSettings? settings = null)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

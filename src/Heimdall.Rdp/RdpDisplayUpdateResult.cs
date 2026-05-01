@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Configuration;
+namespace Heimdall.Rdp;
 
-namespace Heimdall.Core.Tests;
-
-public sealed class AppSettingsRdpDefaultsTests
+/// <summary>
+/// Result of a live RDP display update attempt.
+/// </summary>
+public enum RdpDisplayUpdateResult
 {
-    [Fact]
-    public void RdpConfirmDisconnect_DefaultsToEnabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.True(settings.RdpConfirmDisconnect);
-    }
-
-    [Fact]
-    public void RdpConfirmReconnectOnResize_DefaultsToDisabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.False(settings.RdpConfirmReconnectOnResize);
-    }
+    Skipped,
+    Seamless,
+    ReconnectRequired,
+    ReconnectFallback,
+    Failed
 }

@@ -27,6 +27,7 @@ namespace Heimdall.Core.Configuration;
 public sealed class ServerProfileDto
 {
     private string? _sshKeyPassphraseEncrypted;
+    private RdpResolutionMode _rdpResolutionMode = RdpResolutionMode.FitWindow;
 
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
@@ -84,6 +85,34 @@ public sealed class ServerProfileDto
     // RDP display settings
     public bool RdpAntiIdle { get; set; }
     public string RdpAspectRatio { get; set; } = "Stretch";
+    public int RdpDefaultResolutionWidth { get; set; }
+    public int RdpDefaultResolutionHeight { get; set; }
+    [JsonPropertyName("rdpResolutionMode")]
+    [JsonConverter(typeof(JsonStringEnumConverter<RdpResolutionMode>))]
+    public RdpResolutionMode RdpResolutionMode
+    {
+        get => _rdpResolutionMode;
+        set
+        {
+            _rdpResolutionMode = value;
+            HasRdpResolutionModeField = true;
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasRdpResolutionModeField { get; private set; }
+
+    [JsonPropertyName("rdpFixedResolutionWidth")]
+    public int RdpFixedWidth { get; set; }
+
+    [JsonPropertyName("rdpFixedResolutionHeight")]
+    public int RdpFixedHeight { get; set; }
+
+    [JsonPropertyName("rdpInitialSmartSizing")]
+    public bool RdpInitialSmartSizing { get; set; } = true;
+
+    [JsonPropertyName("rdpResizeEnableDelayMs")]
+    public int? RdpResizeEnableDelayMs { get; set; }
     public bool IsFavorite { get; set; }
     public int SortOrder { get; set; }
     public string? Tags { get; set; }

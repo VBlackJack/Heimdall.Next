@@ -25,6 +25,7 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
+using Heimdall.Rdp;
 using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Dialogs;
@@ -53,9 +54,12 @@ public enum SshTestChipState
 public partial class ServerDialogViewModel : ObservableValidator
 {
     private const int AgentIdentityProbeTimeoutMs = 750;
+    private const int DefaultRdpFixedWidth = 1920;
+    private const int DefaultRdpFixedHeight = 1080;
     private LocalizationManager? _localizer;
     private int _defaultRdpTunnelPort = DefaultPorts.RdpTunnel;
     private int _defaultSshTunnelPort = DefaultPorts.SshTunnel;
+    private int _defaultRdpResizeEnableDelayMs = 10000;
     private SshAgentPreference _sshAgentPreference = SshAgentPreference.AutoOpenSshFirst;
     private bool? _rdpDialogAdvancedDefault;
     private bool _hasAppliedRdpDialogAdvancedDefault;
@@ -71,6 +75,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             _localizer = value;
             OnPropertyChanged(nameof(SshAuthHint));
             OnPropertyChanged(nameof(SshKeyPassphraseHint));
+            OnPropertyChanged(nameof(RdpResizeEnableDelayPlaceholder));
             RefreshAgentChipIfNeeded();
         }
     }
@@ -83,8 +88,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             if (value is null) return;
             _defaultRdpTunnelPort = value.DefaultRdpTunnelPort;
             _defaultSshTunnelPort = value.DefaultSshTunnelPort;
+            _defaultRdpResizeEnableDelayMs = value.RdpResizeEnableDelayMs;
             _sshAgentPreference = value.SshAgentPreference;
             ApplyRdpDialogAdvancedDefault(value.RdpDialogAdvancedDefault);
+            OnPropertyChanged(nameof(RdpResizeEnableDelayPlaceholder));
             RefreshAgentChipIfNeeded();
         }
     }
@@ -771,6 +778,27 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _rdpDynamicResolution = true;
 
     [ObservableProperty]
+    private RdpResolutionMode _rdpResolutionMode = RdpResolutionMode.FitWindow;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(200, 7680, ErrorMessage = "RDP fixed width must be between 200 and 7680.")]
+    private int _rdpFixedWidth = DefaultRdpFixedWidth;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(200, 4320, ErrorMessage = "RDP fixed height must be between 200 and 4320.")]
+    private int _rdpFixedHeight = DefaultRdpFixedHeight;
+
+    [ObservableProperty]
+    private bool _rdpInitialSmartSizing = true;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1000, 30000, ErrorMessage = "RDP resize delay must be inherited or between 1000 and 30000 ms.")]
+    private int? _rdpResizeEnableDelayMs;
+
+    [ObservableProperty]
     private bool _rdpNla = true;
 
     [ObservableProperty]
@@ -894,6 +922,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(LocalPortError),
         nameof(AudioModeError),
         nameof(ColorDepthError),
+        nameof(RdpFixedWidthError),
+        nameof(RdpFixedHeightError),
+        nameof(RdpResizeEnableDelayMsError),
         nameof(TunnelingTabErrorCount),
         nameof(OptionsTabErrorCount),
         nameof(FirstInvalidField),
@@ -944,6 +975,15 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _colorDepthError;
 
+    [ObservableProperty]
+    private string? _rdpFixedWidthError;
+
+    [ObservableProperty]
+    private string? _rdpFixedHeightError;
+
+    [ObservableProperty]
+    private string? _rdpResizeEnableDelayMsError;
+
     // Tab error counts for badge display
     [ObservableProperty]
     private int _tunnelingTabErrorCount;
@@ -964,6 +1004,26 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnOptionsTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasOptionsTabErrors));
 
     public bool IsRdpConnection => string.Equals(ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase);
+
+    public bool ShowRdpFixedResolutionFields =>
+        IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Fixed;
+
+    public bool ShowRdpInitialSmartSizing =>
+        IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Fixed;
+
+    public bool ShowRdpResizeEnableDelay =>
+        IsRdpConnection
+        && (RdpResolutionMode == RdpResolutionMode.FitWindow
+            || RdpResolutionMode == RdpResolutionMode.Fixed);
+
+    public bool ShowRdpMultimonNote =>
+        IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Multimon;
+
+    public string RdpResizeEnableDelayPlaceholder =>
+        string.Format(
+            CultureInfo.InvariantCulture,
+            L("ServerDialogRdpResizeDelayGlobalDefault"),
+            _defaultRdpResizeEnableDelayMs);
 
     public bool IsSshConnection => string.Equals(ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase);
 
@@ -1109,6 +1169,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         LocalPortError = null;
         AudioModeError = null;
         ColorDepthError = null;
+        RdpFixedWidthError = null;
+        RdpFixedHeightError = null;
+        RdpResizeEnableDelayMsError = null;
         TunnelingTabErrorCount = 0;
         OptionsTabErrorCount = 0;
         FirstInvalidField = null;
@@ -1118,9 +1181,14 @@ public partial class ServerDialogViewModel : ObservableValidator
     private void RefreshValidationSummary()
     {
         ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
-            ?? LocalPortError ?? AudioModeError ?? ColorDepthError;
+            ?? LocalPortError ?? AudioModeError ?? ColorDepthError
+            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError;
         TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
-        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0) + (ColorDepthError is not null ? 1 : 0);
+        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0)
+            + (ColorDepthError is not null ? 1 : 0)
+            + (RdpFixedWidthError is not null ? 1 : 0)
+            + (RdpFixedHeightError is not null ? 1 : 0)
+            + (RdpResizeEnableDelayMsError is not null ? 1 : 0);
     }
 
     [RelayCommand]
@@ -1142,6 +1210,18 @@ public partial class ServerDialogViewModel : ObservableValidator
         {
             ClearErrors(nameof(RdpAudioMode));
             ClearErrors(nameof(RdpColorDepth));
+            ClearErrors(nameof(RdpFixedWidth));
+            ClearErrors(nameof(RdpFixedHeight));
+            ClearErrors(nameof(RdpResizeEnableDelayMs));
+        }
+        if (!ShowRdpFixedResolutionFields)
+        {
+            ClearErrors(nameof(RdpFixedWidth));
+            ClearErrors(nameof(RdpFixedHeight));
+        }
+        if (!ShowRdpResizeEnableDelay)
+        {
+            ClearErrors(nameof(RdpResizeEnableDelayMs));
         }
         if (!UsesGateway) ClearErrors(nameof(LocalPort));
 
@@ -1160,10 +1240,19 @@ public partial class ServerDialogViewModel : ObservableValidator
         // Options tab errors (RDP-specific)
         AudioModeError = IsRdpConnection ? GetLocalizedFieldError(nameof(RdpAudioMode)) : null;
         ColorDepthError = IsRdpConnection ? GetLocalizedFieldError(nameof(RdpColorDepth)) : null;
+        RdpFixedWidthError = ShowRdpFixedResolutionFields ? GetLocalizedFieldError(nameof(RdpFixedWidth)) : null;
+        RdpFixedHeightError = ShowRdpFixedResolutionFields ? GetLocalizedFieldError(nameof(RdpFixedHeight)) : null;
+        RdpResizeEnableDelayMsError = ShowRdpResizeEnableDelay
+            ? GetLocalizedFieldError(nameof(RdpResizeEnableDelayMs))
+            : null;
 
         // Tab error counts
         TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
-        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0) + (ColorDepthError is not null ? 1 : 0);
+        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0)
+            + (ColorDepthError is not null ? 1 : 0)
+            + (RdpFixedWidthError is not null ? 1 : 0)
+            + (RdpFixedHeightError is not null ? 1 : 0)
+            + (RdpResizeEnableDelayMsError is not null ? 1 : 0);
 
         // First invalid field for auto-focus
         FirstInvalidField = DisplayNameError is not null ? nameof(DisplayName)
@@ -1172,16 +1261,85 @@ public partial class ServerDialogViewModel : ObservableValidator
             : LocalPortError is not null ? nameof(LocalPort)
             : AudioModeError is not null ? nameof(RdpAudioMode)
             : ColorDepthError is not null ? nameof(RdpColorDepth)
+            : RdpFixedWidthError is not null ? nameof(RdpFixedWidth)
+            : RdpFixedHeightError is not null ? nameof(RdpFixedHeight)
+            : RdpResizeEnableDelayMsError is not null ? nameof(RdpResizeEnableDelayMs)
             : null;
 
         // Aggregate summary
         ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
-            ?? LocalPortError ?? AudioModeError ?? ColorDepthError;
+            ?? LocalPortError ?? AudioModeError ?? ColorDepthError
+            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError;
     }
 
     partial void OnRdpPerformanceFlagsChanged(int value)
     {
         DecomposePerformanceFlags(value);
+    }
+
+    partial void OnRdpResolutionModeChanged(RdpResolutionMode value)
+    {
+        RdpMultiMonitor = value == RdpResolutionMode.Multimon;
+        ClearHiddenRdpResolutionErrors();
+        RaiseRdpResolutionProfileStateChanged();
+        RefreshValidationSummary();
+    }
+
+    partial void OnRdpFixedWidthChanged(int value)
+    {
+        if (RdpFixedWidthError is not null)
+        {
+            ValidateProperty(value, nameof(RdpFixedWidth));
+            RdpFixedWidthError = ShowRdpFixedResolutionFields ? GetLocalizedFieldError(nameof(RdpFixedWidth)) : null;
+            RefreshValidationSummary();
+        }
+    }
+
+    partial void OnRdpFixedHeightChanged(int value)
+    {
+        if (RdpFixedHeightError is not null)
+        {
+            ValidateProperty(value, nameof(RdpFixedHeight));
+            RdpFixedHeightError = ShowRdpFixedResolutionFields ? GetLocalizedFieldError(nameof(RdpFixedHeight)) : null;
+            RefreshValidationSummary();
+        }
+    }
+
+    partial void OnRdpResizeEnableDelayMsChanged(int? value)
+    {
+        if (RdpResizeEnableDelayMsError is not null)
+        {
+            ValidateProperty(value, nameof(RdpResizeEnableDelayMs));
+            RdpResizeEnableDelayMsError = ShowRdpResizeEnableDelay
+                ? GetLocalizedFieldError(nameof(RdpResizeEnableDelayMs))
+                : null;
+            RefreshValidationSummary();
+        }
+    }
+
+    private void ClearHiddenRdpResolutionErrors()
+    {
+        if (!ShowRdpFixedResolutionFields)
+        {
+            ClearErrors(nameof(RdpFixedWidth));
+            ClearErrors(nameof(RdpFixedHeight));
+            RdpFixedWidthError = null;
+            RdpFixedHeightError = null;
+        }
+
+        if (!ShowRdpResizeEnableDelay)
+        {
+            ClearErrors(nameof(RdpResizeEnableDelayMs));
+            RdpResizeEnableDelayMsError = null;
+        }
+    }
+
+    private void RaiseRdpResolutionProfileStateChanged()
+    {
+        OnPropertyChanged(nameof(ShowRdpFixedResolutionFields));
+        OnPropertyChanged(nameof(ShowRdpInitialSmartSizing));
+        OnPropertyChanged(nameof(ShowRdpResizeEnableDelay));
+        OnPropertyChanged(nameof(ShowRdpMultimonNote));
     }
 
     private int ComposePerformanceFlags()
@@ -1216,6 +1374,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     public ServerProfileDto ToDto()
     {
         var sshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath;
+        var snappedRdpFixedWidth = RdpDisplayHelper.SnapToMultipleOf(RdpFixedWidth, 4);
 
         return new ServerProfileDto
         {
@@ -1290,8 +1449,13 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpRedirectUsb = RdpRedirectUsb,
             RdpAudioMode = RdpAudioMode,
             RdpAudioCapture = RdpAudioCapture,
-            RdpMultiMonitor = RdpMultiMonitor,
+            RdpMultiMonitor = RdpResolutionMode == RdpResolutionMode.Multimon,
             RdpDynamicResolution = RdpDynamicResolution,
+            RdpResolutionMode = RdpResolutionMode,
+            RdpFixedWidth = snappedRdpFixedWidth,
+            RdpFixedHeight = RdpFixedHeight,
+            RdpInitialSmartSizing = RdpInitialSmartSizing,
+            RdpResizeEnableDelayMs = RdpResizeEnableDelayMs,
             RdpNla = RdpNla,
             RdpAspectRatio = RdpAspectRatio,
             RdpColorDepth = RdpColorDepth,
@@ -1320,6 +1484,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         ArgumentNullException.ThrowIfNull(dto);
         PostConnectMigration.Migrate(dto);
+        RdpResolutionProfileMigration.Migrate(dto);
 
         var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
         var suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
@@ -1389,7 +1554,12 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RdpRedirectUsb = dto.RdpRedirectUsb;
         vm.RdpAudioMode = dto.RdpAudioMode;
         vm.RdpAudioCapture = dto.RdpAudioCapture;
-        vm.RdpMultiMonitor = dto.RdpMultiMonitor;
+        vm.RdpResolutionMode = dto.RdpResolutionMode;
+        vm.RdpFixedWidth = dto.RdpFixedWidth > 0 ? dto.RdpFixedWidth : DefaultRdpFixedWidth;
+        vm.RdpFixedHeight = dto.RdpFixedHeight > 0 ? dto.RdpFixedHeight : DefaultRdpFixedHeight;
+        vm.RdpInitialSmartSizing = dto.RdpInitialSmartSizing;
+        vm.RdpResizeEnableDelayMs = dto.RdpResizeEnableDelayMs;
+        vm.RdpMultiMonitor = dto.RdpResolutionMode == RdpResolutionMode.Multimon;
         vm.RdpDynamicResolution = dto.RdpDynamicResolution;
         vm.RdpNla = dto.RdpNla;
         vm.RdpAspectRatio = dto.RdpAspectRatio;
@@ -1635,6 +1805,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(GatewayToServerLabel));
         OnPropertyChanged(nameof(IsVncConnection));
         OnPropertyChanged(nameof(RequiresNetworkEndpoint));
+        RaiseRdpResolutionProfileStateChanged();
     }
 
     private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)
@@ -1648,6 +1819,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["SSH port must be between 1 and 65535."] = "ValidationSshPortRange",
         ["Audio mode must be 0 (disabled), 1 (local), or 2 (remote)."] = "ValidationAudioMode",
         ["Color depth must be between 8 and 32."] = "ValidationColorDepth",
+        ["RDP fixed width must be between 200 and 7680."] = "ValidationRdpFixedWidthRange",
+        ["RDP fixed height must be between 200 and 4320."] = "ValidationRdpFixedHeightRange",
+        ["RDP resize delay must be inherited or between 1000 and 30000 ms."] = "ValidationRdpResizeEnableDelayRange",
         ["FTP port must be between 1 and 65535."] = "ValidationFtpPortRange",
         ["VNC port must be between 1 and 65535."] = "ValidationVncPortRange",
     };

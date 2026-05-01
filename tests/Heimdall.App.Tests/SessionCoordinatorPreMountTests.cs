@@ -336,6 +336,7 @@ public sealed class SessionCoordinatorPreMountTests
         public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
         public Func<bool>? IsBroadcastActive { get; set; }
         public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
+        public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
         public Action<string>? EditServerRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
@@ -352,6 +353,16 @@ public sealed class SessionCoordinatorPreMountTests
         {
             CreateHostControlCalls++;
             return new object();
+        }
+
+        public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+        {
+            if (pane.HostControl is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            return Task.CompletedTask;
         }
 
         public EmbeddedSshView CreateConnectingSshHostControl(

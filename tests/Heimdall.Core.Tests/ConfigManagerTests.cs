@@ -431,6 +431,116 @@ public class ConfigManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadServersAsync_MigratesLegacyFixedResolutionToFixedMode()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = """
+        [
+          {
+            "id": "srv-fixed",
+            "displayName": "Fixed",
+            "remoteServer": "10.0.0.1",
+            "rdpFixedResolutionWidth": 1920,
+            "rdpFixedResolutionHeight": 1080
+          }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, json, new UTF8Encoding(false));
+
+        var servers = await _manager.LoadServersAsync();
+
+        Assert.Single(servers);
+        Assert.Equal(RdpResolutionMode.Fixed, servers[0].RdpResolutionMode);
+        Assert.Equal(1920, servers[0].RdpFixedWidth);
+        Assert.Equal(1080, servers[0].RdpFixedHeight);
+    }
+
+    [Fact]
+    public async Task LoadServersAsync_ExplicitResolutionModeWinsOverLegacyFixedResolution()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = """
+        [
+          {
+            "id": "srv-fit",
+            "displayName": "Fit",
+            "remoteServer": "10.0.0.1",
+            "rdpResolutionMode": "FitWindow",
+            "rdpFixedResolutionWidth": 1920,
+            "rdpFixedResolutionHeight": 1080
+          }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, json, new UTF8Encoding(false));
+
+        var servers = await _manager.LoadServersAsync();
+
+        Assert.Single(servers);
+        Assert.Equal(RdpResolutionMode.FitWindow, servers[0].RdpResolutionMode);
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_RoundTripsLegacyMultimonAsResolutionMode()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = """
+        [
+          {
+            "id": "srv-multimon",
+            "displayName": "Legacy Multimon",
+            "remoteServer": "10.0.0.1",
+            "rdpMultiMonitor": true
+          }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, json, new UTF8Encoding(false));
+
+        var servers = await _manager.LoadServersAsync();
+        await _manager.SaveServersAsync(servers);
+        var reloaded = await _manager.LoadServersAsync();
+
+        Assert.Single(reloaded);
+        Assert.Equal(RdpResolutionMode.Multimon, reloaded[0].RdpResolutionMode);
+        Assert.True(reloaded[0].RdpMultiMonitor);
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_WritesResolutionProfileAndBackfillsMultimonBool()
+    {
+        var servers = new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "srv-multi",
+                DisplayName = "Multi",
+                RemoteServer = "10.0.0.1",
+                RdpResolutionMode = RdpResolutionMode.Multimon,
+                RdpFixedWidth = 2560,
+                RdpFixedHeight = 1440,
+                RdpInitialSmartSizing = false,
+                RdpResizeEnableDelayMs = 3000
+            }
+        };
+
+        await _manager.SaveServersAsync(servers);
+        var json = await File.ReadAllTextAsync(_manager.ServersPath, new UTF8Encoding(false));
+        var loaded = await _manager.LoadServersAsync();
+
+        Assert.Contains("\"rdpResolutionMode\": \"Multimon\"", json);
+        Assert.Contains("\"rdpFixedResolutionWidth\": 2560", json);
+        Assert.Contains("\"rdpFixedResolutionHeight\": 1440", json);
+        Assert.True(loaded[0].RdpMultiMonitor);
+        Assert.False(loaded[0].RdpInitialSmartSizing);
+        Assert.Equal(3000, loaded[0].RdpResizeEnableDelayMs);
+    }
+
+    [Fact]
     public async Task LoadServersAsync_LegacySshKeyPassword_DoesNotAutoMigrateToKeyPassphrase()
     {
         CredentialProtector.Initialize(null);

@@ -68,6 +68,13 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
     public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded view requests user-driven disconnect.
+    /// Parameters: (SessionTabViewModel session, SessionPaneModel pane, DisconnectReason reason).
+    /// Wired by MainViewModel to close the owning pane or tab through the shared lifecycle path.
+    /// </summary>
+    public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
+
+    /// <summary>
     /// Optional callback invoked when an embedded RDP view requests server profile editing.
     /// Parameters: (string serverId).
     /// Wired by MainViewModel to open the existing server edit flow.
@@ -129,6 +136,11 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                     sessionTab,
                     !string.IsNullOrEmpty(sessionTab.OriginalServerId) ? sessionTab.OriginalServerId : sessionTab.ServerId,
                     sessionTab.ConnectionType);
+            view.DisconnectRequested += () =>
+                DisconnectRequestedCallback?.Invoke(
+                    sessionTab,
+                    view.OwningPane ?? sessionTab.PrimaryPane,
+                    DisconnectReason.UserAction);
             view.EditServerRequested += serverId => EditServerRequestedCallback?.Invoke(serverId);
             return view;
         }
@@ -362,6 +374,54 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
+    }
+
+    public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedSessionManager.DisconnectSessionAsync started paneId={pane.PaneId} title='{pane.Title}' connectionType={pane.ConnectionType} reason={reason}");
+
+        switch (pane.HostControl)
+        {
+            case EmbeddedRdpView rdpView:
+                rdpView.DisconnectForTeardown(reason);
+                break;
+
+            case IDisposable disposable:
+                try
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSessionManager.DisconnectSessionAsync disposing host paneId={pane.PaneId} reason={reason} hostType={disposable.GetType().FullName}");
+                    disposable.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSessionManager.DisconnectSessionAsync host already disposed paneId={pane.PaneId} reason={reason}");
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedSessionManager.DisconnectSessionAsync host dispose failed paneId={pane.PaneId} reason={reason}: {ex.Message}");
+                }
+                break;
+
+            case null:
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedSessionManager.DisconnectSessionAsync no host paneId={pane.PaneId} reason={reason}");
+                break;
+
+            default:
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedSessionManager.DisconnectSessionAsync non-disposable host paneId={pane.PaneId} reason={reason} hostType={pane.HostControl.GetType().FullName}");
+                break;
+        }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedSessionManager.DisconnectSessionAsync completed paneId={pane.PaneId} reason={reason}");
+        return Task.CompletedTask;
     }
 
     /// <summary>

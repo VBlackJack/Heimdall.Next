@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Configuration;
+namespace Heimdall.App.Services;
 
-namespace Heimdall.Core.Tests;
-
-public sealed class AppSettingsRdpDefaultsTests
+/// <summary>
+/// Describes why a hosted session pane is being disconnected.
+/// </summary>
+public enum DisconnectReason
 {
-    [Fact]
-    public void RdpConfirmDisconnect_DefaultsToEnabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.True(settings.RdpConfirmDisconnect);
-    }
-
-    [Fact]
-    public void RdpConfirmReconnectOnResize_DefaultsToDisabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.False(settings.RdpConfirmReconnectOnResize);
-    }
+    UserAction,
+    TabClose,
+    FailedSession,
+    ReconnectInitiated
 }

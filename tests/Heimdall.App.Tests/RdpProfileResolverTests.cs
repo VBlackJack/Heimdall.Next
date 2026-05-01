@@ -142,6 +142,58 @@ public sealed class RdpProfileResolverTests
     }
 
     [Fact]
+    public void BuildRedirections_ExplicitMultimonModeWinsOverGlobalDefaults()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpUseGlobalDefaults = true,
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpMultiMonitor = false
+        };
+        var settings = new AppSettings
+        {
+            RdpDefaultMultiMonitor = false
+        };
+
+        var redirections = RdpProfileResolver.BuildRedirections(server, settings);
+
+        Assert.True(redirections.MultiMonitor);
+    }
+
+    [Fact]
+    public void BuildRedirections_ExplicitNonMultimonModeDisablesLegacyBool()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpUseGlobalDefaults = true,
+            RdpResolutionMode = RdpResolutionMode.FitWindow,
+            RdpMultiMonitor = true
+        };
+        var settings = new AppSettings
+        {
+            RdpDefaultMultiMonitor = true
+        };
+
+        var redirections = RdpProfileResolver.BuildRedirections(server, settings);
+
+        Assert.False(redirections.MultiMonitor);
+    }
+
+    [Fact]
+    public void BuildRedirections_LegacyMultimonBoolStillWorksBeforeMigration()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpUseGlobalDefaults = false,
+            RdpMultiMonitor = true
+        };
+
+        var redirections = RdpProfileResolver.BuildRedirections(server, new AppSettings());
+
+        Assert.True(redirections.MultiMonitor);
+    }
+
+    [Fact]
     public void BuildRedirections_PerformanceFlagsAndDisableUdpAreAlwaysPerServer()
     {
         var server = new ServerProfileDto

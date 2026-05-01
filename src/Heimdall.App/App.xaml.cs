@@ -33,6 +33,7 @@ using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
+using Microsoft.Win32;
 using Microsoft.Extensions.DependencyInjection;
 using CoreKnownHostsExporter = Heimdall.Core.Ssh.KnownHostsExporter;
 using CoreKnownHostsImporter = Heimdall.Core.Ssh.KnownHostsImporter;
@@ -105,6 +106,7 @@ public partial class App : System.Windows.Application
         Heimdall.Core.Logging.FileLogger.Initialize(logDir);
         Heimdall.Core.Logging.ConnectionHistory.Initialize(logDir);
         Heimdall.Core.Logging.FileLogger.Info("Heimdall.Next starting");
+        LogMsTscAxRegistration();
 
         // Register Windows-1252 codepage for MobaXterm .ini import
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -274,6 +276,29 @@ public partial class App : System.Windows.Application
 
         window.Show();
         return window;
+    }
+
+    private static void LogMsTscAxRegistration()
+    {
+        try
+        {
+            using var curVerKey = Registry.ClassesRoot.OpenSubKey(@"MsTscAx.MsTscAx\CurVer");
+            var curVer = curVerKey?.GetValue(null)?.ToString();
+            var resolvedProgId = string.IsNullOrWhiteSpace(curVer) ? "MsTscAx.MsTscAx" : curVer;
+
+            using var progIdKey = Registry.ClassesRoot.OpenSubKey(resolvedProgId);
+            using var clsidKey = progIdKey?.OpenSubKey("CLSID");
+            var clsid = clsidKey?.GetValue(null)?.ToString();
+            var comType = Type.GetTypeFromProgID("MsTscAx.MsTscAx", throwOnError: false);
+
+            Heimdall.Core.Logging.FileLogger.Info(
+                $"MsTscAx.MsTscAx registration: CurVer={curVer ?? "<missing>"} resolvedProgId={resolvedProgId} CLSID={clsid ?? "<missing>"} TypeFromProgID={comType?.FullName ?? "<null>"}");
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Info(
+                $"MsTscAx.MsTscAx registration lookup threw {ex.GetType().FullName}: {ex.Message} HRESULT=0x{unchecked((uint)ex.HResult):X8}");
+        }
     }
 
     /// <summary>

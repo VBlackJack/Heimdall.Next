@@ -14,25 +14,23 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Configuration;
+namespace Heimdall.App.Services;
 
-namespace Heimdall.Core.Tests;
-
-public sealed class AppSettingsRdpDefaultsTests
+/// <summary>
+/// Minimal surface needed to tear down the hosted RDP ActiveX control in a
+/// deterministic order. Kept UI-agnostic so the sequence can be unit-tested.
+/// </summary>
+public interface IRdpDisconnectTeardownTarget
 {
-    [Fact]
-    public void RdpConfirmDisconnect_DefaultsToEnabled()
-    {
-        var settings = new AppSettings();
+    string TeardownTargetName { get; }
 
-        Assert.True(settings.RdpConfirmDisconnect);
-    }
+    void CollapseHost();
 
-    [Fact]
-    public void RdpConfirmReconnectOnResize_DefaultsToDisabled()
-    {
-        var settings = new AppSettings();
+    void ClearHostChild();
 
-        Assert.False(settings.RdpConfirmReconnectOnResize);
-    }
+    void Disconnect();
+
+    void DetachEventSink();
+
+    void DisposeHost();
 }

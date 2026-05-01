@@ -433,7 +433,10 @@ public sealed class SplitService : ISplitService
     /// Closes a specific pane in the split tree. Releases tunnel, resets state machine,
     /// and promotes the sibling. Fixed disposal order: detach → remove → dispose.
     /// </summary>
-    public void ClosePane(SessionTabViewModel session, string paneId)
+    public void ClosePane(
+        SessionTabViewModel session,
+        string paneId,
+        DisconnectReason reason = DisconnectReason.UserAction)
     {
         var pane = SplitTreeHelper.FindPane(session.RootContent, paneId);
         if (pane is null)
@@ -467,15 +470,11 @@ public sealed class SplitService : ISplitService
             _connectionSm.Reset(pane.ServerId);
         }
 
-        // Fixed disposal order: detach from visual tree FIRST, then remove from tree,
-        // then dispose. Prevents RDP/ActiveX airspace issues during disposal.
-        var hostControl = pane.HostControl;
+        DisconnectPaneHost(pane, reason);
         pane.HostControl = null;
 
         var newRoot = SplitTreeHelper.RemovePane(session.RootContent, paneId);
         session.RootContent = newRoot ?? new SessionPaneModel();
-
-        SafeDispose(hostControl as IDisposable);
     }
 
     // ── Reconnect pane (async) ───────────────────────────────────────
@@ -510,11 +509,11 @@ public sealed class SplitService : ISplitService
         // Save old connection state for deferred cleanup (released only after successful reconnect)
         var oldServerId = pane.ServerId;
 
-        // Dispose current host control (detach first)
-        var oldHostControl = pane.HostControl;
+        // Dispose current host control through the shared teardown order before
+        // replacing it with the reconnect placeholder state.
+        await _sessionManager.DisconnectSessionAsync(pane, DisconnectReason.ReconnectInitiated);
         pane.HostControl = null;
         pane.Status = _localizer["SplitSecondaryConnecting"];
-        SafeDispose(oldHostControl as IDisposable);
 
         var parent = SplitTreeHelper.FindParent(session.RootContent, paneId);
         var orientation = parent?.Orientation ?? SplitOrientation.Vertical;
@@ -699,7 +698,9 @@ public sealed class SplitService : ISplitService
     /// records disconnect history, and disposes host controls. Returns false if a busy
     /// tool pane blocked the close.
     /// </summary>
-    public bool CloseAllPanes(SessionTabViewModel session)
+    public bool CloseAllPanes(
+        SessionTabViewModel session,
+        DisconnectReason reason = DisconnectReason.UserAction)
     {
         var leaves = SplitTreeHelper.EnumerateLeaves(session.RootContent).ToList();
 
@@ -733,10 +734,8 @@ public sealed class SplitService : ISplitService
                 _connectionSm.Reset(pane.ServerId);
             }
 
-            // Fixed disposal order: detach from visual tree, then dispose
-            var hostControl = pane.HostControl;
+            DisconnectPaneHost(pane, reason);
             pane.HostControl = null;
-            SafeDispose(hostControl as IDisposable);
         }
 
         return true;
@@ -828,6 +827,19 @@ public sealed class SplitService : ISplitService
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"Unexpected exception during host control disposal: {ex.Message}");
+        }
+    }
+
+    private void DisconnectPaneHost(SessionPaneModel pane, DisconnectReason reason)
+    {
+        try
+        {
+            _sessionManager.DisconnectSessionAsync(pane, reason).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"DisconnectSessionAsync failed for pane '{pane.PaneId}' reason={reason}: {ex.Message}");
         }
     }
 

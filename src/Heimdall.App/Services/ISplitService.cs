@@ -68,7 +68,10 @@ public interface ISplitService
     /// <summary>
     /// Closes a single pane inside the split tree.
     /// </summary>
-    void ClosePane(SessionTabViewModel session, string paneId);
+    void ClosePane(
+        SessionTabViewModel session,
+        string paneId,
+        DisconnectReason reason = DisconnectReason.UserAction);
 
     /// <summary>
     /// Reconnects the session represented by a specific pane.
@@ -93,5 +96,7 @@ public interface ISplitService
     /// <summary>
     /// Closes all panes for a session. Returns false when a tool pane blocks closure.
     /// </summary>
-    bool CloseAllPanes(SessionTabViewModel session);
+    bool CloseAllPanes(
+        SessionTabViewModel session,
+        DisconnectReason reason = DisconnectReason.UserAction);
 }
