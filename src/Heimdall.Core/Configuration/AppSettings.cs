@@ -149,6 +149,14 @@ public sealed class AppSettings
     public int NotesSidebarWidth { get; set; } = 300;
 
     // UI state
+    /// <summary>
+    /// Application default for the initial Tunnels panel state when a session has no per-profile override
+    /// (<see cref="ServerProfileDto.TunnelsPanelExpanded"/> == null).
+    /// true = panel starts collapsed; false = panel starts expanded.
+    /// Per-profile manual choice always wins.
+    /// </summary>
+    public bool CollapseTunnelsPanelByDefault { get; set; } = true;
+
     public bool SidebarCollapsed { get; set; }
     public int SidebarWidth { get; set; } = 220;
     public bool ShowToolsPanel { get; set; }

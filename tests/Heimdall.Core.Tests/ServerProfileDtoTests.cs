@@ -15,12 +15,20 @@
  */
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Heimdall.Core.Configuration;
 
 namespace Heimdall.Core.Tests;
 
 public class ServerProfileDtoTests
 {
+    private static readonly JsonSerializerOptions CamelCaseOmitNullOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     // ── Default values ──────────────────────────────────────────────────
 
     [Fact]
@@ -90,6 +98,14 @@ public class ServerProfileDtoTests
         Assert.Equal(0, dto.RdpFixedHeight);
         Assert.True(dto.RdpInitialSmartSizing);
         Assert.Null(dto.RdpResizeEnableDelayMs);
+    }
+
+    [Fact]
+    public void TunnelsPanelExpanded_DefaultsToNull()
+    {
+        var dto = new ServerProfileDto();
+
+        Assert.Null(dto.TunnelsPanelExpanded);
     }
 
     [Fact]
@@ -188,6 +204,80 @@ public class ServerProfileDtoTests
         Assert.Equal(original.Environment, deserialized.Environment);
         Assert.Equal(original.LocalShellExecutable, deserialized.LocalShellExecutable);
         Assert.Equal(original.LocalShellElevated, deserialized.LocalShellElevated);
+    }
+
+    [Fact]
+    public void TunnelsPanelExpanded_RoundTrip_NullOmitsKey()
+    {
+        var original = new ServerProfileDto
+        {
+            Id = "srv-null",
+            DisplayName = "Null State",
+            RemoteServer = "10.0.0.1",
+            TunnelsPanelExpanded = null
+        };
+
+        var json = JsonSerializer.Serialize(original, CamelCaseOmitNullOptions);
+        var deserialized = JsonSerializer.Deserialize<ServerProfileDto>(json, CamelCaseOmitNullOptions);
+
+        Assert.DoesNotContain("tunnelsPanelExpanded", json);
+        Assert.NotNull(deserialized);
+        Assert.Null(deserialized.TunnelsPanelExpanded);
+    }
+
+    [Fact]
+    public void TunnelsPanelExpanded_RoundTrip_True()
+    {
+        var original = new ServerProfileDto
+        {
+            Id = "srv-true",
+            DisplayName = "True State",
+            RemoteServer = "10.0.0.1",
+            TunnelsPanelExpanded = true
+        };
+
+        var json = JsonSerializer.Serialize(original, CamelCaseOmitNullOptions);
+        var deserialized = JsonSerializer.Deserialize<ServerProfileDto>(json, CamelCaseOmitNullOptions);
+
+        Assert.Contains("\"tunnelsPanelExpanded\": true", json);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.TunnelsPanelExpanded);
+    }
+
+    [Fact]
+    public void TunnelsPanelExpanded_RoundTrip_False()
+    {
+        var original = new ServerProfileDto
+        {
+            Id = "srv-false",
+            DisplayName = "False State",
+            RemoteServer = "10.0.0.1",
+            TunnelsPanelExpanded = false
+        };
+
+        var json = JsonSerializer.Serialize(original, CamelCaseOmitNullOptions);
+        var deserialized = JsonSerializer.Deserialize<ServerProfileDto>(json, CamelCaseOmitNullOptions);
+
+        Assert.Contains("\"tunnelsPanelExpanded\": false", json);
+        Assert.NotNull(deserialized);
+        Assert.False(deserialized.TunnelsPanelExpanded);
+    }
+
+    [Fact]
+    public void TunnelsPanelExpanded_LegacyJson_DeserialisesToNull()
+    {
+        var json = """
+        {
+            "id": "srv-legacy",
+            "displayName": "Legacy",
+            "remoteServer": "10.0.0.1"
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<ServerProfileDto>(json, CamelCaseOmitNullOptions);
+
+        Assert.NotNull(dto);
+        Assert.Null(dto.TunnelsPanelExpanded);
     }
 
     [Fact]

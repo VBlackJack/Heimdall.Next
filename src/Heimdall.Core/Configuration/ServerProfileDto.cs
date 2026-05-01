@@ -113,6 +113,14 @@ public sealed class ServerProfileDto
 
     [JsonPropertyName("rdpResizeEnableDelayMs")]
     public int? RdpResizeEnableDelayMs { get; set; }
+
+    /// <summary>
+    /// Per-profile override for the Tunnels panel expanded state.
+    /// null = use application default (<see cref="AppSettings.CollapseTunnelsPanelByDefault"/>).
+    /// true / false = remembered manual choice for this profile.
+    /// </summary>
+    public bool? TunnelsPanelExpanded { get; set; }
+
     public bool IsFavorite { get; set; }
     public int SortOrder { get; set; }
     public string? Tags { get; set; }
