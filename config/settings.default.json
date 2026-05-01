@@ -70,6 +70,7 @@
     "rdpReleaseFocusShortcut": "Ctrl+Alt+Home",
     "rdpFullscreenToggleShortcut": "F11",
     "rdpDialogAdvancedDefault": false,
+    "rdpConfirmReconnectOnResize": false,
     "enableSessionPersistence": false,
     "maxEmbeddedSessions": 10,
     "embeddedRdpTimeoutMs": 30000,

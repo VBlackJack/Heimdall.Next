@@ -630,9 +630,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void ClosePane(SessionTabViewModel session, string paneId)
+    public void ClosePane(
+        SessionTabViewModel session,
+        string paneId,
+        DisconnectReason reason = DisconnectReason.UserAction)
     {
-        Split.ClosePane(session, paneId);
+        Split.ClosePane(session, paneId, reason);
     }
 
     [RelayCommand]

@@ -16,8 +16,13 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using WinForms = System.Windows.Forms;
 
 namespace Heimdall.App;
 
@@ -31,6 +36,19 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow
 {
+    private static readonly TimeSpan FullscreenChromeAutoHideDelay = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan FullscreenChromeFadeDuration = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan FullscreenChromeMousePollInterval = TimeSpan.FromMilliseconds(100);
+    private const double FullscreenChromeRevealThresholdPx = 30;
+    private const double FullscreenChromeRightMargin = 14;
+    private const double FullscreenChromeTopMargin = 14;
+    private const double FullscreenChromeEstimatedWidth = 50;
+    private DispatcherTimer? _fullscreenChromeAutoHideTimer;
+    private DispatcherTimer? _fullscreenChromeMousePollTimer;
+    private System.Drawing.Point? _lastFullscreenMouseScreenPoint;
+    private IDisposable? _lowLevelKeyboardHook;
+    private bool _fullscreenChromeVisible;
+
     // ── Tree scroll save/restore ─────────────────────────────────────
 
     private void SaveTreeViewScrollPosition()
@@ -75,7 +93,7 @@ public partial class MainWindow
         {
             // Exit fullscreen
             _uiState.IsFullscreen = false;
-            FullscreenBar.Visibility = Visibility.Collapsed;
+            StopFullscreenChrome();
             NotifyEmbeddedViewsFullscreen(false);
 
             // Show toolbar, TreeView, status bar
@@ -112,7 +130,7 @@ public partial class MainWindow
 
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
-            FullscreenBar.Visibility = Visibility.Visible;
+            StartFullscreenChrome();
 
             // Hide session tab headers in fullscreen (session fills the screen)
             SessionTabControl.Padding = new Thickness(0);
@@ -153,8 +171,311 @@ public partial class MainWindow
 
     private void OnExitFullscreenClick(object sender, RoutedEventArgs e)
     {
-        FullscreenBar.Visibility = Visibility.Collapsed;
         if (_uiState.IsFullscreen) ToggleFullscreen();
+    }
+
+    private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var action = FullscreenShortcutRouter.Resolve(e.Key, Keyboard.Modifiers, _uiState.IsFullscreen);
+        if (action == FullscreenShortcutAction.None)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ApplyFullscreenShortcutAction(action);
+    }
+
+    private void OnThreadPreprocessMessage(ref MSG msg, ref bool handled)
+    {
+        const int wmKeyDown = 0x0100;
+        const int wmSysKeyDown = 0x0104;
+
+        if (handled || (msg.message != wmKeyDown && msg.message != wmSysKeyDown))
+        {
+            return;
+        }
+
+        var key = KeyInterop.KeyFromVirtualKey((int)msg.wParam);
+        var modifiers = Keyboard.Modifiers;
+        var action = FullscreenShortcutRouter.Resolve(key, modifiers, _uiState.IsFullscreen);
+        if (action == FullscreenShortcutAction.None)
+        {
+            return;
+        }
+
+        handled = true;
+        Heimdall.Core.Logging.FileLogger.Info(
+            $"MainWindow.ThreadPreprocessMessage intercepted key={key} fullscreen={_uiState.IsFullscreen} action={action} handled=true");
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Input,
+            new Action(() => ApplyFullscreenShortcutAction(action)));
+    }
+
+    private void ApplyFullscreenShortcutAction(FullscreenShortcutAction action)
+    {
+        switch (action)
+        {
+            case FullscreenShortcutAction.EnterFullscreen:
+                if (!_uiState.IsFullscreen)
+                {
+                    ToggleFullscreen();
+                }
+                break;
+
+            case FullscreenShortcutAction.ExitFullscreen:
+                if (_uiState.IsFullscreen)
+                {
+                    ToggleFullscreen();
+                }
+                break;
+
+            case FullscreenShortcutAction.ToggleFullscreen:
+                ToggleFullscreen();
+                break;
+        }
+    }
+
+    private void OnFullscreenChromeMouseActivity(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_uiState.IsFullscreen)
+        {
+            return;
+        }
+
+        ShowFullscreenChrome(restartAutoHide: true);
+    }
+
+    private void StartFullscreenChrome()
+    {
+        StartFullscreenChromeMousePolling();
+        ShowFullscreenChrome(restartAutoHide: true);
+    }
+
+    private void StopFullscreenChrome()
+    {
+        StopFullscreenChromeAutoHideTimer();
+        StopFullscreenChromeMousePolling();
+        _fullscreenChromeVisible = false;
+        FullscreenChromePopup.IsOpen = false;
+        FullscreenChromeRoot.Opacity = 0;
+    }
+
+    private void ShowFullscreenChrome(bool restartAutoHide)
+    {
+        UpdateFullscreenChromePlacement();
+
+        if (!FullscreenChromePopup.IsOpen)
+        {
+            FullscreenChromeRoot.Opacity = 0;
+            FullscreenChromePopup.IsOpen = true;
+        }
+
+        _fullscreenChromeVisible = true;
+        AnimateFullscreenChromeOpacity(1, closeWhenDone: false);
+
+        if (restartAutoHide)
+        {
+            RestartFullscreenChromeAutoHideTimer();
+        }
+    }
+
+    private void HideFullscreenChrome()
+    {
+        if (!FullscreenChromePopup.IsOpen)
+        {
+            _fullscreenChromeVisible = false;
+            return;
+        }
+
+        _fullscreenChromeVisible = false;
+        AnimateFullscreenChromeOpacity(0, closeWhenDone: true);
+    }
+
+    private void InstallLowLevelKeyboardHook()
+    {
+        if (_lowLevelKeyboardHook is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            // WH_KEYBOARD_LL is process-foreground filtered in the hook proc.
+            // Some EDR/AV products flag low-level hooks; keeping the filter
+            // strict prevents Heimdall from consuming keys in other apps.
+            _lowLevelKeyboardHook = LowLevelKeyboardHook.Install(OnLowLevelKeyboardHookKeyDown);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"LowLevelKeyboardHook install failed: {ex.Message}");
+        }
+    }
+
+    private void DisposeLowLevelKeyboardHook()
+    {
+        if (_lowLevelKeyboardHook is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _lowLevelKeyboardHook.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"LowLevelKeyboardHook dispose failed: {ex.Message}");
+        }
+        finally
+        {
+            _lowLevelKeyboardHook = null;
+        }
+    }
+
+    private bool OnLowLevelKeyboardHookKeyDown(Key key, ModifierKeys modifiers)
+    {
+        var action = FullscreenShortcutRouter.Resolve(key, modifiers, _uiState.IsFullscreen);
+        if (action == FullscreenShortcutAction.None)
+        {
+            return false;
+        }
+
+        Heimdall.Core.Logging.FileLogger.Info(
+            $"LowLevelKeyboardHook intercepted key={key} modifiers={modifiers} fullscreen={_uiState.IsFullscreen} action={action} absorbed=true");
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Input,
+            new Action(() => ApplyFullscreenShortcutAction(action)));
+        return true;
+    }
+
+    private void AnimateFullscreenChromeOpacity(double targetOpacity, bool closeWhenDone)
+    {
+        var animation = new DoubleAnimation(targetOpacity, FullscreenChromeFadeDuration)
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+        };
+
+        if (closeWhenDone)
+        {
+            animation.Completed += (_, _) =>
+            {
+                if (!_fullscreenChromeVisible)
+                {
+                    FullscreenChromePopup.IsOpen = false;
+                }
+            };
+        }
+
+        FullscreenChromeRoot.BeginAnimation(UIElement.OpacityProperty, animation);
+    }
+
+    private void RestartFullscreenChromeAutoHideTimer()
+    {
+        StopFullscreenChromeAutoHideTimer();
+        _fullscreenChromeAutoHideTimer = new DispatcherTimer(
+            FullscreenChromeAutoHideDelay,
+            DispatcherPriority.Background,
+            OnFullscreenChromeAutoHideTick,
+            Dispatcher);
+        _fullscreenChromeAutoHideTimer.Start();
+    }
+
+    private void StopFullscreenChromeAutoHideTimer()
+    {
+        if (_fullscreenChromeAutoHideTimer is null)
+        {
+            return;
+        }
+
+        _fullscreenChromeAutoHideTimer.Stop();
+        _fullscreenChromeAutoHideTimer.Tick -= OnFullscreenChromeAutoHideTick;
+        _fullscreenChromeAutoHideTimer = null;
+    }
+
+    private void OnFullscreenChromeAutoHideTick(object? sender, EventArgs e)
+    {
+        StopFullscreenChromeAutoHideTimer();
+        if (_uiState.IsFullscreen)
+        {
+            HideFullscreenChrome();
+        }
+    }
+
+    private void StartFullscreenChromeMousePolling()
+    {
+        if (_fullscreenChromeMousePollTimer is not null)
+        {
+            return;
+        }
+
+        _lastFullscreenMouseScreenPoint = WinForms.Control.MousePosition;
+        _fullscreenChromeMousePollTimer = new DispatcherTimer(
+            FullscreenChromeMousePollInterval,
+            DispatcherPriority.Background,
+            OnFullscreenChromeMousePollTick,
+            Dispatcher);
+        _fullscreenChromeMousePollTimer.Start();
+    }
+
+    private void StopFullscreenChromeMousePolling()
+    {
+        if (_fullscreenChromeMousePollTimer is null)
+        {
+            return;
+        }
+
+        _fullscreenChromeMousePollTimer.Stop();
+        _fullscreenChromeMousePollTimer.Tick -= OnFullscreenChromeMousePollTick;
+        _fullscreenChromeMousePollTimer = null;
+        _lastFullscreenMouseScreenPoint = null;
+    }
+
+    private void OnFullscreenChromeMousePollTick(object? sender, EventArgs e)
+    {
+        if (!_uiState.IsFullscreen)
+        {
+            StopFullscreenChrome();
+            return;
+        }
+
+        var current = WinForms.Control.MousePosition;
+        if (_lastFullscreenMouseScreenPoint is { } previous
+            && previous != current
+            && _fullscreenChromeVisible)
+        {
+            RestartFullscreenChromeAutoHideTimer();
+        }
+
+        _lastFullscreenMouseScreenPoint = current;
+
+        if (IsPointerNearFullscreenTopEdge(current))
+        {
+            ShowFullscreenChrome(restartAutoHide: true);
+        }
+    }
+
+    private bool IsPointerNearFullscreenTopEdge(System.Drawing.Point screenPoint)
+    {
+        var topLeft = PointToScreen(new System.Windows.Point(0, 0));
+        var bottomRight = PointToScreen(new System.Windows.Point(ActualWidth, ActualHeight));
+
+        return screenPoint.X >= topLeft.X
+            && screenPoint.X <= bottomRight.X
+            && screenPoint.Y >= topLeft.Y
+            && screenPoint.Y <= topLeft.Y + FullscreenChromeRevealThresholdPx;
+    }
+
+    private void UpdateFullscreenChromePlacement()
+    {
+        FullscreenChromePopup.HorizontalOffset = Math.Max(
+            FullscreenChromeRightMargin,
+            ActualWidth - FullscreenChromeEstimatedWidth - FullscreenChromeRightMargin);
+        FullscreenChromePopup.VerticalOffset = FullscreenChromeTopMargin;
     }
 
     // ── Sidebar toggle ───────────────────────────────────────────────

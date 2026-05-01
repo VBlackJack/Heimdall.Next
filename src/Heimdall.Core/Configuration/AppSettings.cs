@@ -116,6 +116,7 @@ public sealed class AppSettings
     public string RdpReleaseFocusShortcut { get; set; } = "Ctrl+Alt+Home";
     public string RdpFullscreenToggleShortcut { get; set; } = "F11";
     public bool RdpDialogAdvancedDefault { get; set; }
+    public bool RdpConfirmReconnectOnResize { get; set; }
 
     /// <summary>
     /// When true, the embedded RDP Disconnect button asks for confirmation before tearing down the session.

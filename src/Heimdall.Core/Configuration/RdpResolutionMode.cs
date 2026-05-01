@@ -14,25 +14,15 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Configuration;
+namespace Heimdall.Core.Configuration;
 
-namespace Heimdall.Core.Tests;
-
-public sealed class AppSettingsRdpDefaultsTests
+/// <summary>
+/// Per-server RDP resolution behavior.
+/// </summary>
+public enum RdpResolutionMode
 {
-    [Fact]
-    public void RdpConfirmDisconnect_DefaultsToEnabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.True(settings.RdpConfirmDisconnect);
-    }
-
-    [Fact]
-    public void RdpConfirmReconnectOnResize_DefaultsToDisabled()
-    {
-        var settings = new AppSettings();
-
-        Assert.False(settings.RdpConfirmReconnectOnResize);
-    }
+    FitWindow,
+    Fixed,
+    SmartSizing,
+    Multimon
 }

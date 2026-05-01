@@ -240,6 +240,21 @@ public partial class ServerDialog : Window
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpColorDepthCombo;
                 break;
+            case nameof(ServerDialogViewModel.RdpFixedWidth):
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabOptions;
+                target = DlgSrv_RdpFixedWidthBox;
+                break;
+            case nameof(ServerDialogViewModel.RdpFixedHeight):
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabOptions;
+                target = DlgSrv_RdpFixedHeightBox;
+                break;
+            case nameof(ServerDialogViewModel.RdpResizeEnableDelayMs):
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabOptions;
+                target = DlgSrv_RdpResizeDelayBox;
+                break;
         }
 
         vm.PropertyChanged += OnViewModelPropertyChanged;
@@ -532,7 +547,6 @@ public partial class ServerDialog : Window
 
         // RDP checkboxes
         DlgSrv_NlaCb.Content = _localizer["ServerDialogNla"];
-        DlgSrv_MultiMonitorCb.Content = _localizer["ServerDialogMultiMonitor"];
         DlgSrv_DynamicResCb.Content = _localizer["ServerDialogDynamicResolution"];
         DlgSrv_AudioCaptureCb.Content = _localizer["ServerDialogAudioCapture"];
 

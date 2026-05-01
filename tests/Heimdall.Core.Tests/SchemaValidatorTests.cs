@@ -422,6 +422,67 @@ public class SchemaValidatorTests
         Assert.True(result.IsValid);
     }
 
+    [Fact]
+    public void ValidateServer_FixedResolutionProfileWithinRange_IsValid()
+    {
+        var server = CreateValidServer();
+        server.RdpResolutionMode = RdpResolutionMode.Fixed;
+        server.RdpFixedWidth = 1920;
+        server.RdpFixedHeight = 1080;
+        server.RdpResizeEnableDelayMs = 1000;
+
+        var result = SchemaValidator.ValidateServer(server);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData(199, 1080)]
+    [InlineData(7681, 1080)]
+    [InlineData(1920, 199)]
+    [InlineData(1920, 4321)]
+    public void ValidateServer_FixedResolutionProfileOutOfRange_ReturnsError(int width, int height)
+    {
+        var server = CreateValidServer();
+        server.RdpResolutionMode = RdpResolutionMode.Fixed;
+        server.RdpFixedWidth = width;
+        server.RdpFixedHeight = height;
+
+        var result = SchemaValidator.ValidateServer(server);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("RdpFixed"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(1000)]
+    [InlineData(30000)]
+    public void ValidateServer_RdpResizeEnableDelayAllowedRange_IsValid(int? delayMs)
+    {
+        var server = CreateValidServer();
+        server.RdpResizeEnableDelayMs = delayMs;
+
+        var result = SchemaValidator.ValidateServer(server);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(999)]
+    [InlineData(30001)]
+    public void ValidateServer_RdpResizeEnableDelayOutOfRange_ReturnsError(int delayMs)
+    {
+        var server = CreateValidServer();
+        server.RdpResizeEnableDelayMs = delayMs;
+
+        var result = SchemaValidator.ValidateServer(server);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(ServerProfileDto.RdpResizeEnableDelayMs)));
+    }
+
     // ── ValidateServer: null input ────────────────────────────────────
 
     [Fact]

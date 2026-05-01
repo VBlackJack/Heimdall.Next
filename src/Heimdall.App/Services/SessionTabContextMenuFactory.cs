@@ -103,7 +103,8 @@ public sealed class SessionTabContextMenuFactory
         {
             Header = vm.Localize(isToolTab ? "SessionCloseTab" : "SessionDisconnect")
         };
-        closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        closeItem.Click += async (_, _) =>
+            await vm.Connection.CloseSessionAsync(session, DisconnectReason.UserAction);
         menu.Items.Add(closeItem);
     }
 
@@ -133,6 +134,61 @@ public sealed class SessionTabContextMenuFactory
             aspectMenu.Items.Add(item);
         }
         menu.Items.Add(aspectMenu);
+
+        if (session.PrimaryPane.HostControl is EmbeddedRdpView rdpView)
+        {
+            var resolutionMenu = new MenuItem { Header = vm.Localize("SessionResolution") };
+            var matchWindowItem = new MenuItem
+            {
+                Header = vm.Localize("RdpResolutionMatchWindow"),
+                Tag = ResolutionChoice.MatchWindow
+            };
+            matchWindowItem.Click += (_, _) => callbacks.OnResolutionChanged(
+                session.PrimaryPane,
+                ResolutionChoice.MatchWindow);
+            resolutionMenu.Items.Add(matchWindowItem);
+
+            foreach (var preset in ResolutionPresetCatalog.GetPresets(vm.CurrentSettings))
+            {
+                var choice = ResolutionChoice.Fixed(preset.Width, preset.Height);
+                var item = new MenuItem
+                {
+                    Header = preset.DisplayText,
+                    Tag = choice,
+                    ToolTip = rdpView.WouldScaleResolution(preset.Width, preset.Height)
+                        ? vm.Localize("RdpResolutionLargerThanWindowTooltip")
+                        : null
+                };
+                item.Click += (_, _) => callbacks.OnResolutionChanged(session.PrimaryPane, choice);
+                resolutionMenu.Items.Add(item);
+            }
+
+            resolutionMenu.Items.Add(new Separator());
+
+            var customItem = new MenuItem
+            {
+                Header = vm.Localize("RdpResolutionCustom"),
+                Tag = ResolutionChoice.Custom
+            };
+            customItem.Click += (_, _) => callbacks.OnResolutionChanged(
+                session.PrimaryPane,
+                ResolutionChoice.Custom);
+            resolutionMenu.Items.Add(customItem);
+
+            resolutionMenu.Items.Add(new Separator());
+
+            var saveDefaultItem = new MenuItem
+            {
+                Header = vm.Localize("RdpResolutionSaveDefaultForServer"),
+                Tag = ResolutionChoice.SaveAsDefaultForServer
+            };
+            saveDefaultItem.Click += (_, _) => callbacks.OnResolutionChanged(
+                session.PrimaryPane,
+                ResolutionChoice.SaveAsDefaultForServer);
+            resolutionMenu.Items.Add(saveDefaultItem);
+
+            menu.Items.Add(resolutionMenu);
+        }
 
         menu.Items.Add(new Separator());
 
@@ -333,7 +389,8 @@ public sealed class SessionTabContextMenuFactory
         MainViewModel vm)
     {
         var closeAllItem = new MenuItem { Header = vm.Localize("SessionCloseSession") };
-        closeAllItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        closeAllItem.Click += async (_, _) =>
+            await vm.Connection.CloseSessionAsync(session, DisconnectReason.UserAction);
         menu.Items.Add(closeAllItem);
     }
 

@@ -39,6 +39,9 @@ public interface ISessionTabContextCallbacks
     /// </summary>
     void OnAspectRatioClick(object sender, RoutedEventArgs e);
 
+    /// <summary>Applies a resolution choice to the given session pane.</summary>
+    void OnResolutionChanged(SessionPaneModel pane, ResolutionChoice choice);
+
     /// <summary>Toggles fullscreen mode on the main window.</summary>
     void ToggleFullscreen();
 

@@ -173,4 +173,137 @@ public sealed class ServerDialogViewModelRdpOptionsTests
 
         Assert.Equal(expected, actual);
     }
+
+    [Fact]
+    public void Rdp_resolution_profile_round_trips_and_snaps_fixed_width()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 1919,
+            RdpFixedHeight = 1080,
+            RdpInitialSmartSizing = false,
+            RdpResizeEnableDelayMs = 3000
+        };
+
+        var dto = vm.ToDto();
+
+        Assert.Equal(RdpResolutionMode.Fixed, dto.RdpResolutionMode);
+        Assert.Equal(1916, dto.RdpFixedWidth);
+        Assert.Equal(1080, dto.RdpFixedHeight);
+        Assert.False(dto.RdpInitialSmartSizing);
+        Assert.Equal(3000, dto.RdpResizeEnableDelayMs);
+        Assert.False(dto.RdpMultiMonitor);
+
+        var roundTripped = ServerDialogViewModel.FromDto(dto);
+
+        Assert.Equal(RdpResolutionMode.Fixed, roundTripped.RdpResolutionMode);
+        Assert.Equal(1916, roundTripped.RdpFixedWidth);
+        Assert.Equal(1080, roundTripped.RdpFixedHeight);
+        Assert.False(roundTripped.RdpInitialSmartSizing);
+        Assert.Equal(3000, roundTripped.RdpResizeEnableDelayMs);
+    }
+
+    [Fact]
+    public void Rdp_multimon_mode_drives_multimon_bool_on_save()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpMultiMonitor = false
+        };
+
+        var dto = vm.ToDto();
+
+        Assert.Equal(RdpResolutionMode.Multimon, dto.RdpResolutionMode);
+        Assert.True(dto.RdpMultiMonitor);
+    }
+
+    [Theory]
+    [InlineData(RdpResolutionMode.Fixed, true, true, true, false)]
+    [InlineData(RdpResolutionMode.FitWindow, false, false, true, false)]
+    [InlineData(RdpResolutionMode.SmartSizing, false, false, false, false)]
+    [InlineData(RdpResolutionMode.Multimon, false, false, false, true)]
+    public void Rdp_resolution_profile_visibility_matches_mode(
+        RdpResolutionMode mode,
+        bool fixedFields,
+        bool smartSizing,
+        bool resizeDelay,
+        bool multimonNote)
+    {
+        var vm = new ServerDialogViewModel
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = mode
+        };
+
+        Assert.Equal(fixedFields, vm.ShowRdpFixedResolutionFields);
+        Assert.Equal(smartSizing, vm.ShowRdpInitialSmartSizing);
+        Assert.Equal(resizeDelay, vm.ShowRdpResizeEnableDelay);
+        Assert.Equal(multimonNote, vm.ShowRdpMultimonNote);
+    }
+
+    [Fact]
+    public void Rdp_resolution_profile_validation_ignores_hidden_fields()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 199,
+            RdpFixedHeight = 199,
+            RdpResizeEnableDelayMs = 999
+        };
+
+        vm.ValidateCommand.Execute(null);
+
+        Assert.Equal(3, vm.OptionsTabErrorCount);
+        Assert.Equal(nameof(ServerDialogViewModel.RdpFixedWidth), vm.FirstInvalidField);
+        Assert.NotNull(vm.RdpFixedWidthError);
+        Assert.NotNull(vm.RdpFixedHeightError);
+        Assert.NotNull(vm.RdpResizeEnableDelayMsError);
+
+        vm.RdpResolutionMode = RdpResolutionMode.SmartSizing;
+        vm.ValidateCommand.Execute(null);
+
+        Assert.Equal(0, vm.OptionsTabErrorCount);
+        Assert.Null(vm.FirstInvalidField);
+        Assert.Null(vm.RdpFixedWidthError);
+        Assert.Null(vm.RdpFixedHeightError);
+        Assert.Null(vm.RdpResizeEnableDelayMsError);
+    }
+
+    [Fact]
+    public void Rdp_resize_delay_allows_null_or_supported_range()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.FitWindow,
+            RdpResizeEnableDelayMs = null
+        };
+
+        vm.ValidateCommand.Execute(null);
+
+        Assert.Null(vm.RdpResizeEnableDelayMsError);
+
+        vm.RdpResizeEnableDelayMs = 30000;
+        vm.ValidateCommand.Execute(null);
+
+        Assert.Null(vm.RdpResizeEnableDelayMsError);
+
+        vm.RdpResizeEnableDelayMs = 30001;
+        vm.ValidateCommand.Execute(null);
+
+        Assert.NotNull(vm.RdpResizeEnableDelayMsError);
+        Assert.Equal(nameof(ServerDialogViewModel.RdpResizeEnableDelayMs), vm.FirstInvalidField);
+    }
 }

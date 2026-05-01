@@ -40,6 +40,39 @@ public interface IMsTscNonScriptable
 }
 
 /// <summary>
+/// Extended RDP client settings interface. The Microsoft docs define
+/// IID_IMsRdpExtendedSettings as 302D8188-0052-4807-806A-362B628F9AC5.
+/// </summary>
+[ComImport]
+[Guid("302D8188-0052-4807-806A-362B628F9AC5")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IMsRdpExtendedSettings
+{
+    [PreserveSig]
+    int put_Property(
+        [MarshalAs(UnmanagedType.BStr)] string bstrPropertyName,
+        [In, MarshalAs(UnmanagedType.Struct)] ref object pValue);
+
+    [PreserveSig]
+    int get_Property(
+        [MarshalAs(UnmanagedType.BStr)] string bstrPropertyName,
+        [MarshalAs(UnmanagedType.Struct)] out object pValue);
+}
+
+/// <summary>
+/// Marker interface for the nonscriptable RDP client v5 settings interface.
+/// Microsoft defines IID_IMsRdpClientNonScriptable5 as
+/// 4f6996d5-d7b1-412c-b0ff-063718566907. The interface is vtable-only, so
+/// callers must use a correctly slotted native call for individual members.
+/// </summary>
+[ComImport]
+[Guid("4F6996D5-D7B1-412C-B0FF-063718566907")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IMsRdpClientNonScriptable5
+{
+}
+
+/// <summary>
 /// COM event source interface for MsTscAx ActiveX control.
 /// DispId values must match the ActiveX type library exactly.
 /// </summary>

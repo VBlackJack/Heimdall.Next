@@ -380,6 +380,7 @@ public sealed class ConfigManager : IConfigManager
         foreach (var server in servers)
         {
             PostConnectMigration.Migrate(server);
+            RdpResolutionProfileMigration.Migrate(server);
         }
 
         return servers;
@@ -398,6 +399,7 @@ public sealed class ConfigManager : IConfigManager
             foreach (var server in servers)
             {
                 PostConnectMigration.PrepareForSave(server);
+                RdpResolutionProfileMigration.PrepareForSave(server);
             }
 
             var json = JsonSerializer.Serialize(servers, JsonOptions);

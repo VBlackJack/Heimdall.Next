@@ -84,6 +84,12 @@ public class ServerProfileDtoTests
         Assert.True(dto.RdpBitmapCaching);
         Assert.True(dto.RdpCompression);
         Assert.True(dto.RdpAutoReconnect);
+        Assert.Equal(RdpResolutionMode.FitWindow, dto.RdpResolutionMode);
+        Assert.False(dto.HasRdpResolutionModeField);
+        Assert.Equal(0, dto.RdpFixedWidth);
+        Assert.Equal(0, dto.RdpFixedHeight);
+        Assert.True(dto.RdpInitialSmartSizing);
+        Assert.Null(dto.RdpResizeEnableDelayMs);
     }
 
     [Fact]
@@ -137,6 +143,11 @@ public class ServerProfileDtoTests
             Tags = "production,critical",
             RdpMode = "Embedded",
             RdpMultiMonitor = true,
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 2560,
+            RdpFixedHeight = 1440,
+            RdpInitialSmartSizing = false,
+            RdpResizeEnableDelayMs = 3000,
             Environment = "Production",
             LocalShellExecutable = "pwsh.exe",
             LocalShellElevated = true,
@@ -168,6 +179,12 @@ public class ServerProfileDtoTests
         Assert.Equal(original.Tags, deserialized.Tags);
         Assert.Equal(original.RdpMode, deserialized.RdpMode);
         Assert.Equal(original.RdpMultiMonitor, deserialized.RdpMultiMonitor);
+        Assert.Equal(original.RdpResolutionMode, deserialized.RdpResolutionMode);
+        Assert.True(deserialized.HasRdpResolutionModeField);
+        Assert.Equal(original.RdpFixedWidth, deserialized.RdpFixedWidth);
+        Assert.Equal(original.RdpFixedHeight, deserialized.RdpFixedHeight);
+        Assert.Equal(original.RdpInitialSmartSizing, deserialized.RdpInitialSmartSizing);
+        Assert.Equal(original.RdpResizeEnableDelayMs, deserialized.RdpResizeEnableDelayMs);
         Assert.Equal(original.Environment, deserialized.Environment);
         Assert.Equal(original.LocalShellExecutable, deserialized.LocalShellExecutable);
         Assert.Equal(original.LocalShellElevated, deserialized.LocalShellElevated);
@@ -189,5 +206,79 @@ public class ServerProfileDtoTests
         Assert.Equal("Embedded", dto.RdpMode);
         Assert.Equal("Embedded", dto.SshMode);
         Assert.False(dto.LocalShellElevated);
+        Assert.Equal(RdpResolutionMode.FitWindow, dto.RdpResolutionMode);
+        Assert.False(dto.HasRdpResolutionModeField);
+        Assert.True(dto.RdpInitialSmartSizing);
+        Assert.Null(dto.RdpResizeEnableDelayMs);
+    }
+
+    [Fact]
+    public void JsonSerialization_UsesBackCompatibleFixedResolutionNames()
+    {
+        var dto = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 1920,
+            RdpFixedHeight = 1080
+        };
+
+        var json = JsonSerializer.Serialize(dto);
+
+        Assert.Contains("\"rdpFixedResolutionWidth\":1920", json);
+        Assert.Contains("\"rdpFixedResolutionHeight\":1080", json);
+        Assert.DoesNotContain("rdpFixedWidth", json);
+        Assert.DoesNotContain("rdpFixedHeight", json);
+    }
+
+    [Fact]
+    public void JsonDeserialization_ReadsBackCompatibleFixedResolutionNames()
+    {
+        var json = """
+        {
+            "rdpResolutionMode": "Fixed",
+            "rdpFixedResolutionWidth": 1920,
+            "rdpFixedResolutionHeight": 1080
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<ServerProfileDto>(json);
+
+        Assert.NotNull(dto);
+        Assert.Equal(RdpResolutionMode.Fixed, dto.RdpResolutionMode);
+        Assert.True(dto.HasRdpResolutionModeField);
+        Assert.Equal(1920, dto.RdpFixedWidth);
+        Assert.Equal(1080, dto.RdpFixedHeight);
+    }
+
+    [Fact]
+    public void JsonDeserialization_UnknownPhase2Fields_AreIgnoredByOlderReaders()
+    {
+        var json = """
+        {
+            "id": "srv-legacy",
+            "displayName": "Legacy Reader",
+            "remoteServer": "10.0.0.1",
+            "rdpResolutionMode": "Fixed",
+            "rdpInitialSmartSizing": false,
+            "rdpResizeEnableDelayMs": 3000
+        }
+        """;
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        var dto = JsonSerializer.Deserialize<Phase1ServerProfileDto>(json, options);
+
+        Assert.NotNull(dto);
+        Assert.Equal("srv-legacy", dto.Id);
+        Assert.Equal("Legacy Reader", dto.DisplayName);
+        Assert.Equal("10.0.0.1", dto.RemoteServer);
+    }
+
+    private sealed class Phase1ServerProfileDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string RemoteServer { get; set; } = string.Empty;
+        public int RdpFixedResolutionWidth { get; set; }
+        public int RdpFixedResolutionHeight { get; set; }
     }
 }

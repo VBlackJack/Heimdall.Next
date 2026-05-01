@@ -47,7 +47,7 @@ internal static class RdpProfileResolver
                 Usb = settings.RdpDefaultRedirectUsb,
                 AudioCapture = settings.RdpDefaultAudioCapture,
                 AudioMode = settings.RdpDefaultAudioMode,
-                MultiMonitor = settings.RdpDefaultMultiMonitor,
+                MultiMonitor = ResolveMultiMonitor(server, settings),
                 DynamicResolution = settings.RdpDefaultDynamicResolution,
                 Nla = settings.RdpDefaultNla,
                 BitmapCaching = settings.RdpDefaultBitmapCaching,
@@ -69,7 +69,7 @@ internal static class RdpProfileResolver
             Usb = server.RdpRedirectUsb,
             AudioCapture = server.RdpAudioCapture,
             AudioMode = server.RdpAudioMode,
-            MultiMonitor = server.RdpMultiMonitor,
+            MultiMonitor = ResolveMultiMonitor(server, settings),
             DynamicResolution = server.RdpDynamicResolution,
             Nla = server.RdpNla,
             BitmapCaching = server.RdpBitmapCaching,
@@ -98,5 +98,17 @@ internal static class RdpProfileResolver
             <= 24 => 24,
             _ => 32
         };
+    }
+
+    private static bool ResolveMultiMonitor(ServerProfileDto server, AppSettings settings)
+    {
+        if (server.HasRdpResolutionModeField)
+        {
+            return server.RdpResolutionMode == RdpResolutionMode.Multimon;
+        }
+
+        return server.RdpUseGlobalDefaults
+            ? settings.RdpDefaultMultiMonitor
+            : server.RdpMultiMonitor;
     }
 }

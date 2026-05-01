@@ -360,15 +360,22 @@
 
         <Grid Grid.Row="1">
             <Border Margin="16,0,16,16"
-                    Background="{DynamicResource BackgroundBrush}"
+                    Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}">
-                <Grid x:Name="SurfaceContainer" ClipToBounds="True">
-                    <wfi:WindowsFormsHost x:Name="FormsHost"
-                                          KeyboardNavigation.IsTabStop="False"
-                                          KeyboardNavigation.TabNavigation="None"/>
-                </Grid>
+                <Border Background="{DynamicResource SurfaceBrush}"
+                        ClipToBounds="True">
+                    <Grid x:Name="SurfaceContainer"
+                          Background="{DynamicResource SurfaceBrush}"
+                          ClipToBounds="True">
+                        <wfi:WindowsFormsHost x:Name="FormsHost"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              KeyboardNavigation.IsTabStop="False"
+                                              KeyboardNavigation.TabNavigation="None"/>
+                    </Grid>
+                </Border>
             </Border>
 
             <!-- Reconnect overlay (shown on unexpected disconnect) -->

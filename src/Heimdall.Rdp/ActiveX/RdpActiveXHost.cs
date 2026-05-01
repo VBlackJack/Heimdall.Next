@@ -19,6 +19,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using Heimdall.Core.Models;
+using Heimdall.Rdp;
 
 namespace Heimdall.Rdp.ActiveX;
 
@@ -36,6 +37,11 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     // MsTscAx ActiveX control CLSID — Terminal Services Client 8.0+
     public const string DefaultMsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
     public const string NotSafeForScriptingClsid = "A0F46F0A-3B66-4B79-A7A1-1C70A6BF37E1";
+
+    private static readonly Guid IidMsRdpExtendedSettings = new("302D8188-0052-4807-806A-362B628F9AC5");
+    private static readonly Guid IidMsRdpClientNonScriptable5 = new("4F6996D5-D7B1-412C-B0FF-063718566907");
+    // MsTscAx typelib slot: IUnknown(3) + inherited nonscriptable methods(50).
+    private const int NonScriptable5PutUseMultimonSlot = 53;
 
     /// <summary>
     /// Maximum number of auto-reconnect attempts MsTscAx performs before giving up.
@@ -60,7 +66,16 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     private int _pendingWidth = 1024;
     private int _pendingHeight = 768;
     private int _pendingColorDepth = 32;
+    private uint _pendingDesktopScaleFactor = 100;
+    private uint _pendingDeviceScaleFactor = 100;
+    private double _pendingDpiScaleX = 1.0;
+    private double _pendingDpiScaleY = 1.0;
     private RdpRedirectionOptions _pendingRedirections = new();
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int PutUseMultimonDelegate(
+        IntPtr self,
+        [MarshalAs(UnmanagedType.VariantBool)] bool useMultimon);
 
     /// <inheritdoc />
     public event Action? Connected;
@@ -99,6 +114,13 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
     /// <summary>Current host window handle, or <see cref="IntPtr.Zero"/> when not created.</summary>
     public IntPtr HostHandle => IsHandleCreated ? Handle : IntPtr.Zero;
+
+    /// <summary>
+    /// Initial SmartSizing state applied before connect. Defaults to the historical behavior.
+    /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    [System.ComponentModel.Browsable(false)]
+    public bool InitialSmartSizing { get; set; } = true;
 
     public RdpActiveXHost(string? activeXClsid = null)
         : base(activeXClsid ?? DefaultMsTscAxClsid)
@@ -167,16 +189,59 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// <inheritdoc />
     public void SetDisplay(int width, int height, int colorDepth = 32)
     {
-        _pendingWidth = width;
+        _pendingWidth = SnapDesktopWidth(width);
         _pendingHeight = height;
         _pendingColorDepth = colorDepth;
         Core.Logging.FileLogger.Info(
-            $"RdpActiveXHost.SetDisplay: width={width} height={height} colorDepth={colorDepth} handleCreated={IsHandleCreated}");
+            $"RdpActiveXHost.SetDisplay: width={_pendingWidth} height={height} colorDepth={colorDepth} handleCreated={IsHandleCreated}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
         {
             ApplyDisplaySettings(ocx);
+        }
+    }
+
+    /// <summary>
+    /// Configure initial scale factors through IMsRdpExtendedSettings before connect.
+    /// </summary>
+    public void SetDisplayScaleFactors(
+        uint desktopScaleFactor,
+        uint deviceScaleFactor,
+        double dpiScaleX = 1.0,
+        double dpiScaleY = 1.0)
+    {
+        _pendingDesktopScaleFactor = desktopScaleFactor;
+        _pendingDeviceScaleFactor = deviceScaleFactor;
+        _pendingDpiScaleX = dpiScaleX;
+        _pendingDpiScaleY = dpiScaleY;
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetDisplayScaleFactors: desktop={desktopScaleFactor} device={deviceScaleFactor} dpi={dpiScaleX:0.##}x{dpiScaleY:0.##} connected={IsConnected} handleCreated={IsHandleCreated}");
+
+        if (IsConnected)
+        {
+            Core.Logging.FileLogger.Info("RdpActiveXHost.SetDisplayScaleFactors skipped: ExtendedSettings scale factors are pre-connect only.");
+            return;
+        }
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyDisplayScaleSettings(ocx);
+        }
+    }
+
+    /// <summary>
+    /// Sets SmartSizing on the ActiveX control. This is live-mutable.
+    /// </summary>
+    public void SetSmartSizing(bool enabled)
+    {
+        InitialSmartSizing = enabled;
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplySmartSizing(ocx, enabled);
         }
     }
 
@@ -208,6 +273,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         ApplyServerSettings(ocx);
         ApplyCredentialSettings(ocx);
         ApplyDisplaySettings(ocx);
+        ApplyDisplayScaleSettings(ocx);
         ApplyRedirectionSettings(ocx);
 
         // Clear plaintext password from managed memory after COM handoff
@@ -234,34 +300,55 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     }
 
     /// <inheritdoc />
-    public void UpdateResolution(int width, int height)
+    public RdpDisplayUpdateResult UpdateResolution(
+        int width,
+        int height,
+        uint physicalWidthMm = 0,
+        uint physicalHeightMm = 0,
+        uint desktopScaleFactor = 100,
+        uint deviceScaleFactor = 100,
+        bool allowReconnectFallback = true)
     {
         var ocx = GetActiveXInstance();
         if (ocx is null)
         {
             Core.Logging.FileLogger.Warn(
                 $"RdpActiveXHost.UpdateResolution skipped: no ActiveX instance for {width}x{height}");
-            return;
+            return RdpDisplayUpdateResult.Skipped;
         }
+
+        width = SnapDesktopWidth(width);
+        physicalWidthMm = physicalWidthMm == 0 ? (uint)width : physicalWidthMm;
+        physicalHeightMm = physicalHeightMm == 0 ? (uint)height : physicalHeightMm;
 
         try
         {
             // IMsRdpClient9+ (RDP 8.1+): change resolution without reconnection.
             // Parameters: desktopWidth, desktopHeight, physicalWidth, physicalHeight,
-            //             orientation(0), desktopScaleFactor(100), deviceScaleFactor(100)
+            //             orientation(0), desktopScaleFactor, deviceScaleFactor
             ocx.GetType().InvokeMember(
                 "UpdateSessionDisplaySettings",
                 BindingFlags.InvokeMethod,
                 null,
                 ocx,
-                new object[] { (uint)width, (uint)height, (uint)width, (uint)height,
-                               (uint)0, (uint)100, (uint)100 });
+                new object[] { (uint)width, (uint)height, physicalWidthMm, physicalHeightMm,
+                               (uint)0, desktopScaleFactor, deviceScaleFactor });
 
             Core.Logging.FileLogger.Info(
-                $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} (seamless)");
+                $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} physical={physicalWidthMm}x{physicalHeightMm}mm scale={desktopScaleFactor}/{deviceScaleFactor} (seamless)");
+            return RdpDisplayUpdateResult.Seamless;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Core.Logging.FileLogger.Warn(
+                $"RdpActiveXHost.UpdateSessionDisplaySettings failed: {ex.Message}");
+
+            if (!allowReconnectFallback)
+            {
+                LastError = ex.Message;
+                return RdpDisplayUpdateResult.ReconnectRequired;
+            }
+
             // Fallback: Reconnect(width, height) on IMsRdpClient7+ (older servers/clients)
             try
             {
@@ -274,12 +361,14 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
                 Core.Logging.FileLogger.Info(
                     $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} (reconnect fallback)");
+                return RdpDisplayUpdateResult.ReconnectFallback;
             }
             catch (Exception exFallback)
             {
                 LastError = exFallback.Message;
                 Core.Logging.FileLogger.Warn(
                     $"RdpActiveXHost.UpdateResolution failed: {exFallback.Message}");
+                return RdpDisplayUpdateResult.Failed;
             }
         }
     }
@@ -540,6 +629,256 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         }
     }
 
+    private static bool TrySetUseMultimon(object ocx, bool enabled)
+    {
+        IntPtr nonScriptable5Ptr = IntPtr.Zero;
+        try
+        {
+            if (!TryGetNonScriptable5(ocx, out nonScriptable5Ptr, out var acquisitionPath))
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpClientNonScriptable5 UseMultimon fallback: interface unavailable; requested={enabled}");
+                return false;
+            }
+
+            var vtable = Marshal.ReadIntPtr(nonScriptable5Ptr);
+            var putUseMultimon = Marshal.ReadIntPtr(
+                vtable,
+                NonScriptable5PutUseMultimonSlot * IntPtr.Size);
+            var setter = Marshal.GetDelegateForFunctionPointer<PutUseMultimonDelegate>(putUseMultimon);
+            var hr = setter(nonScriptable5Ptr, enabled);
+            if (hr < 0)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpClientNonScriptable5.put_UseMultimon failed hr=0x{unchecked((uint)hr):X8} value={enabled} via={acquisitionPath}");
+                return false;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5.put_UseMultimon set value={enabled} hr=0x{unchecked((uint)hr):X8} via={acquisitionPath}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5.put_UseMultimon threw {FormatExceptionForLog(ex)} value={enabled}");
+            return false;
+        }
+        finally
+        {
+            if (nonScriptable5Ptr != IntPtr.Zero)
+            {
+                Marshal.Release(nonScriptable5Ptr);
+            }
+        }
+    }
+
+    private static bool TryGetNonScriptable5(
+        object ocx,
+        out IntPtr nonScriptable5Ptr,
+        out string acquisitionPath)
+    {
+        nonScriptable5Ptr = IntPtr.Zero;
+        acquisitionPath = "none";
+
+        try
+        {
+            var nonScriptable5 = ocx as IMsRdpClientNonScriptable5;
+            if (nonScriptable5 is not null)
+            {
+                nonScriptable5Ptr = Marshal.GetComInterfaceForObject(
+                    nonScriptable5,
+                    typeof(IMsRdpClientNonScriptable5));
+                acquisitionPath = "direct cast";
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpClientNonScriptable5 reached via direct cast ocx={DescribeComObject(ocx)} ptr=0x{nonScriptable5Ptr.ToInt64():X}");
+                return true;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5 direct cast returned null ocx={DescribeComObject(ocx)}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5 direct cast threw {FormatExceptionForLog(ex)} ocx={DescribeComObject(ocx)}");
+        }
+
+        IntPtr unknown = IntPtr.Zero;
+        try
+        {
+            unknown = Marshal.GetIUnknownForObject(ocx);
+            var iid = IidMsRdpClientNonScriptable5;
+            var hr = Marshal.QueryInterface(unknown, in iid, out nonScriptable5Ptr);
+            if (hr < 0 || nonScriptable5Ptr == IntPtr.Zero)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpClientNonScriptable5 Marshal.QueryInterface failed HRESULT=0x{unchecked((uint)hr):X8} ppv=0x{nonScriptable5Ptr.ToInt64():X} ocx={DescribeComObject(ocx)}");
+                nonScriptable5Ptr = IntPtr.Zero;
+                return false;
+            }
+
+            acquisitionPath = "Marshal.QueryInterface";
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5 reached via Marshal.QueryInterface HRESULT=0x{unchecked((uint)hr):X8} ppv=0x{nonScriptable5Ptr.ToInt64():X}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5 Marshal.QueryInterface threw {FormatExceptionForLog(ex)} ocx={DescribeComObject(ocx)}");
+            nonScriptable5Ptr = IntPtr.Zero;
+            return false;
+        }
+        finally
+        {
+            if (unknown != IntPtr.Zero)
+            {
+                Marshal.Release(unknown);
+            }
+        }
+    }
+
+    private static int SnapDesktopWidth(int width)
+    {
+        var snapped = RdpDisplayHelper.SnapToMultipleOf(width, 4);
+        return snapped > 0 ? snapped : 4;
+    }
+
+    private static bool TryGetExtendedSettings(object ocx, out object? extendedSettings)
+    {
+        extendedSettings = null;
+
+        try
+        {
+            extendedSettings = ocx as IMsRdpExtendedSettings;
+            if (extendedSettings is not null)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpExtendedSettings reached via direct cast ocx={DescribeComObject(ocx)} extendedSettings={DescribeComObject(extendedSettings)}");
+                return true;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpExtendedSettings direct cast returned null ocx={DescribeComObject(ocx)}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpExtendedSettings direct cast threw {FormatExceptionForLog(ex)} ocx={DescribeComObject(ocx)}");
+        }
+
+        IntPtr unknown = IntPtr.Zero;
+        IntPtr extendedSettingsPtr = IntPtr.Zero;
+        try
+        {
+            unknown = Marshal.GetIUnknownForObject(ocx);
+            var iid = IidMsRdpExtendedSettings;
+            var hr = Marshal.QueryInterface(unknown, in iid, out extendedSettingsPtr);
+            if (hr < 0 || extendedSettingsPtr == IntPtr.Zero)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpExtendedSettings Marshal.QueryInterface failed HRESULT=0x{unchecked((uint)hr):X8} ppv=0x{extendedSettingsPtr.ToInt64():X} ocx={DescribeComObject(ocx)}");
+                return false;
+            }
+
+            extendedSettings = Marshal.GetTypedObjectForIUnknown(extendedSettingsPtr, typeof(IMsRdpExtendedSettings));
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpExtendedSettings reached via Marshal.QueryInterface HRESULT=0x{unchecked((uint)hr):X8} ppv=0x{extendedSettingsPtr.ToInt64():X} extendedSettings={DescribeComObject(extendedSettings)}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpExtendedSettings Marshal.QueryInterface threw {FormatExceptionForLog(ex)} ocx={DescribeComObject(ocx)}");
+            return false;
+        }
+        finally
+        {
+            if (extendedSettingsPtr != IntPtr.Zero)
+            {
+                Marshal.Release(extendedSettingsPtr);
+            }
+
+            if (unknown != IntPtr.Zero)
+            {
+                Marshal.Release(unknown);
+            }
+        }
+    }
+
+    private static bool TrySetExtendedSetting(object extendedSettings, string propertyName, uint value)
+    {
+        try
+        {
+            if (extendedSettings is not IMsRdpExtendedSettings settings)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.Property(\"{propertyName}\") set failed: object is not IMsRdpExtendedSettings extendedSettings={DescribeComObject(extendedSettings)}");
+                return false;
+            }
+
+            object variantValue = value;
+            var hr = settings.put_Property(propertyName, ref variantValue);
+            if (hr < 0)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.Property(\"{propertyName}\") set failed hr=0x{unchecked((uint)hr):X8} value={value} extendedSettings={DescribeComObject(extendedSettings)}");
+                return false;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpExtendedSettings.Property[{propertyName}] set value={value} hr=0x{unchecked((uint)hr):X8} extendedSettings={DescribeComObject(extendedSettings)}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.Property(\"{propertyName}\") set threw {FormatExceptionForLog(ex)} extendedSettings={DescribeComObject(extendedSettings)}");
+            return false;
+        }
+    }
+
+    private static string FormatExceptionForLog(Exception ex)
+    {
+        return $"{ex.GetType().FullName}: {ex.Message} HRESULT=0x{unchecked((uint)ex.HResult):X8}";
+    }
+
+    private static string DescribeComObject(object? obj)
+    {
+        if (obj is null)
+        {
+            return "<null>";
+        }
+
+        var typeName = obj.GetType().FullName ?? obj.GetType().Name;
+        var isComObject = Marshal.IsComObject(obj);
+        var dispatchState = "not-checked";
+
+        if (isComObject)
+        {
+            IntPtr dispatch = IntPtr.Zero;
+            try
+            {
+                dispatch = Marshal.GetIDispatchForObject(obj);
+                dispatchState = dispatch == IntPtr.Zero ? "null" : "available";
+            }
+            catch (Exception ex)
+            {
+                dispatchState = $"threw-{ex.GetType().Name}-0x{unchecked((uint)ex.HResult):X8}";
+            }
+            finally
+            {
+                if (dispatch != IntPtr.Zero)
+                {
+                    Marshal.Release(dispatch);
+                }
+            }
+        }
+
+        return $"type={typeName} isComObject={isComObject} idispatch={dispatchState}";
+    }
+
     private void ApplyServerSettings(object ocx)
     {
         if (string.IsNullOrWhiteSpace(_pendingHost)) return;
@@ -579,11 +918,53 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         ax.DesktopHeight = _pendingHeight;
         ax.ColorDepth = _pendingColorDepth;
 
-        // SmartSizing stretches the RDP session to fill the control surface,
-        // absorbing pixel rounding differences and providing smooth resize
-        // during the debounce delay before UpdateResolution kicks in.
-        try { ax.AdvancedSettings2.SmartSizing = true; }
-        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] SmartSizing: {ex.Message}"); }
+        ApplySmartSizing(ocx, InitialSmartSizing);
+    }
+
+    private void ApplyDisplayScaleSettings(object ocx)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var extendedReached = TryGetExtendedSettings(ocx, out var extendedSettings);
+        var desktopSet = false;
+        var deviceSet = false;
+        if (extendedReached && extendedSettings is not null)
+        {
+            desktopSet = TrySetExtendedSetting(extendedSettings, "DesktopScaleFactor", _pendingDesktopScaleFactor);
+            deviceSet = TrySetExtendedSetting(extendedSettings, "DeviceScaleFactor", _pendingDeviceScaleFactor);
+        }
+
+        stopwatch.Stop();
+
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.ApplyDisplayScaleSettings elapsedMs={stopwatch.Elapsed.TotalMilliseconds:0.###}");
+        if (desktopSet && deviceSet)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.ApplyDisplayScaleSettings Successfully set DesktopScaleFactor={_pendingDesktopScaleFactor} DeviceScaleFactor={_pendingDeviceScaleFactor} extendedSettings={DescribeComObject(extendedSettings)}");
+        }
+
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.ApplyDisplayScaleSettings: desktopScaleFactor={_pendingDesktopScaleFactor} deviceScaleFactor={_pendingDeviceScaleFactor} dpi={_pendingDpiScaleX:0.##}x{_pendingDpiScaleY:0.##} extendedSettings={(desktopSet && deviceSet ? "reached" : "fallback")}");
+
+        if (!desktopSet || !deviceSet)
+        {
+            Core.Logging.FileLogger.Info(
+                "RdpActiveXHost display scale fallback: ExtendedSettings unavailable; MsTscAx defaults remain in effect.");
+        }
+    }
+
+    private static void ApplySmartSizing(object ocx, bool enabled)
+    {
+        try
+        {
+            dynamic ax = ocx;
+            ax.AdvancedSettings2.SmartSizing = enabled;
+            Core.Logging.FileLogger.Info($"RdpActiveXHost.SmartSizing={enabled}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[RdpActiveXHost] SmartSizing: {ex.Message}");
+        }
     }
 
     private void ApplyRedirectionSettings(object ocx)
@@ -669,11 +1050,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
             TrySetDynamic("NetworkConnectionType", () => adv.NetworkConnectionType = 7); // CONNECTION_TYPE_AUTODETECT
         }
 
-        // Multi-monitor (requires IMsRdpClientNonScriptable5)
-        if (_pendingRedirections.MultiMonitor)
-        {
-            TrySetDynamic("UseMultimon", () => adv.UseMultimon = true);
-        }
+        // Multi-monitor is a pre-Connect nonscriptable setting. Runtime changes require reconnect.
+        TrySetUseMultimon(ocx, _pendingRedirections.MultiMonitor);
 
         // Force TCP-only: disable bandwidth auto-detection (which uses UDP probes)
         // and set an explicit network type so the client does not attempt UDP transport.

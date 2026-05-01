@@ -73,6 +73,12 @@ public partial class ConnectionViewModel : ObservableObject
 
     [RelayCommand]
     private async Task CloseSession(SessionTabViewModel? session)
+        => await CloseSessionAsync(session, DisconnectReason.TabClose);
+
+    public async Task CloseSessionAsync(
+        SessionTabViewModel? session,
+        DisconnectReason reason,
+        bool confirm = true)
     {
         if (session is null)
         {
@@ -82,7 +88,7 @@ public partial class ConnectionViewModel : ObservableObject
         // Check ALL panes in the split tree for connected status (not just the primary shim)
         var anyConnected = Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent)
             .Any(p => string.Equals(p.Status, "Connected", StringComparison.Ordinal));
-        if (anyConnected)
+        if (confirm && anyConnected)
         {
             var title = _localizer["ConfirmCloseSessionTitle"];
             var message = _localizer.Format("ConfirmCloseSessionMessage", session.Title);
@@ -93,7 +99,7 @@ public partial class ConnectionViewModel : ObservableObject
             }
         }
 
-        CloseSessionInternal(session);
+        CloseSessionInternal(session, reason);
     }
 
     /// <summary>
@@ -101,9 +107,11 @@ public partial class ConnectionViewModel : ObservableObject
     /// Used by <see cref="CloseAllSessions"/> to avoid multiple prompts.
     /// Delegates per-pane cleanup to <see cref="ISplitService.CloseAllPanes"/>.
     /// </summary>
-    private void CloseSessionInternal(SessionTabViewModel session)
+    private void CloseSessionInternal(
+        SessionTabViewModel session,
+        DisconnectReason reason = DisconnectReason.UserAction)
     {
-        if (!_splitService.CloseAllPanes(session))
+        if (!_splitService.CloseAllPanes(session, reason))
             return; // Blocked by a busy tool pane
 
         ActiveSessions.Remove(session);
@@ -123,7 +131,7 @@ public partial class ConnectionViewModel : ObservableObject
     {
         foreach (var session in ActiveSessions.ToList())
         {
-            CloseSessionInternal(session);
+            CloseSessionInternal(session, DisconnectReason.UserAction);
         }
     }
 

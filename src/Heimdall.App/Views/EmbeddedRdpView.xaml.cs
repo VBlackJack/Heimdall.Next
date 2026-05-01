@@ -45,7 +45,7 @@ namespace Heimdall.App.Views;
 /// Applies the proven WPF/WinForms layout flush pattern before Connect()
 /// and delays dynamic resolution reconnects until the session is stable.
 /// </summary>
-public partial class EmbeddedRdpView : UserControl, IDisposable
+public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectTeardownTarget
 {
     private const int BeginConnectMaxAttempts = 10;
     private TimeSpan _initialResizeEnableDelay = TimeSpan.FromSeconds(10);
@@ -67,11 +67,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private const string HealthFaultedGlyph = "\uE783";
     private const string HealthTransitionalGlyph = "\uE7BA";
     private const string HealthIdleGlyph = "\uE946";
-    private static readonly string[] DefaultResolutionPresets =
-    [
-        "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
-        "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
-    ];
+    private readonly record struct RdpDisplayUpdateSettings(
+        uint PhysicalWidthMm,
+        uint PhysicalHeightMm,
+        uint DesktopScaleFactor,
+        uint DeviceScaleFactor,
+        double DpiScaleX,
+        double DpiScaleY);
 
     /// <summary>
     /// Transient state of the embedded credential autofill watcher.
@@ -117,6 +119,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _escapeHookRegistered;
     private bool _isFullscreen;
     private bool _disconnectConfirmInFlight;
+    private bool _resolutionReconnectConfirmInFlight;
+    private bool _dpiChangeDroppedDuringLockout;
+    private Window? _dpiWindow;
 
     /// <summary>
     /// One-shot flag set when the header bar explicitly initiates the disconnect.
@@ -143,6 +148,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// The subscriber should close this session and open a new connection.
     /// </summary>
     public event Action? ReconnectRequested;
+
+    /// <summary>
+    /// Raised when the user requests disconnect from the RDP toolbar.
+    /// The shell closes the owning pane/tab so teardown uses the shared lifecycle path.
+    /// </summary>
+    public event Action? DisconnectRequested;
 
     /// <summary>
     /// Raised when the user clicks "Edit profile" in the disconnect overlay.
@@ -178,11 +189,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         if (isFullscreen && _localizer is not null)
         {
-            var shortcut = RdpShortcutParser.ParseFullscreenOrDefault(
-                _settings?.RdpFullscreenToggleShortcut);
-            ShowTransientToast(_localizer.Format(
-                "RdpFullscreenExitHint",
-                FormatShortcutForDisplay(shortcut)));
+            ShowTransientToast(_localizer["RdpFullscreenExitHint"]);
         }
     }
 
@@ -319,6 +326,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _connectionStateMachine.StateChanged += OnConnectionStateChanged;
         }
 
+        if (IsProfileFixedResolution(server))
+        {
+            _manualResolutionWidth = server.RdpFixedWidth;
+            _manualResolutionHeight = server.RdpFixedHeight;
+        }
+        else if (server.RdpDefaultResolutionWidth > 0 && server.RdpDefaultResolutionHeight > 0)
+        {
+            _manualResolutionWidth = server.RdpDefaultResolutionWidth;
+            _manualResolutionHeight = server.RdpDefaultResolutionHeight;
+        }
+
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
@@ -328,6 +346,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             ResolutionButton.ToolTip = L("TooltipChangeResolution");
         }
+        UpdateResolutionButtonState();
 
         PopulateResolutionMenu();
         CreateHostControl();
@@ -340,7 +359,19 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _ownerPane = pane;
     }
 
+    internal SessionPaneModel? OwningPane => _ownerPane;
+
+    public void DisconnectForTeardown(DisconnectReason reason)
+    {
+        Dispose(reason);
+    }
+
     public void Dispose()
+    {
+        Dispose(DisconnectReason.UserAction);
+    }
+
+    private void Dispose(DisconnectReason reason)
     {
         if (_disposed)
         {
@@ -348,8 +379,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         _disposed = true;
-        Core.Logging.FileLogger.Info("EmbeddedRDP Dispose started");
+        Core.Logging.FileLogger.Info($"EmbeddedRDP Dispose started reason={reason}");
         UnregisterEscapeHook();
+        UnregisterDpiChangedHandler();
 
         if (_connectionStateMachine is not null)
         {
@@ -378,15 +410,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _sessionStatus = RdpSessionStatus.Disconnecting;
         UpdateHealthDot();
 
-        // CRITICAL: Hide the FormsHost FIRST to prevent WPF ArrangeOverride
-        // from trying to resize the COM control after it's been released
-        try
-        {
-            FormsHost.Visibility = System.Windows.Visibility.Collapsed;
-            FormsHost.Child = null;
-        }
-        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] FormsHost cleanup: {ex.Message}"); }
-
         if (_rdpHost is not null)
         {
             _rdpHost.Connected -= OnRdpConnected;
@@ -397,32 +420,45 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _rdpHost.AutoReconnected -= OnRdpAutoReconnected;
 
             _rdpHost.CancelAutoReconnect = true;
-
-            try { _rdpHost.Disconnect(); }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"EmbeddedRDP Disconnect during dispose failed: {ex.Message}");
-            }
-
-            try
-            {
-                if (_eventSinkAttached) _rdpHost.DetachEventSink();
-            }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"EmbeddedRDP DetachEventSink during dispose failed: {ex.Message}");
-            }
-
-            try { _rdpHost.Dispose(); }
-            catch (Exception ex)
-            {
-                Core.Logging.FileLogger.Warn($"EmbeddedRDP host dispose failed: {ex.Message}");
-            }
-            _rdpHost = null;
+            RdpDisconnectTeardownSequence.Execute(this, reason);
         }
+
         _autofillCts?.Dispose();
         _autofillCts = null;
-        Core.Logging.FileLogger.Info("EmbeddedRDP Dispose completed");
+        Core.Logging.FileLogger.Info($"EmbeddedRDP Dispose completed reason={reason}");
+    }
+
+    string IRdpDisconnectTeardownTarget.TeardownTargetName =>
+        $"EmbeddedRdpView serverId={_server?.Id ?? "<unknown>"}";
+
+    void IRdpDisconnectTeardownTarget.CollapseHost()
+    {
+        FormsHost.Visibility = System.Windows.Visibility.Collapsed;
+    }
+
+    void IRdpDisconnectTeardownTarget.ClearHostChild()
+    {
+        FormsHost.Child = null;
+    }
+
+    void IRdpDisconnectTeardownTarget.Disconnect()
+    {
+        _rdpHost?.Disconnect();
+    }
+
+    void IRdpDisconnectTeardownTarget.DetachEventSink()
+    {
+        if (_eventSinkAttached)
+        {
+            _rdpHost?.DetachEventSink();
+            _eventSinkAttached = false;
+        }
+    }
+
+    void IRdpDisconnectTeardownTarget.DisposeHost()
+    {
+        _rdpHost?.Dispose();
+        _rdpHost = null;
     }
 
     internal IntPtr GetRdpKeyboardInputHandle()
@@ -459,6 +495,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         RegisterEscapeHook();
+        RegisterDpiChangedHandler();
 
         if (_connectStarted)
         {
@@ -475,6 +512,52 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         UnregisterEscapeHook();
+        UnregisterDpiChangedHandler();
+    }
+
+    private void RegisterDpiChangedHandler()
+    {
+        var window = Window.GetWindow(this);
+        if (ReferenceEquals(_dpiWindow, window))
+        {
+            return;
+        }
+
+        UnregisterDpiChangedHandler();
+        _dpiWindow = window;
+        if (_dpiWindow is not null)
+        {
+            _dpiWindow.DpiChanged += OnWindowDpiChanged;
+        }
+    }
+
+    private void UnregisterDpiChangedHandler()
+    {
+        if (_dpiWindow is not null)
+        {
+            _dpiWindow.DpiChanged -= OnWindowDpiChanged;
+            _dpiWindow = null;
+        }
+    }
+
+    private async void OnWindowDpiChanged(object sender, System.Windows.DpiChangedEventArgs e)
+    {
+        if (_disposed || _rdpHost is null || _server is null)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP DPI changed: old={e.OldDpi.DpiScaleX:0.##}x{e.OldDpi.DpiScaleY:0.##} new={e.NewDpi.DpiScaleX:0.##}x{e.NewDpi.DpiScaleY:0.##}");
+
+        if (!_allowResolutionUpdates)
+        {
+            _dpiChangeDroppedDuringLockout = true;
+            Core.Logging.FileLogger.Info("EmbeddedRDP DPI change dropped during post-connect stabilization.");
+            return;
+        }
+
+        await ApplyCurrentResolutionAsync("dpi-change", force: true);
     }
 
     private void RegisterEscapeHook()
@@ -563,7 +646,15 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             TransitionPhase(RdpConnectionPhase.None);
             TryTransitionConnectionState(ConnectionState.Disconnecting);
             UpdateSessionStatus(RdpSessionStatus.Disconnecting);
-            _rdpHost.Disconnect();
+
+            if (DisconnectRequested is { } disconnectRequested)
+            {
+                disconnectRequested();
+            }
+            else
+            {
+                DisconnectForTeardown(DisconnectReason.UserAction);
+            }
         }
         catch (Exception ex)
         {
@@ -795,7 +886,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void OnSurfaceContainerSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_disposed || _server is null || !_server.RdpDynamicResolution)
+        if (_disposed || _server is null)
+        {
+            return;
+        }
+
+        ApplyHostLayout();
+
+        if (!_server.RdpDynamicResolution || UsesFixedLocalResolution())
         {
             return;
         }
@@ -813,10 +911,92 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _resizeTimer.Start();
     }
 
-    private void OnResizeTimerTick(object? sender, EventArgs e)
+    private async void OnResizeTimerTick(object? sender, EventArgs e)
     {
         _resizeTimer.Stop();
 
+        if (_disposed || _rdpHost is null || _server is null)
+        {
+            return;
+        }
+
+        if (UsesFixedLocalResolution())
+        {
+            ApplyHostLayout();
+            return;
+        }
+
+        await ApplyCurrentResolutionAsync("resize");
+    }
+
+    private bool ShouldUseDynamicResolutionUpdates()
+        => _server is { RdpDynamicResolution: true } && !UsesFixedLocalResolution();
+
+    private bool UsesFixedLocalResolution()
+        => _manualResolutionWidth > 0 && _manualResolutionHeight > 0;
+
+    private bool IsLetterboxLayoutActive()
+        => _server is { RdpResolutionMode: RdpResolutionMode.Fixed, RdpInitialSmartSizing: false }
+            && UsesFixedLocalResolution();
+
+    private void ApplyHostLayout()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(ApplyHostLayout);
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!TryGetLetterboxContentSize(out var contentWidth, out var contentHeight))
+        {
+            ResetHostLayout();
+            return;
+        }
+
+        var rect = LetterboxLayoutCalculator.Compute(
+            SurfaceContainer.ActualWidth,
+            SurfaceContainer.ActualHeight,
+            contentWidth,
+            contentHeight);
+
+        FormsHost.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+        FormsHost.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+        FormsHost.Margin = new Thickness(rect.HostX, rect.HostY, 0, 0);
+        FormsHost.Width = rect.HostWidth;
+        FormsHost.Height = rect.HostHeight;
+    }
+
+    private bool TryGetLetterboxContentSize(out double contentWidth, out double contentHeight)
+    {
+        contentWidth = 0;
+        contentHeight = 0;
+
+        if (!IsLetterboxLayoutActive())
+        {
+            return false;
+        }
+
+        contentWidth = _manualResolutionWidth;
+        contentHeight = _manualResolutionHeight;
+        return contentWidth > 0 && contentHeight > 0;
+    }
+
+    private void ResetHostLayout()
+    {
+        FormsHost.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+        FormsHost.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+        FormsHost.Margin = new Thickness(0);
+        FormsHost.Width = double.NaN;
+        FormsHost.Height = double.NaN;
+    }
+
+    private async Task ApplyCurrentResolutionAsync(string reason, bool force = false)
+    {
         if (_disposed || _rdpHost is null || _server is null)
         {
             return;
@@ -831,38 +1011,107 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (!_rdpHost.IsConnected)
         {
             Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP Resize skipped while not connected: target={width}x{height}");
+                $"EmbeddedRDP {reason} skipped while not connected: target={width}x{height}");
             return;
         }
 
         if (!_allowResolutionUpdates)
         {
             Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP Resize deferred until post-connect stabilization: target={width}x{height}");
+                $"EmbeddedRDP {reason} deferred until post-connect stabilization: target={width}x{height}");
             return;
         }
 
-        // Skip resizes under 50px delta — these are caused by tab hover, panel toggle,
-        // scrollbar toggling, etc. Only reconnect on intentional resizes (window resize,
-        // fullscreen toggle, split pane drag).
-        int deltaW = Math.Abs(width - _lastAppliedWidth);
-        int deltaH = Math.Abs(height - _lastAppliedHeight);
-        if (deltaW < 50 && deltaH < 50)
+        if (!force)
         {
-            return;
+            // Skip small resizes caused by tab hover, panel toggles, and scrollbar churn.
+            int deltaW = Math.Abs(width - _lastAppliedWidth);
+            int deltaH = Math.Abs(height - _lastAppliedHeight);
+            if (deltaW < 50 && deltaH < 50)
+            {
+                return;
+            }
         }
 
         try
         {
+            var updateSettings = GetDisplayUpdateSettings(width, height);
             Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP UpdateResolution requested: {width}x{height} connectedFor={(DateTime.UtcNow - _connectedAtUtc).TotalSeconds:0.0}s");
-            _rdpHost.UpdateResolution(width, height);
-            _lastAppliedWidth = width;
-            _lastAppliedHeight = height;
+                $"EmbeddedRDP UpdateResolution requested: reason={reason} target={width}x{height} physical={updateSettings.PhysicalWidthMm}x{updateSettings.PhysicalHeightMm}mm scale={updateSettings.DesktopScaleFactor}/{updateSettings.DeviceScaleFactor} connectedFor={(DateTime.UtcNow - _connectedAtUtc).TotalSeconds:0.0}s");
+
+            var allowFallback = _settings?.RdpConfirmReconnectOnResize != true;
+            var result = _rdpHost.UpdateResolution(
+                width,
+                height,
+                updateSettings.PhysicalWidthMm,
+                updateSettings.PhysicalHeightMm,
+                updateSettings.DesktopScaleFactor,
+                updateSettings.DeviceScaleFactor,
+                allowFallback);
+
+            if (result == RdpDisplayUpdateResult.ReconnectRequired
+                && await ConfirmResolutionReconnectAsync(width, height))
+            {
+                result = _rdpHost.UpdateResolution(
+                    width,
+                    height,
+                    updateSettings.PhysicalWidthMm,
+                    updateSettings.PhysicalHeightMm,
+                    updateSettings.DesktopScaleFactor,
+                    updateSettings.DeviceScaleFactor,
+                    allowReconnectFallback: true);
+            }
+
+            if (result is RdpDisplayUpdateResult.Seamless or RdpDisplayUpdateResult.ReconnectFallback)
+            {
+                _lastAppliedWidth = width;
+                _lastAppliedHeight = height;
+            }
+
+            if (result == RdpDisplayUpdateResult.ReconnectFallback)
+            {
+                ShowTransientToast(_localizer?["RdpResolutionReconnectFallbackToast"]
+                    ?? "Resolution change required reconnect.");
+            }
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Warn($"Resize during RDP session: {ex.Message}");
+            Core.Logging.FileLogger.Warn($"RDP display update ({reason}): {ex.Message}");
+        }
+    }
+
+    private async Task<bool> ConfirmResolutionReconnectAsync(int width, int height)
+    {
+        if (_resolutionReconnectConfirmInFlight)
+        {
+            return false;
+        }
+
+        var dialogService = (Application.Current as App)?.Services?.GetService<IDialogService>();
+        if (dialogService is null)
+        {
+            Core.Logging.FileLogger.Warn("EmbeddedRDP reconnect confirmation requested but no dialog service is available.");
+            return false;
+        }
+
+        try
+        {
+            _resolutionReconnectConfirmInFlight = true;
+            return await dialogService.ShowConfirmAsync(
+                _localizer?["RdpConfirmResolutionReconnectTitle"] ?? "Reconnect required",
+                _localizer?.Format("RdpConfirmResolutionReconnectMessage", width, height)
+                    ?? $"Changing resolution to {width}x{height} requires reconnect. Continue?",
+                "warning");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[EmbeddedRdpView] Resolution reconnect confirmation failed: {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            _resolutionReconnectConfirmInFlight = false;
         }
     }
 
@@ -904,9 +1153,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             var (username, domain) = SplitUsername(_server.RdpUsername);
             var password = TryDecryptPassword(_server);
             var (width, height) = GetDisplayDimensions();
+            var displayUpdateSettings = GetDisplayUpdateSettings(width, height);
 
             Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height} handle=0x{_rdpHost.HostHandle.ToInt64():X} clsid={_rdpHost.ActiveXClsid}");
+                $"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height} dpi={displayUpdateSettings.DpiScaleX:0.##}x{displayUpdateSettings.DpiScaleY:0.##} scale={displayUpdateSettings.DesktopScaleFactor}/{displayUpdateSettings.DeviceScaleFactor} handle=0x{_rdpHost.HostHandle.ToInt64():X} clsid={_rdpHost.ActiveXClsid}");
 
             _rdpHost.SetServer(connectHost, connectPort);
             if (!string.IsNullOrWhiteSpace(username))
@@ -915,6 +1165,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
             }
 
+            _rdpHost.SetDisplayScaleFactors(
+                displayUpdateSettings.DesktopScaleFactor,
+                displayUpdateSettings.DeviceScaleFactor,
+                displayUpdateSettings.DpiScaleX,
+                displayUpdateSettings.DpiScaleY);
             _rdpHost.SetDisplay(width, height, RdpProfileResolver.ResolveColorDepth(_server, settings));
             _lastAppliedWidth = width;
             _lastAppliedHeight = height;
@@ -1043,10 +1298,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             AcquireSleepPrevention();
 
-            if (_server is not null && _server.RdpDynamicResolution)
+            if (ShouldUseDynamicResolutionUpdates())
             {
                 StartStabilizationCountdown(_initialResizeEnableDelay);
                 _ = EnableResolutionUpdatesAsync();
+            }
+            else
+            {
+                _allowResolutionUpdates = true;
             }
         });
     }
@@ -1085,22 +1344,20 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             StopStabilizationCountdown();
             Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
 
+            if (_dpiChangeDroppedDuringLockout)
+            {
+                _dpiChangeDroppedDuringLockout = false;
+                Core.Logging.FileLogger.Info("EmbeddedRDP skipped queued display refresh after dropped DPI change.");
+                return;
+            }
+
             var (queuedWidth, queuedHeight) = GetDisplayDimensions();
             if (queuedWidth > 0 && queuedHeight > 0
                 && (queuedWidth != _lastAppliedWidth || queuedHeight != _lastAppliedHeight))
             {
-                try
-                {
-                    Core.Logging.FileLogger.Info(
-                        $"EmbeddedRDP applying queued resolution after stabilization: {queuedWidth}x{queuedHeight}");
-                    _rdpHost.UpdateResolution(queuedWidth, queuedHeight);
-                    _lastAppliedWidth = queuedWidth;
-                    _lastAppliedHeight = queuedHeight;
-                }
-                catch (Exception ex)
-                {
-                    Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] queued resolution flush: {ex.Message}");
-                }
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedRDP applying queued resolution after stabilization: {queuedWidth}x{queuedHeight}");
+                await ApplyCurrentResolutionAsync("post-stabilization", force: true);
             }
         }
         catch (Exception ex)
@@ -1230,10 +1487,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             UpdateSessionStatus(RdpSessionStatus.Connected);
             UpdateRedirectionIndicators();
 
-            if (_server is not null && _server.RdpDynamicResolution)
+            if (ShouldUseDynamicResolutionUpdates())
             {
                 StartStabilizationCountdown(_initialResizeEnableDelay);
                 _ = EnableResolutionUpdatesAsync();
+            }
+            else
+            {
+                _allowResolutionUpdates = true;
             }
         });
     }
@@ -1242,7 +1503,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         _rdpHost = new RdpActiveXHost
         {
-            Dock = WinForms.DockStyle.Fill
+            Dock = WinForms.DockStyle.Fill,
+            InitialSmartSizing = ResolveInitialSmartSizing(_server)
         };
 
         _rdpHost.Connected += OnRdpConnected;
@@ -1253,6 +1515,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _rdpHost.AutoReconnected += OnRdpAutoReconnected;
 
         FormsHost.Child = _rdpHost.GetHostControl();
+        ApplyHostLayout();
 
         Core.Logging.FileLogger.Info(
             $"EmbeddedRDP host created: clsid={_rdpHost.ActiveXClsid} childType={FormsHost.Child?.GetType().FullName ?? "null"}");
@@ -1853,6 +2116,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (_server is null) return;
         _server.RdpAspectRatio = ratioName;
 
+        if (UsesFixedLocalResolution())
+        {
+            ApplyHostLayout();
+            return;
+        }
+
         // Trigger a resolution recalculation via the resize timer
         // (don't call OnSurfaceContainerSizeChanged directly — it needs a real SizeChangedEventArgs)
         _resizeTimer.Stop();
@@ -1891,33 +2160,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             ResolutionMenu.Items.RemoveAt(4);
         }
 
-        var presets = _settings?.RdpResolutionPresets is { Length: > 0 } configured
-            ? configured
-            : DefaultResolutionPresets;
-
-        foreach (var preset in presets)
+        foreach (var preset in ResolutionPresetCatalog.GetPresets(_settings))
         {
-            if (string.IsNullOrWhiteSpace(preset))
-            {
-                continue;
-            }
-
-            var parts = preset.Trim().Split(new[] { 'x', 'X' }, StringSplitOptions.TrimEntries);
-            if (parts.Length != 2
-                || !int.TryParse(parts[0], out var width)
-                || !int.TryParse(parts[1], out var height)
-                || width <= 0
-                || height <= 0)
-            {
-                Core.Logging.FileLogger.Warn(
-                    $"EmbeddedRDP skipping malformed resolution preset: '{preset}'");
-                continue;
-            }
-
             var item = new MenuItem
             {
-                Header = $"{width} x {height}",
-                Tag = $"{width}x{height}"
+                Header = preset.DisplayText,
+                Tag = preset.Tag
             };
             item.Click += OnResolutionMenuClick;
             ResolutionMenu.Items.Add(item);
@@ -1936,46 +2184,95 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         StopAntiIdleTimer();
     }
 
-    private void OnResolutionMenuClick(object sender, RoutedEventArgs e)
+    private async void OnResolutionMenuClick(object sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem item || item.Tag is not string tag)
             return;
 
         if (tag == "Fit")
         {
-            _manualResolutionWidth = 0;
-            _manualResolutionHeight = 0;
-            ResolutionButton.ToolTip = L("RdpTooltipResolution");
-            if (TryFindResource("TextPrimaryBrush") is System.Windows.Media.Brush defaultBrush)
-                ResolutionButton.Foreground = defaultBrush;
-            Core.Logging.FileLogger.Info("RDP resolution set to: Fit to Window");
+            await ApplyResolutionChoiceAsync(ResolutionChoice.MatchWindow);
         }
-        else
+        else if (ResolutionPresetCatalog.TryParse(tag, out var preset))
         {
-            var parts = tag.Split('x');
-            if (parts.Length == 2
-                && int.TryParse(parts[0], out var w)
-                && int.TryParse(parts[1], out var h))
-            {
-                _manualResolutionWidth = w;
-                _manualResolutionHeight = h;
-                ResolutionButton.ToolTip = $"{L("RdpTooltipResolution")} ({w}x{h})";
-                if (TryFindResource("AccentBrush") is System.Windows.Media.Brush accentBrush)
-                    ResolutionButton.Foreground = accentBrush;
-                Core.Logging.FileLogger.Info($"RDP resolution set to: {w}x{h}");
-            }
+            await ApplyResolutionChoiceAsync(ResolutionChoice.Fixed(preset.Width, preset.Height));
+        }
+    }
+
+    public async Task ApplyResolutionChoiceAsync(ResolutionChoice choice)
+    {
+        if (_disposed)
+        {
+            return;
         }
 
-        // Apply immediately if connected
-        if (_rdpHost?.IsConnected == true && _allowResolutionUpdates)
+        switch (choice.Kind)
         {
-            var (width, height) = GetDisplayDimensions();
-            if (width > 0 && height > 0)
+            case ResolutionChoiceKind.MatchWindow:
+                _manualResolutionWidth = 0;
+                _manualResolutionHeight = 0;
+                UpdateResolutionButtonState();
+                Core.Logging.FileLogger.Info("RDP resolution set to: Fit to Window");
+                break;
+
+            case ResolutionChoiceKind.Fixed:
+                if (choice.Width <= 0 || choice.Height <= 0)
+                {
+                    return;
+                }
+
+                _manualResolutionWidth = choice.Width;
+                _manualResolutionHeight = choice.Height;
+                UpdateResolutionButtonState();
+
+                if (IsResolutionLargerThanSurface(choice.Width, choice.Height))
+                {
+                    _rdpHost?.SetSmartSizing(true);
+                    ShowTransientToast(_localizer?["RdpResolutionScaledToFitToast"]
+                        ?? "Larger than window - image will be scaled.");
+                }
+
+                Core.Logging.FileLogger.Info($"RDP resolution set to: {choice.Width}x{choice.Height}");
+                break;
+        }
+
+        ApplyHostLayout();
+
+        if (_rdpHost?.IsConnected == true)
+        {
+            await ApplyCurrentResolutionAsync("manual-resolution", force: true);
+        }
+    }
+
+    public void SetSmartSizing(bool enabled)
+    {
+        _rdpHost?.SetSmartSizing(enabled);
+    }
+
+    public bool WouldScaleResolution(int width, int height)
+        => IsResolutionLargerThanSurface(width, height);
+
+    public ResolutionChoice GetCurrentResolutionChoice()
+        => _manualResolutionWidth > 0 && _manualResolutionHeight > 0
+            ? ResolutionChoice.Fixed(_manualResolutionWidth, _manualResolutionHeight)
+            : ResolutionChoice.MatchWindow;
+
+    private void UpdateResolutionButtonState()
+    {
+        if (_manualResolutionWidth > 0 && _manualResolutionHeight > 0)
+        {
+            ResolutionButton.ToolTip = $"{L("RdpTooltipResolution")} ({_manualResolutionWidth}x{_manualResolutionHeight})";
+            if (TryFindResource("AccentBrush") is System.Windows.Media.Brush accentBrush)
             {
-                _rdpHost.UpdateResolution(width, height);
-                _lastAppliedWidth = width;
-                _lastAppliedHeight = height;
+                ResolutionButton.Foreground = accentBrush;
             }
+            return;
+        }
+
+        ResolutionButton.ToolTip = L("RdpTooltipResolution");
+        if (TryFindResource("TextPrimaryBrush") is System.Windows.Media.Brush defaultBrush)
+        {
+            ResolutionButton.Foreground = defaultBrush;
         }
     }
 
@@ -2498,7 +2795,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         // Manual resolution override — use exact dimensions if set
         if (_manualResolutionWidth > 0 && _manualResolutionHeight > 0)
         {
-            return (_manualResolutionWidth, _manualResolutionHeight);
+            return (SnapRdpWidth(_manualResolutionWidth), _manualResolutionHeight);
         }
 
         double logicalWidth = Math.Max(SurfaceContainer.ActualWidth, 2);
@@ -2521,14 +2818,66 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
         }
 
-        int physicalWidth = (int)Math.Round(logicalWidth * dpiScaleX);
+        int physicalWidth = SnapRdpWidth((int)Math.Round(logicalWidth * dpiScaleX));
         int physicalHeight = (int)Math.Round(logicalHeight * dpiScaleY);
 
-        return AspectRatioManager.Calculate(
+        var (width, height) = AspectRatioManager.Calculate(
             physicalWidth,
             physicalHeight,
             ParseAspectRatio(_server.RdpAspectRatio));
+
+        return (SnapRdpWidth(width), height);
     }
+
+    private RdpDisplayUpdateSettings GetDisplayUpdateSettings(int width, int height)
+    {
+        var dpi = VisualTreeHelper.GetDpi(FormsHost);
+        var dpiScaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+        var dpiScaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+        var dpiX = dpi.PixelsPerInchX > 0 ? dpi.PixelsPerInchX : 96.0;
+        var dpiY = dpi.PixelsPerInchY > 0 ? dpi.PixelsPerInchY : 96.0;
+
+        return new RdpDisplayUpdateSettings(
+            RdpDisplayHelper.ComputePhysicalSizeMm(width, dpiX),
+            RdpDisplayHelper.ComputePhysicalSizeMm(height, dpiY),
+            RdpDisplayHelper.MapDpiToDesktopScaleFactor(dpiScaleX),
+            RdpDisplayHelper.MapDpiToDeviceScaleFactor(dpiScaleX),
+            dpiScaleX,
+            dpiScaleY);
+    }
+
+    private bool IsResolutionLargerThanSurface(int width, int height)
+    {
+        var (surfaceWidth, surfaceHeight) = GetSurfacePhysicalDimensions();
+        return width > surfaceWidth || height > surfaceHeight;
+    }
+
+    private (int Width, int Height) GetSurfacePhysicalDimensions()
+    {
+        double logicalWidth = Math.Max(SurfaceContainer.ActualWidth, 2);
+        double logicalHeight = Math.Max(SurfaceContainer.ActualHeight, 2);
+        var dpi = VisualTreeHelper.GetDpi(SurfaceContainer);
+
+        return (
+            SnapRdpWidth((int)Math.Round(logicalWidth * dpi.DpiScaleX)),
+            (int)Math.Round(logicalHeight * dpi.DpiScaleY));
+    }
+
+    private static int SnapRdpWidth(int width)
+    {
+        var snapped = RdpDisplayHelper.SnapToMultipleOf(width, 4);
+        return snapped > 0 ? snapped : 4;
+    }
+
+    private static bool IsProfileFixedResolution(ServerProfileDto server)
+        => server.RdpResolutionMode == RdpResolutionMode.Fixed
+            && server.RdpFixedWidth > 0
+            && server.RdpFixedHeight > 0;
+
+    private static bool ResolveInitialSmartSizing(ServerProfileDto? server)
+        => server is null
+            || !IsProfileFixedResolution(server)
+            || server.RdpInitialSmartSizing;
 
     private bool IsVisualSurfaceReady()
     {
@@ -2546,6 +2895,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         UpdateLayout();
         SurfaceContainer.UpdateLayout();
+        ApplyHostLayout();
         FormsHost.UpdateLayout();
 
         if (FormsHost.Child is WinForms.Control control)
