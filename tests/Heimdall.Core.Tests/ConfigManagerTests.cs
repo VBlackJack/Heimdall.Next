@@ -232,6 +232,14 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal("en", settings.DefaultLocale);
     }
 
+    [Fact]
+    public void CollapseTunnelsPanelByDefault_DefaultIsTrue()
+    {
+        var settings = new AppSettings();
+
+        Assert.True(settings.CollapseTunnelsPanelByDefault);
+    }
+
     // ── SaveSettingsAsync / round-trip ──────────────────────────────────
 
     [Fact]
@@ -272,6 +280,20 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal(original.EnableLogging, loaded.EnableLogging);
         Assert.Equal(original.SshDefaultMode, loaded.SshDefaultMode);
         Assert.Equal(original.RdpDefaultMode, loaded.RdpDefaultMode);
+    }
+
+    [Fact]
+    public async Task CollapseTunnelsPanelByDefault_RoundTrip_PreservesFalse()
+    {
+        var original = new AppSettings
+        {
+            CollapseTunnelsPanelByDefault = false
+        };
+
+        await _manager.SaveSettingsAsync(original);
+        var loaded = await _manager.LoadSettingsAsync();
+
+        Assert.False(loaded.CollapseTunnelsPanelByDefault);
     }
 
     [Fact]
@@ -631,6 +653,30 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal("Embedded", loaded[1].SshMode);
         Assert.True(loaded[1].SshAgentForwarding);
         Assert.Equal("admin", loaded[1].SshUsername);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SaveServersAsync_ThenLoadServersAsync_PreservesTunnelsPanelExpanded(bool? expanded)
+    {
+        var original = new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "srv-tunnels",
+                DisplayName = "Tunnels State",
+                RemoteServer = "10.0.0.1",
+                TunnelsPanelExpanded = expanded
+            }
+        };
+
+        await _manager.SaveServersAsync(original);
+        var loaded = await _manager.LoadServersAsync();
+
+        var server = Assert.Single(loaded);
+        Assert.Equal(expanded, server.TunnelsPanelExpanded);
     }
 
     [Fact]
