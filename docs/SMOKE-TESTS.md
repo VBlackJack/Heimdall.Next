@@ -134,6 +134,10 @@ These are still better as manual smokes:
 - SSH failure disclosure (`Stage` / `Code` / `Detail`) on auth, gateway, and network errors
 - RDP pre-tab failure disclosure (tunnel / credential / `.rdp` write / launch) when an easy repro is available
 - RDP mid-session pane-scoped disclosure and clear-on-reconnect behavior when a test server is available
+- RDP fullscreen exit via the chip, F11, Esc, and Ctrl+Shift+F11, with focus both on WPF chrome and inside the RDP session
+- RDP fullscreen foreground filter: while Heimdall is fullscreen but another app is foreground, Esc / F11 must reach that foreground app and not be absorbed by Heimdall
+- RDP letterbox bars in fixed-resolution mode render with the themed background color, not the default light-grey host surface
+- ServerDialog Resolution profile section: four-mode conditional visibility, EN/FR localization, validation badges, snap-to-4, and save-as-default round-trip via the tab context menu
 - split-pane correctness for per-pane diagnostics (disconnect only one pane, verify the sibling stays clean)
 - session-tree drag cursor / no-group drop-zone affordance
 - sidebar tool ContextMenu pin/unpin flows and right-click no-launch behavior

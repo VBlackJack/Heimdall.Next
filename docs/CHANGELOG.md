@@ -12,6 +12,50 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-01 — RDP resolution, DPI, fullscreen, and lifecycle hardening
+
+Two-phase RDP pass covering DPI correctness, per-server resolution profiles,
+ActiveX lifecycle cleanup, and fullscreen usability.
+
+### Phase 1 — RDP DPI plumbing
+
+- Injects `DesktopScaleFactor` and `DeviceScaleFactor` before `Connect()` via
+  direct QI on `IMsRdpExtendedSettings` (`ocx as IMsRdpExtendedSettings`) with
+  an explicit `Marshal.QueryInterface` fallback. The dynamic
+  `ax.ExtendedSettings` IDispatch path and `IServiceProvider.QueryService`
+  path were both proven unreliable on real `MsTscAx.MsTscAx.10` installs.
+- Tracks monitor DPI changes via `Window.DpiChanged` and reuses the guarded
+  `UpdateSessionDisplaySettings` path for live display updates.
+- Snaps RDP widths to a multiple of 4 before display updates.
+- Adds the session-tab context-menu Resolution submenu with standard presets,
+  Match Window, Custom, and Save as default for this server.
+- Removes the previous global forced `SmartSizing = true`; current default
+  behavior is preserved through explicit initialization instead.
+
+### Phase 2 — Resolution profiles, fullscreen UX, lifecycle hardening
+
+- Adds per-server `RdpResolutionMode` schema (`FitWindow`, `Fixed`,
+  `SmartSizing`, `Multimon`) with migration from legacy
+  `RdpFixedResolutionWidth` / `RdpFixedResolutionHeight` and
+  `RdpMultiMonitor` fields. Legacy JSON property names remain readable.
+- Adds the ServerDialog "Resolution profile" section with mode-specific field
+  visibility, validation ranges, snap-to-4 acceptance for fixed widths, and
+  EN/FR localization parity.
+- Adds centered letterbox sizing for `Fixed + SmartSizing=off`, positioning the
+  `WindowsFormsHost` with explicit `Margin` / `Width` / `Height` inside a
+  themed host surface instead of relying on WPF transforms.
+- Migrates `UseMultimon` from the fragile `AdvancedSettings9` path to the
+  documented `IMsRdpClientNonScriptable5` QI path.
+- Harmonizes RDP disconnect teardown across tab close, toolbar disconnect,
+  context-menu disconnect, and reconnect/failed-session cleanup through
+  `RdpDisconnectTeardownSequence`.
+- Improves fullscreen UX with a themed auto-hiding exit chip, top-edge reveal,
+  universal F11 toggle, Esc exit, Ctrl+Shift+F11 toggle, and layered keyboard
+  routing (`PreviewKeyDown`, `ThreadPreprocessMessage`, low-level
+  `WH_KEYBOARD_LL` hook, foreground-process filter).
+
+Test baseline after this pass: **5,030 passing + 6 skipped**, zero warnings.
+
 ## 2026-04-25 — SSH audit follow-up (Pageant DACL, known_hosts DoS caps, lifecycle)
 
 Four-commit hardening pass on the SSH/SFTP/Tunnel surface following a

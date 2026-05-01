@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4490%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5030%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -40,6 +40,11 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Embedded sessions via ActiveX MsTscAx in a tabbed interface
 - External sessions via mstsc.exe with credential autofill
 - Dynamic resolution resize with stabilization guard
+- Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon
+- Automatic DPI scale tracking via `IMsRdpExtendedSettings` with `Window.DpiChanged` updates
+- Tab context-menu resolution submenu with presets, Match Window, Custom, and Save as default
+- Letterboxed fixed-resolution rendering when Smart Sizing is disabled
+- Fullscreen UX with a high-contrast exit chip plus F11, Esc, and Ctrl+Shift+F11 escape paths
 - Aspect ratio management (Stretch, 16:9, 4:3, 21:9) and anti-idle prevention
 - Full redirection surface: clipboard, drives, printers, COM ports, smart cards, webcam, USB, audio
 - Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
@@ -212,7 +217,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,185 i18n keys)
+- Bilingual interface: English and French (~5,397 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 

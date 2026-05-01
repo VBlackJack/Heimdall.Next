@@ -763,3 +763,45 @@ This is easy to miss because the repo root also has a `config\settings.json`, bu
 Alternatively, create the gateway manually in Settings > SSH & SFTP > SSH gateways and save settings. External edits to `settings.json` are not live-reloaded; restart the app after running the script.
 
 **Files**: `G:\_Projects\Tests\Heimdall-TestEnv\scripts\Inject-Gateway.ps1`, runtime `config\settings.json`
+
+---
+
+## 43. RDP — `IMsRdpExtendedSettings` Not Reachable via `dynamic` Property Access {#rdp-extendedsettings-dynamic-access}
+
+**Symptom**: Code accessing `ax.ExtendedSettings` where `ax` is the AxHost-wrapped OCX throws a runtime binder error similar to:
+
+```text
+RuntimeBinderException: 'System.__ComObject' does not contain a definition for 'ExtendedSettings'
+```
+
+This can happen even on Windows 10/11 machines where `MsTscAx.MsTscAx.10` is registered.
+
+**Root cause**: The AxHost wrapper's `System.__ComObject` IDispatch surface does not expose the `ExtendedSettings` property, even though the underlying RDP OCX supports `IMsRdpClient10` / `IMsRdpExtendedSettings` through vtable QueryInterface.
+
+**Solution**:
+
+1. Declare a typed interop interface:
+
+```csharp
+[ComImport]
+[Guid("302D8188-0052-4807-806A-362B628F9AC5")]
+internal interface IMsRdpExtendedSettings
+{
+    void put_Property(string name, object value);
+}
+```
+
+2. Get the real OCX object from `AxHost.GetOcx()`.
+3. Use direct QI via a CLR COM cast:
+
+```csharp
+var extendedSettings = ocx as IMsRdpExtendedSettings;
+```
+
+4. Keep an explicit `Marshal.QueryInterface` fallback with the same IID for diagnostics on unusual COM environments.
+
+Do **not** use `IServiceProvider.QueryService` for this case. On `MsTscAx.MsTscAx.10`, it returns `E_NOINTERFACE` for sibling COM interfaces and is the wrong acquisition pattern.
+
+**Key lesson**: For MsTscAx sibling COM interfaces, trust direct QueryInterface on the OCX, not the dynamic IDispatch surface exposed by the AxHost wrapper.
+
+**Files**: `Heimdall.Rdp/ActiveX/ComInterfaces.cs`, `Heimdall.Rdp/ActiveX/RdpActiveXHost.cs`
