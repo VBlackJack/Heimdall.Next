@@ -1914,18 +1914,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         var choice = rdpView.GetCurrentResolutionChoice();
         if (choice.Kind == ResolutionChoiceKind.Fixed)
         {
-            // TODO(Phase 2 runtime): retire RdpDefaultResolutionWidth/Height once
-            // EmbeddedRdpView reads fixed profiles from RdpFixedWidth/Height.
-            server.RdpDefaultResolutionWidth = choice.Width;
-            server.RdpDefaultResolutionHeight = choice.Height;
             server.RdpResolutionMode = RdpResolutionMode.Fixed;
             server.RdpFixedWidth = choice.Width;
             server.RdpFixedHeight = choice.Height;
         }
         else
         {
-            server.RdpDefaultResolutionWidth = 0;
-            server.RdpDefaultResolutionHeight = 0;
             server.RdpResolutionMode = RdpResolutionMode.FitWindow;
             server.RdpFixedWidth = 0;
             server.RdpFixedHeight = 0;

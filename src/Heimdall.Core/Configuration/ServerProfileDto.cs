@@ -28,6 +28,8 @@ public sealed class ServerProfileDto
 {
     private string? _sshKeyPassphraseEncrypted;
     private RdpResolutionMode _rdpResolutionMode = RdpResolutionMode.FitWindow;
+    private int? _rdpFixedWidth;
+    private int? _rdpFixedHeight;
 
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
@@ -85,8 +87,39 @@ public sealed class ServerProfileDto
     // RDP display settings
     public bool RdpAntiIdle { get; set; }
     public string RdpAspectRatio { get; set; } = "Stretch";
-    public int RdpDefaultResolutionWidth { get; set; }
-    public int RdpDefaultResolutionHeight { get; set; }
+
+    /// <summary>
+    /// One-way migration shim for legacy JSON only. Scheduled for full removal in a later phase.
+    /// </summary>
+    [Obsolete("Use RdpFixedWidth. This setter-only shim exists only for legacy JSON migration.")]
+    [JsonPropertyName("rdpDefaultResolutionWidth")]
+    public int? RdpDefaultResolutionWidth
+    {
+        set
+        {
+            if (value.HasValue && !_rdpFixedWidth.HasValue)
+            {
+                RdpFixedWidth = value.Value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// One-way migration shim for legacy JSON only. Scheduled for full removal in a later phase.
+    /// </summary>
+    [Obsolete("Use RdpFixedHeight. This setter-only shim exists only for legacy JSON migration.")]
+    [JsonPropertyName("rdpDefaultResolutionHeight")]
+    public int? RdpDefaultResolutionHeight
+    {
+        set
+        {
+            if (value.HasValue && !_rdpFixedHeight.HasValue)
+            {
+                RdpFixedHeight = value.Value;
+            }
+        }
+    }
+
     [JsonPropertyName("rdpResolutionMode")]
     [JsonConverter(typeof(JsonStringEnumConverter<RdpResolutionMode>))]
     public RdpResolutionMode RdpResolutionMode
@@ -103,10 +136,18 @@ public sealed class ServerProfileDto
     public bool HasRdpResolutionModeField { get; private set; }
 
     [JsonPropertyName("rdpFixedResolutionWidth")]
-    public int RdpFixedWidth { get; set; }
+    public int RdpFixedWidth
+    {
+        get => _rdpFixedWidth.GetValueOrDefault();
+        set => _rdpFixedWidth = value;
+    }
 
     [JsonPropertyName("rdpFixedResolutionHeight")]
-    public int RdpFixedHeight { get; set; }
+    public int RdpFixedHeight
+    {
+        get => _rdpFixedHeight.GetValueOrDefault();
+        set => _rdpFixedHeight = value;
+    }
 
     [JsonPropertyName("rdpInitialSmartSizing")]
     public bool RdpInitialSmartSizing { get; set; } = true;
