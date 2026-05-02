@@ -12,6 +12,62 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Tunnels panel collapse-by-default
+
+Phase 3.1 pass changing the Tunnels panel from a single global expanded flag
+into a per-active-tab resolved state, with a per-server-profile override, an
+ad-hoc tab-local fallback, a discrete tab-header badge, and a Settings toggle
+controlling the application default. Five-commit incremental ship across DTO,
+Settings UI, panel state resolution, badge state aggregation, and badge visual.
+
+- Adds nullable `ServerProfileDto.TunnelsPanelExpanded` and bool
+  `AppSettings.CollapseTunnelsPanelByDefault` (default `true`); legacy JSON
+  without the new fields naturally deserialises to `null` / default. No
+  migration class required.
+- Adds the Appearance Settings checkbox bound to
+  `CollapseTunnelsPanelByDefault`, with localized label, tooltip, and
+  `AutomationProperties.Name`. EN/FR locale parity preserved.
+- Refactors `TunnelsViewModel.IsPanelOpen` from a global flag into a resolved
+  state with strict precedence: per-tab manual override → per-profile
+  `TunnelsPanelExpanded` (loaded fresh from disk via
+  `ConfigManager.LoadServersAsync`) → application default
+  `!CollapseTunnelsPanelByDefault`. Re-resolves on active-session change,
+  `ConfigManager.SettingsChanged`, and tab `RootContent` changes.
+  `Interlocked`-versioned async resolution prevents stale writes when a toggle
+  and a tab switch race.
+- Removes the previous `OnTunnelOpened` force-`IsPanelOpen = true` path; the
+  new tab-header badge dot replaces this affordance.
+- Persists manual toggles to disk for saved profiles via
+  `ConfigManager.SaveServersAsync`; ad-hoc sessions
+  (`SessionTabViewModel.IsAdHoc`) keep the override tab-local only.
+  Profile-deleted-mid-session falls back to tab-local with a `FileLogger.Warn`.
+- Introduces an `internal ITunnelsHost` adapter (3-member surface) so
+  `TunnelsViewModel` can be tested without constructing the full
+  `MainViewModel`.
+- Adds `SessionTabViewModel.TunnelBadgeState`
+  (`Hidden` / `Healthy` / `Unhealthy`) and the stateless
+  `TunnelBadgeStateResolver`, which walks every leaf via
+  `SplitTreeHelper.EnumerateLeaves` and aggregates per-pane tunnel health via
+  `ConnectionStateMachine.GetStateData(serverId)?.TunnelLocalPort` +
+  `TunnelManager.GetTunnel(port)?.IsAlive`. The snapshot-based limitation
+  (no event for silent `IsAlive` transitions) is documented and accepted.
+- Orchestrates per-tab badge updates in `TunnelsViewModel` via subscriptions
+  to `TunnelManager.TunnelOpened` / `TunnelClosed` and to the existing
+  `ConnectionViewModel.ActiveSessions.CollectionChanged`; tracks subscribed
+  tabs in a `_trackedTabs` HashSet for idempotent subscribe/unsubscribe, and
+  unsubscribes every per-tab handler in `Dispose`. No new public event added.
+- Renders the badge as a corner-overlay `Ellipse` next to the protocol icon
+  in the session tab header. Layout is stable (overlay on the existing 14×14
+  icon, zero impact on title or sibling elements). Visibility is computed by
+  `TunnelBadgeVisibilityConverter` (`IMultiValueConverter` bound to both
+  `TunnelBadgeState` and `Tunnels.IsPanelOpen`); fill via
+  `TunnelBadgeStateToBrushConverter` (`SuccessBrush` / `WarningBrush`);
+  tooltip via XAML `DataTrigger` on `TunnelBadgeState`. Five new i18n keys
+  total across the Settings checkbox and the badge.
+
+Test baseline after this pass: **5,087 passing + 6 skipped**, zero warnings
+under `TreatWarningsAsErrors`. EN/FR locale parity at 5,402 leaf keys.
+
 ## 2026-05-01 — RDP resolution, DPI, fullscreen, and lifecycle hardening
 
 Two-phase RDP pass covering DPI correctness, per-server resolution profiles,
