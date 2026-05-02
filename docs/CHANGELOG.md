@@ -12,6 +12,27 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Network cartography KB flake hardening
+
+Phase 3.6 pass fixing the transient
+`NetworkCartographyViewModelTests.ClearKb_ResetsStats` failure. Recon traced the
+flake to the ViewModel's fire-and-forget initial KB stats load racing with
+`ClearKbAsync`, plus the test fixture touching the shared static
+`config/network-kb.json` path.
+
+- Adds an `INetworkKnowledgeBaseStore` persistence seam with the production
+  `FileNetworkKnowledgeBaseStore` adapter and an in-memory test store.
+- Constructor-injects the store into `NetworkCartographyViewModel` while keeping
+  the synchronous `Initialize` contract unchanged.
+- Captures the initial load task, exposes `WaitForInitialLoadAsync`, and
+  serializes `ClearKbAsync` behind any pending initial load so stale stats cannot
+  overwrite a cleared KB.
+- Refactors network cartography ViewModel tests off the shared file path and adds
+  a deterministic `TaskCompletionSource`-gated regression test for the original
+  race.
+
+Test baseline after this pass: **5,100 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — Timezone type-to-select city bias
 
 Phase 3.5 pass improving DateTime Converter timezone type-to-select after

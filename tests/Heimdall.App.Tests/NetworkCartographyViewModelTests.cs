@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-using System.IO;
+using Heimdall.App.Tests.Fakes;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Discovery;
 
 namespace Heimdall.App.Tests;
 
-public sealed class NetworkCartographyViewModelTests : IDisposable
+public sealed class NetworkCartographyViewModelTests
 {
-    public NetworkCartographyViewModelTests()
-    {
-        CleanupArtifacts();
-    }
-
     [Fact]
     public async Task Scan_EmptySubnet_SetsError()
     {
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.Subnet = "   ";
 
@@ -49,7 +44,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
         {
             ScanResult = CreateSnapshot("10.0.0.0/30", "10.0.0.1")
         };
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "10.0.0.0/30";
@@ -67,7 +62,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
         {
             ScanResult = CreateSnapshot("10.0.0.1/24")
         };
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "10.0.0.1";
@@ -81,7 +76,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
     public async Task Scan_InvalidCidr_SetsError()
     {
         var scanner = new FakeScanner();
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "not-a-subnet";
@@ -97,7 +92,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
     {
         var snapshot = CreateSnapshot("10.0.0.0/30", "10.0.0.1", "10.0.0.2");
         var scanner = new FakeScanner { ScanResult = snapshot };
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "10.0.0.0/30";
@@ -125,7 +120,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
             }
         };
 
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "10.0.0.0/30";
@@ -145,7 +140,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
         {
             ScanResult = CreateSnapshot("10.0.0.0/30", "10.0.0.1")
         };
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
         vm.SetScanner(scanner);
         vm.Subnet = "10.0.0.0/30";
@@ -159,7 +154,7 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
     [Fact]
     public void GetDrawIoXml_NoSnapshot_ReturnsNull()
     {
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel();
         vm.Initialize(null);
 
         Assert.Null(vm.GetDrawIoXml());
@@ -168,59 +163,74 @@ public sealed class NetworkCartographyViewModelTests : IDisposable
     [Fact]
     public async Task ClearKb_ResetsStats()
     {
-        var nonEmptyKb = new NetworkKnowledgeBase(
-            1,
-            DateTime.UtcNow,
-            new KnowledgeBaseTtlConfig(),
-            new Dictionary<string, KnownHost>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["10.0.0.1"] = KnowledgeBaseManager.MergeHost(
-                    null,
-                    CreateHost("10.0.0.1"),
-                    DateTime.UtcNow,
-                    "test")
-            });
-        await KnowledgeBaseManager.SaveAsync(nonEmptyKb);
+        var store = new InMemoryNetworkKnowledgeBaseStore();
+        await store.SaveAsync(CreateNonEmptyKnowledgeBase());
 
-        var vm = new NetworkCartographyViewModel();
+        var vm = CreateViewModel(store);
         vm.Initialize(null);
-        await vm.LoadKbStatsAsync();
+        await vm.WaitForInitialLoadAsync();
         Assert.True(vm.CanClearKb);
 
         await vm.ClearKbCommand.ExecuteAsync(null);
 
         Assert.False(vm.CanClearKb);
         Assert.Contains("ToolNetMapKbStatsNever", vm.KbStatsText);
+        Assert.Equal(0, KnowledgeBaseManager.HostCount(store.Current));
     }
 
-    public void Dispose()
+    [Fact]
+    public async Task Initialize_FollowedByClear_DoesNotOverwriteCleared()
     {
-        CleanupArtifacts();
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var store = new InMemoryNetworkKnowledgeBaseStore
+        {
+            LoadGate = gate
+        };
+        await store.SaveAsync(CreateNonEmptyKnowledgeBase());
+
+        var vm = CreateViewModel(store);
+        vm.Initialize(null);
+
+        var clearTask = vm.ClearKbCommand.ExecuteAsync(null);
+        var completedBeforeInitialLoad = await Task.WhenAny(clearTask, Task.Delay(100)) == clearTask;
+
+        Assert.False(completedBeforeInitialLoad);
+
+        gate.SetResult(true);
+        await clearTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.False(vm.CanClearKb);
+        Assert.Contains("ToolNetMapKbStatsNever", vm.KbStatsText);
+        Assert.Equal(0, KnowledgeBaseManager.HostCount(store.Current));
     }
 
-    private static void CleanupArtifacts()
+    [Fact]
+    public async Task InMemoryKnowledgeBaseStore_RoundTripsSavedState()
     {
-        var configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config");
-        var kbPath = Path.Combine(configDir, "network-kb.json");
-        var scansDir = Path.Combine(configDir, "network-scans");
+        var store = new InMemoryNetworkKnowledgeBaseStore();
+        var expected = CreateNonEmptyKnowledgeBase();
 
-        try
-        {
-            if (File.Exists(kbPath))
-            {
-                File.Delete(kbPath);
-            }
+        await store.SaveAsync(expected);
+        var actual = await store.LoadAsync();
 
-            if (Directory.Exists(scansDir))
-            {
-                Directory.Delete(scansDir, true);
-            }
-        }
-        catch
-        {
-            // Best effort cleanup for isolated test runs.
-        }
+        Assert.Same(expected, actual);
     }
+
+    private static NetworkCartographyViewModel CreateViewModel(InMemoryNetworkKnowledgeBaseStore? store = null)
+        => new(store ?? new InMemoryNetworkKnowledgeBaseStore());
+
+    private static NetworkKnowledgeBase CreateNonEmptyKnowledgeBase() => new(
+        1,
+        DateTime.UtcNow,
+        new KnowledgeBaseTtlConfig(),
+        new Dictionary<string, KnownHost>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["10.0.0.1"] = KnowledgeBaseManager.MergeHost(
+                null,
+                CreateHost("10.0.0.1"),
+                DateTime.UtcNow,
+                "test")
+        });
 
     private static NetworkScanSnapshot CreateSnapshot(string subnet, params string[] hostIps)
     {

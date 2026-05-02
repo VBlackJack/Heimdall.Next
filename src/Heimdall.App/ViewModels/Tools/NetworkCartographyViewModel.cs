@@ -35,9 +35,11 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private CancellationTokenSource? _subnetDetectCts;
+    private readonly INetworkKnowledgeBaseStore _store;
     private ICartographyScanner? _scanner;
     private NetworkKnowledgeBase? _knowledgeBase;
     private SshGatewayDto? _selectedGateway;
+    private Task? _initialLoadTask;
 
     [ObservableProperty] private string _subnet = string.Empty;
     [ObservableProperty] private bool _isScanning;
@@ -69,12 +71,25 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
         UpdateLargeSubnetHostCount(value);
     }
 
+    public NetworkCartographyViewModel(INetworkKnowledgeBaseStore? store = null)
+    {
+        _store = store ?? new FileNetworkKnowledgeBaseStore();
+    }
+
     public void Initialize(LocalizationManager? localizer)
     {
         _localizer = localizer;
         ResetResults();
-        _ = LoadKbStatsAsync();
+        _initialLoadTask = LoadKbStatsAsync();
     }
+
+    /// <summary>
+    /// Waits for the asynchronous KB statistics load started by
+    /// <see cref="Initialize(LocalizationManager?)"/>. Callers can use this
+    /// when deterministic post-initialization state is required; destructive
+    /// operations use it internally to avoid racing a pending initial load.
+    /// </summary>
+    public Task WaitForInitialLoadAsync() => _initialLoadTask ?? Task.CompletedTask;
 
     internal void SetScanner(ICartographyScanner scanner)
     {
@@ -120,7 +135,7 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
     {
         try
         {
-            _knowledgeBase = await KnowledgeBaseManager.LoadAsync();
+            _knowledgeBase = await _store.LoadAsync();
         }
         catch
         {
@@ -234,7 +249,7 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
         {
             try
             {
-                _knowledgeBase = await KnowledgeBaseManager.LoadAsync();
+                _knowledgeBase = await _store.LoadAsync();
             }
             catch
             {
@@ -274,9 +289,9 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
 
             try
             {
-                _knowledgeBase ??= await KnowledgeBaseManager.LoadAsync();
+                _knowledgeBase ??= await _store.LoadAsync();
                 _knowledgeBase = KnowledgeBaseManager.MergeSnapshot(_knowledgeBase, snapshot);
-                await KnowledgeBaseManager.SaveAsync(_knowledgeBase);
+                await _store.SaveAsync(_knowledgeBase);
             }
             catch (Exception ex)
             {
@@ -344,8 +359,17 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
     [RelayCommand]
     private async Task ClearKbAsync()
     {
+        try
+        {
+            await WaitForInitialLoadAsync();
+        }
+        catch
+        {
+            // The initial stats load is best-effort; clear should still proceed.
+        }
+
         _knowledgeBase = KnowledgeBaseManager.CreateEmpty();
-        await KnowledgeBaseManager.SaveAsync(_knowledgeBase);
+        await _store.SaveAsync(_knowledgeBase);
         UpdateKbStats();
         StatusText = Lk("ToolNetMapKbCleared");
     }
