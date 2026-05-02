@@ -12,6 +12,21 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — RDP shortcut settings cleanup
+
+Phase 3.3 pass retiring the unused `AppSettings` surface for remapping embedded
+RDP release-focus and fullscreen-toggle shortcuts.
+
+- Removes `RdpReleaseFocusShortcut` and `RdpFullscreenToggleShortcut` from
+  `AppSettings` and from `settings.default.json`; legacy settings files with
+  these keys are accepted through the default unknown-field behavior.
+- Keeps runtime behavior fixed on the existing built-in shortcuts:
+  `Ctrl+Alt+Home` for release focus and `F11` for fullscreen toggle/help text.
+- Removes the stale fullscreen-router TODO that pointed at the retired settings
+  fields.
+
+Test baseline after this pass: **5,092 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — RDP legacy resolution DTO cleanup
 
 Phase 3.2 pass retiring runtime usage of the legacy per-server

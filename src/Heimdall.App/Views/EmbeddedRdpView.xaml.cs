@@ -562,11 +562,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
-        _escapeHookRegistered = RdpKeyboardEscapeHook.Register(
-            this,
-            new RdpHookShortcuts(
-                _settings?.RdpReleaseFocusShortcut,
-                _settings?.RdpFullscreenToggleShortcut));
+        _escapeHookRegistered = RdpKeyboardEscapeHook.Register(this);
     }
 
     private void UnregisterEscapeHook()
@@ -761,12 +757,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
-        var releaseFocusShortcut = RdpShortcutParser.ParseOrDefault(_settings?.RdpReleaseFocusShortcut);
-        var fullscreenShortcut = RdpShortcutParser.ParseFullscreenOrDefault(_settings?.RdpFullscreenToggleShortcut);
         var body = BuildShortcutsHelpContent(
             localizer,
-            FormatShortcutForDisplay(releaseFocusShortcut),
-            FormatShortcutForDisplay(fullscreenShortcut));
+            FormatShortcutForDisplay(RdpShortcutParser.DefaultShortcut),
+            FormatShortcutForDisplay(RdpShortcutParser.DefaultFullscreenShortcut));
         var owner = Window.GetWindow(this);
         var title = localizer["RdpShortcutsHelpTitle"];
 

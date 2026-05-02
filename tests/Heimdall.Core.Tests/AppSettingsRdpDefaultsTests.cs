@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Text.Json;
 using Heimdall.Core.Configuration;
 
 namespace Heimdall.Core.Tests;
@@ -34,5 +35,23 @@ public sealed class AppSettingsRdpDefaultsTests
         var settings = new AppSettings();
 
         Assert.False(settings.RdpConfirmReconnectOnResize);
+    }
+
+    [Fact]
+    public void RdpShortcutSettings_AreNotExposed()
+    {
+        Assert.Null(typeof(AppSettings).GetProperty("RdpReleaseFocusShortcut"));
+        Assert.Null(typeof(AppSettings).GetProperty("RdpFullscreenToggleShortcut"));
+    }
+
+    [Fact]
+    public void Serialize_DoesNotWriteLegacyRdpShortcutSettings()
+    {
+        var json = JsonSerializer.Serialize(
+            new AppSettings(),
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        Assert.DoesNotContain("rdpReleaseFocusShortcut", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("rdpFullscreenToggleShortcut", json, StringComparison.Ordinal);
     }
 }

@@ -67,8 +67,6 @@
     "rdpDefaultBitmapCaching": true,
     "rdpDefaultCompression": true,
     "rdpDefaultAutoReconnect": true,
-    "rdpReleaseFocusShortcut": "Ctrl+Alt+Home",
-    "rdpFullscreenToggleShortcut": "F11",
     "rdpDialogAdvancedDefault": false,
     "rdpConfirmReconnectOnResize": false,
     "enableSessionPersistence": false,
