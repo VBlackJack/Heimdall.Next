@@ -12,6 +12,26 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Tool ComboBox text-search hardening
+
+Phase 3.4 pass hardening tool-view ComboBoxes after two runtime
+`NullReferenceException` observations in WPF `BindingExpression.Activate` paths:
+one during Hacker Simulator timer-driven scenario re-selection, and one during
+`SessionPaneControl` unload while clearing a hosted split-pane tool view.
+
+- Adds explicit `TextSearch.TextPath` values to the seven tool-view ComboBoxes
+  that used `DisplayMemberPath` without an explicit text-search path:
+  Hacker Simulator scenario/category/realism/playlist, DateTime timezone, HMAC
+  algorithm, and Privilege Launcher level.
+- Preserves type-to-select behavior while avoiding WPF's implicit display-path
+  inference during timer and teardown binding lifecycles.
+- Does not add an automated repro test: no failing stack was captured in the
+  available logs, the suspected WPF binding lifecycle race is not deterministic
+  enough for a stable xUnit harness, and the change is defensive XAML cleanup
+  over an identified anti-pattern.
+
+Test baseline after this pass: **5,092 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — RDP shortcut settings cleanup
 
 Phase 3.3 pass retiring the unused `AppSettings` surface for remapping embedded

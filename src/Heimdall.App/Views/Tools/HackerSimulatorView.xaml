@@ -39,6 +39,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
+                              TextSearch.TextPath="Display"
                               SelectionChanged="OnScenarioSelectionChanged"
                               TabIndex="0"/>
 
@@ -78,6 +79,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
+                              TextSearch.TextPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
                               TabIndex="4"/>
 
@@ -91,6 +93,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
+                              TextSearch.TextPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
                               TabIndex="5"/>
 
@@ -150,6 +153,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
+                              TextSearch.TextPath="Display"
                               SelectionChanged="OnPlaylistSelectionChanged"
                               TabIndex="8"/>
 
