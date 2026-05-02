@@ -161,7 +161,11 @@ public sealed partial class DateTimeConverterViewModel : ObservableObject, IDisp
 
         foreach (var timezone in _timeZoneProvider())
         {
-            Timezones.Add(new TimezoneItem(timezone.Id, timezone.DisplayName, timezone));
+            Timezones.Add(new TimezoneItem(
+                timezone.Id,
+                timezone.DisplayName,
+                BuildSearchableName(timezone.DisplayName),
+                timezone));
         }
 
         if (Timezones.Any(tz => tz.Id == "UTC"))
@@ -279,7 +283,39 @@ public sealed partial class DateTimeConverterViewModel : ObservableObject, IDisp
         RebuildLocalizedOutput();
     }
 
+    /// <summary>
+    /// Builds a prefix-search value for WPF TextSearch by biasing standard
+    /// timezone display names toward their last listed city. TextSearch is
+    /// still prefix-based, so only one city can be made searchable this way.
+    /// </summary>
+    public static string BuildSearchableName(string displayName)
+    {
+        ArgumentNullException.ThrowIfNull(displayName);
+
+        int closingParenIndex = displayName.IndexOf(')');
+        if (closingParenIndex < 0)
+        {
+            return displayName;
+        }
+
+        string cityList = displayName[(closingParenIndex + 1)..].Trim();
+        if (string.IsNullOrWhiteSpace(cityList))
+        {
+            return displayName;
+        }
+
+        string? lastCity = cityList
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .LastOrDefault();
+        if (string.IsNullOrWhiteSpace(lastCity))
+        {
+            return displayName;
+        }
+
+        return $"{lastCity} - {displayName}";
+    }
+
     private string L(string key) => _localizer?[key] ?? key;
 }
 
-public sealed record TimezoneItem(string Id, string DisplayName, TimeZoneInfo TimeZone);
+public sealed record TimezoneItem(string Id, string DisplayName, string SearchableName, TimeZoneInfo TimeZone);
