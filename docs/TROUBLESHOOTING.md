@@ -629,6 +629,8 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 
 ## 33. Ephemeral Server — Port 69 Access Denied {#tftp-port-access-denied}
 
+Before troubleshooting connectivity, ensure TFTP is enabled in Settings > Advanced > File sharing. TFTP is opt-in since Phase 3.7 and the share runs HTTP-only by default.
+
 **Symptom**: TFTP server fails to start with "access denied" on port 69.
 
 **Root Cause**: Ports below 1024 require elevated privileges on Windows.
