@@ -30,8 +30,8 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.StateMachine;
 using Heimdall.Core.Ssh;
+using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Heimdall.Terminal;
 

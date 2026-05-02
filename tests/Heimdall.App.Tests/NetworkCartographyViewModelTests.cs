@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.App.Tests.Fakes;
 using Heimdall.App.Services;
+using Heimdall.App.Tests.Fakes;
 using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Discovery;
 
