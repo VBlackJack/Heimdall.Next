@@ -41,7 +41,7 @@ namespace Heimdall.App.ViewModels;
 /// Root ViewModel orchestrating the application shell: tabs, status bar,
 /// and coordination between child ViewModels.
 /// </summary>
-public partial class MainViewModel : ObservableObject, IDisposable
+public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
 {
     private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
@@ -69,6 +69,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     internal IDialogService DialogService => _dialogService;
     internal IEmbeddedSessionManager EmbeddedSessionManager => _embeddedSessionManager;
     internal AppSettings? CurrentSettings => _currentSettings;
+    AppSettings? ITunnelsHost.CurrentSettings => _currentSettings;
 
     [ObservableProperty]
     private string _windowTitle = "";
@@ -330,7 +331,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
-        Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm, hostKeyStore, hostKeyVerifier);
+        Tunnels = new TunnelsViewModel(
+            this,
+            localizer,
+            tunnelManager,
+            connectionSm,
+            hostKeyStore,
+            hostKeyVerifier,
+            configManager);
         Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager, _uiDispatcher);
         Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver, _uiDispatcher);
 
@@ -407,6 +415,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _hostKeyStore.LoadFromConfig(hostKeyEntries);
 
             _currentSettings = settings;
+            await Tunnels.ResolveAndApplyPanelStateAsync();
             ServerList.LoadServers(servers, settings);
             Settings.LoadFromSettings(settings);
             Scheduled.Load(settings);
