@@ -269,6 +269,11 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private bool _showToolsPanel;
 
+    // --- Advanced / File sharing ---
+
+    [ObservableProperty]
+    private bool _fileShareEnableTftp;
+
     // --- Advanced / Logging ---
 
     [ObservableProperty]
@@ -443,6 +448,9 @@ public partial class SettingsViewModel : ObservableValidator
 
         // UI state
         ShowToolsPanel = settings.ShowToolsPanel;
+
+        // Advanced / File sharing
+        FileShareEnableTftp = settings.FileShareEnableTftp;
 
         // Terminal
         TerminalFontFamily = settings.TerminalFontFamily;
@@ -658,6 +666,9 @@ public partial class SettingsViewModel : ObservableValidator
 
         // UI state
         settings.ShowToolsPanel = ShowToolsPanel;
+
+        // Advanced / File sharing
+        settings.FileShareEnableTftp = FileShareEnableTftp;
 
         // Validate external tools before persisting
         var extToolError = ValidateExternalTools();

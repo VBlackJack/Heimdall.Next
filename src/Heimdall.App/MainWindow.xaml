@@ -147,72 +147,61 @@
                                  AutomationProperties.Name="{loc:Translate A11yAboutTab}"/>
                 </StackPanel>
 
-                <!-- Right: Search box + Share Folder -->
+                <!-- Right: compact shortcuts -->
                 <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <!-- Share Folder toggle -->
-                        <Button x:Name="ShareFolderButton"
-                                Click="OnShareFolderClick"
-                                Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                Padding="6,4" FontSize="{StaticResource FontSizeBody}"
-                                Margin="0,0,4,0"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name="{loc:Translate A11yShareFolder}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                <TextBlock x:Name="Mw_ShareFolderLabel" FontSize="{StaticResource FontSizeBody}"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Text>
-                                        <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
-                                            <Binding Path="FileShareService.IsSharing"
-                                                     RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                            <Binding Source="{x:Static loc:LocalizationSource.Instance}"
-                                                     Path="[ToolsShareFolder]"/>
-                                            <Binding Source="{x:Static loc:LocalizationSource.Instance}"
-                                                     Path="[ToolsStopSharing]"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                        </Button>
-                        <!-- Quick Connect shortcut button -->
-                        <Button x:Name="QuickConnectButton"
-                                Click="OnQuickConnectButtonClick"
-                                Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                Padding="8,4" FontSize="{StaticResource FontSizeCaption}"
-                                Margin="0,0,8,0"
-                                VerticalAlignment="Center"
-                                ToolTip="{loc:Translate QuickConnectShortcut}"
-                                AutomationProperties.Name="{loc:Translate QuickConnectShortcut}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="Mw_QuickConnectLabel" Text="{loc:Translate QuickConnectShortcut}"
-                                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,8,4"
-                                HorizontalAlignment="Right">
-                        <CheckBox x:Name="Mw_EnableTftpShareCheckBox"
-                                  Click="OnEnableTftpShareClick"
-                                  IsChecked="{Binding IsFileShareTftpEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
-                                  Content="{loc:Translate CbxEnableTftpShare}"
-                                  Foreground="{DynamicResource TextSecondaryBrush}"
-                                  FontSize="{StaticResource FontSizeCaption}"/>
-                        <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
-                                   Margin="20,2,0,0"
-                                   FontSize="{StaticResource FontSizeSmallCaption}"
-                                   Foreground="{DynamicResource WarningBrush}"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
+                    <!-- Share Folder toggle -->
+                    <Button x:Name="ShareFolderButton"
+                            Click="OnShareFolderClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="6"
+                            Width="32" Height="32"
+                            Margin="0,0,4,0"
+                            VerticalAlignment="Center">
+                        <AutomationProperties.Name>
+                            <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
+                                <Binding Path="FileShareService.IsSharing"
+                                         RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                         Path="[ToolsShareFolder]"/>
+                                <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                         Path="[ToolsStopSharing]"/>
+                            </MultiBinding>
+                        </AutomationProperties.Name>
+                        <Button.ToolTip>
+                            <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
+                                <Binding Path="FileShareService.IsSharing"
+                                         RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                         Path="[ToolsShareFolder]"/>
+                                <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                         Path="[ToolsStopSharing]"/>
+                            </MultiBinding>
+                        </Button.ToolTip>
+                        <TextBlock Text="&#xE72D;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+                    </Button>
+                    <!-- Quick Connect shortcut button -->
+                    <Button x:Name="QuickConnectButton"
+                            Click="OnQuickConnectButtonClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="6"
+                            Width="32" Height="32"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            ToolTip="{loc:Translate QuickConnectShortcut}"
+                            AutomationProperties.Name="{loc:Translate QuickConnectShortcut}">
+                        <TextBlock Text="&#xE71E;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+                    </Button>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -1803,22 +1792,6 @@
                                                   Margin="0,12,0,0"
                                                   ToolTip="{loc:Translate SettingsTooltipCollapseTunnelsPanelByDefault}"
                                                   AutomationProperties.Name="{loc:Translate SettingsLabelCollapseTunnelsPanelByDefault}"/>
-                                        <StackPanel Margin="0,12,0,0">
-                                            <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="{loc:Translate SettingsLabelEditorPath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <DockPanel>
-                                                <Button x:Name="Mw_SettingsBrowseEditorPath" DockPanel.Dock="Right"
-                                                        Padding="6,2" Margin="4,0,0,0" Click="OnBrowseEditorPathClick"
-                                                        Style="{DynamicResource SecondaryButtonStyle}"
-                                                        FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name="{loc:Translate A11yBrowseEditorPath}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Button>
-                                                <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
-                                            </DockPanel>
-                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -2411,6 +2384,44 @@
                                                 </StackPanel>
                                             </StackPanel>
                                         </Expander>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- File Sharing -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsFileSharingTitle" Text="{loc:Translate SettingsSectionFileSharing}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsEnableTftpShareCheckBox"
+                                                  IsChecked="{Binding Settings.FileShareEnableTftp, Mode=TwoWay}"
+                                                  Content="{loc:Translate CbxEnableTftpShare}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  FontSize="{StaticResource FontSizeBody}"/>
+                                        <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
+                                                   Margin="20,4,0,0"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource WarningBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- External Editor -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsExternalEditorTitle" Text="{loc:Translate SettingsSectionExternalEditor}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="{loc:Translate SettingsLabelEditorPath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                        <DockPanel>
+                                            <Button x:Name="Mw_SettingsBrowseEditorPath" DockPanel.Dock="Right"
+                                                    Padding="6,2" Margin="4,0,0,0" Click="OnBrowseEditorPathClick"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    AutomationProperties.Name="{loc:Translate A11yBrowseEditorPath}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
+                                        </DockPanel>
                                     </StackPanel>
                                 </Border>
 
