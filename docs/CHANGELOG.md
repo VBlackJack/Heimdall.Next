@@ -12,6 +12,23 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Timezone type-to-select city bias
+
+Phase 3.5 pass improving DateTime Converter timezone type-to-select after
+Phase 3.4 smoke exposed that typing a city prefix such as `par` did not jump
+to the Paris timezone because `TimeZoneInfo.DisplayName` starts with the
+`(UTC...)` offset.
+
+- Adds a `SearchableName` value to timezone picker items while keeping the
+  visual `DisplayName` unchanged in the ComboBox.
+- Biases WPF `TextSearch` toward the last listed city in standard display
+  names, e.g. `Paris - (UTC+01:00) Bruxelles, Copenhague, Madrid, Paris`.
+- Documents the intentional limitation: WPF type-to-select remains
+  prefix-based, so this quick fix makes one city per timezone searchable
+  rather than implementing full substring search across every listed city.
+
+Test baseline after this pass: **5,098 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — Tool ComboBox text-search hardening
 
 Phase 3.4 pass hardening tool-view ComboBoxes after two runtime
