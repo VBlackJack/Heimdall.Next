@@ -139,6 +139,7 @@
                         <ComboBox x:Name="CmbPrivilegeLevel"
                                   FontSize="{StaticResource FontSizeBody}"
                                   Padding="{StaticResource PaddingInput}"
+                                  TextSearch.TextPath="DisplayName"
                                   TabIndex="2"/>
                     </StackPanel>
                 </Border>

@@ -259,6 +259,7 @@
                               ItemsSource="{Binding Timezones}"
                               SelectedValuePath="Id"
                               DisplayMemberPath="DisplayName"
+                              TextSearch.TextPath="DisplayName"
                               SelectedValue="{Binding SelectedTimezoneId, Mode=TwoWay}"
                               AutomationProperties.Name="{loc:Translate ToolDateTimeTimezoneLabel}"
                               Background="{DynamicResource CardBrush}"
