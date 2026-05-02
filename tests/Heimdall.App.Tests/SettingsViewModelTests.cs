@@ -178,6 +178,45 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void FileShareEnableTftp_LoadFromSettings_PreservesFalse()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            FileShareEnableTftp = false
+        });
+
+        Assert.False(viewModel.FileShareEnableTftp);
+    }
+
+    [Fact]
+    public void FileShareEnableTftp_LoadFromSettings_PreservesTrue()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            FileShareEnableTftp = true
+        });
+
+        Assert.True(viewModel.FileShareEnableTftp);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PersistsFileShareEnableTftp()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.FileShareEnableTftp = true;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        var saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.True(saved.FileShareEnableTftp);
+    }
+
+    [Fact]
     public void CollapseTunnelsPanelByDefault_RaisesPropertyChanged()
     {
         var viewModel = CreateViewModel(new FakeConfigManager());

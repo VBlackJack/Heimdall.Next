@@ -46,13 +46,6 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabContextCallbacks
 {
-    public static readonly DependencyProperty IsFileShareTftpEnabledProperty =
-        DependencyProperty.Register(
-            nameof(IsFileShareTftpEnabled),
-            typeof(bool),
-            typeof(MainWindow),
-            new PropertyMetadata(false));
-
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -90,16 +83,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private bool _suppressSidebarLaunch;
     private bool _isRdpImportDragActive;
     private bool _suppressFileShareStartDialog;
+    private bool _settingsRuntimeBridgeInitialized;
+    private bool _suppressFileShareTftpSettingBridge;
     private OnboardingFlowViewModel? _onboardingVm;
     private bool _threadPreprocessMessageHooked;
 
     public FileShareService FileShareService => _fileShareService;
-
-    public bool IsFileShareTftpEnabled
-    {
-        get => (bool)GetValue(IsFileShareTftpEnabledProperty);
-        set => SetValue(IsFileShareTftpEnabledProperty, value);
-    }
 
     private void OnTrustedHostKeysSorting(object sender, DataGridSortingEventArgs e)
     {
@@ -223,6 +212,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 AttachSelectedExternalToolPreviewTracking(viewModel.Settings.SelectedExternalTool);
                 Dispatcher.BeginInvoke(() => RefreshExternalToolSettingsUi(viewModel));
             }
+            else if (string.Equals(e.PropertyName, nameof(SettingsViewModel.FileShareEnableTftp), StringComparison.Ordinal)
+                     && _settingsRuntimeBridgeInitialized
+                     && !_suppressFileShareTftpSettingBridge)
+            {
+                _ = ApplyFileShareTftpSettingAsync(viewModel, viewModel.Settings.FileShareEnableTftp);
+            }
         };
         viewModel.Settings.PropertyChanged += _settingsPropertyChangedHandler;
         AttachSelectedExternalToolPreviewTracking(viewModel.Settings.SelectedExternalTool);
@@ -252,7 +247,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             if (viewModel.CurrentSettings is { } loadedSettings)
             {
                 RestoreWindowBounds(loadedSettings);
-                IsFileShareTftpEnabled = loadedSettings.FileShareEnableTftp;
             }
             PopulateAboutSection();
 
@@ -267,6 +261,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             {
                 ShowOnboardingOverlay(viewModel.CurrentSettings);
             }
+
+            _settingsRuntimeBridgeInitialized = true;
         };
 
         // Re-apply all localized strings when the user switches language at runtime
@@ -2206,15 +2202,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         await _fileShareService.StartAsync(dialog.SelectedPath, vm.CurrentSettings);
     }
 
-    private async void OnEnableTftpShareClick(object sender, RoutedEventArgs e)
+    private async Task ApplyFileShareTftpSettingAsync(MainViewModel vm, bool enableTftp)
     {
-        if (DataContext is not MainViewModel vm || vm.CurrentSettings is null)
+        if (vm.CurrentSettings is null)
         {
             return;
         }
 
         var previousValue = vm.CurrentSettings.FileShareEnableTftp;
-        var enableTftp = IsFileShareTftpEnabled;
 
         try
         {
@@ -2239,7 +2234,15 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         {
             Core.Logging.FileLogger.Error($"[MainWindow] Failed to update TFTP file share setting: {ex.Message}");
             vm.CurrentSettings.FileShareEnableTftp = previousValue;
-            IsFileShareTftpEnabled = previousValue;
+            _suppressFileShareTftpSettingBridge = true;
+            try
+            {
+                vm.Settings.FileShareEnableTftp = previousValue;
+            }
+            finally
+            {
+                _suppressFileShareTftpSettingBridge = false;
+            }
         }
     }
 

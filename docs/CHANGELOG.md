@@ -12,6 +12,28 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Settings and header hygiene
+
+Phase 3.7 pass cleaning up the main header's top-right controls and moving
+file-sharing/tool preferences into more coherent Settings locations.
+
+- Converts the quick file server and quick connect controls into compact
+  icon-only header buttons while preserving tooltip and accessibility labels.
+- Removes the permanent TFTP disclaimer cluster from the header and relocates
+  TFTP enablement to Advanced > File sharing with the warning shown inline.
+- Moves the external editor path out of General > Appearance into the Advanced
+  tools area under a dedicated External editor card.
+- Keeps `SettingsViewModel` independent of `FileShareService`; `MainWindow`
+  bridges the new `FileShareEnableTftp` setting to the existing immediate
+  persist-and-restart runtime behavior.
+- Adds an initialization guard so loading persisted settings at startup does
+  not trigger a spurious file-share restart through the property-change bridge.
+
+UI structure is smoke-validated manually; automated coverage is limited to the
+new Settings property load/save path.
+
+Test baseline after this pass: **5,103 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — Network cartography KB flake hardening
 
 Phase 3.6 pass fixing the transient

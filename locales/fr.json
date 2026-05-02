@@ -2714,6 +2714,8 @@
   "SettingsLabelCredProviderDatabase": "Chemin de la base de donn\u00e9es",
 
   "SettingsSectionExternalToolsList": "Outils externes",
+  "SettingsSectionFileSharing": "Partage de fichiers",
+  "SettingsSectionExternalEditor": "\u00c9diteur externe",
   "BtnRemove": "Supprimer",
 
   "ExternalToolDialogTitle": "Ajouter un outil externe",
