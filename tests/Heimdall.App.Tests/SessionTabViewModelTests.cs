@@ -16,6 +16,7 @@
 
 using System.ComponentModel;
 using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.SessionDiagnostics;
 
@@ -108,6 +109,21 @@ public sealed class SessionTabViewModelTests
 
         Assert.True(vm.TunnelsPanelManualOverride);
         Assert.Contains(nameof(SessionTabViewModel.TunnelsPanelManualOverride), changes);
+    }
+
+    [Fact]
+    public void TunnelBadgeState_DefaultsToHiddenAndRaisesPropertyChanged()
+    {
+        var vm = new SessionTabViewModel();
+        List<string> changes = [];
+        vm.PropertyChanged += (_, args) => RecordChange(args, changes);
+
+        Assert.Equal(TunnelBadgeState.Hidden, vm.TunnelBadgeState);
+
+        vm.TunnelBadgeState = TunnelBadgeState.Healthy;
+
+        Assert.Equal(TunnelBadgeState.Healthy, vm.TunnelBadgeState);
+        Assert.Contains(nameof(SessionTabViewModel.TunnelBadgeState), changes);
     }
 
     private static void RecordChange(PropertyChangedEventArgs args, ICollection<string> changes)

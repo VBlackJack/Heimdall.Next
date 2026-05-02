@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
 using Heimdall.App.Localization;
@@ -66,6 +67,10 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly IConfigManager _configManager;
     private readonly PropertyChangedEventHandler _connectionPropertyChangedHandler;
+    private readonly NotifyCollectionChangedEventHandler _activeSessionsCollectionChangedHandler;
+    private readonly PropertyChangedEventHandler _tabPropertyChangedHandler;
+    private readonly HashSet<SessionTabViewModel> _trackedTabs = [];
+    private ObservableCollection<SessionTabViewModel>? _activeSessionsSubscription;
     private AppSettings? _settingsSnapshot;
     private long _panelResolveVersion;
     private bool _disposed;
@@ -110,12 +115,15 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         _configManager = configManager;
         _settingsSnapshot = host.CurrentSettings;
         _connectionPropertyChangedHandler = OnConnectionPropertyChanged;
+        _activeSessionsCollectionChangedHandler = OnActiveSessionsCollectionChanged;
+        _tabPropertyChangedHandler = OnTabPropertyChanged;
 
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
         _localizer.LocaleChanged += OnLocaleChanged;
         _configManager.SettingsChanged += OnSettingsChanged;
         _host.Connection.PropertyChanged += _connectionPropertyChangedHandler;
+        SubscribeToActiveSessions(_host.Connection.ActiveSessions);
     }
 
     // ── Observable state ─────────────────────────────────────────────
@@ -541,12 +549,14 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     private void OnTunnelOpened(TunnelInfo info)
     {
         RefreshList();
+        RefreshAllTunnelBadgeStates();
         // Phase 3.1 intentionally leaves visibility to tab/default state; the tab badge surfaces new tunnels.
     }
 
     private void OnTunnelClosed(int localPort, string? error)
     {
         RefreshList();
+        RefreshAllTunnelBadgeStates();
 
         var status = _localizer.Format("StatusTunnelClosed", localPort);
         if (!string.IsNullOrEmpty(error))
@@ -574,6 +584,133 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.ActiveSession), StringComparison.Ordinal))
         {
             QueueResolveAndApplyPanelState();
+            RefreshAllTunnelBadgeStates();
+        }
+        else if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.ActiveSessions), StringComparison.Ordinal))
+        {
+            SubscribeToActiveSessions(_host.Connection.ActiveSessions);
+        }
+    }
+
+    private void OnActiveSessionsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var item in e.OldItems.OfType<SessionTabViewModel>())
+            {
+                UnsubscribeFromTab(item);
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems.OfType<SessionTabViewModel>())
+            {
+                SubscribeToTab(item);
+                UpdateTunnelBadgeState(item);
+            }
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            ReconcileTrackedTabsWithActiveSessions();
+            RefreshAllTunnelBadgeStates();
+        }
+    }
+
+    private void OnTabPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is SessionTabViewModel tab
+            && string.Equals(e.PropertyName, nameof(SessionTabViewModel.RootContent), StringComparison.Ordinal))
+        {
+            UpdateTunnelBadgeState(tab);
+        }
+    }
+
+    private void SubscribeToActiveSessions(ObservableCollection<SessionTabViewModel> activeSessions)
+    {
+        if (ReferenceEquals(_activeSessionsSubscription, activeSessions))
+        {
+            return;
+        }
+
+        UnsubscribeFromActiveSessions();
+        _activeSessionsSubscription = activeSessions;
+        _activeSessionsSubscription.CollectionChanged += _activeSessionsCollectionChangedHandler;
+
+        foreach (var tab in _activeSessionsSubscription)
+        {
+            SubscribeToTab(tab);
+        }
+
+        RefreshAllTunnelBadgeStates();
+    }
+
+    private void UnsubscribeFromActiveSessions()
+    {
+        if (_activeSessionsSubscription is not null)
+        {
+            _activeSessionsSubscription.CollectionChanged -= _activeSessionsCollectionChangedHandler;
+            _activeSessionsSubscription = null;
+        }
+
+        foreach (var tab in _trackedTabs.ToList())
+        {
+            UnsubscribeFromTab(tab);
+        }
+    }
+
+    private void SubscribeToTab(SessionTabViewModel tab)
+    {
+        if (_trackedTabs.Add(tab))
+        {
+            tab.PropertyChanged += _tabPropertyChangedHandler;
+        }
+    }
+
+    private void UnsubscribeFromTab(SessionTabViewModel tab)
+    {
+        if (_trackedTabs.Remove(tab))
+        {
+            tab.PropertyChanged -= _tabPropertyChangedHandler;
+        }
+    }
+
+    private void ReconcileTrackedTabsWithActiveSessions()
+    {
+        var activeTabs = _host.Connection.ActiveSessions.ToHashSet();
+
+        foreach (var trackedTab in _trackedTabs.ToList())
+        {
+            if (!activeTabs.Contains(trackedTab))
+            {
+                UnsubscribeFromTab(trackedTab);
+            }
+        }
+
+        foreach (var activeTab in _host.Connection.ActiveSessions)
+        {
+            SubscribeToTab(activeTab);
+        }
+    }
+
+    private void RefreshAllTunnelBadgeStates()
+    {
+        foreach (var tab in _host.Connection.ActiveSessions)
+        {
+            UpdateTunnelBadgeState(tab);
+        }
+    }
+
+    private void UpdateTunnelBadgeState(SessionTabViewModel tab)
+    {
+        try
+        {
+            tab.TunnelBadgeState = TunnelBadgeStateResolver.Resolve(tab, _connectionSm, _tunnelManager);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[TunnelsViewModel] resolve tunnel badge state failed: {ex.Message}");
         }
     }
 
@@ -607,5 +744,6 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         _localizer.LocaleChanged -= OnLocaleChanged;
         _configManager.SettingsChanged -= OnSettingsChanged;
         _host.Connection.PropertyChanged -= _connectionPropertyChangedHandler;
+        UnsubscribeFromActiveSessions();
     }
 }
