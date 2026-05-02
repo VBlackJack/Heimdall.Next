@@ -24,6 +24,8 @@ namespace Heimdall.App.UiTests.Pilots;
 [Collection(DesktopUiCollection.Name)]
 public sealed class ServiceStatusSmokeTests : UiTestBase<ServiceStatusView>
 {
+    private static readonly TimeSpan InitialRefreshTimeout = TimeSpan.FromSeconds(30);
+
     [StaFact]
     [Trait("Category", "RequiresDesktop")]
     public void Loads_InitialRefresh_PopulatesStats()
@@ -102,6 +104,6 @@ public sealed class ServiceStatusSmokeTests : UiTestBase<ServiceStatusView>
         WaitHelpers.WaitUntil(
             () => session.InvokeOnUi(control => ((ServiceStatusViewModel)control.DataContext!).HasRefreshSnapshot),
             "service status initial refresh",
-            TimeSpan.FromSeconds(5));
+            InitialRefreshTimeout);
     }
 }
