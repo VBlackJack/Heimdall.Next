@@ -18,6 +18,7 @@ using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
@@ -274,16 +275,124 @@ public sealed class TunnelsViewModelTests
         Assert.Single(vm.List);
     }
 
+    [Fact]
+    public void TunnelOpened_UpdatesBadgeStateForAllTabs()
+    {
+        var settings = new AppSettings { CollapseTunnelsPanelByDefault = true };
+        var host = new TestTunnelsHost(settings);
+        var config = new FakeConfigManager(settings);
+        var stateMachine = new ConnectionStateMachine();
+        using var tunnelManager = new TunnelManager();
+        var tunnelTab = CreateSavedTab("server-1");
+        var noTunnelTab = CreateSavedTab("server-2");
+        host.Connection.ActiveSessions.Add(tunnelTab);
+        host.Connection.ActiveSessions.Add(noTunnelTab);
+        using var vm = CreateViewModel(host, config, tunnelManager, stateMachine);
+        stateMachine.SetTunnelInfo("server-1", 50124, processId: 1234);
+
+        RegisterTunnel(tunnelManager, 50124, isAlive: true);
+
+        Assert.Equal(TunnelBadgeState.Healthy, tunnelTab.TunnelBadgeState);
+        Assert.Equal(TunnelBadgeState.Hidden, noTunnelTab.TunnelBadgeState);
+    }
+
+    [Fact]
+    public void TunnelClosed_UpdatesBadgeStateForAllTabs()
+    {
+        var settings = new AppSettings { CollapseTunnelsPanelByDefault = true };
+        var host = new TestTunnelsHost(settings);
+        var config = new FakeConfigManager(settings);
+        var stateMachine = new ConnectionStateMachine();
+        using var tunnelManager = new TunnelManager();
+        var tab = CreateSavedTab("server-1");
+        host.Connection.ActiveSessions.Add(tab);
+        using var vm = CreateViewModel(host, config, tunnelManager, stateMachine);
+        stateMachine.SetTunnelInfo("server-1", 50125, processId: 1234);
+        RegisterTunnel(tunnelManager, 50125, isAlive: true);
+        Assert.Equal(TunnelBadgeState.Healthy, tab.TunnelBadgeState);
+
+        tunnelManager.ForceCloseTunnel(50125);
+
+        Assert.Equal(TunnelBadgeState.Unhealthy, tab.TunnelBadgeState);
+    }
+
+    [Fact]
+    public void ActiveSessionsAdded_NewTabComputesInitialBadgeState()
+    {
+        var settings = new AppSettings { CollapseTunnelsPanelByDefault = true };
+        var host = new TestTunnelsHost(settings);
+        var config = new FakeConfigManager(settings);
+        var stateMachine = new ConnectionStateMachine();
+        using var tunnelManager = new TunnelManager();
+        using var vm = CreateViewModel(host, config, tunnelManager, stateMachine);
+        stateMachine.SetTunnelInfo("server-1", 50126, processId: 1234);
+        RegisterTunnel(tunnelManager, 50126, isAlive: true);
+        var tab = CreateSavedTab("server-1");
+
+        host.Connection.ActiveSessions.Add(tab);
+
+        Assert.Equal(TunnelBadgeState.Healthy, tab.TunnelBadgeState);
+    }
+
+    [Fact]
+    public void ActiveSessionsRemoved_TabIsUnsubscribed()
+    {
+        var settings = new AppSettings { CollapseTunnelsPanelByDefault = true };
+        var host = new TestTunnelsHost(settings);
+        var config = new FakeConfigManager(settings);
+        var stateMachine = new ConnectionStateMachine();
+        using var tunnelManager = new TunnelManager();
+        var tab = CreateSavedTab("server-1");
+        host.Connection.ActiveSessions.Add(tab);
+        using var vm = CreateViewModel(host, config, tunnelManager, stateMachine);
+        stateMachine.SetTunnelInfo("server-1", 50127, processId: 1234);
+        RegisterTunnel(tunnelManager, 50127, isAlive: true);
+        Assert.Equal(TunnelBadgeState.Healthy, tab.TunnelBadgeState);
+
+        host.Connection.ActiveSessions.Remove(tab);
+        tab.TunnelBadgeState = TunnelBadgeState.Hidden;
+        tunnelManager.ForceCloseTunnel(50127);
+        tab.RootContent = new SessionPaneModel { ServerId = "server-1" };
+
+        Assert.Equal(TunnelBadgeState.Hidden, tab.TunnelBadgeState);
+    }
+
+    [Fact]
+    public void TabRootContentChanged_RecomputesBadgeState()
+    {
+        var settings = new AppSettings { CollapseTunnelsPanelByDefault = true };
+        var host = new TestTunnelsHost(settings);
+        var config = new FakeConfigManager(settings);
+        var stateMachine = new ConnectionStateMachine();
+        using var tunnelManager = new TunnelManager();
+        var tab = new SessionTabViewModel();
+        host.Connection.ActiveSessions.Add(tab);
+        using var vm = CreateViewModel(host, config, tunnelManager, stateMachine);
+        stateMachine.SetTunnelInfo("server-1", 50128, processId: 1234);
+        RegisterTunnel(tunnelManager, 50128, isAlive: true);
+        Assert.Equal(TunnelBadgeState.Hidden, tab.TunnelBadgeState);
+
+        tab.RootContent = new SplitContainerModel
+        {
+            First = new SessionPaneModel { ServerId = "server-1" },
+            Second = new SessionPaneModel { ServerId = "" },
+            Orientation = SplitOrientation.Vertical
+        };
+
+        Assert.Equal(TunnelBadgeState.Healthy, tab.TunnelBadgeState);
+    }
+
     private static TunnelsViewModel CreateViewModel(
         TestTunnelsHost host,
         FakeConfigManager config,
-        TunnelManager? tunnelManager = null)
+        TunnelManager? tunnelManager = null,
+        ConnectionStateMachine? stateMachine = null)
     {
         return new TunnelsViewModel(
             host,
             new LocalizationManager(),
             tunnelManager ?? new TunnelManager(),
-            new ConnectionStateMachine(),
+            stateMachine ?? new ConnectionStateMachine(),
             new HostKeyStore(),
             RejectingHostKeyVerifier.Instance,
             config);
@@ -293,6 +402,7 @@ public sealed class TunnelsViewModelTests
     {
         return new SessionTabViewModel
         {
+            ServerId = profileId,
             OriginalServerId = profileId,
             TunnelsPanelManualOverride = manualOverride
         };
@@ -318,6 +428,12 @@ public sealed class TunnelsViewModelTests
             ConnectionType = "RDP",
             TunnelsPanelExpanded = tunnelsPanelExpanded
         };
+    }
+
+    private static void RegisterTunnel(TunnelManager tunnelManager, int localPort, bool isAlive)
+    {
+        var info = new TunnelInfo("gateway", localPort, "target.internal", 3389, DateTime.UtcNow, isAlive);
+        Assert.True(tunnelManager.TryRegisterExternalTunnel(info, new TestDisposable(), () => isAlive));
     }
 
     private static async Task WaitUntilAsync(Func<bool> predicate)

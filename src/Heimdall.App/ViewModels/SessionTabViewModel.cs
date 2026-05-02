@@ -15,6 +15,7 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.SessionDiagnostics;
@@ -67,6 +68,15 @@ public partial class SessionTabViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private bool? _tunnelsPanelManualOverride;
+
+    /// <summary>
+    /// Aggregated tunnel badge state for this tab. Computed by walking all
+    /// panes via SplitTreeHelper.EnumerateLeaves and inspecting TunnelManager
+    /// state for each pane's ServerId. Updated by TunnelsViewModel on tunnel
+    /// open/close events and on tab structure changes.
+    /// </summary>
+    [ObservableProperty]
+    private TunnelBadgeState _tunnelBadgeState;
 
     /// <summary>
     /// Returns the first leaf pane in the tree (the "primary" pane).
