@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
@@ -32,6 +33,15 @@ using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Tunnels;
 
+internal interface ITunnelsHost
+{
+    ConnectionViewModel Connection { get; }
+
+    AppSettings? CurrentSettings { get; }
+
+    string StatusText { get; set; }
+}
+
 /// <summary>
 /// View-model backing the Tunnels retractable panel and Tunnels tab
 /// DataGrid. Owns the active tunnel list, close / copy / close-all
@@ -48,12 +58,16 @@ namespace Heimdall.App.ViewModels.Tunnels;
 /// </remarks>
 public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 {
-    private readonly MainViewModel _main;
+    private readonly ITunnelsHost _host;
     private readonly LocalizationManager _localizer;
     private readonly TunnelManager _tunnelManager;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly HostKeyStore _hostKeyStore;
     private readonly IHostKeyVerifier _hostKeyVerifier;
+    private readonly IConfigManager _configManager;
+    private readonly PropertyChangedEventHandler _connectionPropertyChangedHandler;
+    private AppSettings? _settingsSnapshot;
+    private long _panelResolveVersion;
     private bool _disposed;
 
     /// <summary>
@@ -65,18 +79,43 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         TunnelManager tunnelManager,
         ConnectionStateMachine connectionSm,
         HostKeyStore hostKeyStore,
-        IHostKeyVerifier hostKeyVerifier)
+        IHostKeyVerifier hostKeyVerifier,
+        IConfigManager configManager)
+        : this(
+            (ITunnelsHost)main,
+            localizer,
+            tunnelManager,
+            connectionSm,
+            hostKeyStore,
+            hostKeyVerifier,
+            configManager)
     {
-        _main = main;
+    }
+
+    internal TunnelsViewModel(
+        ITunnelsHost host,
+        LocalizationManager localizer,
+        TunnelManager tunnelManager,
+        ConnectionStateMachine connectionSm,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
+        IConfigManager configManager)
+    {
+        _host = host;
         _localizer = localizer;
         _tunnelManager = tunnelManager;
         _connectionSm = connectionSm;
         _hostKeyStore = hostKeyStore;
         _hostKeyVerifier = hostKeyVerifier;
+        _configManager = configManager;
+        _settingsSnapshot = host.CurrentSettings;
+        _connectionPropertyChangedHandler = OnConnectionPropertyChanged;
 
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
         _localizer.LocaleChanged += OnLocaleChanged;
+        _configManager.SettingsChanged += OnSettingsChanged;
+        _host.Connection.PropertyChanged += _connectionPropertyChangedHandler;
     }
 
     // ── Observable state ─────────────────────────────────────────────
@@ -142,7 +181,105 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     /// the tunnel icon button.
     /// </summary>
     [RelayCommand]
-    private void TogglePanel() => IsPanelOpen = !IsPanelOpen;
+    private async Task TogglePanelAsync()
+    {
+        var newValue = !IsPanelOpen;
+        var activeTab = _host.Connection.ActiveSession;
+
+        if (activeTab is not null)
+        {
+            activeTab.TunnelsPanelManualOverride = newValue;
+            await PersistPanelOverrideAsync(activeTab, newValue).ConfigureAwait(true);
+        }
+
+        IsPanelOpen = newValue;
+    }
+
+    internal async Task ResolveAndApplyPanelStateAsync()
+    {
+        var version = Interlocked.Increment(ref _panelResolveVersion);
+        var resolved = await ResolvePanelStateAsync().ConfigureAwait(true);
+
+        if (version == Volatile.Read(ref _panelResolveVersion))
+        {
+            IsPanelOpen = resolved;
+        }
+    }
+
+    private async Task<bool> ResolvePanelStateAsync()
+    {
+        var defaultExpanded = GetApplicationDefaultExpanded();
+        var activeTab = _host.Connection.ActiveSession;
+        if (activeTab is null)
+        {
+            return defaultExpanded;
+        }
+
+        if (activeTab.TunnelsPanelManualOverride is bool manualOverride)
+        {
+            return manualOverride;
+        }
+
+        var profile = await LoadProfileForTabAsync(activeTab).ConfigureAwait(true);
+        return profile?.TunnelsPanelExpanded ?? defaultExpanded;
+    }
+
+    private bool GetApplicationDefaultExpanded()
+    {
+        var settings = _settingsSnapshot ?? _host.CurrentSettings ?? new AppSettings();
+        return !settings.CollapseTunnelsPanelByDefault;
+    }
+
+    private async Task<ServerProfileDto?> LoadProfileForTabAsync(SessionTabViewModel activeTab)
+    {
+        if (activeTab.IsAdHoc || string.IsNullOrWhiteSpace(activeTab.OriginalServerId))
+        {
+            return null;
+        }
+
+        try
+        {
+            var servers = await _configManager.LoadServersAsync().ConfigureAwait(true);
+            return servers.FirstOrDefault(server =>
+                string.Equals(server.Id, activeTab.OriginalServerId, StringComparison.Ordinal));
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[TunnelsViewModel] load profile panel state failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task PersistPanelOverrideAsync(SessionTabViewModel activeTab, bool expanded)
+    {
+        if (activeTab.IsAdHoc || string.IsNullOrWhiteSpace(activeTab.OriginalServerId))
+        {
+            return;
+        }
+
+        try
+        {
+            var servers = await _configManager.LoadServersAsync().ConfigureAwait(true);
+            var profile = servers.FirstOrDefault(server =>
+                string.Equals(server.Id, activeTab.OriginalServerId, StringComparison.Ordinal));
+
+            if (profile is null)
+            {
+                FileLogger.Warn(
+                    $"[TunnelsViewModel] profile '{activeTab.OriginalServerId}' not found; using tab-local panel state only.");
+                return;
+            }
+
+            profile.TunnelsPanelExpanded = expanded;
+            await _configManager.SaveServersAsync(servers).ConfigureAwait(true);
+            FileLogger.Info(
+                $"[TunnelsViewModel] persisted tunnels panel expanded={expanded} for profile '{profile.Id}'.");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[TunnelsViewModel] persist profile panel state failed: {ex.Message}");
+        }
+    }
 
     /// <summary>
     /// Force-closes a single tunnel, refreshes the list and reports the
@@ -158,7 +295,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 
         _tunnelManager.ForceCloseTunnel(tunnel.LocalPort);
         RefreshList();
-        _main.StatusText = _localizer.Format("StatusTunnelClosed", tunnel.LocalPort);
+        _host.StatusText = _localizer.Format("StatusTunnelClosed", tunnel.LocalPort);
     }
 
     /// <summary>
@@ -171,7 +308,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         _tunnelManager.CloseAllTunnels();
         Count = 0;
         RefreshList();
-        _main.StatusText = _localizer["StatusAllTunnelsClosed"];
+        _host.StatusText = _localizer["StatusAllTunnelsClosed"];
     }
 
     /// <summary>
@@ -189,7 +326,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         try
         {
             System.Windows.Clipboard.SetText(tunnel.LocalPort.ToString());
-            _main.StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
+            _host.StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
         }
         catch (Exception ex)
         {
@@ -204,10 +341,10 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task NewTunnelAsync()
     {
-        var settings = _main.CurrentSettings;
+        var settings = _host.CurrentSettings;
         if (settings is null)
         {
-            _main.StatusText = string.Format(
+            _host.StatusText = string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 _localizer["StatusManualTunnelFailed"],
                 _localizer["NewTunnelSettingsUnavailable"]);
@@ -237,14 +374,14 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 
             if (!result.Success)
             {
-                _main.StatusText = string.Format(
+                _host.StatusText = string.Format(
                     System.Globalization.CultureInfo.CurrentCulture,
                     _localizer["StatusManualTunnelFailed"],
                     result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed]);
                 return;
             }
 
-            _main.StatusText = string.Format(
+            _host.StatusText = string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 _localizer["StatusManualTunnelOpened"],
                 vm.LocalPort,
@@ -254,7 +391,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             FileLogger.Warn($"[TunnelsViewModel] manual open: {ex.Message}");
-            _main.StatusText = string.Format(
+            _host.StatusText = string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 _localizer["StatusManualTunnelFailed"],
                 ex.Message);
@@ -364,7 +501,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     /// </summary>
     public string ResolveRoute(string serverId)
     {
-        var settings = _main.CurrentSettings;
+        var settings = _host.CurrentSettings;
         if (settings is null) return string.Empty;
 
         var stateData = _connectionSm.GetStateData(serverId);
@@ -404,7 +541,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
     private void OnTunnelOpened(TunnelInfo info)
     {
         RefreshList();
-        IsPanelOpen = true;
+        // Phase 3.1 intentionally leaves visibility to tab/default state; the tab badge surfaces new tunnels.
     }
 
     private void OnTunnelClosed(int localPort, string? error)
@@ -417,13 +554,44 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
             status += $" ({error})";
         }
 
-        _main.StatusText = status;
+        _host.StatusText = status;
     }
 
     private void OnLocaleChanged(string _)
     {
         OnPropertyChanged(nameof(TunnelPanelHeaderPrefix));
         OnPropertyChanged(nameof(TunnelPanelHeaderSuffix));
+    }
+
+    private void OnSettingsChanged(AppSettings settings)
+    {
+        _settingsSnapshot = settings;
+        QueueResolveAndApplyPanelState();
+    }
+
+    private void OnConnectionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.ActiveSession), StringComparison.Ordinal))
+        {
+            QueueResolveAndApplyPanelState();
+        }
+    }
+
+    private void QueueResolveAndApplyPanelState()
+    {
+        _ = ResolveAndApplyPanelStateSafelyAsync();
+    }
+
+    private async Task ResolveAndApplyPanelStateSafelyAsync()
+    {
+        try
+        {
+            await ResolveAndApplyPanelStateAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"[TunnelsViewModel] resolve panel state failed: {ex.Message}");
+        }
     }
 
     // ── IDisposable ──────────────────────────────────────────────────
@@ -437,5 +605,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         _tunnelManager.TunnelOpened -= OnTunnelOpened;
         _tunnelManager.TunnelClosed -= OnTunnelClosed;
         _localizer.LocaleChanged -= OnLocaleChanged;
+        _configManager.SettingsChanged -= OnSettingsChanged;
+        _host.Connection.PropertyChanged -= _connectionPropertyChangedHandler;
     }
 }

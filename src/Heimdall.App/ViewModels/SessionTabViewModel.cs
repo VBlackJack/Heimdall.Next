@@ -61,6 +61,14 @@ public partial class SessionTabViewModel : ObservableObject
     public ServerProfileDto? AdHocProfileSnapshot { get; private set; }
 
     /// <summary>
+    /// Per-tab manual override of the Tunnels panel expanded state, set by the user
+    /// during the tab's lifetime. null = no manual override; falls back to profile
+    /// or app default. Lives only as long as the tab; never persisted.
+    /// </summary>
+    [ObservableProperty]
+    private bool? _tunnelsPanelManualOverride;
+
+    /// <summary>
     /// Returns the first leaf pane in the tree (the "primary" pane).
     /// Used for tab header display (title, icon, status).
     /// </summary>

@@ -95,6 +95,21 @@ public sealed class SessionTabViewModelTests
         Assert.Same(dto, vm.AdHocProfileSnapshot);
     }
 
+    [Fact]
+    public void TunnelsPanelManualOverride_DefaultsToNullAndRaisesPropertyChanged()
+    {
+        var vm = new SessionTabViewModel();
+        List<string> changes = [];
+        vm.PropertyChanged += (_, args) => RecordChange(args, changes);
+
+        Assert.Null(vm.TunnelsPanelManualOverride);
+
+        vm.TunnelsPanelManualOverride = true;
+
+        Assert.True(vm.TunnelsPanelManualOverride);
+        Assert.Contains(nameof(SessionTabViewModel.TunnelsPanelManualOverride), changes);
+    }
+
     private static void RecordChange(PropertyChangedEventArgs args, ICollection<string> changes)
     {
         if (!string.IsNullOrWhiteSpace(args.PropertyName))
