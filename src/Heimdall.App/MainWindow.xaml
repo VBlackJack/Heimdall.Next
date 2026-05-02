@@ -9,6 +9,7 @@
         xmlns:models="clr-namespace:Heimdall.Core.Models;assembly=Heimdall.Core"
         xmlns:loc="clr-namespace:Heimdall.App.Localization"
         xmlns:theming="clr-namespace:Heimdall.App.Theming"
+        xmlns:tunnels="clr-namespace:Heimdall.App.ViewModels.Tunnels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="{Binding WindowTitle}"
@@ -864,16 +865,45 @@
                                                     AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                     Style="{DynamicResource SecondaryButtonStyle}"/>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                                      Style="{StaticResource GeoIconSmall}"
-                                                      VerticalAlignment="Center" Margin="0,0,5,0">
-                                                    <Path.Fill>
-                                                        <MultiBinding Converter="{StaticResource TypeToColorConverter}">
-                                                            <Binding Path="ConnectionType"/>
-                                                            <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                                        </MultiBinding>
-                                                    </Path.Fill>
-                                                </Path>
+                                                <Grid Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,5,0">
+                                                    <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                          Style="{StaticResource GeoIconSmall}">
+                                                        <Path.Fill>
+                                                            <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                                <Binding Path="ConnectionType"/>
+                                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                            </MultiBinding>
+                                                        </Path.Fill>
+                                                    </Path>
+                                                    <Ellipse Width="7" Height="7"
+                                                             HorizontalAlignment="Right"
+                                                             VerticalAlignment="Bottom"
+                                                             Margin="0,0,-1,-1"
+                                                             Stroke="{DynamicResource BackgroundBrush}"
+                                                             StrokeThickness="1"
+                                                             Fill="{Binding TunnelBadgeState, Converter={StaticResource TunnelBadgeStateToBrushConverter}}"
+                                                             AutomationProperties.Name="{loc:Translate A11yTunnelTabBadge}">
+                                                        <Ellipse.Visibility>
+                                                            <MultiBinding Converter="{StaticResource TunnelBadgeVisibilityConverter}">
+                                                                <Binding Path="TunnelBadgeState"/>
+                                                                <Binding Path="DataContext.Tunnels.IsPanelOpen" ElementName="MainWindowRoot"/>
+                                                            </MultiBinding>
+                                                        </Ellipse.Visibility>
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="ToolTip" Value=""/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Healthy}">
+                                                                        <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeHealthy}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Unhealthy}">
+                                                                        <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeUnhealthy}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+                                                </Grid>
                                                 <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                                            VerticalAlignment="Center"
