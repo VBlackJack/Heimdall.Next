@@ -581,6 +581,8 @@
   "SettingsSearchResultCount": "Affichage de {0} sur {1} onglets",
   "A11ySettingsSearch": "Rechercher dans les param\u00e8tres",
   "SettingsLabelPreventSleep": "Emp\u00eacher la mise en veille pendant les sessions actives",
+  "SettingsLabelCollapseTunnelsPanelByDefault": "Replier le panneau Tunnels par d\u00e9faut",
+  "SettingsTooltipCollapseTunnelsPanelByDefault": "\u00c9tat initial quand aucun override par profil n'est d\u00e9fini. Les changements manuels pendant une session sont m\u00e9moris\u00e9s par profil serveur.",
   "SettingsSectionSshDefaults": "Param\u00e8tres SSH & SFTP par d\u00e9faut",
   "SettingsLabelSshMode": "Mode SSH par d\u00e9faut",
   "SettingsLabelSshTmoutReset": "Intervalle de r\u00e9initialisation TMOUT (s)",

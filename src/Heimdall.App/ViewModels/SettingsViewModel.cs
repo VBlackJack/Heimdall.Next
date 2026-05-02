@@ -83,6 +83,9 @@ public partial class SettingsViewModel : ObservableValidator
     private bool _preventSleepDuringSession = true;
 
     [ObservableProperty]
+    private bool _collapseTunnelsPanelByDefault = true;
+
+    [ObservableProperty]
     private string _externalEditorPath = "";
 
     // --- Terminal ---
@@ -435,6 +438,7 @@ public partial class SettingsViewModel : ObservableValidator
         _originalTheme = settings.DefaultTheme;
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         PreventSleepDuringSession = settings.PreventSleepDuringSession;
+        CollapseTunnelsPanelByDefault = settings.CollapseTunnelsPanelByDefault;
         ExternalEditorPath = settings.ExternalEditorPath;
 
         // UI state
@@ -574,6 +578,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.DefaultTheme = DefaultTheme;
         settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
         settings.PreventSleepDuringSession = PreventSleepDuringSession;
+        settings.CollapseTunnelsPanelByDefault = CollapseTunnelsPanelByDefault;
         settings.ExternalEditorPath = ExternalEditorPath;
 
         // Terminal

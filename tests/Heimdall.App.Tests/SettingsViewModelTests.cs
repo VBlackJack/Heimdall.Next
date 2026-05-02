@@ -109,6 +109,86 @@ public sealed class SettingsViewModelTests
         Assert.Equal(60000, reloaded.RdpCredentialAutofillTimeoutMs);
     }
 
+    [Fact]
+    public void CollapseTunnelsPanelByDefault_LoadFromSettings_DefaultIsTrue()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings());
+
+        Assert.True(viewModel.CollapseTunnelsPanelByDefault);
+    }
+
+    [Fact]
+    public void CollapseTunnelsPanelByDefault_LoadFromSettings_PreservesFalse()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            CollapseTunnelsPanelByDefault = false
+        });
+
+        Assert.False(viewModel.CollapseTunnelsPanelByDefault);
+    }
+
+    [Fact]
+    public void CollapseTunnelsPanelByDefault_LoadFromSettings_PreservesTrue()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            CollapseTunnelsPanelByDefault = true
+        });
+
+        Assert.True(viewModel.CollapseTunnelsPanelByDefault);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PersistsCollapseTunnelsPanelByDefault_True()
+    {
+        var config = new FakeConfigManager
+        {
+            Settings = new AppSettings
+            {
+                CollapseTunnelsPanelByDefault = false
+            }
+        };
+        var viewModel = CreateViewModel(config);
+        viewModel.CollapseTunnelsPanelByDefault = true;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        var saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.True(saved.CollapseTunnelsPanelByDefault);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PersistsCollapseTunnelsPanelByDefault_False()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.CollapseTunnelsPanelByDefault = false;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        var saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.False(saved.CollapseTunnelsPanelByDefault);
+    }
+
+    [Fact]
+    public void CollapseTunnelsPanelByDefault_RaisesPropertyChanged()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+        var changes = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+
+        viewModel.CollapseTunnelsPanelByDefault = false;
+
+        Assert.Contains(nameof(SettingsViewModel.CollapseTunnelsPanelByDefault), changes);
+    }
+
     private static SettingsViewModel CreateViewModel(FakeConfigManager config)
     {
         var localizer = new LocalizationManager();

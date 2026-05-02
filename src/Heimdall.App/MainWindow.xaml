@@ -1766,6 +1766,13 @@
                                             <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
                                         </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsPreventSleep" Content="{loc:Translate SettingsLabelPreventSleep}" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsCollapseTunnelsPanelByDefault"
+                                                  Content="{loc:Translate SettingsLabelCollapseTunnelsPanelByDefault}"
+                                                  IsChecked="{Binding Settings.CollapseTunnelsPanelByDefault}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Margin="0,12,0,0"
+                                                  ToolTip="{loc:Translate SettingsTooltipCollapseTunnelsPanelByDefault}"
+                                                  AutomationProperties.Name="{loc:Translate SettingsLabelCollapseTunnelsPanelByDefault}"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="{loc:Translate SettingsLabelEditorPath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>

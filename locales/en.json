@@ -581,6 +581,8 @@
   "SettingsSearchResultCount": "Showing {0} of {1} tabs",
   "A11ySettingsSearch": "Search settings",
   "SettingsLabelPreventSleep": "Prevent system sleep during active sessions",
+  "SettingsLabelCollapseTunnelsPanelByDefault": "Collapse Tunnels panel by default",
+  "SettingsTooltipCollapseTunnelsPanelByDefault": "Initial state when no per-profile override is set. Manual changes during a session are remembered per server profile.",
   "SettingsSectionSshDefaults": "SSH & SFTP Defaults",
   "SettingsLabelSshMode": "Default SSH mode",
   "SettingsLabelSshTmoutReset": "TMOUT reset interval (s)",
