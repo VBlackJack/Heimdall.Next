@@ -28,9 +28,6 @@ public enum FullscreenShortcutAction
 
 public static class FullscreenShortcutRouter
 {
-    // TODO: AppSettings currently exposes RdpFullscreenToggleShortcut and
-    // RdpReleaseFocusShortcut, but they are not wired into this router. Wire
-    // or retire those fields when fullscreen shortcuts become user-configurable.
     public static FullscreenShortcutAction Resolve(
         Key key,
         ModifierKeys modifiers,

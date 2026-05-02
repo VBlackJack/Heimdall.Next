@@ -113,8 +113,6 @@ public sealed class AppSettings
     public bool RdpDefaultBitmapCaching { get; set; } = true;
     public bool RdpDefaultCompression { get; set; } = true;
     public bool RdpDefaultAutoReconnect { get; set; } = true;
-    public string RdpReleaseFocusShortcut { get; set; } = "Ctrl+Alt+Home";
-    public string RdpFullscreenToggleShortcut { get; set; } = "F11";
     public bool RdpDialogAdvancedDefault { get; set; }
     public bool RdpConfirmReconnectOnResize { get; set; }
 
