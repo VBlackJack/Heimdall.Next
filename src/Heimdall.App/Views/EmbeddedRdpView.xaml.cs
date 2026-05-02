@@ -331,11 +331,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             _manualResolutionWidth = server.RdpFixedWidth;
             _manualResolutionHeight = server.RdpFixedHeight;
         }
-        else if (server.RdpDefaultResolutionWidth > 0 && server.RdpDefaultResolutionHeight > 0)
-        {
-            _manualResolutionWidth = server.RdpDefaultResolutionWidth;
-            _manualResolutionHeight = server.RdpDefaultResolutionHeight;
-        }
 
         _initialized = true;
 
