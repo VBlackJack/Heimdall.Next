@@ -26,6 +26,8 @@
             <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
             <converters:ResourceKeyToBrushConverter x:Key="ResourceKeyToBrushConverter"/>
             <converters:ResourceKeyToGeometryConverter x:Key="ResourceKeyToGeometryConverter"/>
+            <converters:TunnelBadgeVisibilityConverter x:Key="TunnelBadgeVisibilityConverter"/>
+            <converters:TunnelBadgeStateToBrushConverter x:Key="TunnelBadgeStateToBrushConverter"/>
             <converters:BoolToLocalizedKeyConverter x:Key="ShareFolderLabelConverter"
                                                     FalseKey="ToolsShareFolder"
                                                     TrueKey="ToolsStopSharing"/>
