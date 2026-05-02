@@ -12,6 +12,22 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — RDP legacy resolution DTO cleanup
+
+Phase 3.2 pass retiring runtime usage of the legacy per-server
+`RdpDefaultResolutionWidth` / `RdpDefaultResolutionHeight` fields.
+
+- Replaces the DTO fields with obsolete setter-only JSON migration shims that
+  forward legacy values into `RdpFixedWidth` / `RdpFixedHeight` without
+  reserializing the old property names.
+- Preserves hybrid JSON semantics where `rdpFixedResolutionWidth` /
+  `rdpFixedResolutionHeight` win over legacy defaults regardless of property
+  order.
+- Removes the remaining runtime write path from "Save as default for this
+  server" and the embedded RDP legacy read fallback.
+
+Test baseline after this pass: **5,090 passing + 6 skipped**, zero warnings.
+
 ## 2026-05-02 — Tunnels panel collapse-by-default
 
 Phase 3.1 pass changing the Tunnels panel from a single global expanded flag
