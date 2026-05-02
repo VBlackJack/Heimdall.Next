@@ -12,6 +12,21 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-02 — Post-Phase 3 documentation refresh
+
+Phase 3.8 doc-only pass refreshing tracked living documentation after the
+Phase 3 cluster.
+
+- Updates `docs/ARCHITECTURE.md` for the Phase 3.1 tunnel panel state model,
+  the Phase 3.6 `INetworkKnowledgeBaseStore` seam and initialization
+  serialization pattern, and the Phase 3.7 Settings layout / TFTP relocation.
+- Updates `README.md` so Quick File Server describes HTTP-by-default sharing
+  with opt-in TFTP from Settings > Advanced > File sharing.
+- Updates `docs/TROUBLESHOOTING.md` so TFTP port troubleshooting starts with
+  the opt-in Settings prerequisite.
+
+No code changes. Test baseline unchanged: **5,103 passing + 6 skipped**.
+
 ## 2026-05-02 — Settings and header hygiene
 
 Phase 3.7 pass cleaning up the main header's top-right controls and moving

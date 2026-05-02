@@ -212,7 +212,7 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 ### 12. Tunnel Panel (Retractable)
 
-**Architecture**: A `GridSplitter`-based side panel bound to `TunnelPanelViewModel`. The panel observes `TunnelManager.ActiveTunnels` (an `ObservableCollection<TunnelSession>`) and displays real-time status. Tunnel teardown sends a cancel request to the specific `TunnelSession` without affecting other tunnels or the parent SSH connection. Panel visibility is toggled via a toolbar button and persisted in user settings.
+**Architecture**: A `GridSplitter`-based side panel bound to `TunnelPanelViewModel`. The panel observes `TunnelManager.ActiveTunnels` (an `ObservableCollection<TunnelSession>`) and displays real-time status. Tunnel teardown sends a cancel request to the specific `TunnelSession` without affecting other tunnels or the parent SSH connection. Expansion state is resolved per active tab/session, not as a single global flag: manual per-tab override wins, then nullable per-profile persistence (`ServerProfileDto.TunnelsPanelExpanded`), then the application default (`AppSettings.CollapseTunnelsPanelByDefault`). Saved profiles persist their panel preference in the server profile DTO, while ad-hoc tabs keep the override local to the tab. Session tab headers also show an aggregate tunnel badge when any split-pane leaf in the tab has active tunnel state.
 
 ### 13. VNC via noVNC WebView2 + WebSocket Proxy
 
@@ -234,7 +234,7 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Dual edit modes**: Right-click a file to choose between:
 - **Edit (integrated)**: Opens AvalonEdit inside the app with syntax highlighting. Save triggers upload.
-- **Edit with external editor**: Downloads to temp, launches the configured editor (Settings > General > External editor path), `FileSystemWatcher` with 2-second debounce auto-uploads on save.
+- **Edit with external editor**: Downloads to temp, launches the configured editor (Settings > Advanced > External editor), `FileSystemWatcher` with 2-second debounce auto-uploads on save.
 
 ### 15b. SFTP Sudo Elevation System
 
@@ -374,7 +374,7 @@ ISplitContent (marker interface)
 
 **Problem**: Some servers have no SFTP or SCP (hardened servers, minimal containers, network equipment). Users need a quick way to make local files available for `wget`/`curl`/`tftp` from a remote SSH session.
 
-**Solution**: `EphemeralFileServer` provides dual read-only servers: HTTP (via `HttpListener` with directory listing) and TFTP (minimal RFC 1350 RRQ over `UdpClient`). On activation, a helper dialog displays ready-to-use download commands (`wget`, `curl`, `tftp`) and auto-copies the server URL to clipboard for pasting into the active SSH terminal. Both servers are disposed when the user clicks "Stop File Server".
+**Solution**: `EphemeralFileServer` always provides a read-only HTTP server (via `HttpListener` with directory listing) while TFTP (minimal RFC 1350 RRQ over `UdpClient`) is opt-in through Settings > Advanced > File sharing. On activation, the UI surfaces ready-to-use download commands for the active transports and auto-copies the server URL to clipboard for pasting into the active SSH terminal. The `tftp` command snippet appears in the status bar only when TFTP is enabled. All active transports are disposed when the user clicks "Stop File Server".
 
 ### 25. X11 Server Auto-Detection and Management
 
@@ -662,12 +662,12 @@ The Settings panel uses a left-navigation `TabControl` with 6 sub-tabs:
 
 | Sub-tab | Settings |
 |---------|----------|
-| **General** | Language, theme, max sessions, prevent sleep, external editor, projects |
+| **General** | Appearance: language, theme, max sessions, prevent sleep, collapse tunnels default |
 | **Terminal** | Font family, font size, color scheme |
 | **SSH & SFTP** | Plink path, default mode, anti-idle, TMOUT reset, SFTP auto-open, X11, gateways |
 | **RDP** | Default mode, resolution, color depth, audio, NLA, dynamic res, multi-monitor, device redirection, caching |
 | **Security** | External credential provider (command/database/browse/presets/test), Credential Guard |
-| **Advanced** | Logging, session logging, timeouts (tunnel/RDP/external tools), external tools (edit/preview/test/validate) |
+| **Advanced** | Logging, session logging, timeouts (tunnel/RDP/external tools), File sharing (TFTP enablement + disclaimer), External editor (path + browse), third-party tool detection, command library sync, external tools list (edit/preview/test/validate) |
 
 Action buttons (Save / Reset / Export / Import) are pinned at the bottom, always visible regardless of sub-tab.
 
@@ -795,9 +795,13 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 **TreeView context menu**: `OnTreeViewContextMenuOpening` builds dynamic menu; `OnTreeViewPreviewRightClick` stops tunneling to prevent `MainWindow.OnSessionTabRightClick` interception. `MainWindow` also excludes `TreeView` inside `TOOL:*` sessions from session tab menu.
 
 **Drag & drop**: Internal (move note between folders via `MoveNoteToFolderAsync`) + external (.md file import via copy to notes root)
-- **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting, KB cache-skip), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, compiled CnRegex, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (atomic write, ACL, retention, typed HostChange diff), KnowledgeBaseManager (persistent per-field Observation\<T\> timestamps, merge-on-scan, TTL-based cache acceleration, host purge)
+- **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting, KB cache-skip), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, compiled CnRegex, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (atomic write, ACL, retention, typed HostChange diff), KnowledgeBaseManager (static pure helpers for persistent per-field Observation\<T\> timestamps, merge-on-scan, TTL-based cache acceleration, host purge), and `INetworkKnowledgeBaseStore` (ViewModel persistence seam; `FileNetworkKnowledgeBaseStore` default, `InMemoryNetworkKnowledgeBaseStore` for tests). `CartographyEngine` continues to use the pure helper surface, while the ViewModel routes I/O through the store seam introduced to fix the Phase 3.6 initial-load race.
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 - **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
+
+### Network Cartography Initialization Serialization
+
+`NetworkCartographyViewModel.Initialize()` remains synchronous because it implements the `IToolView` contract. Async KB stats loading is captured in an internal `_initialLoadTask` instead of being left as untracked fire-and-forget work. `WaitForInitialLoadAsync()` exposes that task for callers and tests, and destructive operations such as `ClearKbAsync` await it as their first step. This prevents stale initialization data from overwriting a freshly cleared KB and is the reference pattern for future tool ViewModels that need to serialize asynchronous initialization behind a synchronous `Initialize()` surface.
 
 ### Theme System (`ThemeService`)
 

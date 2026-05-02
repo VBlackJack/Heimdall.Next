@@ -152,8 +152,8 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Integrated into Ctrl+K command palette
 
 ### Quick File Server
-- One-click HTTP + TFTP server for transferring files to servers without SFTP (hardened servers, containers, network equipment)
-- Displays ready-to-use `wget`/`curl`/`tftp` commands, auto-copies URL to clipboard
+- One-click HTTP file server with optional TFTP support, enabled from Settings > Advanced > File sharing, for transferring files to servers without SFTP (hardened servers, containers, network equipment)
+- Displays ready-to-use `wget`/`curl` commands, adds the `tftp` command snippet only when TFTP is enabled, and auto-copies the share URL to clipboard
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
