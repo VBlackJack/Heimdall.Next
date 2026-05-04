@@ -33,9 +33,22 @@ public sealed class RdpRegionFrameLayoutTests
         Assert.True(layout.IsLetterboxActive);
         Assert.Equal(System.Windows.HorizontalAlignment.Left, layout.FrameHorizontalAlignment);
         Assert.Equal(System.Windows.VerticalAlignment.Top, layout.FrameVerticalAlignment);
-        Assert.Equal(System.Windows.HorizontalAlignment.Stretch, layout.HostHorizontalAlignment);
-        Assert.Equal(System.Windows.VerticalAlignment.Stretch, layout.HostVerticalAlignment);
+        // RDP-LIVE-24: when letterbox is active, the WindowsFormsHost is pinned
+        // to the frame size so the Win32 HWND does not bleed past it.
+        Assert.Equal(System.Windows.HorizontalAlignment.Left, layout.HostHorizontalAlignment);
+        Assert.Equal(System.Windows.VerticalAlignment.Top, layout.HostVerticalAlignment);
         Assert.Equal(new Thickness(0), layout.HostMargin);
+        AssertClose(1200, layout.HostWidth);
+        AssertClose(900, layout.HostHeight);
+    }
+
+    [Fact]
+    public void FromPaneAndContent_WhenLetterboxInactive_HostStaysStretched()
+    {
+        var layout = RdpRegionFrameLayout.FromPaneAndContent(1600, 900, 1920, 1080);
+
+        Assert.False(layout.IsLetterboxActive);
+        Assert.Equal(System.Windows.HorizontalAlignment.Left, layout.HostHorizontalAlignment);
         Assert.True(double.IsNaN(layout.HostWidth));
         Assert.True(double.IsNaN(layout.HostHeight));
     }

@@ -55,6 +55,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private readonly IConfigManager _configManager;
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly ExternalToolLaunchService _externalToolLaunchService;
+    private readonly IRecentConnectionTracker _recentConnections;
 
     /// <summary>
     /// When non-null, the palette is in "split mode": selecting a server
@@ -73,7 +74,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         ToolRegistry toolRegistry,
         IConfigManager configManager,
         IEmbeddedSessionManager embeddedSessionManager,
-        ExternalToolLaunchService externalToolLaunchService)
+        ExternalToolLaunchService externalToolLaunchService,
+        IRecentConnectionTracker recentConnections)
     {
         _main = main;
         _localizer = localizer;
@@ -81,6 +83,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         _configManager = configManager;
         _embeddedSessionManager = embeddedSessionManager;
         _externalToolLaunchService = externalToolLaunchService;
+        _recentConnections = recentConnections;
     }
 
     // ── Observable state ─────────────────────────────────────────────

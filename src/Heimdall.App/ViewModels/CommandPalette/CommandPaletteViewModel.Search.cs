@@ -83,12 +83,44 @@ public sealed partial class CommandPaletteViewModel
 
             // Show servers (skip already-boosted ones).
             // In split mode, show ALL servers so every treeview entry is reachable.
-            // In normal palette mode, limit to 10 recent servers.
+            // In normal palette mode, surface up to 10 servers, with hosts the
+            // user recently connected to bubbled to the top (RDP-DISC-05).
             var availableServers = _main.ServerList.Servers
                 .Where(s => !boostedIds.Contains(s.Id));
+
             if (_splitPaletteSession is null)
-                availableServers = availableServers.Take(10);
-            initialResults.AddRange(availableServers);
+            {
+                var recentHosts = _recentConnections.GetRecents(10)
+                    .Select(r => r.Host)
+                    .ToList();
+                var recentlyConnected = new List<ServerItemViewModel>();
+                var others = new List<ServerItemViewModel>();
+
+                foreach (var server in availableServers)
+                {
+                    var host = (server.RemoteServer ?? string.Empty).Trim().ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(host) && recentHosts.Contains(host))
+                    {
+                        recentlyConnected.Add(server);
+                    }
+                    else
+                    {
+                        others.Add(server);
+                    }
+                }
+
+                // Reorder recentlyConnected to match the most-recent-first order from the tracker.
+                recentlyConnected = recentlyConnected
+                    .OrderBy(s => recentHosts.IndexOf((s.RemoteServer ?? string.Empty).Trim().ToLowerInvariant()))
+                    .ToList();
+
+                initialResults.AddRange(recentlyConnected);
+                initialResults.AddRange(others.Take(Math.Max(0, 10 - recentlyConnected.Count)));
+            }
+            else
+            {
+                initialResults.AddRange(availableServers);
+            }
 
             // Then recent tools at the bottom (if any)
             foreach (var toolId in _main.RecentToolIds)
@@ -135,10 +167,12 @@ public sealed partial class CommandPaletteViewModel
             matches.Insert(0, adHoc);
         }
 
-        // Bare IP / hostname: propose SSH and RDP ad-hoc connections
+        // Bare IP / hostname: propose SSH and RDP ad-hoc connections.
+        // Order is biased by per-host history so users hitting the same host
+        // again with the same protocol see it on top (RDP-DISC-04).
         if (matches.Count == 0 && LooksLikeHostOrIp(query))
         {
-            matches.Add(new ServerItemViewModel
+            var ssh = new ServerItemViewModel
             {
                 Id = $"adhoc-ssh-{query}",
                 DisplayName = _localizer.Format("QuickConnectSshTo", query),
@@ -146,8 +180,8 @@ public sealed partial class CommandPaletteViewModel
                 Endpoint = query,
                 ConnectionType = "SSH",
                 Group = ""
-            });
-            matches.Add(new ServerItemViewModel
+            };
+            var rdp = new ServerItemViewModel
             {
                 Id = $"adhoc-rdp-{query}",
                 DisplayName = _localizer.Format("QuickConnectRdpTo", query),
@@ -155,7 +189,19 @@ public sealed partial class CommandPaletteViewModel
                 Endpoint = query,
                 ConnectionType = "RDP",
                 Group = ""
-            });
+            };
+
+            var lastProtocol = _recentConnections.GetLastProtocol(query);
+            if (string.Equals(lastProtocol, "RDP", StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(rdp);
+                matches.Add(ssh);
+            }
+            else
+            {
+                matches.Add(ssh);
+                matches.Add(rdp);
+            }
         }
 
         Results = new ObservableCollection<ServerItemViewModel>(matches);

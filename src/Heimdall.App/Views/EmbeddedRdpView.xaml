@@ -148,6 +148,16 @@
                                       Header="{loc:Translate RdpSendKeysEscape}"
                                       Click="OnSendKeysEscapeClick"/>
                             <Separator/>
+                            <MenuItem x:Name="SendKeysWinL"
+                                      Header="{loc:Translate RdpSendKeysWinL}"
+                                      Click="OnSendKeysWinLClick"/>
+                            <MenuItem x:Name="SendKeysWinD"
+                                      Header="{loc:Translate RdpSendKeysWinD}"
+                                      Click="OnSendKeysWinDClick"/>
+                            <MenuItem x:Name="SendKeysWinE"
+                                      Header="{loc:Translate RdpSendKeysWinE}"
+                                      Click="OnSendKeysWinEClick"/>
+                            <Separator/>
                             <MenuItem x:Name="SendKeysShortcutsHelp"
                                       Header="{loc:Translate RdpShortcutsHelpMenuItem}"
                                       Click="OnSendKeysShortcutsHelpClick"/>
@@ -178,6 +188,17 @@
                         Click="OnResolutionButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
+                            <MenuItem x:Name="ResMenuModeHeader"
+                                      IsEnabled="False"
+                                      IsHitTestVisible="False"
+                                      StaysOpenOnClick="True">
+                                <MenuItem.Header>
+                                    <TextBlock x:Name="ResMenuModeHeaderText"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </MenuItem.Header>
+                            </MenuItem>
+                            <Separator x:Name="ResMenuModeHeaderSeparator"/>
                             <MenuItem x:Name="ResMenuSkipStabilization"
                                       Header="{loc:Translate RdpResolutionSkipStabilization}"
                                       Click="OnSkipStabilizationClick"
@@ -190,7 +211,9 @@
                                       Tag="Fit"/>
                             <Separator/>
                             <!-- Preset items populated dynamically by PopulateResolutionMenu()
-                                 from AppSettings.RdpResolutionPresets, with a built-in fallback. -->
+                                 from AppSettings.RdpResolutionPresets, with a built-in fallback.
+                                 Items 0-5 are static (mode header + separator + skip-stab + skip-stab-sep
+                                 + fit + separator); presets are appended at index 6+. -->
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
@@ -409,6 +432,17 @@
                                        VerticalAlignment="Center"
                                        AutomationProperties.Name="{loc:Translate RdpRedirectionLabelMultiMonitor}"
                                        AutomationProperties.HelpText="{loc:Translate RdpRedirectionLabelMultiMonitor}"/>
+                            <Button x:Name="RedirExpandBadge"
+                                    Visibility="Collapsed"
+                                    Margin="6,0,0,0"
+                                    Padding="4,0"
+                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    Click="OnRedirExpandBadgeClick"
+                                    Cursor="Hand"
+                                    ToolTip="{loc:Translate RdpRedirectionExpandBadgeTooltip}"
+                                    AutomationProperties.Name="{loc:Translate RdpRedirectionExpandBadgeA11y}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

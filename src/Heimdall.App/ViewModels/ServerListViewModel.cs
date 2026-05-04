@@ -150,6 +150,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         IRdpImportService rdpImportService,
         PuttySessionImporter puttySessionImporter,
         KnownHostsImporter knownHostsImporter,
+        IRecentConnectionTracker? recentConnections = null,
         IProfileImportService? profileImportService = null)
     {
         _configManager = configManager;
@@ -162,10 +163,13 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             ?? new ProfileImportService(configManager, localizer, dialogService, rdpImportService);
         _puttySessionImporter = puttySessionImporter;
         _knownHostsImporter = knownHostsImporter;
+        _recentConnections = recentConnections ?? new RecentConnectionTracker();
 
         InitializeSelectionModel();
         _connectionSm.StateChanged += OnConnectionStateChanged;
     }
+
+    private readonly IRecentConnectionTracker _recentConnections;
 
     public void Dispose()
     {
@@ -1840,6 +1844,15 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             if (server is not null)
             {
                 server.ConnectionState = newState.ToString();
+
+                // Record successful reach: feeds RDP-DISC-04 (palette protocol bias)
+                // and RDP-DISC-05 (Recents). LaunchedExternalClient counts because
+                // it indicates a user-initiated session attempt completed dispatch.
+                if (newState == Heimdall.Core.Models.ConnectionState.Connected
+                    || newState == Heimdall.Core.Models.ConnectionState.LaunchedExternalClient)
+                {
+                    _recentConnections.Record(server.RemoteServer, server.ConnectionType);
+                }
             }
         });
     }

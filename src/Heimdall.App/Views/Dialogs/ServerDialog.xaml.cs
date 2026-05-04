@@ -117,6 +117,45 @@ public partial class ServerDialog : Window
     }
 
     // ------------------------------------------------------------------
+    // Resolution presets (RDP)
+    // ------------------------------------------------------------------
+
+    private void OnRdpResolutionPresetSelectionChanged(
+        object sender,
+        System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.ComboBox combo
+            || combo.SelectedItem is not System.Windows.Controls.ComboBoxItem item
+            || item.Tag is not string tag
+            || string.IsNullOrEmpty(tag))
+        {
+            return;
+        }
+
+        if (DataContext is ServerDialogViewModel vm
+            && vm.ApplyResolutionPresetCommand.CanExecute(tag))
+        {
+            vm.ApplyResolutionPresetCommand.Execute(tag);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Options tab mini-toc (scroll-to-section anchors)
+    // ------------------------------------------------------------------
+
+    private void OnOptionsTocChipClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button button
+            || button.Tag is not string anchorName)
+        {
+            return;
+        }
+
+        var target = FindName(anchorName) as System.Windows.FrameworkElement;
+        target?.BringIntoView();
+    }
+
+    // ------------------------------------------------------------------
     // Tab fallback
     // ------------------------------------------------------------------
 
@@ -414,11 +453,8 @@ public partial class ServerDialog : Window
         DlgSrv_ProtoLocalName.Text = _localizer["ServerDialogProtocolLocalName"];
         DlgSrv_ProtoLocalDesc.Text = _localizer["ServerDialogProtocolLocalDesc"];
 
-        // Protocol badge
+        // Protocol badge (clickable chip — returns to protocol selector in add mode)
         DlgSrv_ProtocolBadgeLabel.Text = _localizer["ServerDialogProtocolBadge"];
-
-        // Back button (add mode)
-        DlgSrv_BackBtn.Content = _localizer["ServerDialogBtnBack"];
 
         // Connection basics (essential section)
         DlgSrv_ConnectionBasicsTitle.Text = _localizer["ServerDialogConnectionBasics"];
@@ -663,7 +699,6 @@ public partial class ServerDialog : Window
         // Action buttons
         DlgSrv_CancelBtn.Content = _localizer["ServerDialogBtnCancel"];
         DlgSrv_SaveBtn.Content = _localizer["ServerDialogBtnSave"];
-        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_BackBtn, _localizer["ServerDialogBtnBack"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_CancelBtn, _localizer["ServerDialogBtnCancel"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_SaveBtn, _localizer["ServerDialogBtnSave"]);
 

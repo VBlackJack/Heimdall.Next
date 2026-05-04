@@ -15,9 +15,11 @@
  */
 
 using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using Heimdall.App.ViewModels;
 using Heimdall.App.Views;
+using Heimdall.App.Views.EmbeddedRdp;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 
@@ -138,6 +140,9 @@ public sealed class SessionTabContextMenuFactory
         if (session.PrimaryPane.HostControl is EmbeddedRdpView rdpView)
         {
             var resolutionMenu = new MenuItem { Header = vm.Localize("SessionResolution") };
+
+            AppendActiveModeHeader(resolutionMenu, rdpView, vm);
+
             var matchWindowItem = new MenuItem
             {
                 Header = vm.Localize("RdpResolutionMatchWindow"),
@@ -227,6 +232,43 @@ public sealed class SessionTabContextMenuFactory
                 vm.ServerList.SaveAdHocAsProfileCommand.Execute(session.AdHocProfileSnapshot);
             menu.Items.Add(saveAsProfileItem);
         }
+    }
+
+    // ── Resolution active-mode header (mirrors toolbar header) ───────
+
+    private static void AppendActiveModeHeader(
+        MenuItem resolutionMenu,
+        EmbeddedRdpView rdpView,
+        MainViewModel vm)
+    {
+        var state = rdpView.GetEffectiveResolutionState();
+        var modeLabel = vm.Localize(RdpResolutionModeIndicator.GetModeLocalizationKey(state.Mode));
+        var activeModeLabel = vm.Localize("RdpResolutionActiveModeLabel");
+        var headerText = RdpResolutionModeIndicator.FormatHeader(
+            activeModeLabel,
+            modeLabel,
+            state.Width,
+            state.Height);
+
+        var headerTextBlock = new TextBlock
+        {
+            Text = headerText,
+            FontWeight = FontWeights.SemiBold
+        };
+        headerTextBlock.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            "TextSecondaryBrush");
+
+        var headerItem = new MenuItem
+        {
+            IsEnabled = false,
+            IsHitTestVisible = false,
+            StaysOpenOnClick = true,
+            Header = headerTextBlock
+        };
+
+        resolutionMenu.Items.Add(headerItem);
+        resolutionMenu.Items.Add(new Separator());
     }
 
     // ── Detach (branches on split state) ─────────────────────────────

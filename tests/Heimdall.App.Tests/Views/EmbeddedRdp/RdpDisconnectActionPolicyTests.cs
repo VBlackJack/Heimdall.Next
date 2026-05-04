@@ -21,45 +21,27 @@ namespace Heimdall.App.Tests.Views.EmbeddedRdp;
 public sealed class RdpDisconnectActionPolicyTests
 {
     [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(260)]
+    [InlineData(516)]
+    [InlineData(1030)]
     [InlineData(2055)]
+    [InlineData(2056)]
     [InlineData(2308)]
     [InlineData(2311)]
     [InlineData(2825)]
     [InlineData(3080)]
     [InlineData(3848)]
     [InlineData(4360)]
-    public void ShouldOfferEditProfile_ReturnsTrueForProfileRemediationCodes(int disconnectCode)
+    [InlineData(9999)]
+    public void ShouldOfferEditProfile_AlwaysReturnsTrue(int? disconnectCode)
     {
         var actual = RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode);
 
         Assert.True(actual);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(260)]
-    [InlineData(262)]
-    [InlineData(264)]
-    [InlineData(516)]
-    [InlineData(772)]
-    [InlineData(1030)]
-    [InlineData(1796)]
-    [InlineData(2056)]
-    [InlineData(2567)]
-    [InlineData(2822)]
-    [InlineData(3335)]
-    [InlineData(3591)]
-    [InlineData(3847)]
-    [InlineData(9999)]
-    public void ShouldOfferEditProfile_ReturnsFalseForOtherCodes(int? disconnectCode)
-    {
-        var actual = RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode);
-
-        Assert.False(actual);
     }
 
     [Theory]

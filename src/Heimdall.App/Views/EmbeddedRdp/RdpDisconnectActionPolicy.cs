@@ -27,16 +27,32 @@ internal enum RdpOverlayPrimaryAction
 /// </summary>
 internal static class RdpDisconnectActionPolicy
 {
-    // Profile-remediation disconnects include security/NLA issues; 2308 is included
-    // so users can disable NLA from the overlay's Edit profile button.
-    public static bool ShouldOfferEditProfile(int? disconnectCode) => disconnectCode switch
+    /// <summary>
+    /// "Edit profile" is always offered on the reconnect overlay regardless of
+    /// the disconnect code. Network/transient errors also benefit from quick
+    /// access to the profile (resolution, gateway, multi-monitor, ...) without
+    /// closing the overlay first.
+    /// </summary>
+    public static bool ShouldOfferEditProfile(int? disconnectCode)
+    {
+        _ = disconnectCode;
+        return true;
+    }
+
+    /// <summary>
+    /// Profile-remediation disconnects (security/NLA issues; 2308 lets users
+    /// disable NLA from the overlay) drive Edit profile as the primary,
+    /// pre-focused action. All other codes keep Reconnect as the primary
+    /// action even though Edit profile remains visible.
+    /// </summary>
+    public static RdpOverlayPrimaryAction ResolvePrimaryAction(int? disconnectCode)
+        => IsProfileRemediationCode(disconnectCode)
+            ? RdpOverlayPrimaryAction.EditProfile
+            : RdpOverlayPrimaryAction.Reconnect;
+
+    private static bool IsProfileRemediationCode(int? disconnectCode) => disconnectCode switch
     {
         2055 or 2308 or 2311 or 2825 or 3080 or 3848 or 4360 => true,
         _ => false
     };
-
-    public static RdpOverlayPrimaryAction ResolvePrimaryAction(int? disconnectCode)
-        => ShouldOfferEditProfile(disconnectCode)
-            ? RdpOverlayPrimaryAction.EditProfile
-            : RdpOverlayPrimaryAction.Reconnect;
 }

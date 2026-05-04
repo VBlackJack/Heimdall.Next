@@ -122,6 +122,15 @@ public sealed class AppSettings
     public bool RdpConfirmDisconnect { get; set; } = true;
 
     /// <summary>
+    /// When true, the embedded RDP toolbar displays every redirection indicator
+    /// (clipboard, drives, printers, ...) regardless of whether the redirection
+    /// is enabled. When false (default), disabled redirections are hidden and
+    /// reachable through a discreet "+N" expander to keep the status area
+    /// readable on profiles with most redirections turned off.
+    /// </summary>
+    public bool RdpRedirectionIndicatorsAlwaysExpanded { get; set; }
+
+    /// <summary>
     /// User-configurable resolution presets shown in the embedded RDP session
     /// header's resolution menu. Values are formatted as "WIDTHxHEIGHT". Empty
     /// or null falls back to the built-in 10-preset set.
