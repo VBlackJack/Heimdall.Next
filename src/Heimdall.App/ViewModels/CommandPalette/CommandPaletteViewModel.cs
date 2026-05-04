@@ -419,11 +419,10 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             {
                 var tab = _main.Connection.AddSession(dto.Id, dto.DisplayName, connType);
                 tab.MarkAsAdHoc(dto);
-                tab.Status = _localizer["StatusConnected"];
+                tab.Status = _localizer["StatusLaunchedExternalClient"];
             }
 
-            _main.StatusText = _localizer.Format("StatusConnected",
-                !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
+            _main.StatusText = _localizer["StatusLaunchedExternalClient"];
         }
         else
         {

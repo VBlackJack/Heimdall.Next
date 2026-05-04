@@ -112,6 +112,16 @@ public partial class ServerItemViewModel : ObservableObject
         !string.IsNullOrEmpty(ConnectionState)
         && !string.Equals(ConnectionState, "Disconnected", StringComparison.OrdinalIgnoreCase);
 
+    public string ConnectionStateDisplayName =>
+        string.Equals(ConnectionState, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
+            ? L("StatusLaunchedExternalClient")
+            : ConnectionState;
+
+    public string ConnectionStateTooltip =>
+        string.Equals(ConnectionState, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
+            ? L("StatusLaunchedExternalClientTooltip")
+            : ConnectionStateDisplayName;
+
     public string ConnectionTypeBadge => ConnectionType.ToUpperInvariant() switch
     {
         "RDP" => "RDP",
@@ -205,7 +215,13 @@ public partial class ServerItemViewModel : ObservableObject
         => Endpoint = string.IsNullOrEmpty(value) ? "" : (RemotePort > 0 ? $"{value}:{RemotePort}" : value);
 
     partial void OnConnectionStateChanged(string value)
-        => OnPropertyChanged(nameof(IsActiveSession));
+    {
+        OnPropertyChanged(nameof(IsActiveSession));
+        OnPropertyChanged(nameof(ConnectionStateDisplayName));
+        OnPropertyChanged(nameof(ConnectionStateTooltip));
+    }
+
+    private string L(string key) => _localizer?[key] ?? key;
 
     private static string FormatEndpoint(ServerProfileDto dto)
     {

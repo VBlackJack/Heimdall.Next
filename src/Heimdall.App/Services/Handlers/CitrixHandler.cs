@@ -48,7 +48,8 @@ internal sealed class CitrixHandler : IProtocolHandler
     public Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         ArgumentNullException.ThrowIfNull(server);
 

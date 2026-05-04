@@ -125,8 +125,9 @@ public sealed class ConnectionService : IConnectionService
     public Task<ConnectionResult> ConnectRdpAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct = default)
-        => DispatchAsync("RDP", server, settings, ct);
+        CancellationToken ct = default,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
+        => DispatchAsync("RDP", server, settings, ct, rdpModeOverride);
 
     public Task<ConnectionResult> ConnectSshAsync(
         ServerProfileDto server,
@@ -174,14 +175,15 @@ public sealed class ConnectionService : IConnectionService
         string protocol,
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
         if (_handlers.TryGetValue(protocol, out var handler))
         {
-            return handler.ConnectAsync(server, settings, ct);
+            return handler.ConnectAsync(server, settings, ct, rdpModeOverride);
         }
 
         var message = _localizer.Format("ErrorUnsupportedConnectionType", protocol);

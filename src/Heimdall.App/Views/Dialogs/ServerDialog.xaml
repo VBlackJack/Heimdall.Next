@@ -503,18 +503,8 @@
                 <StackPanel x:Name="FormFieldsPanel"
                             Visibility="{Binding ShowFormFields, Converter={StaticResource BoolToVisibilityConverter}}">
 
-                <!-- Protocol badge (edit mode: read-only indicator) -->
+                <!-- Protocol badge -->
                 <Border Margin="0,0,0,12">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock x:Name="DlgSrv_ProtocolBadgeLabel"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
@@ -523,7 +513,8 @@
                         <Border CornerRadius="{StaticResource CornerRadiusLg}" Padding="10,4"
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1">
+                                BorderThickness="1"
+                                AutomationProperties.LabeledBy="{Binding ElementName=DlgSrv_ProtocolBadgeLabel}">
                             <TextBlock Text="{Binding ConnectionType}"
                                        FontWeight="SemiBold"
                                        FontSize="{StaticResource FontSizeBody}"
@@ -1645,96 +1636,175 @@
                                                                    Style="{StaticResource DialogHintTextStyle}"
                                                                    Margin="0,4,0,12"/>
 
-                                                        <TextBlock Text="{loc:Translate ServerDialogResolutionModeLabel}"
-                                                                   Style="{StaticResource LabelStyle}"
-                                                                   Margin="0,0,0,4"/>
-                                                        <ComboBox x:Name="DlgSrv_RdpResolutionModeCombo"
-                                                                  TabIndex="64"
-                                                                  AutomationProperties.Name="{loc:Translate ServerDialogResolutionModeLabel}"
-                                                                  SelectedValue="{Binding RdpResolutionMode}"
-                                                                  SelectedValuePath="Tag"
-                                                                  Style="{StaticResource DialogFormComboBoxStyle}">
-                                                            <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFitWindow}"
-                                                                          Tag="{x:Static config:RdpResolutionMode.FitWindow}"/>
-                                                            <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFixed}"
-                                                                          Tag="{x:Static config:RdpResolutionMode.Fixed}"/>
-                                                            <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeSmartSizing}"
-                                                                          Tag="{x:Static config:RdpResolutionMode.SmartSizing}"/>
-                                                            <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeMultimon}"
-                                                                          Tag="{x:Static config:RdpResolutionMode.Multimon}"/>
-                                                        </ComboBox>
+                                                        <Border x:Name="DlgSrv_AutoResolutionCallout"
+                                                                Padding="12"
+                                                                Margin="0,0,0,12"
+                                                                CornerRadius="{StaticResource CornerRadiusLg}"
+                                                                Background="{DynamicResource SurfaceBrush}"
+                                                                BorderBrush="{DynamicResource AccentBrush}"
+                                                                BorderThickness="1"
+                                                                Visibility="{Binding IsAutoResolutionMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{loc:Translate ServerDialogResolutionModeAutoTitle}"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                                <TextBlock Text="{loc:Translate ServerDialogResolutionModeAutoDescription}"
+                                                                           Style="{StaticResource DialogHintTextStyle}"
+                                                                           Margin="0,4,0,0"
+                                                                           TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </Border>
 
-                                                        <Grid Margin="0,12,0,0"
-                                                              Visibility="{Binding ShowRdpFixedResolutionFields, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                            </Grid.RowDefinitions>
-                                                            <TextBlock Grid.Row="0" Grid.Column="0"
-                                                                       Text="{loc:Translate ServerDialogRdpFixedWidth}"
-                                                                       Style="{StaticResource LabelStyle}"
-                                                                       Margin="0,0,0,4"/>
-                                                            <TextBlock Grid.Row="0" Grid.Column="1"
-                                                                       Text="{loc:Translate ServerDialogRdpFixedHeight}"
-                                                                       Style="{StaticResource LabelStyle}"
-                                                                       Margin="12,0,0,4"/>
-                                                            <TextBox x:Name="DlgSrv_RdpFixedWidthBox"
-                                                                     Grid.Row="1" Grid.Column="0"
-                                                                     TabIndex="65"
-                                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpFixedWidth}"
-                                                                     Text="{Binding RdpFixedWidth, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
-                                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                                            <TextBox x:Name="DlgSrv_RdpFixedHeightBox"
-                                                                     Grid.Row="1" Grid.Column="1"
-                                                                     TabIndex="66"
-                                                                     Margin="12,0,0,0"
-                                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpFixedHeight}"
-                                                                     Text="{Binding RdpFixedHeight, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
-                                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                                            <TextBlock Grid.Row="2" Grid.Column="0"
-                                                                       Text="{Binding RdpFixedWidthError}"
-                                                                       Style="{StaticResource FieldValidationErrorStyle}"
-                                                                       Visibility="{Binding RdpFixedWidthError, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                            <TextBlock Grid.Row="2" Grid.Column="1"
-                                                                       Text="{Binding RdpFixedHeightError}"
-                                                                       Style="{StaticResource FieldValidationErrorStyle}"
-                                                                       Margin="12,2,0,0"
-                                                                       Visibility="{Binding RdpFixedHeightError, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                        </Grid>
+                                                        <Expander x:Name="DlgSrv_AdvancedResolutionExpander"
+                                                                  Header="{loc:Translate ServerDialogResolutionMoreOptions}"
+                                                                  IsExpanded="{Binding IsAdvancedResolutionExpanded, Mode=OneTime}"
+                                                                  Margin="0"
+                                                                  AutomationProperties.Name="{loc:Translate ServerDialogResolutionMoreOptions}"
+                                                                  Style="{DynamicResource ThemedExpanderStyle}">
+                                                            <StackPanel Margin="0,12,0,0">
+                                                                <TextBlock Text="{loc:Translate ServerDialogResolutionModeLabel}"
+                                                                           Style="{StaticResource LabelStyle}"
+                                                                           Margin="0,0,0,4"/>
+                                                                <ComboBox x:Name="DlgSrv_RdpResolutionModeCombo"
+                                                                          TabIndex="64"
+                                                                          AutomationProperties.Name="{loc:Translate ServerDialogResolutionModeLabel}"
+                                                                          SelectedValue="{Binding RdpResolutionMode}"
+                                                                          SelectedValuePath="Tag"
+                                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                                    <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFitWindow}"
+                                                                                  Tag="{x:Static config:RdpResolutionMode.FitWindow}"/>
+                                                                    <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFixed}"
+                                                                                  Tag="{x:Static config:RdpResolutionMode.Fixed}"/>
+                                                                    <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeSmartSizing}"
+                                                                                  Tag="{x:Static config:RdpResolutionMode.SmartSizing}"/>
+                                                                    <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeMultimon}"
+                                                                                  Tag="{x:Static config:RdpResolutionMode.Multimon}"
+                                                                                  IsEnabled="{Binding IsMultimonAvailable}"
+                                                                                  ToolTipService.ShowOnDisabled="True"
+                                                                                  ToolTip="{loc:Translate ServerDialogResolutionModeMultimonUnavailableTooltip}"/>
+                                                                </ComboBox>
 
-                                                        <CheckBox Content="{loc:Translate ServerDialogRdpInitialSmartSizing}"
-                                                                  TabIndex="67"
-                                                                  AutomationProperties.Name="{loc:Translate ServerDialogRdpInitialSmartSizing}"
-                                                                  IsChecked="{Binding RdpInitialSmartSizing}"
-                                                                  Style="{StaticResource DialogFormCheckBoxStyle}"
-                                                                  Margin="0,12,0,0"
-                                                                  Visibility="{Binding ShowRdpInitialSmartSizing, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                                <Grid Margin="0,12,0,0"
+                                                                      Visibility="{Binding ShowRdpFixedResolutionFields, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                    </Grid.RowDefinitions>
+                                                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                                                               Text="{loc:Translate ServerDialogRdpFixedWidth}"
+                                                                               Style="{StaticResource LabelStyle}"
+                                                                               Margin="0,0,0,4"/>
+                                                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                                                               Text="{loc:Translate ServerDialogRdpFixedHeight}"
+                                                                               Style="{StaticResource LabelStyle}"
+                                                                               Margin="12,0,0,4"/>
+                                                                    <TextBox x:Name="DlgSrv_RdpFixedWidthBox"
+                                                                             Grid.Row="1" Grid.Column="0"
+                                                                             TabIndex="65"
+                                                                             AutomationProperties.Name="{loc:Translate ServerDialogRdpFixedWidth}"
+                                                                             Text="{Binding RdpFixedWidth, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                                             Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                                    <TextBox x:Name="DlgSrv_RdpFixedHeightBox"
+                                                                             Grid.Row="1" Grid.Column="1"
+                                                                             TabIndex="66"
+                                                                             Margin="12,0,0,0"
+                                                                             AutomationProperties.Name="{loc:Translate ServerDialogRdpFixedHeight}"
+                                                                             Text="{Binding RdpFixedHeight, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                                             Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                                    <TextBlock Grid.Row="2" Grid.Column="0"
+                                                                               Text="{Binding RdpFixedWidthError}"
+                                                                               Style="{StaticResource FieldValidationErrorStyle}"
+                                                                               Visibility="{Binding RdpFixedWidthError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                    <TextBlock Grid.Row="2" Grid.Column="1"
+                                                                               Text="{Binding RdpFixedHeightError}"
+                                                                               Style="{StaticResource FieldValidationErrorStyle}"
+                                                                               Margin="12,2,0,0"
+                                                                               Visibility="{Binding RdpFixedHeightError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                </Grid>
 
-                                                        <StackPanel Margin="0,12,0,0"
-                                                                    Visibility="{Binding ShowRdpResizeEnableDelay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                            <TextBlock Text="{loc:Translate ServerDialogRdpResizeDelay}"
-                                                                       Style="{StaticResource LabelStyle}"
-                                                                       Margin="0,0,0,4"/>
-                                                            <TextBox x:Name="DlgSrv_RdpResizeDelayBox"
-                                                                     TabIndex="68"
-                                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpResizeDelay}"
-                                                                     Tag="{Binding RdpResizeEnableDelayPlaceholder}"
-                                                                     Text="{Binding RdpResizeEnableDelayMs, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', ValidatesOnNotifyDataErrors=True}"
-                                                                     Style="{StaticResource WatermarkTextBoxStyle}"/>
-                                                            <TextBlock Text="{Binding RdpResizeEnableDelayMsError}"
-                                                                       Style="{StaticResource FieldValidationErrorStyle}"
-                                                                       Visibility="{Binding RdpResizeEnableDelayMsError, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                                        </StackPanel>
+                                                                <CheckBox Content="{loc:Translate ServerDialogRdpInitialSmartSizing}"
+                                                                          TabIndex="67"
+                                                                          AutomationProperties.Name="{loc:Translate ServerDialogRdpInitialSmartSizing}"
+                                                                          IsChecked="{Binding RdpInitialSmartSizing}"
+                                                                          Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                                          Margin="0,12,0,0"
+                                                                          Visibility="{Binding ShowRdpInitialSmartSizing, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                                                        <TextBlock Text="{loc:Translate ServerDialogResolutionModeMultimonNote}"
-                                                                   Style="{StaticResource DialogHintTextStyle}"
-                                                                   Margin="0,12,0,0"
-                                                                   Visibility="{Binding ShowRdpMultimonNote, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                                <StackPanel Margin="0,12,0,0"
+                                                                            Visibility="{Binding ShowRdpResizeEnableDelay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <TextBlock Text="{loc:Translate ServerDialogRdpResizeDelay}"
+                                                                               Style="{StaticResource LabelStyle}"
+                                                                               Margin="0,0,0,4"/>
+                                                                    <TextBox x:Name="DlgSrv_RdpResizeDelayBox"
+                                                                             TabIndex="68"
+                                                                             AutomationProperties.Name="{loc:Translate ServerDialogRdpResizeDelay}"
+                                                                             Tag="{Binding RdpResizeEnableDelayPlaceholder}"
+                                                                             Text="{Binding RdpResizeEnableDelayMs, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', ValidatesOnNotifyDataErrors=True}"
+                                                                             Style="{StaticResource WatermarkTextBoxStyle}"/>
+                                                                    <TextBlock Text="{Binding RdpResizeEnableDelayMsError}"
+                                                                               Style="{StaticResource FieldValidationErrorStyle}"
+                                                                               Visibility="{Binding RdpResizeEnableDelayMsError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                                </StackPanel>
+
+                                                                <TextBlock Text="{loc:Translate ServerDialogResolutionModeMultimonNote}"
+                                                                           Style="{StaticResource DialogHintTextStyle}"
+                                                                           Margin="0,12,0,0"
+                                                                           Visibility="{Binding ShowRdpMultimonNote, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                                                <Border Style="{StaticResource InsetCardStyle}"
+                                                                        Margin="0,12,0,0"
+                                                                        Visibility="{Binding ShowRdpSelectedMonitors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <StackPanel>
+                                                                        <DockPanel LastChildFill="False">
+                                                                            <TextBlock Text="{loc:Translate ServerDialogSelectedMonitorsTitle}"
+                                                                                       Style="{StaticResource LabelStyle}"
+                                                                                       DockPanel.Dock="Left"
+                                                                                       VerticalAlignment="Center"/>
+                                                                            <Button Content="{loc:Translate ServerDialogRefreshMonitors}"
+                                                                                    Command="{Binding RefreshMonitorsCommand}"
+                                                                                    Style="{StaticResource ToolbarGhostButtonStyle}"
+                                                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                                                    Padding="8,2"
+                                                                                    MinHeight="0"
+                                                                                    HorizontalAlignment="Right"
+                                                                                    DockPanel.Dock="Right"/>
+                                                                        </DockPanel>
+                                                                        <TextBlock Text="{loc:Translate ServerDialogSelectedMonitorsCaption}"
+                                                                                   Style="{StaticResource DialogHintTextStyle}"
+                                                                                   Margin="0,4,0,8"
+                                                                                   TextWrapping="Wrap"/>
+                                                                        <ItemsControl ItemsSource="{Binding AvailableMonitors}">
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <CheckBox Content="{Binding Label}"
+                                                                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                              ToolTip="{Binding DeviceName}"
+                                                                                              ToolTipService.ShowOnDisabled="True"
+                                                                                              AutomationProperties.Name="{Binding Label}"
+                                                                                              Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                                                              Margin="0,4,0,0"/>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </StackPanel>
+                                                        </Expander>
+
+                                                        <TextBlock Margin="0,12,0,0"
+                                                                   Visibility="{Binding CanSwitchToAuto, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                                   HorizontalAlignment="Left">
+                                                            <Hyperlink Command="{Binding SwitchToAutoCommand}"
+                                                                       Foreground="{DynamicResource AccentBrush}"
+                                                                       AutomationProperties.Name="{loc:Translate ServerDialogResolutionModeSwitchToAuto}">
+                                                                <Run Text="{loc:Translate ServerDialogResolutionModeSwitchToAuto}"/>
+                                                            </Hyperlink>
+                                                        </TextBlock>
                                                     </StackPanel>
                                                 </Border>
                                                 <StackPanel Margin="0,14,0,0">

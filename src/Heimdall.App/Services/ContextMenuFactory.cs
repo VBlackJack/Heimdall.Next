@@ -83,6 +83,10 @@ public sealed class ContextMenuFactory
             vm.Localize("TreeCtxConnect"),
             vm.ServerList.ConnectCommand,
             server));
+        if (IsRdpServer(server))
+        {
+            menu.Items.Add(CreateConnectWithMenu(vm, server));
+        }
         menu.Items.Add(CreateMenuItem(
             vm.Localize("TreeCtxEdit"),
             vm.ServerList.EditServerCommand,
@@ -225,6 +229,34 @@ public sealed class ContextMenuFactory
         submenu.Items.Add(procedureItem);
 
         return submenu;
+    }
+
+    /// <summary>
+    /// Builds the one-shot RDP mode override submenu.
+    /// </summary>
+    private static MenuItem CreateConnectWithMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var submenu = new MenuItem
+        {
+            Header = vm.Localize("MenuItemConnectWith"),
+            ToolTip = vm.Localize("MenuItemConnectWithTooltip")
+        };
+
+        submenu.Items.Add(CreateMenuItem(
+            vm.Localize("MenuItemConnectEmbedded"),
+            vm.ServerList.ConnectEmbeddedCommand,
+            server));
+        submenu.Items.Add(CreateMenuItem(
+            vm.Localize("MenuItemConnectExternalMstsc"),
+            vm.ServerList.ConnectExternalCommand,
+            server));
+
+        return submenu;
+    }
+
+    private static bool IsRdpServer(ServerItemViewModel server)
+    {
+        return string.Equals(server.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

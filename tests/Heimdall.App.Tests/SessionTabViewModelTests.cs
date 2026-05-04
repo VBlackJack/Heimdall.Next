@@ -15,6 +15,7 @@
  */
 
 using System.ComponentModel;
+using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
@@ -124,6 +125,23 @@ public sealed class SessionTabViewModelTests
 
         Assert.Equal(TunnelBadgeState.Healthy, vm.TunnelBadgeState);
         Assert.Contains(nameof(SessionTabViewModel.TunnelBadgeState), changes);
+    }
+
+    [Fact]
+    public void DisplayTitle_AppendsRdpOverrideSuffix()
+    {
+        var vm = new SessionTabViewModel
+        {
+            Title = "Prod RDP"
+        };
+
+        Assert.Equal("Prod RDP", vm.DisplayTitle);
+
+        vm.RdpModeOverride = RdpModeOverride.ForceEmbedded;
+        vm.RdpModeOverrideSuffix = "(forced embedded)";
+
+        Assert.Equal("Prod RDP (forced embedded)", vm.DisplayTitle);
+        Assert.Equal("Prod RDP (forced embedded)", vm.HeaderToolTip);
     }
 
     private static void RecordChange(PropertyChangedEventArgs args, ICollection<string> changes)

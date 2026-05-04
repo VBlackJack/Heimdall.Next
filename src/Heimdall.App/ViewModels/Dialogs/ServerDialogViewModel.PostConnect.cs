@@ -19,6 +19,7 @@ using System.Collections.Specialized;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
 using Heimdall.App.Services.PostConnect;
 using Heimdall.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,11 +33,40 @@ public partial class ServerDialogViewModel
     public IServiceScopeFactory? ServiceScopeFactory { get; set; }
 
     public ServerDialogViewModel()
+        : this(new WinFormsMonitorEnumerator())
     {
+    }
+
+    internal ServerDialogViewModel(int screenCount)
+        : this(new StaticMonitorEnumerator(CreateStaticMonitors(screenCount)))
+    {
+    }
+
+    internal ServerDialogViewModel(IMonitorEnumerator monitorEnumerator)
+    {
+        _monitorEnumerator = monitorEnumerator ?? throw new ArgumentNullException(nameof(monitorEnumerator));
+        RefreshAvailableMonitors(preferredSelection: []);
         PostConnectSteps.CollectionChanged += OnPostConnectStepsChanged;
     }
 
     public ObservableCollection<PostConnectStepItemViewModel> PostConnectSteps { get; } = [];
+
+    public ObservableCollection<MonitorChoiceViewModel> AvailableMonitors { get; } = [];
+
+    private static MonitorInfo[] CreateStaticMonitors(int screenCount)
+        => Enumerable.Range(0, Math.Max(0, screenCount))
+            .Select(index => new MonitorInfo(
+                index,
+                1920,
+                1080,
+                index == 0,
+                $"DISPLAY{index + 1}"))
+            .ToArray();
+
+    private sealed class StaticMonitorEnumerator(IReadOnlyList<MonitorInfo> monitors) : IMonitorEnumerator
+    {
+        public IReadOnlyList<MonitorInfo> GetMonitors() => monitors;
+    }
 
     [ObservableProperty]
     private PostConnectStepItemViewModel? _selectedPostConnectStep;

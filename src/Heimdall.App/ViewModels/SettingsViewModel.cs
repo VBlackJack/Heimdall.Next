@@ -23,6 +23,7 @@ using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Services.Import;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.Settings;
 using Heimdall.Core.Configuration;
@@ -56,6 +57,7 @@ public partial class SettingsViewModel : ObservableValidator
     private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
+    private readonly IProfileImportService? _profileImportService;
 
     private string _originalTheme = "";
 
@@ -355,15 +357,19 @@ public partial class SettingsViewModel : ObservableValidator
         IConfigManager configManager,
         LocalizationManager localizer,
         IDialogService dialogService,
-        TrustedHostKeysSettingsViewModel trustedHostKeys)
+        TrustedHostKeysSettingsViewModel trustedHostKeys,
+        IProfileImportService? profileImportService = null)
     {
         _configManager = configManager;
         _localizer = localizer;
         _dialogService = dialogService;
+        _profileImportService = profileImportService;
         TrustedHostKeys = trustedHostKeys;
     }
 
     public TrustedHostKeysSettingsViewModel TrustedHostKeys { get; }
+
+    internal Func<string?>? ImportFilePathProvider { get; set; }
 
     /// <summary>
     /// Applies the current <see cref="SshDefaultMode"/> to every server in the inventory.
@@ -405,8 +411,11 @@ public partial class SettingsViewModel : ObservableValidator
     private async Task ApplyRdpModeToAllAsync()
     {
         var servers = await _configManager.LoadServersAsync();
+        var rdpServers = servers
+            .Where(s => string.Equals(s.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         var mode = RdpDefaultMode;
-        var changeCount = servers.Count(s => !string.Equals(s.RdpMode, mode, StringComparison.Ordinal));
+        var changeCount = rdpServers.Count(s => !string.Equals(s.RdpMode, mode, StringComparison.Ordinal));
 
         if (changeCount == 0)
         {
@@ -415,20 +424,20 @@ public partial class SettingsViewModel : ObservableValidator
         }
 
         var confirmed = await _dialogService.ShowConfirmAsync(
-            _localizer["ConfirmApplyAllTitle"],
-            _localizer.Format("ConfirmApplyRdpModeMessage", mode, changeCount, servers.Count),
+            _localizer["SettingsApplyModeToAllConfirmTitle"],
+            _localizer.Format("SettingsApplyModeToAllConfirmBody", rdpServers.Count),
             "danger");
 
         if (!confirmed) return;
 
-        foreach (var server in servers)
+        foreach (var server in rdpServers)
         {
             server.RdpMode = mode;
         }
 
         await _configManager.SaveServersAsync(servers);
         ConfigurationChanged?.Invoke();
-        FileLogger.Info($"Applied RDP mode '{mode}' to {changeCount}/{servers.Count} servers.");
+        FileLogger.Info($"Applied RDP mode '{mode}' to {changeCount}/{rdpServers.Count} RDP servers.");
     }
 
     /// <summary>
@@ -729,25 +738,64 @@ public partial class SettingsViewModel : ObservableValidator
     [RelayCommand]
     private async Task ResetToDefaultsAsync(CancellationToken cancellationToken)
     {
+        var defaults = await LoadFactoryDefaultsAsync(cancellationToken);
+        LoadFromSettings(defaults);
+        IsDirty = true;
+    }
+
+    [RelayCommand]
+    private async Task ResetRdpDefaultsAsync(CancellationToken cancellationToken)
+    {
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["SettingsResetRdpDefaultsConfirmTitle"],
+            _localizer["SettingsResetRdpDefaultsConfirmBody"],
+            "warning");
+
+        if (!confirmed) return;
+
+        var defaults = await LoadFactoryDefaultsAsync(cancellationToken);
+        ApplyRdpDefaults(defaults);
+        IsDirty = true;
+    }
+
+    private static async Task<AppSettings> LoadFactoryDefaultsAsync(CancellationToken cancellationToken)
+    {
         // Load factory defaults from settings.default.json (preserves bundled external tools)
         // rather than new AppSettings() which has empty defaults for collections.
         var defaultsPath = System.IO.Path.Combine(
             AppContext.BaseDirectory, "config", "settings.default.json");
 
-        AppSettings defaults;
         if (System.IO.File.Exists(defaultsPath))
         {
             var json = await System.IO.File.ReadAllTextAsync(defaultsPath, cancellationToken);
-            defaults = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json, ImportJsonOptions)
-                       ?? new AppSettings();
-        }
-        else
-        {
-            defaults = new AppSettings();
+            return System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json, ImportJsonOptions)
+                   ?? new AppSettings();
         }
 
-        LoadFromSettings(defaults);
-        IsDirty = true;
+        return new AppSettings();
+    }
+
+    private void ApplyRdpDefaults(AppSettings defaults)
+    {
+        DefaultResolutionWidth = defaults.DefaultResolutionWidth;
+        DefaultResolutionHeight = defaults.DefaultResolutionHeight;
+        RdpDefaultMode = defaults.RdpDefaultMode;
+        RdpDefaultNla = defaults.RdpDefaultNla;
+        RdpDefaultColorDepth = defaults.RdpDefaultColorDepth;
+        RdpDefaultDynamicResolution = defaults.RdpDefaultDynamicResolution;
+        RdpDefaultMultiMonitor = defaults.RdpDefaultMultiMonitor;
+        RdpDefaultRedirectClipboard = defaults.RdpDefaultRedirectClipboard;
+        RdpDefaultRedirectDrives = defaults.RdpDefaultRedirectDrives;
+        RdpDefaultRedirectPrinters = defaults.RdpDefaultRedirectPrinters;
+        RdpDefaultRedirectComPorts = defaults.RdpDefaultRedirectComPorts;
+        RdpDefaultRedirectSmartCards = defaults.RdpDefaultRedirectSmartCards;
+        RdpDefaultRedirectWebcam = defaults.RdpDefaultRedirectWebcam;
+        RdpDefaultRedirectUsb = defaults.RdpDefaultRedirectUsb;
+        RdpDefaultAudioCapture = defaults.RdpDefaultAudioCapture;
+        RdpDefaultAutoReconnect = defaults.RdpDefaultAutoReconnect;
+        RdpDefaultBitmapCaching = defaults.RdpDefaultBitmapCaching;
+        RdpDefaultCompression = defaults.RdpDefaultCompression;
+        RdpDefaultAudioMode = defaults.RdpDefaultAudioMode;
     }
 
     [RelayCommand]
@@ -792,27 +840,60 @@ public partial class SettingsViewModel : ObservableValidator
     {
         try
         {
-            var dialog = new OpenFileDialog
-            {
-                Title = _localizer["ImportDialogTitle"],
-                Filter = _localizer["ImportDialogFilterAll"]
-            };
-
-            if (dialog.ShowDialog() != true)
+            var filePath = PickImportFilePath();
+            if (filePath is null)
             {
                 return;
             }
 
             IsBusy = true;
-            var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+            var ext = Path.GetExtension(filePath).ToLowerInvariant();
+            if (ext is ".rdp" or ".json")
+            {
+                var importService = GetProfileImportService();
+                var result = await importService.ImportFromPathAsync(filePath, cancellationToken);
+                if (result.IsFailure)
+                {
+                    _dialogService.ShowError(
+                        _localizer["ImportDialogTitle"],
+                        result.ErrorMessage ?? _localizer["StatusImportFailed"]);
+                    return;
+                }
+
+                if (result.HasChanges)
+                {
+                    ConfigurationChanged?.Invoke();
+                }
+
+                return;
+            }
+
+            if (ext is not ".mxtsessions" and not ".ini" and not ".mobaconf" and not ".rdg" and not ".xml")
+            {
+                var importService = GetProfileImportService();
+                var result = await importService.ImportFromPathAsync(filePath, cancellationToken);
+                if (result.IsFailure)
+                {
+                    _dialogService.ShowError(
+                        _localizer["ImportDialogTitle"],
+                        result.ErrorMessage ?? _localizer["StatusImportFailed"]);
+                    return;
+                }
+
+                if (result.HasChanges)
+                {
+                    ConfigurationChanged?.Invoke();
+                }
+
+                return;
+            }
 
             var (imported, importWarnings) = ext switch
             {
-                ".mxtsessions" or ".ini" or ".mobaconf" => await ImportMobaXtermAsync(dialog.FileName, cancellationToken),
-                ".rdp" => await ImportRdpFileAsync(dialog.FileName, cancellationToken),
-                ".rdg" => await ImportRdcManAsync(dialog.FileName, cancellationToken),
-                ".xml" => await ImportXmlAsync(dialog.FileName, cancellationToken),
-                _ => await ImportJsonAsync(dialog.FileName, cancellationToken),
+                ".mxtsessions" or ".ini" or ".mobaconf" => await ImportMobaXtermAsync(filePath, cancellationToken),
+                ".rdg" => await ImportRdcManAsync(filePath, cancellationToken),
+                ".xml" => await ImportXmlAsync(filePath, cancellationToken),
+                _ => throw new InvalidOperationException($"Unsupported import extension reached legacy parser: {ext}")
             };
 
             if (imported.Count == 0)
@@ -868,7 +949,7 @@ public partial class SettingsViewModel : ObservableValidator
             await _configManager.SaveServersAsync(existing);
 
             var totalImported = newCount + updatedCount;
-            FileLogger.Info($"Imported {totalImported} server(s) from {dialog.FileName} ({newCount} new, {updatedCount} updated)");
+            FileLogger.Info($"Imported {totalImported} server(s) from {filePath} ({newCount} new, {updatedCount} updated)");
 
             var statusMessage = _localizer.Format("StatusImportBreakdown", totalImported, newCount, updatedCount);
 
@@ -911,6 +992,29 @@ public partial class SettingsViewModel : ObservableValidator
         }
     }
 
+    private string? PickImportFilePath()
+    {
+        if (ImportFilePathProvider is not null)
+        {
+            return ImportFilePathProvider();
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = _localizer["ImportDialogTitle"],
+            Filter = _localizer["ImportDialogFilterAll"]
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private IProfileImportService GetProfileImportService() =>
+        _profileImportService ?? new ProfileImportService(
+            _configManager,
+            _localizer,
+            _dialogService,
+            new RdpImportService(_configManager, _localizer));
+
     private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportMobaXtermAsync(
         string filePath, CancellationToken cancellationToken)
     {
@@ -920,14 +1024,6 @@ public partial class SettingsViewModel : ObservableValidator
             : System.Text.Encoding.GetEncoding(1252).GetString(bytes);
         var mobaResult = MobaXtermImporter.Parse(content);
         return (mobaResult.Servers, mobaResult.Warnings);
-    }
-
-    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportRdpFileAsync(
-        string filePath, CancellationToken cancellationToken)
-    {
-        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
-        var rdpServer = RdpFileImporter.Parse(content, Path.GetFileName(filePath));
-        return (rdpServer is not null ? [rdpServer] : [], null);
     }
 
     private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportRdcManAsync(
@@ -951,14 +1047,6 @@ public partial class SettingsViewModel : ObservableValidator
 
         var rdcResult = RdcManImporter.Parse(content);
         return (rdcResult.Servers, rdcResult.Warnings);
-    }
-
-    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportJsonAsync(
-        string filePath, CancellationToken cancellationToken)
-    {
-        var json = await File.ReadAllTextAsync(filePath, cancellationToken);
-        var servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions) ?? [];
-        return (servers, null);
     }
 
     [RelayCommand]

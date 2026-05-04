@@ -414,7 +414,7 @@ public partial class ServerDialog : Window
         DlgSrv_ProtoLocalName.Text = _localizer["ServerDialogProtocolLocalName"];
         DlgSrv_ProtoLocalDesc.Text = _localizer["ServerDialogProtocolLocalDesc"];
 
-        // Protocol badge (edit mode)
+        // Protocol badge
         DlgSrv_ProtocolBadgeLabel.Text = _localizer["ServerDialogProtocolBadge"];
 
         // Back button (add mode)

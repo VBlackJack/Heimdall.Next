@@ -37,6 +37,12 @@ public static class RdpFileGenerator
         ArgumentException.ThrowIfNullOrWhiteSpace(options.Host);
 
         var sb = new StringBuilder();
+        var useSmartSizing = options.SmartSizing;
+        var useMultiMonitor = options.MultiMonitor || options.Redirections.MultiMonitor;
+        var selectedMonitorIndices = options.SelectedMonitorIndices
+            .Where(index => index >= 0)
+            .Distinct()
+            .ToArray();
 
         // Connection
         AppendSanitized(sb, "full address:s:", $"{options.Host}:{options.Port}");
@@ -53,7 +59,7 @@ public static class RdpFileGenerator
         // Display
         sb.AppendLine($"desktopwidth:i:{options.Width}");
         sb.AppendLine($"desktopheight:i:{options.Height}");
-        sb.AppendLine($"screen mode id:i:{(options.FullScreen ? 2 : 1)}");
+        sb.AppendLine($"screen mode id:i:{(options.FullScreen || useSmartSizing ? 2 : 1)}");
         sb.AppendLine($"session bpp:i:{options.ColorDepth}");
 
         // Admin mode
@@ -89,15 +95,23 @@ public static class RdpFileGenerator
         sb.AppendLine($"autoreconnection enabled:i:{BoolToInt(r.AutoReconnect)}");
 
         // Multi-monitor
-        if (r.MultiMonitor)
+        if (useMultiMonitor)
         {
             sb.AppendLine("use multimon:i:1");
+            if (selectedMonitorIndices.Length > 0)
+            {
+                sb.AppendLine($"selectedmonitors:s:{string.Join(',', selectedMonitorIndices)}");
+            }
         }
 
         // Dynamic resolution
-        if (r.DynamicResolution)
+        if (useSmartSizing || r.DynamicResolution)
         {
             sb.AppendLine("smart sizing:i:1");
+        }
+
+        if (r.DynamicResolution)
+        {
             sb.AppendLine("dynamic resolution:i:1");
         }
 
@@ -268,6 +282,15 @@ public sealed class RdpFileOptions
 
     /// <summary>Whether to launch in full-screen mode.</summary>
     public bool FullScreen { get; init; }
+
+    /// <summary>Whether to request multi-monitor mode.</summary>
+    public bool MultiMonitor { get; init; }
+
+    /// <summary>Selected local monitor indices for multi-monitor mode. Empty means all monitors.</summary>
+    public int[] SelectedMonitorIndices { get; init; } = [];
+
+    /// <summary>Whether to enable client-side smart sizing.</summary>
+    public bool SmartSizing { get; init; }
 
     /// <summary>Whether to connect in admin/console mode (/admin).</summary>
     public bool AdminMode { get; init; }

@@ -1759,7 +1759,8 @@ public sealed class ServerListBulkActionTests
         public async Task<ConnectionResult> ConnectAsync(
             ServerProfileDto server,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
         {
             ConnectedServerIds.Add(server.Id);
             var behavior = _behaviors.Count > 0

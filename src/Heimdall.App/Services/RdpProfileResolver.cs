@@ -15,15 +15,34 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Logging;
 using Heimdall.Rdp;
+using Heimdall.Rdp.Display;
+using WinForms = System.Windows.Forms;
 
 namespace Heimdall.App.Services;
+
+/// <summary>
+/// Resolved display options for external RDP file generation.
+/// </summary>
+public sealed record RdpResolvedResolution(
+    int Width,
+    int Height,
+    bool MultiMonitor,
+    bool SmartSizing,
+    int[] SelectedMonitorIndices);
 
 /// <summary>
 /// Resolves connect-time RDP options from a server profile and the global settings.
 /// </summary>
 internal static class RdpProfileResolver
 {
+    private const int FallbackWidth = 1920;
+    private const int FallbackHeight = 1080;
+    private const int MinimumFixedSize = 200;
+    private const int MaximumFixedWidth = 7680;
+    private const int MaximumFixedHeight = 4320;
+
     /// <summary>
     /// Builds the RDP redirection options using strict global-default semantics.
     /// </summary>
@@ -99,6 +118,92 @@ internal static class RdpProfileResolver
             _ => 32
         };
     }
+
+    /// <summary>
+    /// Resolves and normalizes the display options used by external mstsc.exe sessions.
+    /// </summary>
+    public static RdpResolvedResolution ResolveResolution(
+        ServerProfileDto server,
+        AppSettings settings,
+        int? availableMonitorCount = null)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var defaultWidth = settings.DefaultResolutionWidth > 0
+            ? settings.DefaultResolutionWidth
+            : FallbackWidth;
+        var defaultHeight = settings.DefaultResolutionHeight > 0
+            ? settings.DefaultResolutionHeight
+            : FallbackHeight;
+
+        return server.RdpResolutionMode switch
+        {
+            RdpResolutionMode.FitWindow => new RdpResolvedResolution(
+                defaultWidth,
+                defaultHeight,
+                MultiMonitor: false,
+                SmartSizing: true,
+                SelectedMonitorIndices: []),
+            RdpResolutionMode.Fixed => new RdpResolvedResolution(
+                Math.Clamp(server.RdpFixedWidth, MinimumFixedSize, MaximumFixedWidth),
+                Math.Clamp(server.RdpFixedHeight, MinimumFixedSize, MaximumFixedHeight),
+                MultiMonitor: false,
+                SmartSizing: false,
+                SelectedMonitorIndices: []),
+            RdpResolutionMode.SmartSizing => new RdpResolvedResolution(
+                defaultWidth,
+                defaultHeight,
+                MultiMonitor: false,
+                SmartSizing: true,
+                SelectedMonitorIndices: []),
+            RdpResolutionMode.Multimon => new RdpResolvedResolution(
+                defaultWidth,
+                defaultHeight,
+                MultiMonitor: true,
+                SmartSizing: false,
+                SelectedMonitorIndices: ResolveSelectedMonitorIndices(server, availableMonitorCount)),
+            RdpResolutionMode.Auto => new RdpResolvedResolution(
+                defaultWidth,
+                defaultHeight,
+                ResolveAutoMultiMonitor(server, settings),
+                SmartSizing: false,
+                SelectedMonitorIndices: []),
+            _ => new RdpResolvedResolution(
+                defaultWidth,
+                defaultHeight,
+                ResolveAutoMultiMonitor(server, settings),
+                SmartSizing: false,
+                SelectedMonitorIndices: [])
+        };
+    }
+
+    private static int[] ResolveSelectedMonitorIndices(
+        ServerProfileDto server,
+        int? availableMonitorCount)
+    {
+        var monitorCount = availableMonitorCount ?? GetAvailableMonitorCount();
+        return RdpSelectedMonitorValidator.Validate(
+            server.RdpSelectedMonitorIndices,
+            monitorCount,
+            message => FileLogger.Warn($"[RdpProfileResolver] {message}"));
+    }
+
+    private static int GetAvailableMonitorCount()
+    {
+        try
+        {
+            return WinForms.Screen.AllScreens.Length;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"RDP selected monitor validation fallback: {ex.Message}");
+            return 0;
+        }
+    }
+
+    private static bool ResolveAutoMultiMonitor(ServerProfileDto server, AppSettings settings)
+        => server.RdpMultiMonitor || settings.RdpDefaultMultiMonitor;
 
     private static bool ResolveMultiMonitor(ServerProfileDto server, AppSettings settings)
     {

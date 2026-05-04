@@ -17,6 +17,7 @@
 using System.Globalization;
 using System.IO;
 using Heimdall.App.Views;
+using Heimdall.App.Views.EmbeddedRdp;
 using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Tests.Views.EmbeddedRdp;
@@ -54,6 +55,88 @@ public sealed class RdpReconnectFeedbackTests
         Assert.False(string.IsNullOrWhiteSpace(formatted));
     }
 
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public async Task RdpReconnectNextRetryFormat_PreservesEtaPlaceholder(string locale)
+    {
+        var localizer = await CreateLocalizerAsync(locale);
+        var template = localizer["RdpReconnectNextRetryFormat"];
+
+        Assert.Equal(1, CountOccurrences(template, "{0}"));
+
+        var formatted = string.Format(CultureInfo.InvariantCulture, template, 8);
+        Assert.Contains("~8s", formatted);
+        Assert.False(string.IsNullOrWhiteSpace(formatted));
+    }
+
+    [Fact]
+    public void EstimateSeconds_ReturnsNull_WhenNoAttemptsObserved()
+    {
+        var now = CreateUtc(2026, 5, 4, 8, 0, 0);
+
+        var etaSeconds = ReconnectEtaCalculator.EstimateSeconds(Array.Empty<DateTime>(), now);
+
+        Assert.Null(etaSeconds);
+    }
+
+    [Fact]
+    public void EstimateSeconds_ReturnsNull_WhenOnlyOneAttemptObserved()
+    {
+        var now = CreateUtc(2026, 5, 4, 8, 0, 0);
+        var attempts = new[] { now.AddSeconds(-10) };
+
+        var etaSeconds = ReconnectEtaCalculator.EstimateSeconds(attempts, now);
+
+        Assert.Null(etaSeconds);
+    }
+
+    [Fact]
+    public void EstimateSeconds_ReturnsRemainingSeconds_WhenNextAttemptIsInFuture()
+    {
+        var now = CreateUtc(2026, 5, 4, 8, 0, 0);
+        var attempts = new[]
+        {
+            now.AddSeconds(-12),
+            now.AddSeconds(-4),
+        };
+
+        var etaSeconds = ReconnectEtaCalculator.EstimateSeconds(attempts, now);
+
+        Assert.Equal(4, etaSeconds);
+    }
+
+    [Fact]
+    public void EstimateSeconds_ReturnsZero_WhenExpectedAttemptTimeHasPassed()
+    {
+        var now = CreateUtc(2026, 5, 4, 8, 0, 0);
+        var attempts = new[]
+        {
+            now.AddSeconds(-20),
+            now.AddSeconds(-10),
+        };
+
+        var etaSeconds = ReconnectEtaCalculator.EstimateSeconds(attempts, now);
+
+        Assert.Equal(0, etaSeconds);
+    }
+
+    [Fact]
+    public void EstimateSeconds_UsesLatestAttemptPair_WhenThreeAttemptsObserved()
+    {
+        var now = CreateUtc(2026, 5, 4, 8, 0, 0);
+        var attempts = new[]
+        {
+            now.AddSeconds(-30),
+            now.AddSeconds(-11),
+            now.AddSeconds(-5),
+        };
+
+        var etaSeconds = ReconnectEtaCalculator.EstimateSeconds(attempts, now);
+
+        Assert.Equal(1, etaSeconds);
+    }
+
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {
         var manager = new LocalizationManager();
@@ -73,4 +156,13 @@ public sealed class RdpReconnectFeedbackTests
 
         return count;
     }
+
+    private static DateTime CreateUtc(
+        int year,
+        int month,
+        int day,
+        int hour,
+        int minute,
+        int second)
+        => new(year, month, day, hour, minute, second, DateTimeKind.Utc);
 }

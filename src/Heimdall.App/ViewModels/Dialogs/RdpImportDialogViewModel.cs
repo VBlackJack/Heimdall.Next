@@ -31,16 +31,22 @@ public partial class RdpImportDialogViewModel : ObservableObject
     private readonly LocalizationManager _localizer;
     private bool _syncingSelection;
 
-    public RdpImportDialogViewModel(LocalizationManager localizer, RdpImportPreview preview)
+    private readonly RdpImportDialogTextOptions _textOptions;
+
+    public RdpImportDialogViewModel(
+        LocalizationManager localizer,
+        RdpImportPreview preview,
+        RdpImportDialogTextOptions? textOptions = null)
     {
         ArgumentNullException.ThrowIfNull(localizer);
         ArgumentNullException.ThrowIfNull(preview);
 
         _localizer = localizer;
+        _textOptions = textOptions ?? RdpImportDialogTextOptions.RdpImport;
         Preview = preview;
 
-        DialogTitle = _localizer["DialogImportRdpTitle"];
-        SubtitleText = _localizer.Format("DialogImportRdpSubtitle", preview.Entries.Count);
+        DialogTitle = _localizer[_textOptions.TitleKey];
+        SubtitleText = _localizer.Format(_textOptions.SubtitleKey, preview.Entries.Count);
         FileIssuesText = BuildFileIssuesText(preview);
         SelectAllText = _localizer["DialogImportRdpSelectAll"];
         SelectNoneText = _localizer["DialogImportRdpSelectNone"];
@@ -48,7 +54,7 @@ public partial class RdpImportDialogViewModel : ObservableObject
         ApplyAllSkipText = _localizer["DialogImportRdpConflictSkip"];
         ApplyAllReplaceText = _localizer["DialogImportRdpConflictReplace"];
         ApplyAllAutoRenameText = _localizer["DialogImportRdpConflictAutoRename"];
-        ConfirmText = _localizer["DialogImportRdpBtnImportSelected"];
+        ConfirmText = _localizer[_textOptions.ConfirmKey];
         CancelText = _localizer["BtnCancel"];
         SourceColumnHeader = _localizer["DialogImportRdpColSource"];
         NameColumnHeader = _localizer["DialogImportRdpColName"];
@@ -119,18 +125,24 @@ public partial class RdpImportDialogViewModel : ObservableObject
 
     public int TotalSelectedCount => Rows.Count(row => row.IsSelected);
 
-    public bool HasPasswordWarnings => Rows.Any(row => row.HasPasswordBlob);
+    public bool HasPasswordWarnings => _textOptions.IncludePasswordWarningsInSummary && Rows.Any(row => row.HasPasswordBlob);
 
     public bool HasParseErrors => Rows.Any(row => row.HasParseError);
 
     public bool CanConfirm => Rows.Any(row => row.IsSelected);
 
-    public string SummaryText => _localizer.Format(
-        "DialogImportRdpSummary",
-        TotalSelectedCount,
-        Rows.Count,
-        Rows.Count(row => row.HasNameConflict),
-        Rows.Count(row => row.HasPasswordBlob));
+    public string SummaryText => _textOptions.IncludePasswordWarningsInSummary
+        ? _localizer.Format(
+            _textOptions.SummaryKey,
+            TotalSelectedCount,
+            Rows.Count,
+            Rows.Count(row => row.HasNameConflict),
+            Rows.Count(row => row.HasPasswordBlob))
+        : _localizer.Format(
+            _textOptions.SummaryKey,
+            TotalSelectedCount,
+            Rows.Count,
+            Rows.Count(row => row.HasNameConflict));
 
     public RdpImportSelection? Result { get; private set; }
 
@@ -388,3 +400,27 @@ public partial class RdpImportRowViewModel : ObservableObject
 public sealed record RdpConflictResolutionOption(
     RdpConflictResolution Value,
     string Label);
+
+public sealed record RdpImportDialogTextOptions
+{
+    public static RdpImportDialogTextOptions RdpImport { get; } = new();
+
+    public static RdpImportDialogTextOptions ProfileImport { get; } = new()
+    {
+        TitleKey = "DialogImportProfileTitle",
+        SubtitleKey = "DialogImportProfileSubtitle",
+        ConfirmKey = "DialogImportProfileBtnImportSelected",
+        SummaryKey = "DialogImportProfileSummary",
+        IncludePasswordWarningsInSummary = false
+    };
+
+    public string TitleKey { get; init; } = "DialogImportRdpTitle";
+
+    public string SubtitleKey { get; init; } = "DialogImportRdpSubtitle";
+
+    public string ConfirmKey { get; init; } = "DialogImportRdpBtnImportSelected";
+
+    public string SummaryKey { get; init; } = "DialogImportRdpSummary";
+
+    public bool IncludePasswordWarningsInSummary { get; init; } = true;
+}

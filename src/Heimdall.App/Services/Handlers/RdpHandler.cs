@@ -31,15 +31,18 @@ internal sealed class RdpHandler : IProtocolHandler
     private readonly ITunnelService _tunnelService;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
+    private readonly IRdpExternalClientLauncher _externalClientLauncher;
 
     public RdpHandler(
         ITunnelService tunnelService,
         ConnectionStateMachine connectionSm,
-        LocalizationManager localizer)
+        LocalizationManager localizer,
+        IRdpExternalClientLauncher externalClientLauncher)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
         _localizer = localizer;
+        _externalClientLauncher = externalClientLauncher;
     }
 
     public string Protocol => "RDP";
@@ -52,7 +55,8 @@ internal sealed class RdpHandler : IProtocolHandler
     public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
@@ -76,7 +80,7 @@ internal sealed class RdpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp);
 
-        var rdpMode = server.RdpMode ?? "Embedded";
+        var rdpMode = ResolveEffectiveMode(server, rdpModeOverride);
         Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
 
         if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
@@ -120,15 +124,19 @@ internal sealed class RdpHandler : IProtocolHandler
             }
 
             var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
+            var resolution = RdpProfileResolver.ResolveResolution(server, settings);
             var rdpContent = Heimdall.Rdp.RdpFileGenerator.Generate(new Heimdall.Rdp.RdpFileOptions
             {
                 Host = rdpHost,
                 Port = rdpPort,
                 Username = server.RdpUsername,
-                Width = settings.DefaultResolutionWidth > 0 ? settings.DefaultResolutionWidth : 1920,
-                Height = settings.DefaultResolutionHeight > 0 ? settings.DefaultResolutionHeight : 1080,
+                Width = resolution.Width,
+                Height = resolution.Height,
                 ColorDepth = RdpProfileResolver.ResolveColorDepth(server, settings),
                 FullScreen = server.RdpFullScreen,
+                MultiMonitor = resolution.MultiMonitor,
+                SmartSizing = resolution.SmartSizing,
+                SelectedMonitorIndices = resolution.SelectedMonitorIndices,
                 AdminMode = server.RdpAdminMode,
                 GatewayHostname = server.RdpGateway,
                 Redirections = RdpProfileResolver.BuildRedirections(server, settings)
@@ -186,15 +194,10 @@ internal sealed class RdpHandler : IProtocolHandler
                 }
             }
 
-            System.Diagnostics.Process? mstscProcess;
+            ILaunchedRdpClientProcess? mstscProcess;
             try
             {
-                mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "mstsc.exe",
-                    Arguments = $"\"{rdpFile}\"",
-                    UseShellExecute = false
-                });
+                mstscProcess = _externalClientLauncher.Launch(rdpFile);
             }
             catch (Exception launchEx)
             {
@@ -327,6 +330,23 @@ internal sealed class RdpHandler : IProtocolHandler
         {
             rdpPassword = null;
         }
+    }
+
+    /// <summary>
+    /// Resolves the RDP mode for this launch without mutating the profile.
+    /// </summary>
+    internal static string ResolveEffectiveMode(
+        ServerProfileDto server,
+        RdpModeOverride rdpModeOverride)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+
+        return rdpModeOverride switch
+        {
+            RdpModeOverride.ForceEmbedded => "Embedded",
+            RdpModeOverride.ForceExternal => "External",
+            _ => server.RdpMode ?? "Embedded"
+        };
     }
 
     /// <summary>

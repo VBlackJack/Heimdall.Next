@@ -24,6 +24,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
@@ -35,6 +36,7 @@ using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Core.StateMachine;
 using Heimdall.Rdp;
 using Heimdall.Rdp.ActiveX;
+using Heimdall.Rdp.Display;
 using Microsoft.Extensions.DependencyInjection;
 using WinForms = System.Windows.Forms;
 
@@ -48,11 +50,14 @@ namespace Heimdall.App.Views;
 public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectTeardownTarget
 {
     private const int BeginConnectMaxAttempts = 10;
+    private const int MaxReconnectAttemptTimestamps = 3;
     private TimeSpan _initialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
     private static readonly TimeSpan AutofillFilledDisplayDuration = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan TransientToastDuration = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan LetterboxHintDisplayDuration = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan LetterboxHintFadeDuration = TimeSpan.FromMilliseconds(600);
     private const string EnterFullscreenGlyph = "\uE1D9";
     private const string ExitFullscreenGlyph = "\uE799";
     private const string RedirectionClipboardGlyph = "\uE16D";
@@ -87,13 +92,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Failed
     }
 
+    private sealed record AutofillRetryContext(string Password, string HostHint);
+
     private readonly DispatcherTimer _resizeTimer;
+    private readonly List<DateTime> _reconnectAttemptTimestampsUtc = new(MaxReconnectAttemptTimestamps);
+    private readonly LetterboxHintState _letterboxHintState = new();
 
     private CancellationTokenSource? _autofillCts;
     private CancellationTokenSource? _stabilizationCts;
     private DispatcherTimer? _antiIdleTimer;
     private DispatcherTimer? _autofillFilledTimer;
     private DispatcherTimer? _transientToastTimer;
+    private DispatcherTimer? _letterboxHintTimer;
     private DispatcherTimer? _stabilizationTimer;
     private DispatcherTimer? _reconnectElapsedTimer;
     private RdpActiveXHost? _rdpHost;
@@ -103,9 +113,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private SessionPaneModel? _ownerPane;
     private SessionTabViewModel? _sessionTab;
     private ConnectionStateMachine? _connectionStateMachine;
+    private AutofillRetryContext? _autofillRetryContext;
 
     private Core.Localization.LocalizationManager? _localizer;
     private int? _tunnelPort;
+    private RdpAutofillState _autofillState;
 
     private RdpConnectionPhase _connectionPhase = RdpConnectionPhase.None;
     private RdpSessionStatus _sessionStatus = RdpSessionStatus.Disconnecting;
@@ -120,6 +132,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private bool _isFullscreen;
     private bool _disconnectConfirmInFlight;
     private bool _resolutionReconnectConfirmInFlight;
+    private bool _autofillAttemptInFlight;
     private bool _dpiChangeDroppedDuringLockout;
     private Window? _dpiWindow;
 
@@ -191,11 +204,48 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         {
             ShowTransientToast(_localizer["RdpFullscreenExitHint"]);
         }
+
+        TryRetriggerDisplayResolver(isFullscreen);
     }
 
     public void ToggleFullscreen()
     {
         SetFullscreen(!_isFullscreen);
+    }
+
+    private void TryRetriggerDisplayResolver(bool isFullscreen)
+    {
+        var host = _rdpHost;
+        if (host is null)
+        {
+            return;
+        }
+
+        var sinceConnected = _connectedAtUtc == default
+            ? TimeSpan.Zero
+            : DateTime.UtcNow - _connectedAtUtc;
+
+        if (!RdpFullscreenRetriggerPolicy.ShouldRetrigger(
+            _connectionPhase == RdpConnectionPhase.Connected,
+            sinceConnected,
+            _initialResizeEnableDelay))
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP fullscreen retrigger skipped: phase={_connectionPhase} sinceConnected={sinceConnected.TotalSeconds:0.0}s");
+            return;
+        }
+
+        var effective = host.RecomputeDisplayForFullscreen(isFullscreen);
+        if (effective is null)
+        {
+            return;
+        }
+
+        _ = ApplyResolvedResolutionAsync(
+            effective.Width,
+            effective.Height,
+            $"fullscreen-toggle-{(isFullscreen ? "enter" : "exit")}",
+            force: true);
     }
 
     private void ShowTransientToast(string message)
@@ -390,7 +440,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _resizeTimer.Stop();
         _autofillFilledTimer?.Stop();
         _autofillFilledTimer = null;
+        _autofillRetryContext = null;
         StopTransientToastTimer();
+        HideLetterboxHint();
         StopStabilizationCountdown();
         _stabilizationCts?.Cancel();
         _stabilizationCts?.Dispose();
@@ -508,6 +560,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     {
         UnregisterEscapeHook();
         UnregisterDpiChangedHandler();
+        _autofillRetryContext = null;
+        UpdateAutofillActionButtonsVisibility(_autofillState);
     }
 
     private void RegisterDpiChangedHandler()
@@ -870,7 +924,51 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void OnSplitClick(object sender, RoutedEventArgs e)
     {
+        EmitSplitDiagnostic();
+        MaybeShowSplitWarningToast();
         SplitRequested?.Invoke();
+    }
+
+    private void EmitSplitDiagnostic()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var phase = _connectionPhase.ToString();
+        var resolutionMode = _server?.RdpResolutionMode.ToString() ?? "n/a";
+        var dynamicResolution = _server?.RdpDynamicResolution ?? false;
+        var hasFixedLocalResolution = UsesFixedLocalResolution();
+        var surfaceWidth = SurfaceContainer.ActualWidth;
+        var surfaceHeight = SurfaceContainer.ActualHeight;
+        var paneId = _ownerPane?.PaneId ?? "n/a";
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP split clicked: phase={phase} resolutionMode={resolutionMode} "
+            + $"dynamicResolution={dynamicResolution} fixedLocalResolution={hasFixedLocalResolution} "
+            + $"surfaceSize={surfaceWidth:0}x{surfaceHeight:0} "
+            + $"lastApplied={_lastAppliedWidth}x{_lastAppliedHeight} "
+            + $"resizeDebouncePending={_resizeTimer.IsEnabled} "
+            + $"paneId={paneId} splitOrientation=n/a");
+    }
+
+    private void MaybeShowSplitWarningToast()
+    {
+        if (_disposed || _server is null || _localizer is null)
+        {
+            return;
+        }
+
+        var shouldWarn = RdpSplitWarningPolicy.ShouldWarn(
+            _server.RdpDynamicResolution,
+            UsesFixedLocalResolution(),
+            _connectionPhase == RdpConnectionPhase.Connected);
+
+        if (shouldWarn)
+        {
+            ShowTransientToast(_localizer["RdpSplitDisplayResizeWarning"]);
+        }
     }
 
     private void OnSurfaceContainerSizeChanged(object sender, SizeChangedEventArgs e)
@@ -928,6 +1026,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         => _server is { RdpResolutionMode: RdpResolutionMode.Fixed, RdpInitialSmartSizing: false }
             && UsesFixedLocalResolution();
 
+    private RdpResolutionMode CurrentResolutionMode => _server?.RdpResolutionMode ?? RdpResolutionMode.Auto;
+
     private void ApplyHostLayout()
     {
         if (!Dispatcher.CheckAccess())
@@ -947,17 +1047,27 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
-        var rect = LetterboxLayoutCalculator.Compute(
+        var layout = RdpRegionFrameLayout.FromPaneAndContent(
             SurfaceContainer.ActualWidth,
             SurfaceContainer.ActualHeight,
             contentWidth,
             contentHeight);
 
-        FormsHost.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-        FormsHost.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-        FormsHost.Margin = new Thickness(rect.HostX, rect.HostY, 0, 0);
-        FormsHost.Width = rect.HostWidth;
-        FormsHost.Height = rect.HostHeight;
+        RdpRegionFrame.HorizontalAlignment = layout.FrameHorizontalAlignment;
+        RdpRegionFrame.VerticalAlignment = layout.FrameVerticalAlignment;
+        RdpRegionFrame.Margin = layout.FrameMargin;
+        RdpRegionFrame.Width = layout.FrameWidth;
+        RdpRegionFrame.Height = layout.FrameHeight;
+        ApplyFormsHostLayout(layout);
+
+        if (layout.IsLetterboxActive)
+        {
+            ShowLetterboxHintOnce(contentWidth, contentHeight);
+        }
+        else
+        {
+            HideLetterboxHint();
+        }
     }
 
     private bool TryGetLetterboxContentSize(out double contentWidth, out double contentHeight)
@@ -977,6 +1087,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void ResetHostLayout()
     {
+        _letterboxHintState.Observe(CurrentResolutionMode, UsesFixedLocalResolution());
+        RdpRegionFrame.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+        RdpRegionFrame.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+        RdpRegionFrame.Margin = new Thickness(0);
+        RdpRegionFrame.Width = double.NaN;
+        RdpRegionFrame.Height = double.NaN;
+        ResetFormsHostLayout();
+        HideLetterboxHint();
+    }
+
+    private void ResetFormsHostLayout()
+    {
         FormsHost.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
         FormsHost.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
         FormsHost.Margin = new Thickness(0);
@@ -984,14 +1106,118 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         FormsHost.Height = double.NaN;
     }
 
+    private void ApplyFormsHostLayout(RdpRegionFrameLayout layout)
+    {
+        FormsHost.HorizontalAlignment = layout.HostHorizontalAlignment;
+        FormsHost.VerticalAlignment = layout.HostVerticalAlignment;
+        FormsHost.Margin = layout.HostMargin;
+        FormsHost.Width = layout.HostWidth;
+        FormsHost.Height = layout.HostHeight;
+    }
+
+    private void ShowLetterboxHintOnce(double contentWidth, double contentHeight)
+    {
+        if (!_letterboxHintState.ShouldShow(
+            CurrentResolutionMode,
+            UsesFixedLocalResolution(),
+            isLetterboxActive: true))
+        {
+            return;
+        }
+
+        StopLetterboxHintTimer();
+        LetterboxHintBadge.BeginAnimation(OpacityProperty, null);
+        LetterboxHintText.Text = FormatLetterboxHint(contentWidth, contentHeight);
+        LetterboxHintBadge.Opacity = 0.85;
+        LetterboxHintBadge.Visibility = System.Windows.Visibility.Visible;
+
+        _letterboxHintTimer = new DispatcherTimer(
+            LetterboxHintDisplayDuration,
+            DispatcherPriority.Background,
+            OnLetterboxHintTimerTick,
+            Dispatcher);
+        _letterboxHintTimer.Start();
+    }
+
+    private string FormatLetterboxHint(double contentWidth, double contentHeight)
+    {
+        var width = (int)Math.Round(contentWidth);
+        var height = (int)Math.Round(contentHeight);
+        return _localizer?.Format("RdpLetterboxHintFormat", width, height)
+            ?? string.Format(
+                CultureInfo.CurrentCulture,
+                "Fixed {0}x{1} - resize the window or change resolution to fill.",
+                width,
+                height);
+    }
+
+    private void OnLetterboxHintTimerTick(object? sender, EventArgs e)
+    {
+        StopLetterboxHintTimer();
+        FadeOutLetterboxHint();
+    }
+
+    private void FadeOutLetterboxHint()
+    {
+        if (LetterboxHintBadge.Visibility != System.Windows.Visibility.Visible)
+        {
+            return;
+        }
+
+        var animation = new DoubleAnimation(
+            LetterboxHintBadge.Opacity,
+            0,
+            new Duration(LetterboxHintFadeDuration))
+        {
+            FillBehavior = FillBehavior.Stop
+        };
+        animation.Completed += (_, _) =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            LetterboxHintBadge.Visibility = System.Windows.Visibility.Collapsed;
+            LetterboxHintBadge.Opacity = 0;
+        };
+
+        LetterboxHintBadge.BeginAnimation(OpacityProperty, animation);
+    }
+
+    private void HideLetterboxHint()
+    {
+        StopLetterboxHintTimer();
+        LetterboxHintBadge.BeginAnimation(OpacityProperty, null);
+        LetterboxHintBadge.Visibility = System.Windows.Visibility.Collapsed;
+        LetterboxHintBadge.Opacity = 0;
+    }
+
+    private void StopLetterboxHintTimer()
+    {
+        if (_letterboxHintTimer is null)
+        {
+            return;
+        }
+
+        _letterboxHintTimer.Stop();
+        _letterboxHintTimer.Tick -= OnLetterboxHintTimerTick;
+        _letterboxHintTimer = null;
+    }
+
     private async Task ApplyCurrentResolutionAsync(string reason, bool force = false)
+    {
+        var (width, height) = GetDisplayDimensions();
+        await ApplyResolvedResolutionAsync(width, height, reason, force);
+    }
+
+    private async Task ApplyResolvedResolutionAsync(int width, int height, string reason, bool force = false)
     {
         if (_disposed || _rdpHost is null || _server is null)
         {
             return;
         }
 
-        var (width, height) = GetDisplayDimensions();
         if (width <= 0 || height <= 0)
         {
             return;
@@ -1160,6 +1386,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
                 displayUpdateSettings.DpiScaleX,
                 displayUpdateSettings.DpiScaleY);
             _rdpHost.SetDisplay(width, height, RdpProfileResolver.ResolveColorDepth(_server, settings));
+            _rdpHost.SetResolutionMode(
+                _server.RdpResolutionMode,
+                _isFullscreen,
+                ResolutionPresetCatalog.GetPresets(settings)
+                    .Select(preset => (preset.Width, preset.Height))
+                    .ToArray(),
+                _server.RdpSelectedMonitorIndices);
             _lastAppliedWidth = width;
             _lastAppliedHeight = height;
             _pendingRedirections = RdpProfileResolver.BuildRedirections(_server, settings);
@@ -1262,6 +1495,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            _autofillRetryContext = null;
+            UpdateAutofillState(RdpAutofillState.None);
 
             try
             {
@@ -1379,6 +1614,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            _autofillRetryContext = null;
+            UpdateAutofillState(RdpAutofillState.None);
             StopAntiIdleTimer();
             StopStabilizationCountdown();
             StopReconnectElapsedTracking();
@@ -1419,6 +1656,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            _autofillRetryContext = null;
+            UpdateAutofillState(RdpAutofillState.None);
             StopStabilizationCountdown();
             StopReconnectElapsedTracking();
             TransitionPhase(RdpConnectionPhase.None);
@@ -1452,8 +1691,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Core.Logging.FileLogger.Info($"EmbeddedRDP OnAutoReconnecting: reason={disconnectReason} attempt={attemptCount}");
         if (_disposed) return;
 
+        var attemptTimestampUtc = DateTime.UtcNow;
         Dispatcher.Invoke(() =>
         {
+            RecordReconnectAttemptTimestamp(attemptTimestampUtc);
             StopStabilizationCountdown();
             TransitionPhase(RdpConnectionPhase.None);
             StartReconnectElapsedTracking();
@@ -1530,6 +1771,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private void StartCredentialAutofill(string password, string hostHint)
     {
         CancelAutofill();
+        _autofillRetryContext = new AutofillRetryContext(password, hostHint);
+        _autofillAttemptInFlight = true;
         _autofillCts = new CancellationTokenSource();
         var token = _autofillCts.Token;
 
@@ -1585,6 +1828,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void CancelAutofill()
     {
+        _autofillAttemptInFlight = false;
+
         if (_autofillCts is null)
         {
             return;
@@ -1624,6 +1869,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         _autofillFilledTimer?.Stop();
+        _autofillState = state;
 
         var key = state switch
         {
@@ -1634,21 +1880,38 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             _ => null
         };
 
+        if (state != RdpAutofillState.Searching)
+        {
+            _autofillAttemptInFlight = false;
+        }
+
         if (key is null)
         {
             AutofillStatusText.Text = string.Empty;
             AutofillStatusText.Visibility = Visibility.Collapsed;
             AutofillSeparator.Visibility = Visibility.Collapsed;
+            UpdateAutofillActionButtonsVisibility(state);
             return;
+        }
+
+        if (state == RdpAutofillState.Filled)
+        {
+            _autofillRetryContext = null;
+        }
+
+        var mappedState = MapAutofillStateForBehavior(state);
+        var isConnected = _connectionPhase == RdpConnectionPhase.Connected;
+        if (isConnected && state is RdpAutofillState.TimedOut or RdpAutofillState.Failed)
+        {
+            _autofillRetryContext = null;
         }
 
         AutofillStatusText.Text = L(key);
         AutofillStatusText.Visibility = Visibility.Visible;
         AutofillSeparator.Visibility = Visibility.Visible;
+        UpdateAutofillActionButtonsVisibility(state);
 
-        if (state is RdpAutofillState.Filled
-            or RdpAutofillState.TimedOut
-            or RdpAutofillState.Failed)
+        if (RdpAutofillStateBehavior.ShouldAutoDismiss(mappedState, isConnected))
         {
             _autofillFilledTimer ??= new DispatcherTimer(
                 AutofillFilledDisplayDuration,
@@ -1658,6 +1921,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             _autofillFilledTimer.Interval = AutofillFilledDisplayDuration;
             _autofillFilledTimer.Start();
         }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP autofill state changed: state={state} phase={_connectionPhase} retryContext={(_autofillRetryContext is not null ? "present" : "null")} attemptInFlight={_autofillAttemptInFlight}");
     }
 
     private void OnAutofillFilledTimerTick(object? sender, EventArgs e)
@@ -1665,6 +1931,77 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _autofillFilledTimer?.Stop();
         UpdateAutofillState(RdpAutofillState.None);
     }
+
+    private void UpdateAutofillActionButtonsVisibility(RdpAutofillState state)
+    {
+        var mappedState = MapAutofillStateForBehavior(state);
+        var canRetry = RdpAutofillStateBehavior.CanRetry(mappedState, CanShowCredentialPrompt())
+            && _autofillRetryContext is not null
+            && !_autofillAttemptInFlight;
+
+        var isTerminal = state is RdpAutofillState.TimedOut or RdpAutofillState.Failed;
+        var isConnected = _connectionPhase == RdpConnectionPhase.Connected;
+        var canDismiss = isTerminal && !isConnected;
+
+        AutofillRetryButton.Visibility = canRetry ? Visibility.Visible : Visibility.Collapsed;
+        AutofillDismissButton.Visibility = canDismiss ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnAutofillRetryClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var context = _autofillRetryContext;
+        var mappedState = MapAutofillStateForBehavior(_autofillState);
+        var canRetry = context is not null
+            && !_autofillAttemptInFlight
+            && RdpAutofillStateBehavior.CanRetry(
+                mappedState,
+                CanShowCredentialPrompt());
+
+        if (!canRetry || context is null)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP autofill retry click ignored: phase={_connectionPhase} retryContext={(context is not null ? "present" : "null")} attemptInFlight={_autofillAttemptInFlight}");
+            return;
+        }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP autofill retry clicked: phase={_connectionPhase} hostHint={context.HostHint}");
+
+        StartCredentialAutofill(context.Password, context.HostHint);
+    }
+
+    private void OnAutofillDismissClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info($"EmbeddedRDP autofill dismiss clicked: phase={_connectionPhase}");
+        _autofillRetryContext = null;
+        UpdateAutofillState(RdpAutofillState.None);
+    }
+
+    private bool CanShowCredentialPrompt()
+        => _connectionPhase is RdpConnectionPhase.Preparing
+            or RdpConnectionPhase.Connecting
+            or RdpConnectionPhase.Loading;
+
+    private static RdpAutofillStateForBehavior MapAutofillStateForBehavior(RdpAutofillState state)
+        => state switch
+        {
+            RdpAutofillState.None => RdpAutofillStateForBehavior.None,
+            RdpAutofillState.Searching => RdpAutofillStateForBehavior.Searching,
+            RdpAutofillState.Filled => RdpAutofillStateForBehavior.Filled,
+            RdpAutofillState.TimedOut => RdpAutofillStateForBehavior.TimedOut,
+            RdpAutofillState.Failed => RdpAutofillStateForBehavior.Failed,
+            _ => RdpAutofillStateForBehavior.None
+        };
 
     private void TransitionPhase(RdpConnectionPhase newPhase)
     {
@@ -2347,27 +2684,32 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void StartReconnectElapsedTracking()
     {
-        if (_reconnectStartUtc.HasValue || _localizer is null)
+        if (_localizer is null)
         {
+            StopReconnectElapsedTracking();
             return;
         }
 
-        _reconnectStartUtc = DateTime.UtcNow;
-        _reconnectElapsedTimer = new DispatcherTimer(
-            TimeSpan.FromSeconds(1),
-            DispatcherPriority.Background,
-            OnReconnectElapsedTick,
-            Dispatcher);
-        _reconnectElapsedTimer.Start();
-        UpdateReconnectElapsedDisplay();
+        if (!_reconnectStartUtc.HasValue)
+        {
+            _reconnectStartUtc = DateTime.UtcNow;
+            _reconnectElapsedTimer = new DispatcherTimer(
+                TimeSpan.FromSeconds(1),
+                DispatcherPriority.Background,
+                OnReconnectElapsedTick,
+                Dispatcher);
+            _reconnectElapsedTimer.Start();
+        }
+
+        UpdateReconnectStatusSegments();
     }
 
     private void OnReconnectElapsedTick(object? sender, EventArgs e)
     {
-        UpdateReconnectElapsedDisplay();
+        UpdateReconnectStatusSegments();
     }
 
-    private void UpdateReconnectElapsedDisplay()
+    private void UpdateReconnectStatusSegments()
     {
         var localizer = _localizer;
         if (localizer is null || _reconnectStartUtc is null)
@@ -2376,7 +2718,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
-        var elapsed = DateTime.UtcNow - _reconnectStartUtc.Value;
+        var nowUtc = DateTime.UtcNow;
+        var elapsed = nowUtc - _reconnectStartUtc.Value;
         var seconds = Math.Max(0, (int)Math.Floor(elapsed.TotalSeconds));
         ReconnectElapsedText.Text = string.Format(
             CultureInfo.CurrentCulture,
@@ -2384,6 +2727,23 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             seconds);
         ReconnectElapsedSeparator.Visibility = Visibility.Visible;
         ReconnectElapsedText.Visibility = Visibility.Visible;
+
+        var nextRetrySeconds = ReconnectEtaCalculator.EstimateSeconds(
+            _reconnectAttemptTimestampsUtc,
+            nowUtc);
+        if (nextRetrySeconds is null)
+        {
+            NextRetrySeparator.Visibility = Visibility.Collapsed;
+            NextRetryText.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        NextRetryText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["RdpReconnectNextRetryFormat"],
+            nextRetrySeconds.Value);
+        NextRetrySeparator.Visibility = Visibility.Visible;
+        NextRetryText.Visibility = Visibility.Visible;
     }
 
     private void StopReconnectElapsedTracking()
@@ -2396,8 +2756,21 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         _reconnectStartUtc = null;
+        _reconnectAttemptTimestampsUtc.Clear();
+        NextRetrySeparator.Visibility = Visibility.Collapsed;
+        NextRetryText.Visibility = Visibility.Collapsed;
         ReconnectElapsedSeparator.Visibility = Visibility.Collapsed;
         ReconnectElapsedText.Visibility = Visibility.Collapsed;
+    }
+
+    private void RecordReconnectAttemptTimestamp(DateTime timestampUtc)
+    {
+        if (_reconnectAttemptTimestampsUtc.Count == MaxReconnectAttemptTimestamps)
+        {
+            _reconnectAttemptTimestampsUtc.RemoveAt(0);
+        }
+
+        _reconnectAttemptTimestampsUtc.Add(timestampUtc);
     }
 
     private void ShowReconnectOverlay()
@@ -2491,9 +2864,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
         ApplyOverlaySeverity(severity);
         OverlayCopyErrorButton.Visibility = System.Windows.Visibility.Visible;
+        var primaryAction = RdpDisconnectActionPolicy.ResolvePrimaryAction(disconnectCode);
         OverlayEditProfileButton.Visibility = RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode)
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
+        ApplyReconnectOverlayPrimaryAction(primaryAction);
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
@@ -2503,12 +2878,53 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
                 return;
             }
 
-            var target = OverlayReconnectButton.IsVisible
-                ? (UIElement)OverlayReconnectButton
-                : OverlayCloseButton;
+            UIElement target;
+            if (primaryAction == RdpOverlayPrimaryAction.EditProfile
+                && OverlayEditProfileButton.IsVisible)
+            {
+                target = OverlayEditProfileButton;
+            }
+            else if (OverlayReconnectButton.IsVisible)
+            {
+                target = OverlayReconnectButton;
+            }
+            else
+            {
+                target = OverlayCloseButton;
+            }
+
             _ = target.Focus();
             _ = Keyboard.Focus(target);
         }));
+    }
+
+    private void ApplyReconnectOverlayPrimaryAction(RdpOverlayPrimaryAction primaryAction)
+    {
+        if (primaryAction == RdpOverlayPrimaryAction.EditProfile)
+        {
+            ApplyOverlayButtonStyle(OverlayEditProfileButton, "PrimaryButtonStyle");
+            ApplyOverlayButtonStyle(OverlayReconnectButton, "SecondaryButtonStyle");
+            OverlayEditProfileButton.TabIndex = 0;
+            OverlayReconnectButton.TabIndex = 1;
+            OverlayCopyErrorButton.TabIndex = 2;
+            OverlayCloseButton.TabIndex = 3;
+            return;
+        }
+
+        ApplyOverlayButtonStyle(OverlayReconnectButton, "PrimaryButtonStyle");
+        ApplyOverlayButtonStyle(OverlayEditProfileButton, "SecondaryButtonStyle");
+        OverlayReconnectButton.TabIndex = 0;
+        OverlayCopyErrorButton.TabIndex = 1;
+        OverlayEditProfileButton.TabIndex = 2;
+        OverlayCloseButton.TabIndex = 3;
+    }
+
+    private void ApplyOverlayButtonStyle(Button button, string resourceKey)
+    {
+        if (TryFindResource(resourceKey) is Style)
+        {
+            button.SetResourceReference(FrameworkElement.StyleProperty, resourceKey);
+        }
     }
 
     private void OnReconnectOverlayPreviewKeyDown(object sender, KeyEventArgs e)

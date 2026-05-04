@@ -32,6 +32,18 @@ namespace Heimdall.App.Converters;
 /// </remarks>
 public sealed class ConnectionStateToBrushConverter : IValueConverter, IMultiValueConverter
 {
+    private readonly Func<string, Brush?> _resolveBrush;
+
+    public ConnectionStateToBrushConverter()
+        : this(key => Application.Current?.TryFindResource(key) as Brush)
+    {
+    }
+
+    internal ConnectionStateToBrushConverter(Func<string, Brush?> resolveBrush)
+    {
+        _resolveBrush = resolveBrush ?? throw new ArgumentNullException(nameof(resolveBrush));
+    }
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         return ResolveBrush(value);
@@ -53,7 +65,7 @@ public sealed class ConnectionStateToBrushConverter : IValueConverter, IMultiVal
     public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture)
         => [DependencyProperty.UnsetValue];
 
-    private static Brush ResolveBrush(object? value)
+    private Brush ResolveBrush(object? value)
     {
         string state = value?.ToString()?.ToLowerInvariant() ?? string.Empty;
         string resourceKey = state switch
@@ -63,12 +75,11 @@ public sealed class ConnectionStateToBrushConverter : IValueConverter, IMultiVal
             "disconnected" => "TextSecondaryBrush",
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "launchingrdp" or "launchingssh" or "launchingsftp"
-                or "disconnecting" => "WarningBrush",
+                or "launchedexternalclient" or "disconnecting" => "WarningBrush",
             "tunnelestablished" => "InfoBrush",
             _ => "TextSecondaryBrush"
         };
 
-        return Application.Current.TryFindResource(resourceKey) as Brush
-               ?? Brushes.Gray;
+        return _resolveBrush(resourceKey) ?? Brushes.Gray;
     }
 }

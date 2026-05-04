@@ -15,6 +15,7 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
@@ -47,6 +48,16 @@ public partial class SessionTabViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isActive;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayTitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderToolTip))]
+    private RdpModeOverride _rdpModeOverride = RdpModeOverride.UseProfile;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayTitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderToolTip))]
+    private string _rdpModeOverrideSuffix = string.Empty;
 
     /// <summary>
     /// True when this session was started ad-hoc from the Command Palette
@@ -125,9 +136,14 @@ public partial class SessionTabViewModel : ObservableObject
         {
             PrimaryPane.Title = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(DisplayTitle));
             OnPropertyChanged(nameof(HeaderToolTip));
         }
     }
+
+    public string DisplayTitle => string.IsNullOrWhiteSpace(RdpModeOverrideSuffix)
+        ? Title
+        : $"{Title} {RdpModeOverrideSuffix}";
 
     public string ConnectionType
     {
@@ -179,8 +195,8 @@ public partial class SessionTabViewModel : ObservableObject
 
     public string HeaderToolTip =>
         string.IsNullOrWhiteSpace(TunnelRoute)
-            ? Title
-            : $"{Title} {TunnelRoute}";
+            ? DisplayTitle
+            : $"{DisplayTitle} {TunnelRoute}";
 
     /// <summary>
     /// True when the tree has more than one pane (root is a <see cref="SplitContainerModel"/>).
@@ -358,6 +374,7 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(ServerId));
         OnPropertyChanged(nameof(OriginalServerId));
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(DisplayTitle));
         OnPropertyChanged(nameof(ConnectionType));
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(HostControl));

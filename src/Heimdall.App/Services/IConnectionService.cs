@@ -35,12 +35,16 @@ public interface IConnectionService : IDisposable
     /// </summary>
     PreflightResult RunPreflight(ServerProfileDto server, AppSettings settings);
 
-    Task<ConnectionResult> ConnectSshAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectRdpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectSftpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectVncAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectTelnetAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectFtpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectCitrixAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
-    Task<ConnectionResult> ConnectLocalShellAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct);
+    Task<ConnectionResult> ConnectSshAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectRdpAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile);
+    Task<ConnectionResult> ConnectSftpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectVncAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectTelnetAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectFtpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectCitrixAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectLocalShellAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
 }

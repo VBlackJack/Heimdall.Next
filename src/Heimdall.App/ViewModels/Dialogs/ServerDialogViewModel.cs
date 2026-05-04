@@ -26,6 +26,7 @@ using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Rdp;
+using Heimdall.Rdp.Display;
 using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Dialogs;
@@ -63,6 +64,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     private SshAgentPreference _sshAgentPreference = SshAgentPreference.AutoOpenSshFirst;
     private bool? _rdpDialogAdvancedDefault;
     private bool _hasAppliedRdpDialogAdvancedDefault;
+    private readonly IMonitorEnumerator _monitorEnumerator;
+    private int _screenCount;
 
     /// <summary>
     /// Localizer for translating validation error messages. Set by the dialog service.
@@ -76,6 +79,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             OnPropertyChanged(nameof(SshAuthHint));
             OnPropertyChanged(nameof(SshKeyPassphraseHint));
             OnPropertyChanged(nameof(RdpResizeEnableDelayPlaceholder));
+            RefreshAvailableMonitors();
             RefreshAgentChipIfNeeded();
         }
     }
@@ -149,6 +153,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         OnPropertyChanged(nameof(ShowProtocolSelector));
         OnPropertyChanged(nameof(ShowFormFields));
+        OnPropertyChanged(nameof(CanSwitchToAuto));
         TryApplyRdpDialogAdvancedDefault();
     }
 
@@ -778,7 +783,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _rdpDynamicResolution = true;
 
     [ObservableProperty]
-    private RdpResolutionMode _rdpResolutionMode = RdpResolutionMode.FitWindow;
+    private RdpResolutionMode _rdpResolutionMode = RdpResolutionMode.Auto;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -1005,6 +1010,18 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool IsRdpConnection => string.Equals(ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase);
 
+    public bool IsAutoResolutionMode =>
+        IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Auto;
+
+    public bool IsMultimonAvailable =>
+        IsRdpConnection && RdpDisplayCapabilities.IsMultimonAvailable(_screenCount);
+
+    public bool IsAdvancedResolutionExpanded =>
+        IsRdpConnection && RdpResolutionMode != RdpResolutionMode.Auto;
+
+    public bool CanSwitchToAuto =>
+        IsRdpConnection && RdpResolutionMode != RdpResolutionMode.Auto;
+
     public bool ShowRdpFixedResolutionFields =>
         IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Fixed;
 
@@ -1018,6 +1035,9 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool ShowRdpMultimonNote =>
         IsRdpConnection && RdpResolutionMode == RdpResolutionMode.Multimon;
+
+    public bool ShowRdpSelectedMonitors =>
+        ShowRdpMultimonNote && IsMultimonAvailable;
 
     public string RdpResizeEnableDelayPlaceholder =>
         string.Format(
@@ -1285,6 +1305,12 @@ public partial class ServerDialogViewModel : ObservableValidator
         RefreshValidationSummary();
     }
 
+    [RelayCommand]
+    private void SwitchToAuto()
+    {
+        RdpResolutionMode = RdpResolutionMode.Auto;
+    }
+
     partial void OnRdpFixedWidthChanged(int value)
     {
         if (RdpFixedWidthError is not null)
@@ -1336,10 +1362,73 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private void RaiseRdpResolutionProfileStateChanged()
     {
+        OnPropertyChanged(nameof(IsAutoResolutionMode));
+        OnPropertyChanged(nameof(IsMultimonAvailable));
+        OnPropertyChanged(nameof(IsAdvancedResolutionExpanded));
+        OnPropertyChanged(nameof(CanSwitchToAuto));
         OnPropertyChanged(nameof(ShowRdpFixedResolutionFields));
         OnPropertyChanged(nameof(ShowRdpInitialSmartSizing));
         OnPropertyChanged(nameof(ShowRdpResizeEnableDelay));
         OnPropertyChanged(nameof(ShowRdpMultimonNote));
+        OnPropertyChanged(nameof(ShowRdpSelectedMonitors));
+    }
+
+    [RelayCommand]
+    private void RefreshMonitors()
+    {
+        RefreshAvailableMonitors();
+    }
+
+    private void RefreshAvailableMonitors(IEnumerable<int>? preferredSelection = null)
+    {
+        var selectedIndices = preferredSelection is null
+            ? AvailableMonitors
+                .Where(monitor => monitor.IsSelected)
+                .Select(monitor => monitor.Index)
+                .ToHashSet()
+            : preferredSelection.ToHashSet();
+
+        var monitors = _monitorEnumerator.GetMonitors()
+            .OrderBy(monitor => monitor.Index)
+            .ToArray();
+
+        AvailableMonitors.Clear();
+        foreach (var monitor in monitors)
+        {
+            AvailableMonitors.Add(CreateMonitorChoice(monitor, selectedIndices.Contains(monitor.Index)));
+        }
+
+        _screenCount = AvailableMonitors.Count;
+        RaiseRdpResolutionProfileStateChanged();
+    }
+
+    private MonitorChoiceViewModel CreateMonitorChoice(MonitorInfo monitor, bool isSelected)
+    {
+        var label = string.Format(
+            CultureInfo.CurrentCulture,
+            L("ServerDialogMonitorLabelFormat"),
+            monitor.Index + 1,
+            monitor.Width,
+            monitor.Height);
+
+        if (monitor.IsPrimary)
+        {
+            label += L("ServerDialogMonitorPrimarySuffix");
+        }
+
+        if (monitor.Width > 0 && monitor.Height > 0 && monitor.Width < monitor.Height)
+        {
+            label += L("ServerDialogMonitorVerticalSuffix");
+        }
+
+        return new MonitorChoiceViewModel(
+            monitor.Index,
+            monitor.Width,
+            monitor.Height,
+            monitor.IsPrimary,
+            monitor.DeviceName,
+            label,
+            isSelected);
     }
 
     private int ComposePerformanceFlags()
@@ -1450,6 +1539,9 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpAudioMode = RdpAudioMode,
             RdpAudioCapture = RdpAudioCapture,
             RdpMultiMonitor = RdpResolutionMode == RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = [.. AvailableMonitors
+                .Where(monitor => monitor.IsSelected)
+                .Select(monitor => monitor.Index)],
             RdpDynamicResolution = RdpDynamicResolution,
             RdpResolutionMode = RdpResolutionMode,
             RdpFixedWidth = snappedRdpFixedWidth,
@@ -1481,6 +1573,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// Creates a ViewModel pre-populated from an existing DTO (for edit mode).
     /// </summary>
     public static ServerDialogViewModel FromDto(ServerProfileDto dto)
+        => FromDto(dto, monitorEnumerator: null);
+
+    internal static ServerDialogViewModel FromDto(ServerProfileDto dto, IMonitorEnumerator? monitorEnumerator)
     {
         ArgumentNullException.ThrowIfNull(dto);
         PostConnectMigration.Migrate(dto);
@@ -1492,7 +1587,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             : DefaultPorts.SshTunnel;
         var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
-        var vm = new ServerDialogViewModel { _isInitializing = true };
+        var vm = monitorEnumerator is null
+            ? new ServerDialogViewModel()
+            : new ServerDialogViewModel(monitorEnumerator);
+        vm._isInitializing = true;
         vm.IsEditMode = true;
         vm.IsProtocolSelected = true;
         vm.DisplayName = dto.DisplayName;
@@ -1560,6 +1658,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RdpInitialSmartSizing = dto.RdpInitialSmartSizing;
         vm.RdpResizeEnableDelayMs = dto.RdpResizeEnableDelayMs;
         vm.RdpMultiMonitor = dto.RdpResolutionMode == RdpResolutionMode.Multimon;
+        vm.RefreshAvailableMonitors(dto.RdpSelectedMonitorIndices);
         vm.RdpDynamicResolution = dto.RdpDynamicResolution;
         vm.RdpNla = dto.RdpNla;
         vm.RdpAspectRatio = dto.RdpAspectRatio;

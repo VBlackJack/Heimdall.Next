@@ -74,7 +74,8 @@ internal sealed class SshHandler : IProtocolHandler
     public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);

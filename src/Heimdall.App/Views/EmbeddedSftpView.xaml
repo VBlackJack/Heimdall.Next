@@ -149,7 +149,8 @@
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             AutomationProperties.Name="{loc:Translate SftpTooltipRefresh}"/>
 
-                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+                    <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                            AutomationProperties.AutomationId="Toolbar.Sftp.NavigationActionsSeparator"/>
 
                     <Button x:Name="BtnUpload"
                             Click="OnUploadClick"
@@ -174,7 +175,8 @@
                         </StackPanel>
                     </Button>
 
-                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+                    <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                            AutomationProperties.AutomationId="Toolbar.Sftp.ActionsPrivilegeSeparator"/>
 
                     <ToggleButton x:Name="BtnSudoMode"
                                   Click="OnSudoModeToggle"
@@ -192,7 +194,8 @@
                         </StackPanel>
                     </ToggleButton>
 
-                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+                    <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                            AutomationProperties.AutomationId="Toolbar.Sftp.PrivilegeBookmarksSeparator"/>
 
                     <!-- Bookmarks overflow menu -->
                     <Button x:Name="BtnBookmarkMenu"

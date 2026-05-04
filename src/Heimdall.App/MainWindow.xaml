@@ -832,7 +832,7 @@
                                 <Style TargetType="{x:Type TabItem}"
                                        BasedOn="{StaticResource ThemedTabItemStyle}">
                                     <Setter Property="AutomationProperties.Name"
-                                            Value="{Binding Title}"/>
+                                            Value="{Binding DisplayTitle}"/>
                                 </Style>
                             </TabControl.ItemContainerStyle>
                             <TabControl.ItemTemplate>
@@ -893,7 +893,7 @@
                                                         </Ellipse.Style>
                                                     </Ellipse>
                                                 </Grid>
-                                                <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                                <TextBlock Text="{Binding DisplayTitle}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                                            VerticalAlignment="Center"
                                                            ToolTip="{Binding HeaderToolTip}"
@@ -1034,7 +1034,8 @@
                                             </MultiBinding>
                                         </Ellipse.Fill>
                                     </Ellipse>
-                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionState}"
+                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionStateDisplayName}"
+                                               ToolTip="{Binding ServerList.SelectedServer.ConnectionStateTooltip}"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                VerticalAlignment="Center"
@@ -2164,7 +2165,7 @@
                     <TabItem x:Name="Mw_SettingsTabRdp" Header="{loc:Translate SettingsTabRdp}" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="{loc:Translate SettingsSectionRdpDefaults}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <StackPanel Margin="0,0,0,8">
@@ -2213,7 +2214,21 @@
                                                 <ComboBoxItem x:Name="Mw_ColorDepth32" Content="{loc:Translate SettingsColorDepth32}" Tag="32" AutomationProperties.Name="{loc:Translate SettingsColorDepth32}"/>
                                             </ComboBox>
                                         </StackPanel>
-                                        <StackPanel Margin="0,8,0,0">
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpDisplayTitle" Text="{loc:Translate SettingsSectionRdpDisplay}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpDynRes" Content="{loc:Translate SettingsLabelRdpDynamicRes}" IsChecked="{Binding Settings.RdpDefaultDynamicResolution}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpDynamicResolutionHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpMultiMon" Content="{loc:Translate SettingsLabelRdpMultiMonitor}" IsChecked="{Binding Settings.RdpDefaultMultiMonitor}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpMultiMonitorHint}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpAudioTitle" Text="{loc:Translate SettingsSectionRdpAudio}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <StackPanel>
                                             <TextBlock x:Name="Mw_SettingsRdpAudioLabel" Text="{loc:Translate SettingsLabelRdpAudio}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding Settings.RdpDefaultAudioMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpAudioLabel}">
                                                 <ComboBoxItem x:Name="Mw_SettingsRdpAudioDisabled" Content="{loc:Translate ServerDialogAudioDisabled}" Tag="0" AutomationProperties.Name="{loc:Translate ServerDialogAudioDisabled}"/>
@@ -2221,23 +2236,88 @@
                                                 <ComboBoxItem x:Name="Mw_SettingsRdpAudioRemote" Content="{loc:Translate ServerDialogAudioRemote}" Tag="2" AutomationProperties.Name="{loc:Translate ServerDialogAudioRemote}"/>
                                             </ComboBox>
                                         </StackPanel>
-                                        <CheckBox x:Name="Mw_SettingsRdpNla" Content="{loc:Translate SettingsLabelRdpNla}" IsChecked="{Binding Settings.RdpDefaultNla}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpDynRes" Content="{loc:Translate SettingsLabelRdpDynamicRes}" IsChecked="{Binding Settings.RdpDefaultDynamicResolution}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpMultiMon" Content="{loc:Translate SettingsLabelRdpMultiMonitor}" IsChecked="{Binding Settings.RdpDefaultMultiMonitor}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpAutoReconnect" Content="{loc:Translate SettingsLabelRdpAutoReconnect}" IsChecked="{Binding Settings.RdpDefaultAutoReconnect}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="{loc:Translate SettingsLabelRdpBitmapCache}" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpCompression" Content="{loc:Translate SettingsLabelRdpCompression}" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <TextBlock x:Name="Mw_SettingsRdpRedirTitle" Text="{loc:Translate SettingsLabelRdpRedirection}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,8"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="{loc:Translate ServerDialogRedirectClipboard}" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpDrives" Content="{loc:Translate ServerDialogRedirectDrives}" IsChecked="{Binding Settings.RdpDefaultRedirectDrives}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpPrinters" Content="{loc:Translate ServerDialogRedirectPrinters}" IsChecked="{Binding Settings.RdpDefaultRedirectPrinters}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpComPorts" Content="{loc:Translate ServerDialogRedirectComPorts}" IsChecked="{Binding Settings.RdpDefaultRedirectComPorts}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpSmartCards" Content="{loc:Translate ServerDialogRedirectSmartCards}" IsChecked="{Binding Settings.RdpDefaultRedirectSmartCards}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpWebcam" Content="{loc:Translate ServerDialogRedirectWebcam}" IsChecked="{Binding Settings.RdpDefaultRedirectWebcam}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpUsb" Content="{loc:Translate ServerDialogRedirectUsb}" IsChecked="{Binding Settings.RdpDefaultRedirectUsb}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpAudioCapture" Content="{loc:Translate RdpAudioCapture}" IsChecked="{Binding Settings.RdpDefaultAudioCapture}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpAudioCapture" Content="{loc:Translate RdpAudioCapture}" IsChecked="{Binding Settings.RdpDefaultAudioCapture}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0" ToolTip="{loc:Translate RdpAudioCaptureHint}"/>
                                     </StackPanel>
                                 </Border>
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpPerformanceTitle" Text="{loc:Translate SettingsSectionRdpPerformance}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="{loc:Translate SettingsLabelRdpBitmapCache}" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpBitmapCachingHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpCompression" Content="{loc:Translate SettingsLabelRdpCompression}" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpCompressionHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpAutoReconnect" Content="{loc:Translate SettingsLabelRdpAutoReconnect}" IsChecked="{Binding Settings.RdpDefaultAutoReconnect}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpAutoReconnectHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpNla" Content="{loc:Translate SettingsLabelRdpNla}" IsChecked="{Binding Settings.RdpDefaultNla}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpDefaultNlaHint}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpDevicesTitle" Text="{loc:Translate SettingsSectionRdpDevices}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="{loc:Translate ServerDialogRedirectClipboard}" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpRedirectClipboardHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpDrives" Content="{loc:Translate ServerDialogRedirectDrives}" IsChecked="{Binding Settings.RdpDefaultRedirectDrives}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectDrivesHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpPrinters" Content="{loc:Translate ServerDialogRedirectPrinters}" IsChecked="{Binding Settings.RdpDefaultRedirectPrinters}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectPrintersHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpComPorts" Content="{loc:Translate ServerDialogRedirectComPorts}" IsChecked="{Binding Settings.RdpDefaultRedirectComPorts}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectComPortsHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpSmartCards" Content="{loc:Translate ServerDialogRedirectSmartCards}" IsChecked="{Binding Settings.RdpDefaultRedirectSmartCards}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectSmartCardsHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpWebcam" Content="{loc:Translate ServerDialogRedirectWebcam}" IsChecked="{Binding Settings.RdpDefaultRedirectWebcam}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectWebcamHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpUsb" Content="{loc:Translate ServerDialogRedirectUsb}" IsChecked="{Binding Settings.RdpDefaultRedirectUsb}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectUsbHint}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <Expander x:Name="Mw_SettingsRdpAdvancedTimeoutsExpander"
+                                              Header="{loc:Translate SettingsSectionRdpAdvancedTimeouts}"
+                                              IsExpanded="False">
+                                        <StackPanel Margin="16,8,0,0">
+                                            <TextBlock x:Name="Mw_SettingsRdpResizeEnableDelayLabel"
+                                                       Text="{loc:Translate SettingsLabelRdpResizeEnableDelay}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Margin="0,8,0,4"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Text="{Binding Settings.RdpResizeEnableDelayMs}"
+                                                         Width="120"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpResizeEnableDelayLabel}"/>
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                            </StackPanel>
+
+                                            <TextBlock x:Name="Mw_SettingsRdpArtifactCleanupDelayLabel"
+                                                       Text="{loc:Translate SettingsLabelRdpArtifactCleanupDelay}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Margin="0,12,0,4"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Text="{Binding Settings.RdpArtifactCleanupDelayMs}"
+                                                         Width="120"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpArtifactCleanupDelayLabel}"/>
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                            </StackPanel>
+
+                                            <TextBlock x:Name="Mw_SettingsRdpCredentialAutofillTimeoutLabel"
+                                                       Text="{loc:Translate SettingsLabelRdpCredentialAutofillTimeout}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Margin="0,12,0,4"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Text="{Binding Settings.RdpCredentialAutofillTimeoutMs}"
+                                                         Width="120"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpCredentialAutofillTimeoutLabel}"/>
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Expander>
+                                </Border>
+
+                                <Button x:Name="Mw_SettingsResetRdpDefaults"
+                                        Content="{loc:Translate SettingsResetRdpDefaults}"
+                                        Command="{Binding Settings.ResetRdpDefaultsCommand}"
+                                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                        FontSize="{StaticResource FontSizeCaption}"
+                                        Foreground="{DynamicResource TextTertiaryBrush}"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,12"
+                                        Padding="0,4"
+                                        ToolTip="{loc:Translate SettingsResetRdpDefaultsTooltip}"
+                                        AutomationProperties.Name="{loc:Translate SettingsResetRdpDefaults}"/>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
@@ -2342,48 +2422,6 @@
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
-                                        <Expander x:Name="Mw_SettingsRdpAdvancedTimeoutsExpander"
-                                                  Header="{loc:Translate SettingsRdpAdvancedTimeoutsHeader}"
-                                                  IsExpanded="False"
-                                                  Margin="0,16,0,0">
-                                            <StackPanel Margin="16,8,0,0">
-                                                <TextBlock x:Name="Mw_SettingsRdpResizeEnableDelayLabel"
-                                                           Text="{loc:Translate SettingsLabelRdpResizeEnableDelay}"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           FontSize="{StaticResource FontSizeCaption}"
-                                                           Margin="0,8,0,4"/>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.RdpResizeEnableDelayMs}"
-                                                             Width="120"
-                                                             AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpResizeEnableDelayLabel}"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
-                                                </StackPanel>
-
-                                                <TextBlock x:Name="Mw_SettingsRdpArtifactCleanupDelayLabel"
-                                                           Text="{loc:Translate SettingsLabelRdpArtifactCleanupDelay}"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           FontSize="{StaticResource FontSizeCaption}"
-                                                           Margin="0,12,0,4"/>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.RdpArtifactCleanupDelayMs}"
-                                                             Width="120"
-                                                             AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpArtifactCleanupDelayLabel}"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
-                                                </StackPanel>
-
-                                                <TextBlock x:Name="Mw_SettingsRdpCredentialAutofillTimeoutLabel"
-                                                           Text="{loc:Translate SettingsLabelRdpCredentialAutofillTimeout}"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           FontSize="{StaticResource FontSizeCaption}"
-                                                           Margin="0,12,0,4"/>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.RdpCredentialAutofillTimeoutMs}"
-                                                             Width="120"
-                                                             AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpCredentialAutofillTimeoutLabel}"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </Expander>
                                     </StackPanel>
                                 </Border>
 

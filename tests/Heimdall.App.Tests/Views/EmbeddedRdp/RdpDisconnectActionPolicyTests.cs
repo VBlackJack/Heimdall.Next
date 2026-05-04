@@ -61,4 +61,59 @@ public sealed class RdpDisconnectActionPolicyTests
 
         Assert.False(actual);
     }
+
+    [Theory]
+    [InlineData(2055)]
+    [InlineData(2308)]
+    [InlineData(2311)]
+    [InlineData(2825)]
+    [InlineData(3080)]
+    [InlineData(3848)]
+    [InlineData(4360)]
+    public void ResolvePrimaryAction_ReturnsEditProfile_ForProfileRemediationCodes(int disconnectCode)
+    {
+        var actual = RdpDisconnectActionPolicy.ResolvePrimaryAction(disconnectCode);
+
+        Assert.Equal(RdpOverlayPrimaryAction.EditProfile, actual);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(100)]
+    [InlineData(2054)]
+    [InlineData(2056)]
+    [InlineData(4359)]
+    [InlineData(4361)]
+    [InlineData(99999)]
+    public void ResolvePrimaryAction_ReturnsReconnect_ForOtherCodes(int disconnectCode)
+    {
+        var actual = RdpDisconnectActionPolicy.ResolvePrimaryAction(disconnectCode);
+
+        Assert.Equal(RdpOverlayPrimaryAction.Reconnect, actual);
+    }
+
+    [Fact]
+    public void ResolvePrimaryAction_ReturnsReconnect_ForNullCode()
+    {
+        var actual = RdpDisconnectActionPolicy.ResolvePrimaryAction(null);
+
+        Assert.Equal(RdpOverlayPrimaryAction.Reconnect, actual);
+    }
+
+    [Theory]
+    [InlineData(2055)]
+    [InlineData(2308)]
+    [InlineData(2311)]
+    [InlineData(2825)]
+    [InlineData(3080)]
+    [InlineData(3848)]
+    [InlineData(4360)]
+    public void ResolvePrimaryAction_EditProfileCodes_AreAlsoOfferedAsEditProfileActions(int disconnectCode)
+    {
+        var actual = RdpDisconnectActionPolicy.ResolvePrimaryAction(disconnectCode);
+
+        Assert.Equal(RdpOverlayPrimaryAction.EditProfile, actual);
+        Assert.True(RdpDisconnectActionPolicy.ShouldOfferEditProfile(disconnectCode));
+    }
 }

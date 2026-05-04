@@ -17,9 +17,14 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
+using Heimdall.Core.Configuration;
 using System.Windows.Forms;
 using Heimdall.Core.Models;
 using Heimdall.Rdp;
+using Heimdall.Rdp.Display;
+using DrawingRectangle = System.Drawing.Rectangle;
+using DrawingSize = System.Drawing.Size;
 
 namespace Heimdall.Rdp.ActiveX;
 
@@ -70,6 +75,10 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     private uint _pendingDeviceScaleFactor = 100;
     private double _pendingDpiScaleX = 1.0;
     private double _pendingDpiScaleY = 1.0;
+    private RdpResolutionMode _pendingResolutionMode = RdpResolutionMode.FitWindow;
+    private bool _pendingIsFullscreen;
+    private IReadOnlyList<(int Width, int Height)> _pendingResolutionPresets = [];
+    private IReadOnlyList<int> _pendingSelectedMonitorIndices = [];
     private RdpRedirectionOptions _pendingRedirections = new();
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -203,6 +212,28 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     }
 
     /// <summary>
+    /// Configure the profile display mode that will be resolved immediately before connect.
+    /// </summary>
+    public void SetResolutionMode(
+        RdpResolutionMode resolutionMode,
+        bool isFullscreen,
+        IReadOnlyList<(int Width, int Height)>? presets = null,
+        IReadOnlyList<int>? selectedMonitorIndices = null)
+    {
+        _pendingResolutionMode = resolutionMode;
+        _pendingIsFullscreen = isFullscreen;
+        _pendingResolutionPresets = presets is null
+            ? []
+            : presets.Where(preset => preset.Width > 0 && preset.Height > 0).ToArray();
+        _pendingSelectedMonitorIndices = selectedMonitorIndices is null
+            ? []
+            : selectedMonitorIndices.Where(index => index >= 0).ToArray();
+
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetResolutionMode: mode={resolutionMode} fullscreen={isFullscreen} presets={_pendingResolutionPresets.Count} selectedMonitors={string.Join(',', _pendingSelectedMonitorIndices)} handleCreated={IsHandleCreated}");
+    }
+
+    /// <summary>
     /// Configure initial scale factors through IMsRdpExtendedSettings before connect.
     /// </summary>
     public void SetDisplayScaleFactors(
@@ -268,6 +299,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
         Core.Logging.FileLogger.Info(
             $"RdpActiveXHost.Connect: handle=0x{HostHandle.ToInt64():X} clsid={_activeXClsid} ocxType={ocx.GetType().FullName ?? "unknown"} size={_pendingWidth}x{_pendingHeight}");
+
+        ResolveAndApplyPendingDisplayContext();
 
         // Apply all pending settings before connecting
         ApplyServerSettings(ocx);
@@ -370,6 +403,31 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
                     $"RdpActiveXHost.UpdateResolution failed: {exFallback.Message}");
                 return RdpDisplayUpdateResult.Failed;
             }
+        }
+    }
+
+    /// <summary>
+    /// Updates the pending fullscreen context and re-runs the display resolver.
+    /// The caller applies the returned dimensions through <see cref="UpdateResolution"/>.
+    /// </summary>
+    public EffectiveDisplayContext? RecomputeDisplayForFullscreen(bool isFullscreen)
+    {
+        if (_disposed || HostHandle == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        _pendingIsFullscreen = isFullscreen;
+
+        try
+        {
+            return ResolveAndApplyPendingDisplayContext();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"RdpActiveXHost.RecomputeDisplayForFullscreen failed: {ex.Message}");
+            return null;
         }
     }
 
@@ -673,6 +731,79 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         }
     }
 
+    private static bool TrySetSelectedMonitors(object ocx, IReadOnlyList<int> selectedMonitorIndices)
+    {
+        if (selectedMonitorIndices.Count == 0)
+        {
+            return false;
+        }
+
+        var selectedMonitors = string.Join(',', selectedMonitorIndices);
+        if (TrySetClientShellRdpProperty(ocx, "selectedmonitors", selectedMonitors))
+        {
+            return true;
+        }
+
+        return TrySetNonScriptable5SelectedMonitors(ocx, selectedMonitors);
+    }
+
+    private static bool TrySetClientShellRdpProperty(object ocx, string propertyName, object value)
+    {
+        try
+        {
+            var shell = ((dynamic)ocx).MsRdpClientShell;
+            shell.SetRdpProperty(propertyName, value);
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.MsRdpClientShell.SetRdpProperty set {propertyName}={value}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.MsRdpClientShell.SetRdpProperty threw {FormatExceptionForLog(ex)} property={propertyName} value={value}");
+            return false;
+        }
+    }
+
+    private static bool TrySetNonScriptable5SelectedMonitors(object ocx, string selectedMonitors)
+    {
+        IntPtr nonScriptable5Ptr = IntPtr.Zero;
+        try
+        {
+            if (!TryGetNonScriptable5(ocx, out nonScriptable5Ptr, out var acquisitionPath))
+            {
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.IMsRdpClientNonScriptable5 SelectedMonitors fallback: interface unavailable; value={selectedMonitors}");
+                return false;
+            }
+
+            var nonScriptable5 = Marshal.GetObjectForIUnknown(nonScriptable5Ptr);
+            nonScriptable5.GetType().InvokeMember(
+                "SelectedMonitors",
+                BindingFlags.SetProperty,
+                null,
+                nonScriptable5,
+                [selectedMonitors]);
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5.SelectedMonitors set value={selectedMonitors} via={acquisitionPath}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.IMsRdpClientNonScriptable5.SelectedMonitors threw {FormatExceptionForLog(ex)} value={selectedMonitors}");
+            return false;
+        }
+        finally
+        {
+            if (nonScriptable5Ptr != IntPtr.Zero)
+            {
+                Marshal.Release(nonScriptable5Ptr);
+            }
+        }
+    }
+
     private static bool TryGetNonScriptable5(
         object ocx,
         out IntPtr nonScriptable5Ptr,
@@ -879,6 +1010,199 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         return $"type={typeName} isComObject={isComObject} idispatch={dispatchState}";
     }
 
+    private EffectiveDisplayContext ResolveAndApplyPendingDisplayContext()
+    {
+        HostDisplayContext? hostContext = null;
+        try
+        {
+            hostContext = BuildHostDisplayContext();
+            var effectiveContext = RdpDisplayResolver.Resolve(
+                _pendingResolutionMode,
+                hostContext,
+                _pendingResolutionPresets,
+                _pendingWidth,
+                _pendingHeight);
+
+            if (_pendingResolutionMode == RdpResolutionMode.Fixed)
+            {
+                effectiveContext = effectiveContext with
+                {
+                    SmartSizingEnabled = InitialSmartSizing
+                };
+            }
+
+            _pendingWidth = effectiveContext.Width;
+            _pendingHeight = effectiveContext.Height;
+            _pendingDesktopScaleFactor = effectiveContext.DesktopScaleFactor;
+            _pendingDeviceScaleFactor = effectiveContext.DeviceScaleFactor;
+            _pendingDpiScaleX = hostContext.DesktopDpiScale;
+            _pendingDpiScaleY = hostContext.DesktopDpiScale;
+            InitialSmartSizing = effectiveContext.SmartSizingEnabled;
+            _pendingRedirections.MultiMonitor = effectiveContext.MultiMonitorEnabled;
+
+            Core.Logging.FileLogger.Info(
+                $"RDP display mode: configured={effectiveContext.ConfiguredMode} effective={effectiveContext.EffectiveMode} {effectiveContext.Width}x{effectiveContext.Height} dpi={effectiveContext.DesktopScaleFactor}/{effectiveContext.DeviceScaleFactor} smartSizing={effectiveContext.SmartSizingEnabled} multimon={effectiveContext.MultiMonitorEnabled} reason={effectiveContext.Reason}");
+
+            return effectiveContext;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error(
+                $"RDP display resolver failed: {SerializeDisplayResolverInputs(hostContext)}",
+                ex);
+            throw;
+        }
+    }
+
+    private HostDisplayContext BuildHostDisplayContext()
+    {
+        var screen = Screen.FromControl(this);
+        var allScreens = GetAllScreensSafe();
+        var targetScreens = ResolveDisplayTargetScreens(screen, allScreens);
+        var monitorBounds = ResolveUnionBounds(targetScreens.Select(target => target.Bounds), screen.Bounds);
+        var workingArea = ResolveUnionBounds(targetScreens.Select(target => target.WorkingArea), screen.WorkingArea);
+        var viewport = new DrawingSize(ClientSize.Width, ClientSize.Height);
+        if (viewport.Width <= 0 || viewport.Height <= 0)
+        {
+            viewport = new DrawingSize(_pendingWidth, _pendingHeight);
+        }
+
+        return new HostDisplayContext
+        {
+            MonitorBoundsPhysicalPx = new DrawingSize(monitorBounds.Width, monitorBounds.Height),
+            WorkingAreaPhysicalPx = new DrawingSize(workingArea.Width, workingArea.Height),
+            DesktopDpiScale = ResolveHostDpiScale(),
+            ViewportPhysicalPx = viewport,
+            IsFullscreen = _pendingIsFullscreen,
+            ScreenCount = allScreens.Length,
+            IsMultiMonitorRequested = _pendingResolutionMode == RdpResolutionMode.Multimon
+                || _pendingRedirections.MultiMonitor
+        };
+    }
+
+    private static Screen[] GetAllScreensSafe()
+    {
+        try
+        {
+            return Screen.AllScreens;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost monitor enumeration fallback: {ex.Message}");
+            return [];
+        }
+    }
+
+    private Screen[] ResolveDisplayTargetScreens(Screen currentScreen, Screen[] allScreens)
+    {
+        if (_pendingResolutionMode != RdpResolutionMode.Multimon)
+        {
+            return [currentScreen];
+        }
+
+        if (allScreens.Length == 0)
+        {
+            return [currentScreen];
+        }
+
+        var selectedMonitorIndices = ResolvePendingSelectedMonitorIndices(allScreens.Length);
+        if (selectedMonitorIndices.Length == 0)
+        {
+            return allScreens;
+        }
+
+        return selectedMonitorIndices
+            .Select(index => allScreens[index])
+            .ToArray();
+    }
+
+    private int[] ResolvePendingSelectedMonitorIndices()
+        => ResolvePendingSelectedMonitorIndices(GetAllScreensSafe().Length);
+
+    private int[] ResolvePendingSelectedMonitorIndices(int availableMonitorCount)
+        => RdpSelectedMonitorValidator.Validate(
+            _pendingSelectedMonitorIndices,
+            availableMonitorCount,
+            message => Core.Logging.FileLogger.Warn($"[RdpActiveXHost] {message}"));
+
+    private static DrawingRectangle ResolveUnionBounds(
+        IEnumerable<DrawingRectangle> bounds,
+        DrawingRectangle fallback)
+    {
+        var hasAny = false;
+        var union = DrawingRectangle.Empty;
+
+        foreach (var rect in bounds)
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                continue;
+            }
+
+            union = hasAny
+                ? DrawingRectangle.Union(union, rect)
+                : rect;
+            hasAny = true;
+        }
+
+        return hasAny ? union : fallback;
+    }
+
+    private double ResolveHostDpiScale()
+    {
+        if (_pendingDpiScaleX > 0 && !double.IsNaN(_pendingDpiScaleX) && !double.IsInfinity(_pendingDpiScaleX))
+        {
+            return _pendingDpiScaleX;
+        }
+
+        try
+        {
+            using var graphics = CreateGraphics();
+            return graphics.DpiX > 0
+                ? graphics.DpiX / 96.0
+                : 1.0;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost DPI fallback: {ex.Message}");
+            return 1.0;
+        }
+    }
+
+    private string SerializeDisplayResolverInputs(HostDisplayContext? hostContext)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            configuredMode = _pendingResolutionMode.ToString(),
+            configuredWidthPx = _pendingWidth,
+            configuredHeightPx = _pendingHeight,
+            isFullscreen = _pendingIsFullscreen,
+            selectedMonitorIndices = _pendingSelectedMonitorIndices,
+            presets = _pendingResolutionPresets
+                .Select(preset => new { preset.Width, preset.Height })
+                .ToArray(),
+            hostContext = hostContext is null
+                ? null
+                : new
+                {
+                    monitorBoundsPhysicalPx = SerializeSize(hostContext.MonitorBoundsPhysicalPx),
+                    workingAreaPhysicalPx = SerializeSize(hostContext.WorkingAreaPhysicalPx),
+                    desktopDpiScale = hostContext.DesktopDpiScale,
+                    viewportPhysicalPx = SerializeSize(hostContext.ViewportPhysicalPx),
+                    isFullscreen = hostContext.IsFullscreen,
+                    screenCount = hostContext.ScreenCount,
+                    isMultiMonitorRequested = hostContext.IsMultiMonitorRequested
+                }
+        });
+    }
+
+    private static object SerializeSize(DrawingSize size)
+        => new
+        {
+            width = size.Width,
+            height = size.Height
+        };
+
     private void ApplyServerSettings(object ocx)
     {
         if (string.IsNullOrWhiteSpace(_pendingHost)) return;
@@ -1052,6 +1376,11 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
         // Multi-monitor is a pre-Connect nonscriptable setting. Runtime changes require reconnect.
         TrySetUseMultimon(ocx, _pendingRedirections.MultiMonitor);
+        if (_pendingRedirections.MultiMonitor && _pendingResolutionMode == RdpResolutionMode.Multimon)
+        {
+            var selectedMonitorIndices = ResolvePendingSelectedMonitorIndices();
+            TrySetSelectedMonitors(ocx, selectedMonitorIndices);
+        }
 
         // Force TCP-only: disable bandwidth auto-detection (which uses UDP probes)
         // and set an explicit network type so the client does not attempt UDP transport.

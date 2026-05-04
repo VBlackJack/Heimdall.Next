@@ -228,6 +228,40 @@ public sealed class ServerListSelectionTests
         Assert.True(fixture.ViewModel.HasSelection);
     }
 
+    [Fact]
+    public async Task ConnectEmbeddedCommand_PassesForceEmbeddedOverrideWithoutMutatingProfile()
+    {
+        var handler = new CapturingRdpProtocolHandler(new ConnectionResult(
+            true,
+            null,
+            new RdpSessionResult(
+                CreateRdpServer("rdp-01", "RDP 01", "ops", "External"))));
+        await using var fixture = await ServerListSelectionFixture.CreateAsync([handler]);
+        var server = CreateRdpServer("rdp-01", "RDP 01", "ops", "External");
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), server);
+
+        await fixture.ViewModel.ConnectEmbeddedCommand.ExecuteAsync(fixture.ServerById("rdp-01"));
+
+        Assert.Equal(RdpModeOverride.ForceEmbedded, handler.LastRdpModeOverride);
+        var stored = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal("External", stored.RdpMode);
+    }
+
+    [Fact]
+    public async Task ConnectExternalCommand_PassesForceExternalOverrideWithoutMutatingProfile()
+    {
+        var handler = new CapturingRdpProtocolHandler(new ConnectionResult(true, null, null));
+        await using var fixture = await ServerListSelectionFixture.CreateAsync([handler]);
+        var server = CreateRdpServer("rdp-02", "RDP 02", "ops", "Embedded");
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), server);
+
+        await fixture.ViewModel.ConnectExternalCommand.ExecuteAsync(fixture.ServerById("rdp-02"));
+
+        Assert.Equal(RdpModeOverride.ForceExternal, handler.LastRdpModeOverride);
+        var stored = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal("Embedded", stored.RdpMode);
+    }
+
     private static ServerProfileDto CreateServer(string id, string displayName, string group, int sortOrder = 0) =>
         new()
         {
@@ -237,6 +271,23 @@ public sealed class ServerListSelectionTests
             ConnectionType = "SSH",
             Group = group,
             SortOrder = sortOrder,
+            Origin = ProfileOrigin.Manual
+        };
+
+    private static ServerProfileDto CreateRdpServer(
+        string id,
+        string displayName,
+        string group,
+        string rdpMode) =>
+        new()
+        {
+            Id = id,
+            DisplayName = displayName,
+            RemoteServer = $"{id}.example.com",
+            RemotePort = 3389,
+            ConnectionType = "RDP",
+            Group = group,
+            RdpMode = rdpMode,
             Origin = ProfileOrigin.Manual
         };
 
@@ -274,7 +325,8 @@ public sealed class ServerListSelectionTests
 
         public ServerListViewModel ViewModel { get; }
 
-        public static async Task<ServerListSelectionFixture> CreateAsync()
+        public static async Task<ServerListSelectionFixture> CreateAsync(
+            IEnumerable<IProtocolHandler>? protocolHandlers = null)
         {
             var rootPath = Path.Combine(Path.GetTempPath(), "heimdall-b65-selection", Guid.NewGuid().ToString("N"));
             var configManager = new ConfigManager(rootPath);
@@ -288,7 +340,7 @@ public sealed class ServerListSelectionTests
                 configManager,
                 localizer,
                 new NullTunnelService(),
-                Array.Empty<IProtocolHandler>());
+                protocolHandlers ?? Array.Empty<IProtocolHandler>());
             var dialogService = new DialogServiceStub();
             var puttyImporter = new PuttySessionImporter(new FakePuttySessionRegistrySource([]), configManager);
             var knownHostsImporter = new KnownHostsImporter(configManager, new HostKeyStore());
@@ -321,6 +373,13 @@ public sealed class ServerListSelectionTests
 
         public void LoadServers(AppSettings settings, params ServerProfileDto[] servers)
         {
+            ViewModel.LoadServers(servers.ToList(), settings);
+        }
+
+        public async Task LoadServersAsync(AppSettings settings, params ServerProfileDto[] servers)
+        {
+            await ConfigManager.SaveSettingsAsync(settings);
+            await ConfigManager.SaveServersAsync(servers.ToList());
             ViewModel.LoadServers(servers.ToList(), settings);
         }
 
@@ -400,6 +459,23 @@ public sealed class ServerListSelectionTests
 
         public Task<RdpImportResult> ApplyAsync(RdpImportPreview preview, RdpImportSelection selection, CancellationToken ct) =>
             Task.FromResult(new RdpImportResult());
+    }
+
+    private sealed class CapturingRdpProtocolHandler(ConnectionResult result) : IProtocolHandler
+    {
+        public string Protocol => "RDP";
+
+        public RdpModeOverride LastRdpModeOverride { get; private set; } = RdpModeOverride.UseProfile;
+
+        public Task<ConnectionResult> ConnectAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
+        {
+            LastRdpModeOverride = rdpModeOverride;
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class DialogServiceStub : IDialogService

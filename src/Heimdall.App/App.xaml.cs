@@ -350,6 +350,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ConnectionService>(sp =>
             (ConnectionService)sp.GetRequiredService<IConnectionService>());
         services.AddSingleton<IUiDispatcher, WpfUiDispatcher>();
+        services.AddSingleton<IRdpExternalClientLauncher, MstscRdpExternalClientLauncher>();
         services.AddSingleton<IProtocolHandler, RdpHandler>();
         services.AddSingleton<IProtocolHandler, SshHandler>();
         services.AddSingleton<IProtocolHandler, SftpHandler>();
@@ -400,6 +401,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IOtpGeneratorService, OtpGeneratorService>();
         services.AddSingleton<ISessionSnapshotService, SessionSnapshotService>();
         services.AddSingleton<IRdpImportService, RdpImportService>();
+        services.AddSingleton<IProfileImportService, ProfileImportService>();
         services.AddSingleton<IPuttySessionRegistrySource, WindowsPuttyRegistrySource>();
         services.AddTransient<OpenSshConfigImporter>();
         services.AddTransient<PuttySessionImporter>();

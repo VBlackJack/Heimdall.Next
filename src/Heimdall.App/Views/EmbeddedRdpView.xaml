@@ -59,6 +59,25 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
+                <Border AutomationProperties.AutomationId="Toolbar.SeparatorA-B"
+                        DockPanel.Dock="Right">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource ToolbarVerticalSeparatorStyle}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Visibility, ElementName=DisconnectButton}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Visibility, ElementName=CancelReconnectButton}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Visibility, ElementName=CancelConnectButton}" Value="Visible">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
                 <StackPanel x:Name="HealthDot"
                             DockPanel.Dock="Right"
                             Orientation="Horizontal"
@@ -145,6 +164,9 @@
                         AutomationProperties.Name="{loc:Translate A11ySplitSession}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                        AutomationProperties.AutomationId="Toolbar.SeparatorB-C"
+                        DockPanel.Dock="Right"/>
                 <Button x:Name="ResolutionButton"
                         DockPanel.Dock="Right"
                         TabIndex="4"
@@ -206,6 +228,27 @@
                                VerticalAlignment="Center"
                                Visibility="Collapsed"
                                AutomationProperties.LiveSetting="Polite"/>
+                    <Button x:Name="AutofillRetryButton"
+                            Content="{loc:Translate RdpAutofillRetryAction}"
+                            Click="OnAutofillRetryClick"
+                            ToolTip="{loc:Translate RdpAutofillRetryTooltip}"
+                            AutomationProperties.Name="{loc:Translate RdpAutofillRetryAction}"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Margin="6,0,0,0"
+                            Padding="8,2"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            Visibility="Collapsed"/>
+                    <Button x:Name="AutofillDismissButton"
+                            Content="&#xE711;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnAutofillDismissClick"
+                            ToolTip="{loc:Translate RdpAutofillDismissTooltip}"
+                            AutomationProperties.Name="{loc:Translate RdpAutofillDismissAction}"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Margin="2,0,0,0"
+                            Padding="6,2"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            Visibility="Collapsed"/>
                     <TextBlock x:Name="StabilizingSeparator"
                                Text=" &#x2022; "
                                Margin="6,0,0,0"
@@ -214,6 +257,20 @@
                                VerticalAlignment="Center"
                                Visibility="Collapsed"/>
                     <TextBlock x:Name="StabilizingStatusText"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"
+                               AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="NextRetrySeparator"
+                               Text=" &#x2022; "
+                               Margin="6,0,0,0"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"/>
+                    <TextBlock x:Name="NextRetryText"
                                FontSize="{StaticResource FontSizeCaption}"
                                FontStyle="Italic"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -369,11 +426,44 @@
                     <Grid x:Name="SurfaceContainer"
                           Background="{DynamicResource SurfaceBrush}"
                           ClipToBounds="True">
-                        <wfi:WindowsFormsHost x:Name="FormsHost"
-                                              HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch"
-                                              KeyboardNavigation.IsTabStop="False"
-                                              KeyboardNavigation.TabNavigation="None"/>
+                        <Border x:Name="RdpRegionFrame"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                Padding="0"
+                                Margin="0"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch">
+                            <wfi:WindowsFormsHost x:Name="FormsHost"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch"
+                                                  Background="{DynamicResource SurfaceBrush}"
+                                                  Margin="0"
+                                                  KeyboardNavigation.IsTabStop="False"
+                                                  KeyboardNavigation.TabNavigation="None"/>
+                        </Border>
+
+                        <Border x:Name="LetterboxHintBadge"
+                                Background="{DynamicResource BorderBrush}"
+                                CornerRadius="{StaticResource CornerRadiusSm}"
+                                Padding="6,3"
+                                Margin="0,0,12,12"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Visibility="Collapsed"
+                                Opacity="0"
+                                IsHitTestVisible="False"
+                                Focusable="False"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
+                            <TextBlock x:Name="LetterboxHintText"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       TextWrapping="NoWrap"
+                                       Focusable="False"
+                                       IsHitTestVisible="False"/>
+                        </Border>
                     </Grid>
                 </Border>
             </Border>
