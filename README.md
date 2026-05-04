@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5281%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5311%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -43,11 +43,15 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Dynamic resolution resize with stabilization guard
 - Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon, with a per-profile **Selected monitors** picker in Multimon mode (empty selection = use all monitors, backward-compatible with existing profiles)
 - Automatic DPI scale tracking via `IMsRdpExtendedSettings` with `Window.DpiChanged` updates
-- Tab context-menu resolution submenu with presets, Match Window, Custom, and Save as default
-- Letterboxed fixed-resolution rendering when Smart Sizing is disabled — the active RDP region is materialized by a 1px border and a first-letterbox hint badge that fades out after a few seconds
+- **Mode-aware Resolution menu and toolbar button**: the menu starts with an `Active mode: <mode>` header (showing `Fixed (1920×1080)` when applicable) and the toolbar button glyph changes per mode (Auto / Fit / Smart / Fixed / Multimon)
+- Tab context-menu resolution submenu with presets, Match Window, Custom, and Save as default — same `Active mode` header as the toolbar menu
+- Letterboxed fixed-resolution rendering when Smart Sizing is disabled — the active RDP region is materialized by a 1px border, with surrounding bands rendered in the theme `SurfaceBrush` (the `WindowsFormsHost` is pinned to the exact region so the Win32 HWND no longer bleeds the system-gray default through the letterbox), and a first-letterbox hint badge fades out after a few seconds
 - Fullscreen UX with a high-contrast exit chip plus F11, Esc, and Ctrl+Shift+F11 escape paths
 - Aspect ratio management (Stretch, 16:9, 4:3, 21:9) and anti-idle prevention
 - Full redirection surface: clipboard, drives, printers, COM ports, smart cards, webcam, USB, audio
+- **Auto-collapsed redirection indicators**: by default the toolbar status zone hides redirections that are off and surfaces them through a discreet `+N` expand chip; opt-in `RdpRedirectionIndicatorsAlwaysExpanded` setting keeps the legacy "show all" behaviour
+- **SendKeys System shortcuts**: in addition to Ctrl+Alt+Del / Win / Alt+Tab / Ctrl+Esc / PrtSc / Esc, the SendKeys menu now includes `Win+L` (lock workstation), `Win+D` (show desktop) and `Win+E` (file explorer) for quick admin tasks
+- **Edit profile always reachable from the reconnect overlay**: every disconnect code (network, transient, security) keeps the `Edit profile` button visible so users can tweak resolution, gateway or multi-monitor without closing the overlay first
 - Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
 - **Honest external-launch state**: when an external mstsc client is spawned, the session shows up in warning color with a dedicated *External client launched* status, signalling that Heimdall cannot directly observe the remote session beyond the launch itself
 - **Unified RDP import**: `.rdp` files dragged onto the main window or imported from `Settings → Import` go through the same preview/conflict resolution flow
@@ -114,10 +118,10 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### Quick Connect (Ctrl+K)
 - Command palette for ad-hoc connections without saving a server profile
 - Supports `user@host:port` format with optional protocol prefix
-- Bare IP or hostname input auto-proposes SSH and RDP connections
+- Bare IP or hostname input auto-proposes SSH and RDP connections, with the order biased by per-host history (last-used protocol on top)
 - Also used as split session server and tool picker (fuzzy search scales to any inventory size)
 - Renders as a WPF `Popup` (own HWND) so it displays above RDP/VNC ActiveX surfaces
-- Recent connection history for quick re-use
+- Empty-query view bubbles servers whose host appears in the recent-connections log to the top of the suggestion list, so reconnecting to a recently used machine is one Ctrl+K + Enter away
 
 ### Tunnel Panel
 - Retractable side panel showing all active SSH tunnels
@@ -209,8 +213,8 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - 19 themed control styles with complete hover/pressed/focused/disabled states
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default — Dracula also applied to Notes Milkdown editor
 - Configurable terminal font family and size
-- Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced)
-- Server Dialog: progressive disclosure (Simple/Advanced toggle with animated transition), protocol-aware tabs
+- Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced); the RDP sub-tab now exposes the previously hidden `RdpResolutionPresets` array as an editable multi-line list and the `RdpDialogAdvancedDefault` flag as a checkbox
+- Server Dialog: progressive disclosure with a smart Advanced reset (an existing profile re-opens in Simple view when no advanced field is customized, even if the global default is "Advanced"), animated transition, protocol-aware tabs, clickable protocol chip in Step 2 to return to the protocol selector, and a four-chip mini-toc (Display / Audio / Devices / Performance) at the top of the RDP Options tab. Display section adds a `Common resolutions` ComboBox to pre-fill Width/Height in Fixed mode and a dedicated `Enable multi-monitor` toggle
 - TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
@@ -220,7 +224,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,397 i18n keys)
+- Bilingual interface: English and French (~5,485 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 

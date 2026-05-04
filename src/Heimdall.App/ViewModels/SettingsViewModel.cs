@@ -243,6 +243,56 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private string[] _rdpResolutionPresets = [];
 
+    [ObservableProperty]
+    private bool _rdpDialogAdvancedDefault;
+
+    /// <summary>
+    /// Multi-line text representation of <see cref="RdpResolutionPresets"/>
+    /// for the Settings UI: one preset per line, format <c>WIDTHxHEIGHT</c>.
+    /// Setter parses, trims, validates and rebuilds the array. Invalid lines
+    /// are silently dropped — the user keeps editing what's left in the box.
+    /// </summary>
+    public string RdpResolutionPresetsText
+    {
+        get => string.Join(Environment.NewLine, RdpResolutionPresets);
+        set
+        {
+            var parsed = (value ?? string.Empty)
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line =>
+                {
+                    var parts = line.Split(['x', 'X', '×'], 2);
+                    return parts.Length == 2
+                        && int.TryParse(parts[0].Trim(), out var w) && w > 0
+                        && int.TryParse(parts[1].Trim(), out var h) && h > 0;
+                })
+                .ToArray();
+
+            if (!parsed.SequenceEqual(RdpResolutionPresets))
+            {
+                RdpResolutionPresets = parsed;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ResetRdpResolutionPresets()
+    {
+        RdpResolutionPresets =
+        [
+            "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
+            "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
+        ];
+        OnPropertyChanged(nameof(RdpResolutionPresetsText));
+    }
+
+    partial void OnRdpResolutionPresetsChanged(string[] value)
+    {
+        OnPropertyChanged(nameof(RdpResolutionPresetsText));
+    }
+
     // --- Security ---
 
     [ObservableProperty]
@@ -513,6 +563,7 @@ public partial class SettingsViewModel : ObservableValidator
         RdpDefaultCompression = settings.RdpDefaultCompression;
         RdpDefaultAudioMode = settings.RdpDefaultAudioMode;
         RdpResolutionPresets = settings.RdpResolutionPresets ?? [];
+        RdpDialogAdvancedDefault = settings.RdpDialogAdvancedDefault;
 
         // Security
         UseExternalCredentialProvider = settings.UseExternalCredentialProvider;
@@ -655,6 +706,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.RdpDefaultCompression = RdpDefaultCompression;
         settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
         settings.RdpResolutionPresets = RdpResolutionPresets;
+        settings.RdpDialogAdvancedDefault = RdpDialogAdvancedDefault;
 
         // Security
         settings.UseExternalCredentialProvider = UseExternalCredentialProvider;

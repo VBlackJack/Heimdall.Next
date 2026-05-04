@@ -503,43 +503,49 @@
                 <StackPanel x:Name="FormFieldsPanel"
                             Visibility="{Binding ShowFormFields, Converter={StaticResource BoolToVisibilityConverter}}">
 
-                <!-- Protocol badge -->
-                <Border Margin="0,0,0,12">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="DlgSrv_ProtocolBadgeLabel"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   FontSize="{StaticResource FontSizeCaption}"
-                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <Border CornerRadius="{StaticResource CornerRadiusLg}" Padding="10,4"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                AutomationProperties.LabeledBy="{Binding ElementName=DlgSrv_ProtocolBadgeLabel}">
+                <!-- Protocol badge (clickable in add mode → returns to protocol selector) -->
+                <DockPanel Margin="0,0,0,12" LastChildFill="False">
+                    <TextBlock x:Name="DlgSrv_ProtocolBadgeLabel"
+                               DockPanel.Dock="Left"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Button x:Name="DlgSrv_ProtocolBadgeButton"
+                            DockPanel.Dock="Left"
+                            Command="{Binding BackToProtocolSelectorCommand}"
+                            ToolTip="{loc:Translate ServerDialogProtocolChipChangeTooltip}"
+                            ToolTipService.ShowOnDisabled="True"
+                            AutomationProperties.LabeledBy="{Binding ElementName=DlgSrv_ProtocolBadgeLabel}"
+                            AutomationProperties.HelpText="{loc:Translate ServerDialogProtocolChipChangeTooltip}"
+                            TabIndex="0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ToolbarGhostButtonStyle}">
+                                <Setter Property="Padding" Value="10,4"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                        <Setter Property="Cursor" Value="Arrow"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                  Fill="{DynamicResource AccentBrush}"
+                                  Stretch="Uniform"
+                                  Width="14" Height="14"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding ConnectionType}"
                                        FontWeight="SemiBold"
                                        FontSize="{StaticResource FontSizeBody}"
+                                       VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- Back button (add mode only, after protocol selection) -->
-                <Button x:Name="DlgSrv_BackBtn" Margin="0,0,0,12"
-                        Command="{Binding BackToProtocolSelectorCommand}"
-                        AutomationProperties.Name="{loc:Translate ServerDialogBtnBack}"
-                        MinWidth="80" HorizontalAlignment="Left"
-                        TabIndex="0">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-                            <Setter Property="Visibility" Value="Visible"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                        </StackPanel>
+                    </Button>
+                </DockPanel>
 
                 <!-- Connection basics: Name, Type, Host, Port -->
                 <Border Style="{StaticResource DialogSectionCardStyle}">
@@ -1512,6 +1518,52 @@
                             </TabItem.Header>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <WrapPanel x:Name="DlgSrv_RdpOptionsToc"
+                                               Margin="0,0,0,12">
+                                        <WrapPanel.Style>
+                                            <Style TargetType="WrapPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </WrapPanel.Style>
+                                        <Button Content="{loc:Translate ServerDialogOptionsTocDisplay}"
+                                                Tag="DlgSrv_RdpOptionsTitle"
+                                                Click="OnOptionsTocChipClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="10,4"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Margin="0,0,6,6"
+                                                MinHeight="0"/>
+                                        <Button Content="{loc:Translate ServerDialogOptionsTocAudio}"
+                                                Tag="DlgSrv_AudioModeLabel"
+                                                Click="OnOptionsTocChipClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="10,4"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Margin="0,0,6,6"
+                                                MinHeight="0"/>
+                                        <Button Content="{loc:Translate ServerDialogOptionsTocDevices}"
+                                                Tag="DlgSrv_DeviceRedirExpander"
+                                                Click="OnOptionsTocChipClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="10,4"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Margin="0,0,6,6"
+                                                MinHeight="0"/>
+                                        <Button Content="{loc:Translate ServerDialogOptionsTocPerformance}"
+                                                Tag="DlgSrv_AdvancedRdpExpander"
+                                                Click="OnOptionsTocChipClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="10,4"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Margin="0,0,6,6"
+                                                MinHeight="0"/>
+                                    </WrapPanel>
+
                                     <TextBlock Text="{loc:Translate ServerDialogRdpUsingGlobalDefaultsBanner}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DialogHintTextStyle}">
@@ -1684,7 +1736,26 @@
                                                                                   ToolTip="{loc:Translate ServerDialogResolutionModeMultimonUnavailableTooltip}"/>
                                                                 </ComboBox>
 
-                                                                <Grid Margin="0,12,0,0"
+                                                                <StackPanel Margin="0,12,0,0"
+                                                                            Visibility="{Binding ShowRdpFixedResolutionFields, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <TextBlock Text="{loc:Translate ServerDialogRdpResolutionPresetLabel}"
+                                                                               Style="{StaticResource LabelStyle}"
+                                                                               Margin="0,0,0,4"/>
+                                                                    <ComboBox x:Name="DlgSrv_RdpResolutionPresetCombo"
+                                                                              TabIndex="64"
+                                                                              AutomationProperties.Name="{loc:Translate ServerDialogRdpResolutionPresetLabel}"
+                                                                              SelectionChanged="OnRdpResolutionPresetSelectionChanged"
+                                                                              Style="{StaticResource DialogFormComboBoxStyle}"
+                                                                              Margin="0,0,0,12">
+                                                                        <ComboBoxItem Content="{loc:Translate ServerDialogRdpResolutionPresetCustom}" Tag=""/>
+                                                                        <ComboBoxItem Content="1280×720" Tag="1280x720"/>
+                                                                        <ComboBoxItem Content="1366×768" Tag="1366x768"/>
+                                                                        <ComboBoxItem Content="1920×1080" Tag="1920x1080"/>
+                                                                        <ComboBoxItem Content="2560×1440" Tag="2560x1440"/>
+                                                                        <ComboBoxItem Content="3840×2160" Tag="3840x2160"/>
+                                                                    </ComboBox>
+                                                                </StackPanel>
+                                                                <Grid Margin="0,0,0,0"
                                                                       Visibility="{Binding ShowRdpFixedResolutionFields, Converter={StaticResource BoolToVisibilityConverter}}">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*"/>
@@ -1796,6 +1867,16 @@
                                                             </StackPanel>
                                                         </Expander>
 
+                                                        <CheckBox x:Name="DlgSrv_RdpMultimonToggle"
+                                                                  Content="{loc:Translate ServerDialogRdpEnableMultimon}"
+                                                                  ToolTip="{loc:Translate ServerDialogRdpEnableMultimonHint}"
+                                                                  ToolTipService.ShowOnDisabled="True"
+                                                                  IsChecked="{Binding IsMultimonModeSelected, Mode=TwoWay}"
+                                                                  IsEnabled="{Binding IsMultimonAvailable}"
+                                                                  AutomationProperties.Name="{loc:Translate ServerDialogRdpEnableMultimon}"
+                                                                  Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                                  Margin="0,12,0,0"/>
+
                                                         <TextBlock Margin="0,12,0,0"
                                                                    Visibility="{Binding CanSwitchToAuto, Converter={StaticResource BoolToVisibilityConverter}}"
                                                                    HorizontalAlignment="Left">
@@ -1808,9 +1889,20 @@
                                                     </StackPanel>
                                                 </Border>
                                                 <StackPanel Margin="0,14,0,0">
+                                                    <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
+                                                               Style="{StaticResource LabelStyle}"
+                                                               Margin="0,0,0,4"/>
                                                     <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                                    <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                                    <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+
+                                                    <TextBlock Text="{loc:Translate ServerDialogRdpDisplaySection}"
+                                                               Style="{StaticResource LabelStyle}"
+                                                               Margin="0,12,0,4"/>
+                                                    <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+
+                                                    <TextBlock Text="{loc:Translate ServerDialogRdpAudioSection}"
+                                                               Style="{StaticResource LabelStyle}"
+                                                               Margin="0,12,0,4"/>
+                                                    <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </StackPanel>

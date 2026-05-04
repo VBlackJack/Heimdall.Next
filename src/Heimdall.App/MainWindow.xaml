@@ -2307,6 +2307,48 @@
                                     </Expander>
                                 </Border>
 
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Translate SettingsSectionRdpDialog}"
+                                                   FontSize="{StaticResource FontSizeSubtitle}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpDialogAdvancedDefault"
+                                                  Content="{loc:Translate SettingsLabelRdpDialogAdvancedDefault}"
+                                                  IsChecked="{Binding Settings.RdpDialogAdvancedDefault}"
+                                                  ToolTip="{loc:Translate SettingsLabelRdpDialogAdvancedDefaultHint}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <TextBlock Text="{loc:Translate SettingsLabelRdpResolutionPresets}"
+                                                   x:Name="Mw_SettingsRdpResolutionPresetsLabel"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Margin="0,16,0,4"/>
+                                        <TextBlock Text="{loc:Translate SettingsRdpResolutionPresetsHint}"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Margin="0,0,0,6"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBox Text="{Binding Settings.RdpResolutionPresetsText, UpdateSourceTrigger=LostFocus}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="NoWrap"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 MinHeight="120"
+                                                 MaxHeight="200"
+                                                 FontFamily="Consolas"
+                                                 AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpResolutionPresetsLabel}"/>
+                                        <Button Content="{loc:Translate SettingsRdpResolutionPresetsReset}"
+                                                Command="{Binding Settings.ResetRdpResolutionPresetsCommand}"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Foreground="{DynamicResource TextTertiaryBrush}"
+                                                HorizontalAlignment="Left"
+                                                Padding="0,4"
+                                                Margin="0,8,0,0"
+                                                AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetsReset}"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <Button x:Name="Mw_SettingsResetRdpDefaults"
                                         Content="{loc:Translate SettingsResetRdpDefaults}"
                                         Command="{Binding Settings.ResetRdpDefaultsCommand}"

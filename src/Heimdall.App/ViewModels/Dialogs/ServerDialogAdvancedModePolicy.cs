@@ -34,6 +34,62 @@ internal static class ServerDialogAdvancedModePolicy
             && (isEditMode || isProtocolSelected);
     }
 
+    /// <summary>
+    /// Snapshot of the advanced RDP fields the dialog tracks. <c>true</c>
+    /// means a value diverges from the conservative defaults baked into the
+    /// app, so the dialog should keep the Advanced expander open. When all
+    /// fields are at their defaults, the Advanced toggle can be reset to
+    /// <c>false</c> on the next open of a saved profile.
+    /// </summary>
+    public readonly record struct AdvancedRdpSnapshot(
+        bool UseGlobalDefaults,
+        bool AntiIdle,
+        bool BitmapCaching,
+        bool Compression,
+        bool AutoReconnect,
+        bool AdminMode,
+        bool FullScreen);
+
+    /// <summary>
+    /// Returns true when the user has tweaked at least one advanced RDP field
+    /// away from the conservative defaults (UseGlobalDefaults off, AntiIdle
+    /// off, BitmapCaching on, Compression on, AutoReconnect on, AdminMode off,
+    /// FullScreen off).
+    /// </summary>
+    public static bool IsAdvancedRdpCustomized(AdvancedRdpSnapshot snapshot)
+        => snapshot.UseGlobalDefaults
+        || snapshot.AntiIdle
+        || !snapshot.BitmapCaching
+        || !snapshot.Compression
+        || !snapshot.AutoReconnect
+        || snapshot.AdminMode
+        || snapshot.FullScreen;
+
+    /// <summary>
+    /// Decides whether to honor the persisted "open dialog in advanced mode"
+    /// preference for an edit-mode visit of an existing RDP profile. The
+    /// preference is suppressed when the profile has no advanced
+    /// customizations, so the dialog auto-collapses Advanced for cleanly
+    /// configured profiles even when the global preference is true.
+    /// </summary>
+    public static bool ResolveAdvancedDefault(
+        bool persistedDefault,
+        bool isEditMode,
+        AdvancedRdpSnapshot snapshot)
+    {
+        if (!persistedDefault)
+        {
+            return false;
+        }
+
+        if (isEditMode && !IsAdvancedRdpCustomized(snapshot))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool IsRdp(string? connectionType)
     {
         return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase);

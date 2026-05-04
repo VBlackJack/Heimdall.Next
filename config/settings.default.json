@@ -68,6 +68,7 @@
     "rdpDefaultCompression": true,
     "rdpDefaultAutoReconnect": true,
     "rdpDialogAdvancedDefault": false,
+    "rdpRedirectionIndicatorsAlwaysExpanded": false,
     "rdpConfirmReconnectOnResize": false,
     "enableSessionPersistence": false,
     "maxEmbeddedSessions": 10,

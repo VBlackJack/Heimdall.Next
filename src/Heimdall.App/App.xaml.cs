@@ -340,6 +340,7 @@ public partial class App : System.Windows.Application
         // SSH/Tunnel services
         services.AddSingleton<TunnelManager>();
         services.AddSingleton<ITunnelService, TunnelService>();
+        services.AddSingleton<IRecentConnectionTracker, RecentConnectionTracker>();
 
         // Application services
         services.AddSingleton<X11ServerManager>();
