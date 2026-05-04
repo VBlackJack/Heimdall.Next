@@ -1302,13 +1302,74 @@ public partial class ServerDialogViewModel : ObservableValidator
         RdpMultiMonitor = value == RdpResolutionMode.Multimon;
         ClearHiddenRdpResolutionErrors();
         RaiseRdpResolutionProfileStateChanged();
+        OnPropertyChanged(nameof(IsMultimonModeSelected));
         RefreshValidationSummary();
+    }
+
+    /// <summary>
+    /// Two-way alias of <c>RdpResolutionMode == Multimon</c> exposed for the
+    /// "Enable multi-monitor" toggle in the Display section. Toggling on
+    /// switches the mode to <see cref="RdpResolutionMode.Multimon"/>; toggling
+    /// off reverts to <see cref="RdpResolutionMode.Auto"/>. The toggle has no
+    /// effect when multi-monitor is unavailable on the host.
+    /// </summary>
+    public bool IsMultimonModeSelected
+    {
+        get => RdpResolutionMode == RdpResolutionMode.Multimon;
+        set
+        {
+            if (value == IsMultimonModeSelected)
+            {
+                return;
+            }
+
+            if (value && !IsMultimonAvailable)
+            {
+                OnPropertyChanged(nameof(IsMultimonModeSelected));
+                return;
+            }
+
+            RdpResolutionMode = value
+                ? RdpResolutionMode.Multimon
+                : RdpResolutionMode.Auto;
+        }
     }
 
     [RelayCommand]
     private void SwitchToAuto()
     {
         RdpResolutionMode = RdpResolutionMode.Auto;
+    }
+
+    /// <summary>
+    /// Pre-fills <see cref="RdpFixedWidth"/> and <see cref="RdpFixedHeight"/>
+    /// from a "WIDTHxHEIGHT" preset string (e.g. "1920x1080"). Accepts the
+    /// regular ASCII <c>x</c> as well as the typographic multiplication sign
+    /// <c>×</c>. Invalid input is silently ignored — the user can still
+    /// type custom dimensions in the boxes.
+    /// </summary>
+    [RelayCommand]
+    private void ApplyResolutionPreset(string? preset)
+    {
+        if (string.IsNullOrWhiteSpace(preset))
+        {
+            return;
+        }
+
+        var parts = preset.Split(['x', 'X', '×'], 2);
+        if (parts.Length != 2)
+        {
+            return;
+        }
+
+        if (int.TryParse(parts[0].Trim(), out var width)
+            && int.TryParse(parts[1].Trim(), out var height)
+            && width > 0
+            && height > 0)
+        {
+            RdpFixedWidth = width;
+            RdpFixedHeight = height;
+        }
     }
 
     partial void OnRdpFixedWidthChanged(int value)
@@ -1714,10 +1775,24 @@ public partial class ServerDialogViewModel : ObservableValidator
             return;
         }
 
+        var snapshot = new ServerDialogAdvancedModePolicy.AdvancedRdpSnapshot(
+            UseGlobalDefaults: RdpUseGlobalDefaults,
+            AntiIdle: RdpAntiIdle,
+            BitmapCaching: RdpBitmapCaching,
+            Compression: RdpCompression,
+            AutoReconnect: RdpAutoReconnect,
+            AdminMode: RdpAdminMode,
+            FullScreen: RdpFullScreen);
+
+        var resolved = ServerDialogAdvancedModePolicy.ResolveAdvancedDefault(
+            _rdpDialogAdvancedDefault.Value,
+            IsEditMode,
+            snapshot);
+
         IsApplyingRdpDialogAdvancedDefault = true;
         try
         {
-            IsAdvancedMode = _rdpDialogAdvancedDefault.Value;
+            IsAdvancedMode = resolved;
             _hasAppliedRdpDialogAdvancedDefault = true;
         }
         finally

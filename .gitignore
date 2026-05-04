@@ -55,3 +55,6 @@ TestResults/
 **/coverage.cobertura.xml
 **/.coverage
 **/TestResults.*.xml
+
+# Codex build artefacts
+.codex-build/

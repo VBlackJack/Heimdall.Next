@@ -152,34 +152,36 @@ Légende du statut :
 | 10 | RDP-SET-03 | 🟡 | #4 | Done (groupé) | Tooltips sur les checkboxes RDP via clés `Rdp*Hint` (3 réutilisées, 11 créées). |
 | 11 | RDP-SET-04 | 🟡 | #4 | Done (groupé) | Lien "Réinitialiser les valeurs RDP" en bas de l'onglet RDP, hors card, avec confirmation modale. |
 | 12 | RDP-SET-05 | 🟡 | #4 | Done (groupé) | Confirmation modale avant "Apply to all" (action destructive de masse, count des profils RDP affecté affiché). |
-| 13 | RDP-LIVE-16 | 🟠 | — | Deferred | Indication du mode résolution actif (Fit / Fixed / Smart) dans le menu Resolution. |
-| 14 | RDP-LIVE-19 | 🟠 | — | Deferred | Auto-collapse des indicateurs de redirection désactivés. |
-| 15 | RDP-LIVE-22 | 🟡 | — | Deferred | "Edit Profile" toujours visible dans l'overlay reconnect (pas seulement codes auth). |
-| 16 | RDP-PROF-07 | 🟠 | — | Deferred | Mini-toc des onglets Options (Display / Audio / Devices / Performance). |
-| 17 | RDP-PROF-08 | 🟠 | — | Deferred | Multimon comme toggle séparé en plus du ComboBox de mode. |
-| 18 | RDP-PROF-09 | 🟠 | — | Deferred | Reset du toggle Advanced à false si aucun champ avancé personnalisé. |
-| 19 | RDP-PROF-10 | 🟡 | — | Deferred | Chip de protocole en Step 2 du ServerDialog. |
-| 20 | RDP-PROF-11 | 🟡 | — | Deferred | Regroupement NLA / DynamicResolution / AudioCapture par famille (Security / Display / Audio). |
-| 21 | RDP-PROF-12 | 🟡 | — | Deferred | ComboBox "Common: 1920×1080 / 2560×1440 / ..." à côté des champs Width/Height. |
-| 22 | RDP-DISC-04 | 🟡 | — | Deferred | Pondération palette ad-hoc par historique par-host (RDP en premier si historique RDP). |
-| 23 | RDP-DISC-05 | 🟡 | — | Deferred | "Recent connections" quick-list dans sidebar ou menu. |
-| 24 | RDP-SET-01a | 🟠 | — | Deferred | Exposer `RdpResolutionPresets` (UI éditable) et `RdpDialogAdvancedDefault` dans l'onglet RDP. |
-| 25 | RDP-LIVE-20 | 🟡 | — | Deferred | Win+L / Win+D / Win+E dans le menu SendKeys (sous-section "System"). |
-| 26 | RDP-LIVE-21 | 🟡 | — | Deferred | Glyphe différent par mode résolution sur le bouton Resolution. |
+| 13 | RDP-LIVE-16 | 🟠 | polish | Done (sprint 2026-05-04 polish) | Indication du mode résolution actif (Fit / Fixed / Smart) dans le menu Resolution. |
+| 14 | RDP-LIVE-19 | 🟠 | polish | Done (sprint 2026-05-04 polish) | Auto-collapse des indicateurs de redirection désactivés. |
+| 15 | RDP-LIVE-22 | 🟡 | polish | Done (sprint 2026-05-04 polish) | "Edit Profile" toujours visible dans l'overlay reconnect (pas seulement codes auth). |
+| 16 | RDP-PROF-07 | 🟠 | polish | Done (sprint 2026-05-04 polish) | Mini-toc des onglets Options (Display / Audio / Devices / Performance). |
+| 17 | RDP-PROF-08 | 🟠 | polish | Done (sprint 2026-05-04 polish) | Multimon comme toggle séparé en plus du ComboBox de mode. |
+| 18 | RDP-PROF-09 | 🟠 | polish | Done (sprint 2026-05-04 polish) | Reset du toggle Advanced à false si aucun champ avancé personnalisé. |
+| 19 | RDP-PROF-10 | 🟡 | polish | Done (sprint 2026-05-04 polish) | Chip de protocole en Step 2 du ServerDialog. |
+| 20 | RDP-PROF-11 | 🟡 | polish | Done (sprint 2026-05-04 polish) | Regroupement NLA / DynamicResolution / AudioCapture par famille (Security / Display / Audio). |
+| 21 | RDP-PROF-12 | 🟡 | polish | Done (sprint 2026-05-04 polish) | ComboBox "Common: 1920×1080 / 2560×1440 / ..." à côté des champs Width/Height. |
+| 22 | RDP-DISC-04 | 🟡 | polish | Done (sprint 2026-05-04 polish) | Pondération palette ad-hoc par historique par-host (RDP en premier si historique RDP). |
+| 23 | RDP-DISC-05 | 🟡 | polish | Done (sprint 2026-05-04 polish) | "Recent connections" quick-list dans sidebar ou menu. |
+| 24 | RDP-SET-01a | 🟠 | polish | Done (sprint 2026-05-04 polish) | Exposer `RdpResolutionPresets` (UI éditable) et `RdpDialogAdvancedDefault` dans l'onglet RDP. |
+| 25 | RDP-LIVE-20 | 🟡 | polish | Done (sprint 2026-05-04 polish) | Win+L / Win+D / Win+E dans le menu SendKeys (sous-section "System"). |
+| 26 | RDP-LIVE-21 | 🟡 | polish | Done (sprint 2026-05-04 polish) | Glyphe différent par mode résolution sur le bouton Resolution. |
 
-### Récapitulatif chiffré
+### Récapitulatif chiffré (après sprint polish 2026-05-04)
 
 | Statut | Compte | Pourcentage |
 |--------|-------|-------------|
-| Done (direct, groupé, ou struct only) | 12 | 46 % |
-| Deferred | 14 | 54 % |
+| Done (cycle initial : direct, groupé, ou struct only) | 12 | 46 % |
+| Done (sprint polish 2026-05-04) | 14 | 54 % |
 | **Total** | **26** | **100 %** |
 
-**Couverture des findings critiques (🔴)** : 2/2 = 100 %. Les deux findings P1 du fork Codex (mode External ignorant le profil + statut "launched" peint en vert) sont fixés.
+**Couverture des findings critiques (🔴)** : 2/2 = 100 %. Les deux findings P1 du fork Codex (mode External ignorant le profil + statut "launched" peint en vert) sont fixés au cycle initial.
 
-**Couverture des findings importants (🟠)** : 7/13 ≈ 54 %.
+**Couverture des findings importants (🟠)** : 13/13 = 100 % après le sprint polish.
 
-**Couverture des findings mineurs (🟡)** : 3/11 ≈ 27 % — la plupart des mineurs ont été deferred par choix de scope (concentration sur le structurel et les bugs visibles).
+**Couverture des findings mineurs (🟡)** : 11/11 = 100 % après le sprint polish.
+
+> Les 2 follow-ups émergés (`RDP-LIVE-24` letterbox SurfaceBrush, `RDP-LIVE-25` tooltip Multi-écran) sont également bouclés dans le sprint polish — voir la section dédiée plus bas.
 
 ### Métriques de campagne
 
@@ -199,31 +201,91 @@ Trois patterns Codex valent la peine d'être documentés pour future référence
 2. **Test seams via interface + `_Enumerator` pattern** (prompt #7) — `IMonitorEnumerator` + `WinFormsMonitorEnumerator` sépare l'appel à `Screen.AllScreens` (statique, non mockable) de la logique métier. Reproductible pour toute API statique Windows.
 3. **Partial class pour ViewModels qui grossissent** (prompt #7) — `ServerDialogViewModel.PostConnect.cs` extrait le post-connect du dialog principal sans casser l'identité du fichier source. Hygiène à reproduire quand un VM dépasse ~600 lignes.
 
-## Follow-ups (deferred et émergents)
+## Follow-ups (émergents — clos par le sprint polish)
 
 ### Nouveaux follow-ups émergés pendant le cycle d'implémentation
 
-| ID | Sév. | Origine | Description |
-|----|------|---------|-------------|
-| RDP-LIVE-24 | 🟡 | Validation visuelle prompt #6 | **Letterbox visual polish.** Les bandes letterbox apparaissent en gris système (~#B0B0B0) au lieu du `SurfaceBrush` Dracula (#1B1C25). Cause probable : règle airspace WindowsFormsHost qui bypasse le `Background` WPF du wrapper. Fix structurel envisagé : dimensionner exactement le `WindowsFormsHost` à la taille letterbox (au lieu de Stretch dans Border) pour que le SurfaceBrush du parent SurfaceContainer soit la couleur visible autour. À investiguer en sprint polish dédié. **Aussi** : vérifier le déclenchement réel du hint badge first-display (non observé sur captures du cycle — possible problème de timing ou de détection). |
-| RDP-LIVE-25 | 🟢 | Découverte capture prompt #7 | **Tooltip "Multi-écran" en Settings RDP devenu partiellement faux** suite à l'arrivée du picker de moniteurs (RDP-PROF-13). Wording actuel : "Utilise tous les écrans locaux pour les sessions RDP externes quand mstsc.exe le prend en charge." Reformulation suggérée : EN "Enable multi-monitor mode by default for new RDP profiles. Per-profile monitor selection is configured in the server dialog." / FR "Active le mode multi-écran par défaut pour les nouveaux profils RDP. La sélection précise des moniteurs se configure dans chaque profil." Coût quasi-nul. |
+| ID | Sév. | Origine | Description | Statut |
+|----|------|---------|-------------|--------|
+| RDP-LIVE-24 | 🟡 | Validation visuelle prompt #6 | **Letterbox visual polish.** Les bandes letterbox apparaissaient en gris système (~#B0B0B0) au lieu du `SurfaceBrush` Dracula (#1B1C25). Cause probable : règle airspace WindowsFormsHost qui bypasse le `Background` WPF du wrapper. Fix structurel envisagé : dimensionner exactement le `WindowsFormsHost` à la taille letterbox (au lieu de Stretch dans Border) pour que le SurfaceBrush du parent SurfaceContainer soit la couleur visible autour. **Aussi** : vérifier le déclenchement réel du hint badge first-display (non observé sur captures du cycle — possible problème de timing ou de détection). | Done (sprint polish 2026-05-04) — `RdpRegionFrameLayout` pinne `HostWidth/Height` à la taille de la frame quand letterbox actif, le HWND ne s'étend plus au-delà et le `SurfaceBrush` du parent rend correctement les bandes (validation visuelle utilisateur). |
+| RDP-LIVE-25 | 🟢 | Découverte capture prompt #7 | **Tooltip "Multi-écran" en Settings RDP devenu partiellement faux** suite à l'arrivée du picker de moniteurs (RDP-PROF-13). Wording actuel : "Utilise tous les écrans locaux pour les sessions RDP externes quand mstsc.exe le prend en charge." | Done (sprint polish 2026-05-04) — `RdpMultiMonitorHint` réécrit en EN/FR pour décrire le rôle du flag global et renvoyer vers le picker per-profile. |
 
-### Deferred du cycle pure-UX, par ordre de priorité de reprise estimée
+### Deferred du cycle pure-UX (clos par le sprint polish 2026-05-04)
 
-1. **RDP-LIVE-16** (resolution menu mode indicator) — petit, ergonomie immédiate
-2. **RDP-PROF-07** (mini-toc onglet Options ServerDialog) — gros gain navigation
-3. **RDP-LIVE-19** (auto-collapse redirection indicators désactivés)
-4. **RDP-DISC-05** (Recent connections quick-list)
-5. **RDP-PROF-10** (chip protocole Step 2 ServerDialog)
-6. **RDP-LIVE-22** (Edit Profile toujours visible overlay)
-7. **RDP-PROF-09** (reset Advanced toggle smart)
-8. **RDP-PROF-08** (multimon en toggle séparé)
-9. **RDP-SET-01a** (Resolution presets + AdvancedDefault Settings)
-10. **RDP-PROF-12** (presets résolution rapide WIDTH×HEIGHT)
-11. **RDP-LIVE-20** (Win+L/D/E SendKeys)
-12. **RDP-LIVE-21** (Resolution button glyph par mode)
-13. **RDP-PROF-11** (regroupement NLA/DynRes/Audio par famille)
-14. **RDP-DISC-04** (pondération palette par-host)
+Tous les 14 items deferred du cycle initial ont été bouclés dans le sprint polish 2026-05-04 (cf. section *Sprint polish (2026-05-04)* plus bas). La liste ci-dessous est conservée à titre historique pour suivre l'ordre de reprise effectivement appliqué :
+
+1. **RDP-LIVE-16** (resolution menu mode indicator) — Done, Groupe A.
+2. **RDP-LIVE-21** (Resolution button glyph par mode) — Done, Groupe A.
+3. **RDP-LIVE-22** (Edit Profile toujours visible overlay) — Done, Groupe B.
+4. **RDP-LIVE-25** (tooltip Multi-écran wording) — Done, Groupe B.
+5. **RDP-LIVE-20** (Win+L/D/E SendKeys) — Done, Groupe B.
+6. **RDP-LIVE-19** (auto-collapse redirection indicators) — Done, Groupe B.
+7. **RDP-PROF-11** (regroupement NLA/DynRes/Audio par famille) — Done, Groupe C.
+8. **RDP-PROF-12** (presets résolution rapide) — Done, Groupe C.
+9. **RDP-PROF-08** (multimon en toggle séparé) — Done, Groupe C.
+10. **RDP-PROF-07** (mini-toc onglet Options ServerDialog) — Done, Groupe C.
+11. **RDP-PROF-09** (reset Advanced toggle smart) — Done, Groupe D.
+12. **RDP-PROF-10** (chip protocole Step 2 ServerDialog) — Done, Groupe D.
+13. **RDP-SET-01a** (Resolution presets + AdvancedDefault Settings) — Done, Groupe E.
+14. **RDP-DISC-04** + **RDP-DISC-05** (palette par-host bias + Recents) — Done, Groupe F.
+15. **RDP-LIVE-24** (letterbox SurfaceBrush) — Done, hors-groupe.
+
+## Sprint polish (2026-05-04)
+
+Sprint pair-architect distinct du cycle initial, mené **dans la même journée** mais avec un mode opératoire différent : pas de Codex en relais, l'agent Cowork (Claude Opus 4.7 1M) implémente lui-même chaque groupe.
+
+### Mode opératoire
+
+- **Découpage en 6 groupes cohérents** (A → F) ré-ordonnés par ratio impact/effort (et non par ordre du rapport), plus un item hors-groupe.
+- **Plan de sprint formalisé** dans un fichier de plan (`majestic-juggling-beaver.md`) avant exécution du Groupe A — étape de planning architect séparée du delivery.
+- **Validation visuelle screenshots** entre les Groupes A et B, puis bascule en mode "implémente tout" jusqu'au bout du sprint.
+- **Livraison incrémentale** : un build + tests à la fin de chaque groupe (sauf Groupes D et E qui ont été enchaînés sans build intermédiaire pour limiter la friction).
+
+### Groupes livrés
+
+| Groupe | Findings | Approche |
+|--------|----------|----------|
+| **A** | LIVE-16 + LIVE-21 | `RdpResolutionModeIndicator` static helper (testable), `Active mode: <mode>` header dans le `ContextMenu` Resolution toolbar, glyphes Segoe MDL2 par mode (5 codepoints distincts), tooltip enrichi avec mode + dimensions. Header répliqué côté `SessionTabContextMenuFactory` pour le sous-menu clic droit Résolution. |
+| **B** | LIVE-22 + LIVE-25 + LIVE-20 + LIVE-19 | `ShouldOfferEditProfile` toujours `true` (decoupling vs `IsProfileRemediationCode` privé qui pilote le primary action), `RdpMultiMonitorHint` réécrit EN/FR, 3 nouvelles entrées SendKeys (Win+L/D/E) + 3 keys i18n + 3 VK constants, `RdpRedirectionVisibilityPolicy` static helper + UI badge `+N` cliquable, opt-in `AppSettings.RdpRedirectionIndicatorsAlwaysExpanded`. |
+| **C** | PROF-07 + PROF-08 + PROF-11 + PROF-12 | Mini-toc 4 chips `WrapPanel` avec `Tag` pointant vers les `x:Name` d'ancres existantes + handler `BringIntoView`, `IsMultimonModeSelected` two-way alias, sections labels XAML `Security:` / `Display:` / `Audio:`, ComboBox `Common resolutions` + `RelayCommand ApplyResolutionPreset`. |
+| **D** | PROF-09 + PROF-10 | `ServerDialogAdvancedModePolicy.ResolveAdvancedDefault(snapshot)` pour collapse smart, chip protocole cliquable (Path Geo.Protocol.* + label) en remplacement du badge statique + bouton "Back" séparé. |
+| **E** | SET-01a | Nouvelle propriété calculée `SettingsViewModel.RdpResolutionPresetsText` (sérialise/désérialise `string[]` en multi-ligne), `RelayCommand ResetRdpResolutionPresets`, observable `RdpDialogAdvancedDefault`, nouvelle carte XAML "Dialogue serveur" en bas de l'onglet Settings RDP. |
+| **F** | DISC-04 + DISC-05 | `IRecentConnectionTracker` + impl `RecentConnectionTracker` (in-memory 50 entries, deduped), DI singleton, alimenté depuis `ServerListViewModel.OnConnectionStateChanged` sur `Connected` ou `LaunchedExternalClient`, consommé par `CommandPaletteViewModel.Search.cs` (palette ad-hoc reorder + boost recents quand query vide). |
+| Hors-groupe | LIVE-24 | `RdpRegionFrameLayout.HostWidth/Height` pinnés à `FrameWidth/Height` quand `IsLetterboxActive`, `HostHorizontalAlignment/VerticalAlignment` passés à `Left/Top`. Le HWND est alloué exactement à la taille de la zone RDP, le `SurfaceBrush` du `SurfaceContainer` parent rend correctement autour. Validation visuelle utilisateur : ✅ bandes en couleur Dracula sombre comme attendu. |
+
+### Métriques du sprint
+
+| Métrique | Avant | Après |
+|----------|-------|-------|
+| Tests passing | 5,281 | **5,311** (+30) |
+| Tests skipped | 6 | 6 |
+| i18n leaf keys (en=fr) | 5,458 | **5,485** (+27) |
+| Build warnings | 0 | 0 |
+| Build errors | 0 | 0 |
+
+### Nouvelles abstractions livrées par le sprint
+
+- `RdpResolutionModeIndicator` (`Heimdall.App/Views/EmbeddedRdp/`) — helper static stateless pour la résolution du mode effectif live + glyphes/i18n keys + formatage strings.
+- `RdpEffectiveResolutionState` (record struct) — `(Mode, Width?, Height?)`.
+- `RdpRedirectionVisibilityPolicy` (`Heimdall.App/Views/EmbeddedRdp/`) — helper static pour `+N` chip + per-icon visibility.
+- `IRecentConnectionTracker` / `RecentConnectionTracker` (`Heimdall.App/Services/`) — service singleton process-scoped pour l'historique connexions.
+- `ServerDialogAdvancedModePolicy.AdvancedRdpSnapshot` + `ResolveAdvancedDefault` + `IsAdvancedRdpCustomized` — extension de la policy existante pour le smart reset PROF-09.
+- `AppSettings.RdpRedirectionIndicatorsAlwaysExpanded` — opt-in pour conserver la visibilité legacy des indicators redirection.
+- `AppSettings.RdpDialogAdvancedDefault` — désormais exposé en UI (Settings RDP → Dialogue serveur).
+- `AppSettings.RdpResolutionPresets` — désormais éditable en UI (Settings RDP → Dialogue serveur → multi-line TextBox).
+
+### Tests ajoutés
+
+- `RdpResolutionModeIndicatorTests` — 12 tests (Resolve cas manual override / profile fallback, GetGlyph distinctness, GetModeLocalizationKey mapping, FormatHeader sans/avec dims, FormatTooltip).
+- `RdpRedirectionVisibilityPolicyTests` — 9 tests (visibility matrix `[Theory]`, ShouldShowExpandBadge cas, CountDisabled).
+- `RdpDisconnectActionPolicyTests` — refondu : `ShouldOfferEditProfile_ReturnsFalseForOtherCodes` remplacé par `ShouldOfferEditProfile_AlwaysReturnsTrue` couvrant 17 codes + null.
+- `RdpRegionFrameLayoutTests` — assertions Host* mises à jour pour le pinning letterbox.
+
+### Patterns d'engineering remarqués pendant le sprint
+
+1. **Decoupling visibility from priority** — pattern appliqué à `RdpDisconnectActionPolicy` : la décision "afficher le bouton" et la décision "quel bouton est primary" sont deux fonctions différentes, idéalement nommées et testées séparément. Ce qui était initialement une seule méthode `ShouldOfferEditProfile` couvrant les deux rôles a été clarifié pour rendre la sémantique évidente : un bouton peut être *visible* sans être *primary*.
+2. **Snapshot record pour policy decisions** — `AdvancedRdpSnapshot` capture les états observés, `ResolveAdvancedDefault(persistedDefault, isEditMode, snapshot)` est la décision pure. Pattern reproductible pour toute policy qui dépend d'un état multi-champs : passer un record snapshot plutôt que des paramètres positional.
+3. **In-memory tracker derrière une interface** — `IRecentConnectionTracker` est volontairement minimaliste (3 méthodes : `Record`, `GetLastProtocol`, `GetRecents`). Pas de persistance disque dans cette itération ; future work peut ajouter load/save sans changer l'API. Pattern utile pour les features où l'absence de persistance est acceptable au premier jet.
 
 ## Note sur la convention de numérotation
 

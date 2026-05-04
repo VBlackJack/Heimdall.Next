@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 
 namespace Heimdall.App.Tests;

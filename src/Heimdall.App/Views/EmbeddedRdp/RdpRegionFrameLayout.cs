@@ -30,15 +30,22 @@ internal readonly record struct RdpRegionFrameLayout(
 
     public System.Windows.VerticalAlignment FrameVerticalAlignment => System.Windows.VerticalAlignment.Top;
 
-    public System.Windows.HorizontalAlignment HostHorizontalAlignment => System.Windows.HorizontalAlignment.Stretch;
+    public System.Windows.HorizontalAlignment HostHorizontalAlignment => System.Windows.HorizontalAlignment.Left;
 
-    public System.Windows.VerticalAlignment HostVerticalAlignment => System.Windows.VerticalAlignment.Stretch;
+    public System.Windows.VerticalAlignment HostVerticalAlignment => System.Windows.VerticalAlignment.Top;
 
     public Thickness HostMargin => new(0);
 
-    public double HostWidth => double.NaN;
+    /// <summary>
+    /// Pin the WindowsFormsHost width/height to the frame size so the
+    /// hosted Win32 HWND is allocated exactly the RDP region rectangle.
+    /// Without this, the HostVisual can extend past the frame and the Win32
+    /// gray system background bleeds through the letterbox bands instead of
+    /// the SurfaceBrush from the parent SurfaceContainer (RDP-LIVE-24).
+    /// </summary>
+    public double HostWidth => IsLetterboxActive ? FrameWidth : double.NaN;
 
-    public double HostHeight => double.NaN;
+    public double HostHeight => IsLetterboxActive ? FrameHeight : double.NaN;
 
     public static RdpRegionFrameLayout FromPaneAndContent(
         double paneWidth,

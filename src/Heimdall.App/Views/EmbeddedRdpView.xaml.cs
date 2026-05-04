@@ -98,6 +98,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private readonly List<DateTime> _reconnectAttemptTimestampsUtc = new(MaxReconnectAttemptTimestamps);
     private readonly LetterboxHintState _letterboxHintState = new();
 
+    private bool _redirectionExpandedOverride;
+
     private CancellationTokenSource? _autofillCts;
     private CancellationTokenSource? _stabilizationCts;
     private DispatcherTimer? _antiIdleTimer;
@@ -797,6 +799,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     [SupportedOSPlatform("windows")]
     private void OnSendKeysEscapeClick(object sender, RoutedEventArgs e)
         => SendKeysToRemote("RdpSendKeysEscape", NativeMethods.VK_ESCAPE);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysWinLClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote("RdpSendKeysWinL", NativeMethods.VK_LWIN, NativeMethods.VK_L);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysWinDClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote("RdpSendKeysWinD", NativeMethods.VK_LWIN, NativeMethods.VK_D);
+
+    [SupportedOSPlatform("windows")]
+    private void OnSendKeysWinEClick(object sender, RoutedEventArgs e)
+        => SendKeysToRemote("RdpSendKeysWinE", NativeMethods.VK_LWIN, NativeMethods.VK_E);
 
     private void OnSendKeysShortcutsHelpClick(object sender, RoutedEventArgs e)
     {
@@ -2150,46 +2164,58 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
+        var alwaysExpanded = _settings?.RdpRedirectionIndicatorsAlwaysExpanded ?? false;
+
         SetRedirectionIndicator(
             RedirIconClipboard,
             RedirectionClipboardGlyph,
             "RdpRedirectionLabelClipboard",
-            _pendingRedirections.Clipboard);
+            _pendingRedirections.Clipboard,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconDrives,
             RedirectionDrivesGlyph,
             "RdpRedirectionLabelDrives",
-            _pendingRedirections.Drives);
+            _pendingRedirections.Drives,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconPrinters,
             RedirectionPrintersGlyph,
             "RdpRedirectionLabelPrinters",
-            _pendingRedirections.Printers);
+            _pendingRedirections.Printers,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconComPorts,
             RedirectionComPortsGlyph,
             "RdpRedirectionLabelComPorts",
-            _pendingRedirections.ComPorts);
+            _pendingRedirections.ComPorts,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconSmartCards,
             RedirectionSmartCardsGlyph,
             "RdpRedirectionLabelSmartCards",
-            _pendingRedirections.SmartCards);
+            _pendingRedirections.SmartCards,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconUsb,
             RedirectionUsbGlyph,
             "RdpRedirectionLabelUsb",
-            _pendingRedirections.Usb);
+            _pendingRedirections.Usb,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconAudio,
             RedirectionAudioGlyph,
             "RdpRedirectionLabelAudio",
-            _pendingRedirections.AudioMode != 0);
+            _pendingRedirections.AudioMode != 0,
+            alwaysExpanded);
         SetRedirectionIndicator(
             RedirIconMultiMonitor,
             RedirectionMultiMonitorGlyph,
             "RdpRedirectionLabelMultiMonitor",
-            _pendingRedirections.MultiMonitor);
+            _pendingRedirections.MultiMonitor,
+            alwaysExpanded);
+
+        UpdateRedirectionExpandBadge(alwaysExpanded);
 
         RedirectionIndicatorsPanel.Visibility = Visibility.Visible;
     }
@@ -2203,13 +2229,20 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         TextBlock icon,
         string glyph,
         string labelKey,
-        bool isActive)
+        bool isActive,
+        bool alwaysExpanded)
     {
         icon.Text = glyph;
         icon.SetResourceReference(
             TextBlock.ForegroundProperty,
             isActive ? "AccentBrush" : "TextDisabledBrush");
         icon.TextDecorations = isActive ? null : TextDecorations.Strikethrough;
+        icon.Visibility = RdpRedirectionVisibilityPolicy.IsIndicatorVisible(
+            isActive,
+            alwaysExpanded,
+            _redirectionExpandedOverride)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         if (_localizer is null)
         {
@@ -2221,6 +2254,55 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             isActive ? "RdpRedirectionStatusOnFormat" : "RdpRedirectionStatusOffFormat",
             label);
         AutomationProperties.SetHelpText(icon, helpText);
+    }
+
+    private void UpdateRedirectionExpandBadge(bool alwaysExpanded)
+    {
+        if (_pendingRedirections is null)
+        {
+            RedirExpandBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var disabledStates = new[]
+        {
+            !_pendingRedirections.Clipboard,
+            !_pendingRedirections.Drives,
+            !_pendingRedirections.Printers,
+            !_pendingRedirections.ComPorts,
+            !_pendingRedirections.SmartCards,
+            !_pendingRedirections.Usb,
+            _pendingRedirections.AudioMode == 0,
+            !_pendingRedirections.MultiMonitor,
+        };
+
+        var disabledCount = 0;
+        foreach (var d in disabledStates)
+        {
+            if (d) { disabledCount++; }
+        }
+
+        if (RdpRedirectionVisibilityPolicy.ShouldShowExpandBadge(
+                disabledCount,
+                alwaysExpanded,
+                _redirectionExpandedOverride))
+        {
+            RedirExpandBadge.Content = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                "+{0}",
+                disabledCount);
+            RedirExpandBadge.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            RedirExpandBadge.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnRedirExpandBadgeClick(object sender, RoutedEventArgs e)
+    {
+        _redirectionExpandedOverride = !_redirectionExpandedOverride;
+        UpdateRedirectionIndicators();
     }
 
     private void OnConnectionStateChanged(
@@ -2466,8 +2548,46 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             menuItem.IsChecked = menuItem.Tag is string tag && tag == currentTag;
         }
 
+        UpdateResolutionMenuHeader();
+
         ResolutionMenu.PlacementTarget = ResolutionButton;
         ResolutionMenu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Live effective resolution mode + dimensions for this session, derived
+    /// from the persisted profile mode and any per-session manual override.
+    /// Exposed to <c>SessionTabContextMenuFactory</c> so the right-click
+    /// resolution menu can mirror the toolbar mode header.
+    /// </summary>
+    internal RdpEffectiveResolutionState GetEffectiveResolutionState()
+    {
+        var profileMode = _server?.RdpResolutionMode ?? RdpResolutionMode.Auto;
+        var profileWidth = _server?.RdpFixedWidth ?? 0;
+        var profileHeight = _server?.RdpFixedHeight ?? 0;
+        return RdpResolutionModeIndicator.Resolve(
+            profileMode,
+            _manualResolutionWidth,
+            _manualResolutionHeight,
+            profileWidth,
+            profileHeight);
+    }
+
+    private void UpdateResolutionMenuHeader()
+    {
+        if (ResMenuModeHeaderText is null)
+        {
+            return;
+        }
+
+        var state = GetEffectiveResolutionState();
+        var activeModeLabel = L("RdpResolutionActiveModeLabel");
+        var modeLabel = L(RdpResolutionModeIndicator.GetModeLocalizationKey(state.Mode));
+        ResMenuModeHeaderText.Text = RdpResolutionModeIndicator.FormatHeader(
+            activeModeLabel,
+            modeLabel,
+            state.Width,
+            state.Height);
     }
 
     private void OnSkipStabilizationClick(object sender, RoutedEventArgs e)
@@ -2478,12 +2598,16 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     /// <summary>
     /// Populates the resolution context menu from AppSettings.RdpResolutionPresets,
     /// with a built-in fallback when the setting is missing or empty.
+    /// Items 0-5 are static (mode header, separator, skip-stab, skip-stab-sep, fit, separator);
+    /// presets are appended starting at index 6.
     /// </summary>
     private void PopulateResolutionMenu()
     {
-        while (ResolutionMenu.Items.Count > 4)
+        const int StaticItemCount = 6;
+
+        while (ResolutionMenu.Items.Count > StaticItemCount)
         {
-            ResolutionMenu.Items.RemoveAt(4);
+            ResolutionMenu.Items.RemoveAt(StaticItemCount);
         }
 
         foreach (var preset in ResolutionPresetCatalog.GetPresets(_settings))
@@ -2496,6 +2620,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             item.Click += OnResolutionMenuClick;
             ResolutionMenu.Items.Add(item);
         }
+
+        UpdateResolutionMenuHeader();
     }
 
     private void OnAntiIdleBadgeClick(object sender, RoutedEventArgs e)
@@ -2585,21 +2711,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void UpdateResolutionButtonState()
     {
-        if (_manualResolutionWidth > 0 && _manualResolutionHeight > 0)
+        var state = GetEffectiveResolutionState();
+        var modeLabel = L(RdpResolutionModeIndicator.GetModeLocalizationKey(state.Mode));
+
+        ResolutionButton.Content = RdpResolutionModeIndicator.GetGlyph(state.Mode);
+        ResolutionButton.ToolTip = RdpResolutionModeIndicator.FormatTooltip(
+            L("RdpTooltipResolutionWithMode"),
+            L("RdpTooltipResolutionWithModeAndSize"),
+            modeLabel,
+            state.Width,
+            state.Height);
+
+        var hasManualOverride = _manualResolutionWidth > 0 && _manualResolutionHeight > 0;
+        var brushKey = hasManualOverride ? "AccentBrush" : "TextPrimaryBrush";
+        if (TryFindResource(brushKey) is System.Windows.Media.Brush brush)
         {
-            ResolutionButton.ToolTip = $"{L("RdpTooltipResolution")} ({_manualResolutionWidth}x{_manualResolutionHeight})";
-            if (TryFindResource("AccentBrush") is System.Windows.Media.Brush accentBrush)
-            {
-                ResolutionButton.Foreground = accentBrush;
-            }
-            return;
+            ResolutionButton.Foreground = brush;
         }
 
-        ResolutionButton.ToolTip = L("RdpTooltipResolution");
-        if (TryFindResource("TextPrimaryBrush") is System.Windows.Media.Brush defaultBrush)
-        {
-            ResolutionButton.Foreground = defaultBrush;
-        }
+        UpdateResolutionMenuHeader();
     }
 
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
@@ -3547,6 +3677,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         internal const byte VK_TAB = 0x09;
         internal const byte VK_SNAPSHOT = 0x2C;
         internal const byte VK_LWIN = 0x5B;
+        internal const byte VK_D = 0x44;
+        internal const byte VK_E = 0x45;
+        internal const byte VK_L = 0x4C;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern uint SetThreadExecutionState(uint esFlags);

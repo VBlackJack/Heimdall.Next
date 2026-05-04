@@ -311,7 +311,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         IUiDispatcher uiDispatcher,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
-        SettingsViewModel settings)
+        SettingsViewModel settings,
+        IRecentConnectionTracker? recentConnections = null)
     {
         _configManager = configManager;
         _localizer = localizer;
@@ -330,7 +331,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation, toolContextProvider, _uiDispatcher);
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
-            this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
+            this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService,
+            recentConnections ?? new RecentConnectionTracker());
         Tunnels = new TunnelsViewModel(
             this,
             localizer,

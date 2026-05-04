@@ -12,6 +12,120 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-04 — RDP UX deferred polish sprint
+
+Pair-architect follow-up sprint closing the 14 deferred findings + 2
+follow-ups (`RDP-LIVE-24`, `RDP-LIVE-25`) carried over from the
+2026-05-04 audit cycle (`docs/audit/audit-ux-rdp-2026-05-04.md`).
+
+User-visible changes:
+
+- **Resolution menu mode header** (RDP-LIVE-16) — both the toolbar
+  Resolution menu and the right-click Resolution submenu now show a
+  non-clickable `Active mode: <mode>` header in their first slot,
+  followed by `(WIDTH×HEIGHT)` when a fixed resolution is active.
+  Reflects the live effective mode (manual session override beats
+  profile mode).
+- **Resolution button glyph per mode** (RDP-LIVE-21) — five distinct
+  Segoe MDL2 glyphs (Auto / FitWindow / SmartSizing / Fixed / Multimon)
+  on the toolbar Resolution button. Tooltip is enriched with the mode
+  label and dimensions when available.
+- **Auto-collapse disabled redirection indicators** (RDP-LIVE-19) — the
+  embedded RDP toolbar status zone now hides redirection icons that are
+  off, surfacing them through a discreet `+N` expand chip. Opt-in
+  setting `RdpRedirectionIndicatorsAlwaysExpanded` in `settings.json`
+  preserves the legacy "show all" behaviour for users who prefer it.
+- **Edit profile always offered on the reconnect overlay** (RDP-LIVE-22)
+  — every disconnect code now exposes the `Edit profile` button, not
+  just security/NLA codes. Profile-remediation codes (2055/2308/2311/
+  2825/3080/3848/4360) keep `Edit profile` as the *primary* action;
+  other codes leave Reconnect primary but still surface Edit profile
+  for quick resolution/gateway tweaks without closing the overlay.
+- **SendKeys System section** (RDP-LIVE-20) — `Win+L` (lock workstation),
+  `Win+D` (show desktop) and `Win+E` (file explorer) added to the
+  SendKeys menu in a dedicated System sub-section.
+- **Multi-monitor tooltip rewritten** (RDP-LIVE-25) — the
+  `Settings → RDP → Display → Multi-monitor` checkbox tooltip now
+  describes the per-profile picker introduced by `RDP-PROF-13` instead
+  of the obsolete "uses all local monitors" wording.
+- **ServerDialog Options mini-toc** (RDP-PROF-07) — RDP profile editor
+  Options tab gains four ghost chips (Display / Audio / Devices /
+  Performance) at the top that scroll the form to the matching anchor
+  on click.
+- **Multi-monitor as a separate toggle** (RDP-PROF-08) — Display section
+  now exposes an `Enable multi-monitor mode` checkbox bound two-way to
+  `RdpResolutionMode == Multimon`, on top of the existing mode
+  ComboBox. Disabled when the host has only one screen attached.
+- **Common resolution presets** (RDP-PROF-12) — new `Common
+  resolutions` ComboBox in Fixed mode pre-fills `RdpFixedWidth` and
+  `RdpFixedHeight` from a curated list (1280×720, 1366×768, 1920×1080,
+  2560×1440, 3840×2160) without forcing the user to type the values.
+- **Sectioned NLA / DynamicResolution / AudioCapture** (RDP-PROF-11) —
+  the three flat checkboxes at the bottom of the Options tab gain
+  `Security:` / `Display:` / `Audio:` section labels for visual
+  hierarchy.
+- **Smart reset of the Advanced expander** (RDP-PROF-09) — when
+  `RdpDialogAdvancedDefault` is on but no advanced field is customized
+  (UseGlobalDefaults, AntiIdle, BitmapCaching, Compression,
+  AutoReconnect, AdminMode, FullScreen all at their defaults), the
+  Advanced expander auto-collapses on a profile re-open. Users keep the
+  Advanced view only when they actually need it.
+- **Clickable protocol chip in Step 2** (RDP-PROF-10) — replaces the
+  static badge + separate `Back` button with a single chip carrying the
+  protocol icon (`Geo.Protocol.*`) and label. Click returns to the Step
+  1 protocol selector in add mode; the chip is disabled in edit mode.
+- **Resolution presets editable from Settings** (RDP-SET-01a) — new
+  `Server dialog` card at the bottom of `Settings → RDP` exposes the
+  previously hidden `RdpResolutionPresets` array as a multi-line
+  TextBox (one preset per line, format `WIDTHxHEIGHT`) with a
+  `Reset to defaults` link, and the `RdpDialogAdvancedDefault` flag
+  as an explicit checkbox.
+- **Per-host palette protocol bias** (RDP-DISC-04) — when typing a bare
+  IP/hostname in the Ctrl+K palette, the SSH and RDP ad-hoc suggestions
+  reorder to match the protocol last used for that host.
+- **Recent connections in the empty palette** (RDP-DISC-05) — opening
+  Ctrl+K with no query bubbles the servers whose host appears in the
+  recent-connections log to the top of the suggestion list, ordered
+  most-recent-first.
+- **Letterbox bands now match the SurfaceBrush** (RDP-LIVE-24) — the
+  `WindowsFormsHost` is now pinned to the exact RDP region size in
+  letterbox mode, so the Win32 HWND no longer bleeds the system gray
+  background through the bands. The bands now render in
+  `SurfaceBrush` (Dracula `#1B1C25`) like the rest of the surface.
+
+New abstractions worth knowing:
+
+- `RdpResolutionModeIndicator` (`Heimdall.App/Views/EmbeddedRdp/`) —
+  pure, stateless static helpers behind the toolbar Resolution button:
+  `Resolve(profileMode, manualW, manualH, profileW, profileH)` returns
+  a `RdpEffectiveResolutionState` record; `GetGlyph(mode)` and
+  `GetModeLocalizationKey(mode)` produce the icon and label per mode;
+  `FormatHeader` / `FormatTooltip` build the display strings. Same
+  helper drives the toolbar menu *and* the right-click Resolution
+  submenu (via `EmbeddedRdpView.GetEffectiveResolutionState()` exposed
+  to `SessionTabContextMenuFactory`).
+- `RdpRedirectionVisibilityPolicy` (`Heimdall.App/Views/EmbeddedRdp/`)
+  — pure helpers for the `+N` expand badge and per-icon visibility:
+  `IsIndicatorVisible(isActive, alwaysExpanded, sessionOverride)`,
+  `ShouldShowExpandBadge(disabledCount, alwaysExpanded,
+  sessionOverride)`, `CountDisabled(states)`.
+- `IRecentConnectionTracker` / `RecentConnectionTracker`
+  (`Heimdall.App/Services/`) — in-memory log of successful host /
+  protocol pairs (max 50 entries, deduped by `(host, protocol)`). Fed
+  from `ServerListViewModel.OnConnectionStateChanged` whenever a
+  session reaches `Connected` or `LaunchedExternalClient`. Consumed by
+  `CommandPaletteViewModel` for `RDP-DISC-04` and `RDP-DISC-05`.
+- `RdpDisconnectActionPolicy.IsProfileRemediationCode` (private) and
+  the new `ResolveAdvancedDefault(persistedDefault, isEditMode,
+  AdvancedRdpSnapshot)` policy used for `RDP-PROF-09`.
+- `AppSettings.RdpRedirectionIndicatorsAlwaysExpanded` (`bool`,
+  default `false`) — opt-in to keep all redirection indicators
+  visible regardless of state. Not exposed in the Settings UI in
+  this iteration; users who want it edit `settings.json` directly.
+
+Test baseline: **5,311 passing + 6 skipped** (was 5,281), zero
+warnings, i18n parity preserved (en=fr=5,485 leaf keys, +27).
+
 ## 2026-05-04 — RDP UX audit cycle implementation
 
 Pair-architect cycle implementing the RDP UX audit
