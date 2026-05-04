@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Heimdall.App.Views.EmbeddedRdp;
 using System.Windows;
+using Heimdall.App.Views.EmbeddedRdp;
 
 namespace Heimdall.App.Tests.Views.EmbeddedRdp;
 
