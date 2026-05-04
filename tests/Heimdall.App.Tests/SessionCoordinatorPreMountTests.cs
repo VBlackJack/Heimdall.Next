@@ -85,6 +85,26 @@ public sealed class SessionCoordinatorPreMountTests
     }
 
     [Fact]
+    public async Task RunConnectionPipelineAsync_RdpForcedExternalCreatesLightweightTabWithSuffix()
+    {
+        using var harness = TestHarness.Create();
+        var rdpHandler = harness.GetHandler("RDP");
+        var server = harness.CreateServer("RDP");
+        rdpHandler.Result.SetResult(new ConnectionResult(true, null, null));
+
+        var outcome = await harness.RunPipelineAsync(
+            server,
+            "session-rdp-forced-external",
+            RdpModeOverride.ForceExternal).WaitAsync(TestTimeout);
+
+        Assert.Equal(BulkConnectOutcomeStatus.Success, outcome.Status);
+        var tab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(RdpModeOverride.ForceExternal, tab.RdpModeOverride);
+        Assert.Equal("Demo RDP (forced external)", tab.DisplayTitle);
+        Assert.Equal("External client launched", tab.Status);
+    }
+
+    [Fact]
     public async Task RunConnectionPipelineAsync_SshFailure_RemovesPlaceholderTab()
     {
         using var harness = TestHarness.Create();
@@ -280,7 +300,10 @@ public sealed class SessionCoordinatorPreMountTests
             };
         }
 
-        public Task<BulkConnectOutcome> RunPipelineAsync(ServerProfileDto server, string sessionId)
+        public Task<BulkConnectOutcome> RunPipelineAsync(
+            ServerProfileDto server,
+            string sessionId,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
         {
             var item = ServerItemViewModel.FromDto(server, localizer: Main.GetLocalizer());
             return Main.ServerList.RunConnectionPipelineAsync(
@@ -289,7 +312,8 @@ public sealed class SessionCoordinatorPreMountTests
                 sessionId,
                 server.Id,
                 item,
-                CancellationToken.None);
+                CancellationToken.None,
+                rdpModeOverride);
         }
 
         public void Dispose()
@@ -323,7 +347,8 @@ public sealed class SessionCoordinatorPreMountTests
         public Task<ConnectionResult> ConnectAsync(
             ServerProfileDto server,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
         {
             Started.TrySetResult(ct);
             return Result.Task.WaitAsync(ct);

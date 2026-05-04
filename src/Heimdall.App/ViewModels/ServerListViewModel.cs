@@ -45,7 +45,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     private readonly IUiDispatcher _uiDispatcher;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ConnectionService _connectionService;
-    private readonly IRdpImportService _rdpImportService;
+    private readonly IProfileImportService _profileImportService;
     private readonly PuttySessionImporter _puttySessionImporter;
     private readonly KnownHostsImporter _knownHostsImporter;
 
@@ -114,7 +114,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// Raised when a connection result is ready and a session tab should be created.
     /// Parameters: sessionId, originalServerId, displayName, connectionType, session result.
     /// </summary>
-    public event Action<string, string, string, string, Core.Models.ISessionResult?>? SessionReady;
+    public event Action<string, string, string, string, Core.Models.ISessionResult?, RdpModeOverride>? SessionReady;
 
     /// <summary>
     /// Raised when a connect that previously fired
@@ -149,7 +149,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         IDialogService dialogService,
         IRdpImportService rdpImportService,
         PuttySessionImporter puttySessionImporter,
-        KnownHostsImporter knownHostsImporter)
+        KnownHostsImporter knownHostsImporter,
+        IProfileImportService? profileImportService = null)
     {
         _configManager = configManager;
         _localizer = localizer;
@@ -157,7 +158,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         _connectionSm = connectionSm;
         _connectionService = connectionService;
         _dialogService = dialogService;
-        _rdpImportService = rdpImportService;
+        _profileImportService = profileImportService
+            ?? new ProfileImportService(configManager, localizer, dialogService, rdpImportService);
         _puttySessionImporter = puttySessionImporter;
         _knownHostsImporter = knownHostsImporter;
 
@@ -292,43 +294,27 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var preview = await _rdpImportService.PreviewAsync(paths, cancellationToken);
-        if (preview.Entries.Count == 0)
+        var result = await _profileImportService.ImportFromPathsAsync(paths, cancellationToken);
+        if (result.IsFailure)
         {
-            _dialogService.ShowWarning(
+            _dialogService.ShowError(
                 _localizer["DialogImportRdpTitle"],
-                _localizer["WarningImportRdpNoValidFiles"]);
+                result.ErrorMessage ?? _localizer["StatusImportFailed"]);
             return;
         }
 
-        var dialogVm = new RdpImportDialogViewModel(_localizer, preview);
-        var selection = await _dialogService.ShowRdpImportDialogAsync(dialogVm);
-        if (selection is null)
+        if (!result.HasChanges)
         {
             return;
         }
 
-        var result = await _rdpImportService.ApplyAsync(preview, selection, cancellationToken);
         var settings = await _configManager.LoadSettingsAsync();
         var servers = await _configManager.LoadServersAsync();
         LoadServers(servers, settings);
 
-        var summary = _localizer.Format(
-            "StatusImportRdpSummary",
-            result.ImportedCount,
-            result.ReplacedCount,
-            result.RenamedCount,
-            result.SkippedCount,
-            result.PasswordsIgnoredCount);
-
-        if (result.ImportedCount > 0 || result.ReplacedCount > 0)
+        if (!string.IsNullOrWhiteSpace(result.UserMessage))
         {
-            _dialogService.ShowInfo(_localizer["DialogImportRdpTitle"], summary);
-            StatusMessageRequested?.Invoke(summary);
-        }
-        else
-        {
-            _dialogService.ShowWarning(_localizer["DialogImportRdpTitle"], summary);
+            StatusMessageRequested?.Invoke(result.UserMessage);
         }
     }
 
@@ -520,6 +506,28 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         await ConnectCoreAsync(server, cancellationToken);
     }
 
+    [RelayCommand]
+    private async Task ConnectEmbeddedAsync(ServerItemViewModel? server, CancellationToken cancellationToken)
+    {
+        if (server is null)
+        {
+            return;
+        }
+
+        await ConnectCoreAsync(server, cancellationToken, RdpModeOverride.ForceEmbedded);
+    }
+
+    [RelayCommand]
+    private async Task ConnectExternalAsync(ServerItemViewModel? server, CancellationToken cancellationToken)
+    {
+        if (server is null)
+        {
+            return;
+        }
+
+        await ConnectCoreAsync(server, cancellationToken, RdpModeOverride.ForceExternal);
+    }
+
     /// <summary>
     /// Restores a server session by stable inventory ID using the standard connection pipeline.
     /// Returns false when the server no longer exists or the connection fails.
@@ -541,7 +549,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         return await ConnectCoreAsync(server, cancellationToken);
     }
 
-    private async Task<bool> ConnectCoreAsync(ServerItemViewModel server, CancellationToken cancellationToken)
+    private async Task<bool> ConnectCoreAsync(
+        ServerItemViewModel server,
+        CancellationToken cancellationToken,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         // Prevent duplicate connections from rapid double-clicks
         if (!_connectingServerIds.Add(server.Id))
@@ -618,7 +629,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                 sessionId,
                 originalId,
                 server,
-                cancellationToken);
+                cancellationToken,
+                rdpModeOverride);
 
             return outcome.Status switch
             {
@@ -657,7 +669,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         string sessionId,
         string originalId,
         ServerItemViewModel server,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         var preflight = _connectionService.RunPreflight(serverDto, settings);
         if (!preflight.Success)
@@ -684,7 +697,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             {
                 case "RDP":
                     result = await _connectionService.ConnectRdpAsync(
-                        serverDto, settings, cancellationToken);
+                        serverDto, settings, cancellationToken, rdpModeOverride);
                     break;
 
                 case "SSH":
@@ -744,7 +757,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                     originalId,
                     server.DisplayName,
                     serverDto.ConnectionType,
-                    result.Session);
+                    result.Session,
+                    rdpModeOverride);
                 return new BulkConnectOutcome(BulkConnectOutcomeStatus.Success, null);
             }
 

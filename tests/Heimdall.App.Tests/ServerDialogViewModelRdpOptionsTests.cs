@@ -15,6 +15,7 @@
  */
 
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 
 namespace Heimdall.App.Tests;
@@ -223,7 +224,102 @@ public sealed class ServerDialogViewModelRdpOptionsTests
         Assert.True(dto.RdpMultiMonitor);
     }
 
+    [Fact]
+    public void Rdp_multimon_monitor_choices_are_populated_from_enumerator()
+    {
+        var vm = new ServerDialogViewModel(new FakeMonitorEnumerator(
+            [
+                new MonitorInfo(0, 1920, 1080, true, @"\\.\DISPLAY1"),
+                new MonitorInfo(1, 1080, 1920, false, @"\\.\DISPLAY2")
+            ]))
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Multimon
+        };
+
+        Assert.True(vm.IsMultimonAvailable);
+        Assert.True(vm.ShowRdpSelectedMonitors);
+        Assert.Equal(2, vm.AvailableMonitors.Count);
+        Assert.Equal(0, vm.AvailableMonitors[0].Index);
+        Assert.Equal(1080, vm.AvailableMonitors[1].Width);
+        Assert.Equal(1920, vm.AvailableMonitors[1].Height);
+    }
+
+    [Fact]
+    public void Rdp_multimon_monitor_choices_hydrate_from_dto()
+    {
+        var dto = new ServerProfileDto
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = [0, 2, 5]
+        };
+
+        var vm = ServerDialogViewModel.FromDto(dto, new FakeMonitorEnumerator(
+            [
+                new MonitorInfo(0, 1920, 1080, true, @"\\.\DISPLAY1"),
+                new MonitorInfo(1, 1920, 1080, false, @"\\.\DISPLAY2"),
+                new MonitorInfo(2, 2560, 1440, false, @"\\.\DISPLAY3")
+            ]));
+
+        Assert.True(vm.AvailableMonitors[0].IsSelected);
+        Assert.False(vm.AvailableMonitors[1].IsSelected);
+        Assert.True(vm.AvailableMonitors[2].IsSelected);
+    }
+
+    [Fact]
+    public void Rdp_multimon_selected_monitor_choices_round_trip_to_dto()
+    {
+        var vm = new ServerDialogViewModel(new FakeMonitorEnumerator(
+            [
+                new MonitorInfo(0, 1920, 1080, true, @"\\.\DISPLAY1"),
+                new MonitorInfo(1, 1920, 1080, false, @"\\.\DISPLAY2"),
+                new MonitorInfo(2, 2560, 1440, false, @"\\.\DISPLAY3")
+            ]))
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Multimon
+        };
+        vm.AvailableMonitors[0].IsSelected = true;
+        vm.AvailableMonitors[2].IsSelected = true;
+
+        var dto = vm.ToDto();
+
+        Assert.Equal(new[] { 0, 2 }, dto.RdpSelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void Rdp_multimon_refresh_preserves_valid_selected_monitors()
+    {
+        var enumerator = new FakeMonitorEnumerator(
+            [
+                [
+                    new MonitorInfo(0, 1920, 1080, true, @"\\.\DISPLAY1"),
+                    new MonitorInfo(1, 1920, 1080, false, @"\\.\DISPLAY2"),
+                    new MonitorInfo(2, 2560, 1440, false, @"\\.\DISPLAY3")
+                ],
+                [
+                    new MonitorInfo(0, 1920, 1080, true, @"\\.\DISPLAY1"),
+                    new MonitorInfo(1, 1920, 1080, false, @"\\.\DISPLAY2")
+                ]
+            ]);
+        var vm = new ServerDialogViewModel(enumerator)
+        {
+            ConnectionType = "RDP",
+            RdpResolutionMode = RdpResolutionMode.Multimon
+        };
+        vm.AvailableMonitors[1].IsSelected = true;
+        vm.AvailableMonitors[2].IsSelected = true;
+
+        vm.RefreshMonitorsCommand.Execute(null);
+
+        Assert.False(vm.AvailableMonitors[0].IsSelected);
+        Assert.True(vm.AvailableMonitors[1].IsSelected);
+        Assert.Equal(2, vm.AvailableMonitors.Count);
+    }
+
     [Theory]
+    [InlineData(RdpResolutionMode.Auto, false, false, false, false)]
     [InlineData(RdpResolutionMode.Fixed, true, true, true, false)]
     [InlineData(RdpResolutionMode.FitWindow, false, false, true, false)]
     [InlineData(RdpResolutionMode.SmartSizing, false, false, false, false)]
@@ -305,5 +401,30 @@ public sealed class ServerDialogViewModelRdpOptionsTests
 
         Assert.NotNull(vm.RdpResizeEnableDelayMsError);
         Assert.Equal(nameof(ServerDialogViewModel.RdpResizeEnableDelayMs), vm.FirstInvalidField);
+    }
+
+    private sealed class FakeMonitorEnumerator : IMonitorEnumerator
+    {
+        private readonly Queue<IReadOnlyList<MonitorInfo>> _snapshots;
+
+        public FakeMonitorEnumerator(IReadOnlyList<MonitorInfo> monitors)
+            : this([monitors])
+        {
+        }
+
+        public FakeMonitorEnumerator(IEnumerable<IReadOnlyList<MonitorInfo>> snapshots)
+        {
+            _snapshots = new Queue<IReadOnlyList<MonitorInfo>>(snapshots);
+        }
+
+        public IReadOnlyList<MonitorInfo> GetMonitors()
+        {
+            if (_snapshots.Count > 1)
+            {
+                return _snapshots.Dequeue();
+            }
+
+            return _snapshots.Peek();
+        }
     }
 }

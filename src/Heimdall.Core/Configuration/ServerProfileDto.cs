@@ -179,6 +179,7 @@ public sealed class ServerProfileDto
     public int RdpAudioMode { get; set; }
     public bool RdpAudioCapture { get; set; }
     public bool RdpMultiMonitor { get; set; }
+    public int[] RdpSelectedMonitorIndices { get; set; } = [];
     public bool RdpDynamicResolution { get; set; } = true;
     public bool RdpNla { get; set; } = true;
     public int RdpColorDepth { get; set; } = 32;

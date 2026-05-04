@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.IO;
+using System.Text.Json;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Import;
 using Heimdall.App.Services.PostConnect;
@@ -228,10 +230,136 @@ public sealed class SettingsViewModelTests
         Assert.Contains(nameof(SettingsViewModel.CollapseTunnelsPanelByDefault), changes);
     }
 
-    private static SettingsViewModel CreateViewModel(FakeConfigManager config)
+    [Fact]
+    public async Task ResetRdpDefaultsCommand_RestoresRdpDefaults()
+    {
+        var dialog = new FakeDialogService { ConfirmResult = true };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog);
+        SetNonDefaultRdpValues(viewModel);
+
+        await viewModel.ResetRdpDefaultsCommand.ExecuteAsync(null);
+
+        var expected = await LoadExpectedFactoryDefaultsAsync();
+        AssertRdpDefaultsMatch(viewModel, expected);
+        Assert.True(viewModel.IsDirty);
+    }
+
+    [Fact]
+    public async Task ResetRdpDefaultsCommand_DoesNotTouchUnrelatedProperties()
+    {
+        var dialog = new FakeDialogService { ConfirmResult = true };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog);
+        viewModel.DefaultTheme = "Buffy";
+        viewModel.PlinkPath = @"C:\Tools\plink.exe";
+        viewModel.TerminalFontSize = 22;
+        SetNonDefaultRdpValues(viewModel);
+
+        await viewModel.ResetRdpDefaultsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Buffy", viewModel.DefaultTheme);
+        Assert.Equal(@"C:\Tools\plink.exe", viewModel.PlinkPath);
+        Assert.Equal(22, viewModel.TerminalFontSize);
+    }
+
+    [Fact]
+    public async Task ResetRdpDefaultsCommand_CancelledConfirmationDoesNotModifyState()
+    {
+        var dialog = new FakeDialogService { ConfirmResult = false };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog);
+        SetNonDefaultRdpValues(viewModel);
+
+        await viewModel.ResetRdpDefaultsCommand.ExecuteAsync(null);
+
+        Assert.Equal(1280, viewModel.DefaultResolutionWidth);
+        Assert.Equal(720, viewModel.DefaultResolutionHeight);
+        Assert.Equal("External", viewModel.RdpDefaultMode);
+        Assert.False(viewModel.RdpDefaultNla);
+        Assert.False(viewModel.RdpDefaultRedirectClipboard);
+        Assert.False(viewModel.RdpDefaultAutoReconnect);
+    }
+
+    [Fact]
+    public async Task ApplyRdpModeToAllCommand_OnlyUpdatesRdpProfiles()
+    {
+        var config = new FakeConfigManager
+        {
+            Servers =
+            [
+                new ServerProfileDto { ConnectionType = "RDP", RdpMode = "Embedded" },
+                new ServerProfileDto { ConnectionType = "SSH", RdpMode = "Embedded" },
+                new ServerProfileDto { ConnectionType = "RDP", RdpMode = "External" }
+            ]
+        };
+        var dialog = new FakeDialogService { ConfirmResult = true };
+        var viewModel = CreateViewModel(config, dialog);
+        viewModel.RdpDefaultMode = "External";
+
+        await viewModel.ApplyRdpModeToAllCommand.ExecuteAsync(null);
+
+        Assert.NotNull(config.SavedServers);
+        Assert.Equal("External", config.Servers[0].RdpMode);
+        Assert.Equal("Embedded", config.Servers[1].RdpMode);
+        Assert.Equal("External", config.Servers[2].RdpMode);
+        var confirm = Assert.Single(dialog.ConfirmCalls);
+        Assert.Equal("danger", confirm.Severity);
+    }
+
+    [Fact]
+    public async Task ImportConfigCommand_RdpDelegatesToProfileImportService()
+    {
+        var config = new FakeConfigManager();
+        var profileImport = new FakeProfileImportService
+        {
+            Result = new ProfileImportResult { HasChanges = true }
+        };
+        var viewModel = CreateViewModel(config, profileImportService: profileImport);
+        var importPath = Path.Combine(Path.GetTempPath(), "profile.rdp");
+        viewModel.ImportFilePathProvider = () => importPath;
+        var configurationChanged = false;
+        viewModel.ConfigurationChanged += () => configurationChanged = true;
+
+        await viewModel.ImportConfigCommand.ExecuteAsync(null);
+
+        Assert.Equal(importPath, Assert.Single(profileImport.ImportedPaths));
+        Assert.True(configurationChanged);
+    }
+
+    [Fact]
+    public async Task ImportConfigCommand_NoSelectedPath_DoesNotCallProfileImportService()
+    {
+        var profileImport = new FakeProfileImportService();
+        var viewModel = CreateViewModel(new FakeConfigManager(), profileImportService: profileImport);
+        viewModel.ImportFilePathProvider = () => null;
+
+        await viewModel.ImportConfigCommand.ExecuteAsync(null);
+
+        Assert.Empty(profileImport.ImportedPaths);
+    }
+
+    [Fact]
+    public async Task ImportConfigCommand_ProfileImportFailure_ShowsError()
+    {
+        var dialog = new FakeDialogService();
+        var profileImport = new FakeProfileImportService
+        {
+            Result = ProfileImportResult.Failure("Unsupported import file type: .txt.")
+        };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog, profileImport);
+        viewModel.ImportFilePathProvider = () => Path.Combine(Path.GetTempPath(), "profile.txt");
+
+        await viewModel.ImportConfigCommand.ExecuteAsync(null);
+
+        Assert.Single(dialog.ErrorCalls);
+        Assert.Contains(".txt", dialog.ErrorCalls[0].Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static SettingsViewModel CreateViewModel(
+        FakeConfigManager config,
+        FakeDialogService? dialog = null,
+        IProfileImportService? profileImportService = null)
     {
         var localizer = new LocalizationManager();
-        var dialog = new FakeDialogService();
+        dialog ??= new FakeDialogService();
         var trustedHostKeys = new TrustedHostKeysSettingsViewModel(
             new HostKeyTrustService(new HostKeyStore()),
             () => new KnownHostsImportReport(0, 0, []),
@@ -241,7 +369,68 @@ public sealed class SettingsViewModelTests
             new FakeClipboardService(),
             new FakeUiDispatcher());
 
-        return new SettingsViewModel(config, localizer, dialog, trustedHostKeys);
+        return new SettingsViewModel(config, localizer, dialog, trustedHostKeys, profileImportService);
+    }
+
+    private static async Task<AppSettings> LoadExpectedFactoryDefaultsAsync()
+    {
+        var defaultsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.default.json");
+        if (!File.Exists(defaultsPath))
+        {
+            return new AppSettings();
+        }
+
+        var json = await File.ReadAllTextAsync(defaultsPath);
+        return JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        }) ?? new AppSettings();
+    }
+
+    private static void SetNonDefaultRdpValues(SettingsViewModel viewModel)
+    {
+        viewModel.DefaultResolutionWidth = 1280;
+        viewModel.DefaultResolutionHeight = 720;
+        viewModel.RdpDefaultMode = "External";
+        viewModel.RdpDefaultNla = false;
+        viewModel.RdpDefaultColorDepth = 16;
+        viewModel.RdpDefaultDynamicResolution = false;
+        viewModel.RdpDefaultMultiMonitor = true;
+        viewModel.RdpDefaultRedirectClipboard = false;
+        viewModel.RdpDefaultRedirectDrives = true;
+        viewModel.RdpDefaultRedirectPrinters = true;
+        viewModel.RdpDefaultRedirectComPorts = true;
+        viewModel.RdpDefaultRedirectSmartCards = true;
+        viewModel.RdpDefaultRedirectWebcam = true;
+        viewModel.RdpDefaultRedirectUsb = true;
+        viewModel.RdpDefaultAudioCapture = true;
+        viewModel.RdpDefaultAutoReconnect = false;
+        viewModel.RdpDefaultBitmapCaching = false;
+        viewModel.RdpDefaultCompression = false;
+        viewModel.RdpDefaultAudioMode = 2;
+    }
+
+    private static void AssertRdpDefaultsMatch(SettingsViewModel viewModel, AppSettings expected)
+    {
+        Assert.Equal(expected.DefaultResolutionWidth, viewModel.DefaultResolutionWidth);
+        Assert.Equal(expected.DefaultResolutionHeight, viewModel.DefaultResolutionHeight);
+        Assert.Equal(expected.RdpDefaultMode, viewModel.RdpDefaultMode);
+        Assert.Equal(expected.RdpDefaultNla, viewModel.RdpDefaultNla);
+        Assert.Equal(expected.RdpDefaultColorDepth, viewModel.RdpDefaultColorDepth);
+        Assert.Equal(expected.RdpDefaultDynamicResolution, viewModel.RdpDefaultDynamicResolution);
+        Assert.Equal(expected.RdpDefaultMultiMonitor, viewModel.RdpDefaultMultiMonitor);
+        Assert.Equal(expected.RdpDefaultRedirectClipboard, viewModel.RdpDefaultRedirectClipboard);
+        Assert.Equal(expected.RdpDefaultRedirectDrives, viewModel.RdpDefaultRedirectDrives);
+        Assert.Equal(expected.RdpDefaultRedirectPrinters, viewModel.RdpDefaultRedirectPrinters);
+        Assert.Equal(expected.RdpDefaultRedirectComPorts, viewModel.RdpDefaultRedirectComPorts);
+        Assert.Equal(expected.RdpDefaultRedirectSmartCards, viewModel.RdpDefaultRedirectSmartCards);
+        Assert.Equal(expected.RdpDefaultRedirectWebcam, viewModel.RdpDefaultRedirectWebcam);
+        Assert.Equal(expected.RdpDefaultRedirectUsb, viewModel.RdpDefaultRedirectUsb);
+        Assert.Equal(expected.RdpDefaultAudioCapture, viewModel.RdpDefaultAudioCapture);
+        Assert.Equal(expected.RdpDefaultAutoReconnect, viewModel.RdpDefaultAutoReconnect);
+        Assert.Equal(expected.RdpDefaultBitmapCaching, viewModel.RdpDefaultBitmapCaching);
+        Assert.Equal(expected.RdpDefaultCompression, viewModel.RdpDefaultCompression);
+        Assert.Equal(expected.RdpDefaultAudioMode, viewModel.RdpDefaultAudioMode);
     }
 
     private sealed class FakeConfigManager : IConfigManager
@@ -249,6 +438,10 @@ public sealed class SettingsViewModelTests
         public AppSettings Settings { get; set; } = new();
 
         public AppSettings? SavedSettings { get; private set; }
+
+        public List<ServerProfileDto> Servers { get; set; } = [];
+
+        public List<ServerProfileDto>? SavedServers { get; private set; }
 
         public string ConfigPath => "config";
 
@@ -285,10 +478,14 @@ public sealed class SettingsViewModelTests
         }
 
         public Task<List<ServerProfileDto>> LoadServersAsync()
-            => Task.FromResult(new List<ServerProfileDto>());
+            => Task.FromResult(Servers);
 
         public Task SaveServersAsync(List<ServerProfileDto> servers)
-            => Task.CompletedTask;
+        {
+            SavedServers = servers;
+            Servers = servers;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeClipboardService : IClipboardService
@@ -300,8 +497,17 @@ public sealed class SettingsViewModelTests
 
     private sealed class FakeDialogService : IDialogService
     {
+        public bool ConfirmResult { get; set; }
+
+        public List<(string Title, string Message, string Severity)> ConfirmCalls { get; } = [];
+
+        public List<(string Title, string Message)> ErrorCalls { get; } = [];
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
-            => Task.FromResult(false);
+        {
+            ConfirmCalls.Add((title, message, severity));
+            return Task.FromResult(ConfirmResult);
+        }
 
         public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message)
             => Task.FromResult<bool?>(null);
@@ -364,6 +570,7 @@ public sealed class SettingsViewModelTests
 
         public void ShowError(string title, string message)
         {
+            ErrorCalls.Add((title, message));
         }
 
         public void ShowInfo(string title, string message)
@@ -372,6 +579,25 @@ public sealed class SettingsViewModelTests
 
         public void ShowWarning(string title, string message)
         {
+        }
+    }
+
+    private sealed class FakeProfileImportService : IProfileImportService
+    {
+        public ProfileImportResult Result { get; set; } = ProfileImportResult.NoChanges();
+
+        public List<string> ImportedPaths { get; } = [];
+
+        public Task<ProfileImportResult> ImportFromPathAsync(string path, CancellationToken ct = default)
+        {
+            ImportedPaths.Add(path);
+            return Task.FromResult(Result);
+        }
+
+        public Task<ProfileImportResult> ImportFromPathsAsync(IEnumerable<string> paths, CancellationToken ct = default)
+        {
+            ImportedPaths.AddRange(paths);
+            return Task.FromResult(Result);
         }
     }
 }

@@ -12,6 +12,87 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-04 — RDP UX audit cycle implementation
+
+Pair-architect cycle implementing the RDP UX audit
+(`docs/audit/audit-ux-rdp-2026-05-04.md`). 8 prompts + 2 mini-correctifs,
+12 of 26 findings closed (2 critical / 7 important / 3 minor). Complete
+implementation log in the audit report.
+
+User-visible changes:
+
+- **External RDP applies the profile** (RDP-DISC-06) — the generated `.rdp`
+  now respects per-server `RdpResolutionMode`, `RdpFixedWidth/Height`,
+  multi-monitor and smart sizing settings instead of falling back to the
+  global defaults. `RdpProfileResolver.ResolveResolution` mirrors the
+  existing color-depth resolution pattern.
+- **Honest "external client launched" status** (RDP-LIVE-23) — the
+  `LaunchedExternalClient` state is now painted in `WarningBrush` (orange)
+  instead of `SuccessBrush` (green). A dedicated status text and tooltip
+  make clear that Heimdall cannot directly observe the remote session
+  state until the external client exits.
+- **One-shot Embedded/External override** (RDP-DISC-03) — right-click any
+  RDP profile to open *Connect with...* and pick `Connect (embedded)` or
+  `Connect (external mstsc)` for a single launch without editing the
+  profile. Forced sessions show a discreet `(forced embedded/external)`
+  suffix in the tab title.
+- **Per-monitor selection in Multimon mode** (RDP-PROF-13) — when the
+  resolution mode is set to `Multi-monitor`, a `Selected monitors`
+  sub-section lists detected screens with their resolution and a
+  `(primary)` / `(vertical)` suffix where relevant. Empty selection keeps
+  the existing behaviour ("use all monitors") for backward compatibility.
+- **Settings → RDP reorganized** (RDP-SET-02) — the previously flat list
+  of 18 controls is now grouped into 6 cards: Defaults / Display / Audio
+  / Performance / Devices / Advanced timeouts. The 3 RDP timeouts
+  (`RdpResizeEnableDelayMs`, `RdpArtifactCleanupDelayMs`,
+  `RdpCredentialAutofillTimeoutMs`) move from the Advanced tab into the
+  RDP tab. Added a `Reset RDP defaults` link with confirmation, plus
+  tooltips on every checkbox using the localized `Rdp*Hint` keys.
+- **`Apply to all` confirmation** (RDP-SET-05) — the destructive bulk
+  mutation that overwrites RDP mode on every existing profile now
+  triggers a confirmation dialog stating the affected profile count.
+- **Embedded RDP toolbar grouping** (RDP-LIVE-18) — two thin vertical
+  separators split the toolbar into 3 logical groups
+  (Session control / Session interaction / Display configuration). Same
+  separator style applied to SFTP for consistency.
+- **Letterbox region delimited** (RDP-LIVE-17, structural) — a 1px Border
+  now materializes the active RDP region in fixed-resolution sessions, so
+  the letterbox bands no longer read as a display bug. A first-letterbox
+  hint badge fades in/out to explain the mode. Visual polish on the band
+  colour (currently system gray instead of `SurfaceBrush`) tracked as
+  follow-up `RDP-LIVE-24`.
+- **Unified `.rdp` import** (RDP-DISC-07) — the `Settings → Import`
+  button and the drag-and-drop drop handler now share a single
+  `IProfileImportService`, so both entry points get the rich
+  preview/conflict resolution flow. Historic formats
+  (MobaXterm/RDCMan/mRemoteNG) keep their dedicated parsers.
+
+New abstractions worth knowing:
+
+- `RdpProfileResolver.ResolveResolution(server, settings)` — returns
+  `(Width, Height, MultiMonitor, SmartSizing, SelectedMonitorIndices)`,
+  centralising the per-server resolution decision for both Embedded and
+  External paths.
+- `RdpModeOverride` enum (`UseProfile` / `ForceEmbedded` /
+  `ForceExternal`), threaded through `IConnectionService` /
+  `IProtocolHandler` / `RdpHandler` as an optional parameter that never
+  mutates `server.RdpMode`.
+- `IMonitorEnumerator` test seam wrapping `Screen.AllScreens` so the
+  ServerDialog ViewModel can be unit-tested without an interactive
+  display.
+- `IRdpExternalClientLauncher` for testable mstsc spawning.
+- `IProfileImportService` (cross-format) above `IRdpImportService`
+  (`.rdp`-specific), shared by drag/drop and Settings import.
+
+Test baseline: **5,281 passing + 6 skipped**, zero warnings, i18n parity
+preserved (en=fr=5,458 leaf keys).
+
+Two follow-ups remain open: `RDP-LIVE-24` (letterbox band SurfaceBrush +
+hint-badge first-display verification) and `RDP-LIVE-25` (Multi-monitor
+default tooltip wording in Settings → RDP, made stale by the new
+per-profile picker). 14 lower-priority findings deferred to a future
+polish sprint, listed in the audit report.
+
 ## 2026-05-02 — Post-Phase 3 documentation refresh
 
 Phase 3.8 doc-only pass refreshing tracked living documentation after the

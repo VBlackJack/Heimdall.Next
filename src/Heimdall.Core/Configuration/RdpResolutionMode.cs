@@ -21,8 +21,9 @@ namespace Heimdall.Core.Configuration;
 /// </summary>
 public enum RdpResolutionMode
 {
-    FitWindow,
-    Fixed,
-    SmartSizing,
-    Multimon
+    FitWindow = 0,
+    Fixed = 1,
+    SmartSizing = 2,
+    Multimon = 3,
+    Auto = 4
 }

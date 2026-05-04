@@ -251,6 +251,225 @@ public sealed class RdpProfileResolverTests
     }
 
     [Fact]
+    public void ResolveResolution_Auto_UsesSettingsDefaults()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Auto,
+            RdpMultiMonitor = false
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 1600,
+            DefaultResolutionHeight = 900,
+            RdpDefaultMultiMonitor = true
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1600, resolution.Width);
+        Assert.Equal(900, resolution.Height);
+        Assert.True(resolution.MultiMonitor);
+        Assert.False(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_Fixed_UsesServerWidthHeight()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 2560,
+            RdpFixedHeight = 1440
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings());
+
+        Assert.Equal(2560, resolution.Width);
+        Assert.Equal(1440, resolution.Height);
+        Assert.False(resolution.MultiMonitor);
+        Assert.False(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_Fixed_ClampsOutOfRangeValues()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Fixed,
+            RdpFixedWidth = 100,
+            RdpFixedHeight = 5000
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings());
+
+        Assert.Equal(200, resolution.Width);
+        Assert.Equal(4320, resolution.Height);
+    }
+
+    [Fact]
+    public void ResolveResolution_Multimon_FlagsMultiMonitorTrue()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 1366,
+            DefaultResolutionHeight = 768
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1366, resolution.Width);
+        Assert.Equal(768, resolution.Height);
+        Assert.True(resolution.MultiMonitor);
+        Assert.False(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_Multimon_EmptySelectedMonitorsUsesAll()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = []
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings(), availableMonitorCount: 3);
+
+        Assert.Empty(resolution.SelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void ResolveResolution_Multimon_KeepsValidSelectedMonitors()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = [0, 1]
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings(), availableMonitorCount: 3);
+
+        Assert.Equal(new[] { 0, 1 }, resolution.SelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void ResolveResolution_Multimon_AllOutOfRangeSelectedMonitorsFallsBackToAll()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = [5, 7]
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings(), availableMonitorCount: 2);
+
+        Assert.Empty(resolution.SelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void ResolveResolution_Multimon_DropsOutOfRangeSelectedMonitors()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpSelectedMonitorIndices = [0, 5]
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, new AppSettings(), availableMonitorCount: 2);
+
+        Assert.Equal(new[] { 0 }, resolution.SelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void ResolveResolution_SmartSizing_EnablesSmartSizing()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.SmartSizing
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 1920,
+            DefaultResolutionHeight = 1200
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1920, resolution.Width);
+        Assert.Equal(1200, resolution.Height);
+        Assert.False(resolution.MultiMonitor);
+        Assert.True(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_FitWindow_EnablesSmartSizing()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.FitWindow
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 1440,
+            DefaultResolutionHeight = 900
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1440, resolution.Width);
+        Assert.Equal(900, resolution.Height);
+        Assert.False(resolution.MultiMonitor);
+        Assert.True(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_FallbackUsedWhenSettingsZero()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Auto
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 0,
+            DefaultResolutionHeight = -1
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1920, resolution.Width);
+        Assert.Equal(1080, resolution.Height);
+        Assert.False(resolution.MultiMonitor);
+        Assert.False(resolution.SmartSizing);
+    }
+
+    [Fact]
+    public void ResolveResolution_UnknownEnum_UsesAutoFallback()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = (RdpResolutionMode)999,
+            RdpMultiMonitor = true
+        };
+        var settings = new AppSettings
+        {
+            DefaultResolutionWidth = 1280,
+            DefaultResolutionHeight = 720
+        };
+
+        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+
+        Assert.Equal(1280, resolution.Width);
+        Assert.Equal(720, resolution.Height);
+        Assert.True(resolution.MultiMonitor);
+        Assert.False(resolution.SmartSizing);
+    }
+
+    [Fact]
     public void BuildRedirections_WithDefaultDtoAndDefaultSettingsIsConsistent()
     {
         var settings = new AppSettings();

@@ -1,0 +1,382 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+
+namespace Heimdall.App.Services.Import;
+
+/// <summary>
+/// Shared profile import workflow for entry points that already have one or more file paths.
+/// </summary>
+public sealed class ProfileImportService(
+    IConfigManager configManager,
+    LocalizationManager localizer,
+    IDialogService dialogService,
+    IRdpImportService rdpImportService) : IProfileImportService
+{
+    private static readonly JsonSerializerOptions ProfileJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private readonly IConfigManager _configManager = configManager;
+    private readonly LocalizationManager _localizer = localizer;
+    private readonly IDialogService _dialogService = dialogService;
+    private readonly IRdpImportService _rdpImportService = rdpImportService;
+
+    public Task<ProfileImportResult> ImportFromPathAsync(string path, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return ImportFromPathsAsync([path], ct);
+    }
+
+    public async Task<ProfileImportResult> ImportFromPathsAsync(IEnumerable<string> paths, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+
+        var normalizedPaths = paths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (normalizedPaths.Length == 0)
+        {
+            return ProfileImportResult.NoChanges();
+        }
+
+        var extensions = normalizedPaths
+            .Select(path => Path.GetExtension(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (extensions.Length == 1 && string.Equals(extensions[0], ".rdp", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ImportRdpFilesAsync(normalizedPaths, ct);
+        }
+
+        if (normalizedPaths.Length == 1 &&
+            string.Equals(extensions[0], ".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ImportJsonProfilesAsync(normalizedPaths[0], ct);
+        }
+
+        var extension = extensions.Length == 1 && !string.IsNullOrWhiteSpace(extensions[0])
+            ? extensions[0]
+            : string.Join(", ", extensions.Where(ext => !string.IsNullOrWhiteSpace(ext)));
+
+        return ProfileImportResult.Failure(
+            _localizer.Format("ImportErrorUnknownExtension", string.IsNullOrWhiteSpace(extension) ? "<none>" : extension));
+    }
+
+    private async Task<ProfileImportResult> ImportRdpFilesAsync(string[] paths, CancellationToken ct)
+    {
+        var preview = await _rdpImportService.PreviewAsync(paths, ct);
+        if (preview.Entries.Count == 0)
+        {
+            _dialogService.ShowWarning(
+                _localizer["DialogImportRdpTitle"],
+                _localizer["WarningImportRdpNoValidFiles"]);
+            return ProfileImportResult.NoChanges();
+        }
+
+        var dialogVm = new RdpImportDialogViewModel(_localizer, preview);
+        var selection = await _dialogService.ShowRdpImportDialogAsync(dialogVm);
+        if (selection is null)
+        {
+            return ProfileImportResult.Cancelled();
+        }
+
+        var result = await _rdpImportService.ApplyAsync(preview, selection, ct);
+        var summary = _localizer.Format(
+            "StatusImportRdpSummary",
+            result.ImportedCount,
+            result.ReplacedCount,
+            result.RenamedCount,
+            result.SkippedCount,
+            result.PasswordsIgnoredCount);
+
+        if (result.ImportedCount > 0 || result.ReplacedCount > 0)
+        {
+            _dialogService.ShowInfo(_localizer["DialogImportRdpTitle"], summary);
+        }
+        else
+        {
+            _dialogService.ShowWarning(_localizer["DialogImportRdpTitle"], summary);
+        }
+
+        return new ProfileImportResult
+        {
+            HasChanges = result.ImportedCount > 0 || result.ReplacedCount > 0,
+            UserMessage = summary,
+            ImportedCount = result.ImportedCount,
+            ReplacedCount = result.ReplacedCount,
+            RenamedCount = result.RenamedCount,
+            SkippedCount = result.SkippedCount,
+            PasswordsIgnoredCount = result.PasswordsIgnoredCount
+        };
+    }
+
+    private async Task<ProfileImportResult> ImportJsonProfilesAsync(string path, CancellationToken ct)
+    {
+        List<ServerProfileDto> candidates;
+        try
+        {
+            var json = await File.ReadAllTextAsync(path, ct);
+            candidates = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ProfileJsonOptions) ?? [];
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return ProfileImportResult.Failure(_localizer.Format("StatusImportFailed", ex.Message));
+        }
+
+        if (candidates.Count == 0)
+        {
+            _dialogService.ShowInfo(_localizer["ImportDialogTitle"], _localizer["ImportNoSessionsFound"]);
+            return ProfileImportResult.NoChanges();
+        }
+
+        ImportedProfileSanitizer.Sanitize(candidates);
+
+        var preview = await BuildJsonPreviewAsync(path, candidates, ct);
+        var dialogVm = new RdpImportDialogViewModel(
+            _localizer,
+            preview,
+            RdpImportDialogTextOptions.ProfileImport);
+        var selection = await _dialogService.ShowRdpImportDialogAsync(dialogVm);
+        if (selection is null)
+        {
+            return ProfileImportResult.Cancelled();
+        }
+
+        var result = await ApplyJsonSelectionAsync(preview, selection, ct);
+        var summary = _localizer.Format(
+            "StatusImportProfileSummary",
+            result.ImportedCount,
+            result.ReplacedCount,
+            result.RenamedCount,
+            result.SkippedCount);
+
+        if (result.ImportedCount > 0 || result.ReplacedCount > 0)
+        {
+            _dialogService.ShowInfo(_localizer["ImportDialogTitle"], summary);
+        }
+        else
+        {
+            _dialogService.ShowWarning(_localizer["ImportDialogTitle"], summary);
+        }
+
+        return new ProfileImportResult
+        {
+            HasChanges = result.ImportedCount > 0 || result.ReplacedCount > 0,
+            UserMessage = summary,
+            ImportedCount = result.ImportedCount,
+            ReplacedCount = result.ReplacedCount,
+            RenamedCount = result.RenamedCount,
+            SkippedCount = result.SkippedCount
+        };
+    }
+
+    private async Task<RdpImportPreview> BuildJsonPreviewAsync(
+        string path,
+        IReadOnlyList<ServerProfileDto> candidates,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var currentServers = await _configManager.LoadServersAsync();
+        var existingById = currentServers
+            .Where(server => !string.IsNullOrWhiteSpace(server.Id))
+            .ToDictionary(server => server.Id, StringComparer.OrdinalIgnoreCase);
+        var existingNameMap = currentServers
+            .Where(server => !string.IsNullOrWhiteSpace(server.DisplayName))
+            .GroupBy(server => server.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().DisplayName, StringComparer.OrdinalIgnoreCase);
+        var candidateNameCounts = candidates
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.DisplayName))
+            .GroupBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+
+        var entries = new List<RdpImportPreviewEntry>(candidates.Count);
+        for (var index = 0; index < candidates.Count; index++)
+        {
+            var candidate = CloneProfile(candidates[index]);
+            var proposedName = string.IsNullOrWhiteSpace(candidate.DisplayName)
+                ? _localizer["DialogImportProfileFallbackName"]
+                : candidate.DisplayName.Trim();
+            candidate.DisplayName = proposedName;
+
+            ServerProfileDto? idConflict = null;
+            var hasExistingIdConflict = !string.IsNullOrWhiteSpace(candidate.Id) &&
+                existingById.TryGetValue(candidate.Id, out idConflict);
+            var hasExistingNameConflict = existingNameMap.TryGetValue(proposedName, out var conflictingName);
+            var hasBatchConflict = candidateNameCounts.TryGetValue(proposedName, out var count) && count > 1;
+            var conflictDisplayName = hasExistingIdConflict
+                ? idConflict!.DisplayName
+                : hasExistingNameConflict
+                    ? conflictingName
+                    : hasBatchConflict
+                        ? proposedName
+                        : null;
+
+            entries.Add(new RdpImportPreviewEntry
+            {
+                SourceFilePath = $"{path}#{index}",
+                ProposedName = proposedName,
+                Candidate = candidate,
+                HasNameConflict = hasExistingIdConflict || hasExistingNameConflict || hasBatchConflict,
+                ConflictingExistingName = conflictDisplayName
+            });
+        }
+
+        return new RdpImportPreview
+        {
+            Entries = entries,
+            FilesNotFound = [],
+            FilesUnreadable = []
+        };
+    }
+
+    private async Task<ProfileImportResult> ApplyJsonSelectionAsync(
+        RdpImportPreview preview,
+        RdpImportSelection selection,
+        CancellationToken ct)
+    {
+        var inventory = await _configManager.LoadServersAsync();
+        var previewMap = preview.Entries.ToDictionary(entry => entry.SourceFilePath, StringComparer.OrdinalIgnoreCase);
+        var importedCount = 0;
+        var replacedCount = 0;
+        var renamedCount = 0;
+        var skippedCount = 0;
+
+        foreach (var selectionEntry in selection.Entries)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (!selectionEntry.IsSelected ||
+                !previewMap.TryGetValue(selectionEntry.SourceFilePath, out var previewEntry))
+            {
+                continue;
+            }
+
+            var candidate = CloneProfile(previewEntry.Candidate);
+            var existingIndex = FindExistingProfileIndex(inventory, candidate);
+            if (existingIndex >= 0)
+            {
+                switch (selectionEntry.ConflictResolution)
+                {
+                    case RdpConflictResolution.Skip:
+                        skippedCount++;
+                        continue;
+
+                    case RdpConflictResolution.Replace:
+                        candidate.Id = inventory[existingIndex].Id;
+                        inventory[existingIndex] = candidate;
+                        replacedCount++;
+                        continue;
+
+                    case RdpConflictResolution.AutoRename:
+                        candidate.Id = BuildUniqueId(candidate.Id, inventory);
+                        candidate.DisplayName = BuildAutoRename(candidate.DisplayName, inventory);
+                        inventory.Add(candidate);
+                        importedCount++;
+                        renamedCount++;
+                        continue;
+                }
+            }
+
+            candidate.Id = BuildUniqueId(candidate.Id, inventory);
+            inventory.Add(candidate);
+            importedCount++;
+        }
+
+        if (importedCount > 0 || replacedCount > 0)
+        {
+            await _configManager.SaveServersAsync(inventory);
+        }
+
+        return new ProfileImportResult
+        {
+            HasChanges = importedCount > 0 || replacedCount > 0,
+            ImportedCount = importedCount,
+            ReplacedCount = replacedCount,
+            RenamedCount = renamedCount,
+            SkippedCount = skippedCount
+        };
+    }
+
+    private static int FindExistingProfileIndex(IReadOnlyList<ServerProfileDto> inventory, ServerProfileDto candidate)
+    {
+        if (!string.IsNullOrWhiteSpace(candidate.Id))
+        {
+            for (var index = 0; index < inventory.Count; index++)
+            {
+                if (string.Equals(inventory[index].Id, candidate.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
+            }
+        }
+
+        for (var index = 0; index < inventory.Count; index++)
+        {
+            if (string.Equals(inventory[index].DisplayName, candidate.DisplayName, StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static string BuildUniqueId(string? candidateId, IReadOnlyList<ServerProfileDto> inventory)
+    {
+        if (!string.IsNullOrWhiteSpace(candidateId) &&
+            inventory.All(server => !string.Equals(server.Id, candidateId, StringComparison.OrdinalIgnoreCase)))
+        {
+            return candidateId;
+        }
+
+        return Guid.NewGuid().ToString();
+    }
+
+    private static string BuildAutoRename(string baseName, IReadOnlyList<ServerProfileDto> inventory)
+    {
+        var suffix = 2;
+        var candidate = $"{baseName} (Imported {suffix})";
+        while (inventory.Any(server => string.Equals(server.DisplayName, candidate, StringComparison.OrdinalIgnoreCase)))
+        {
+            suffix++;
+            candidate = $"{baseName} (Imported {suffix})";
+        }
+
+        return candidate;
+    }
+
+    private static ServerProfileDto CloneProfile(ServerProfileDto source)
+    {
+        var json = JsonSerializer.Serialize(source, ProfileJsonOptions);
+        return JsonSerializer.Deserialize<ServerProfileDto>(json, ProfileJsonOptions)
+            ?? throw new InvalidOperationException("Failed to clone imported profile.");
+    }
+}

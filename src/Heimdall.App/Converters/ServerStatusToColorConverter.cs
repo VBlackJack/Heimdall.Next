@@ -34,6 +34,18 @@ namespace Heimdall.App.Converters;
 /// </remarks>
 public sealed class ServerStatusToColorConverter : IMultiValueConverter
 {
+    private readonly Func<string, Brush?> _resolveBrush;
+
+    public ServerStatusToColorConverter()
+        : this(key => Application.Current?.TryFindResource(key) as Brush)
+    {
+    }
+
+    internal ServerStatusToColorConverter(Func<string, Brush?> resolveBrush)
+    {
+        _resolveBrush = resolveBrush ?? throw new ArgumentNullException(nameof(resolveBrush));
+    }
+
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values.Length < 2
@@ -50,7 +62,8 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
         // State-based colors take priority over type-based colors
         return connectionState switch
         {
-            "connected" or "launchedexternalclient" => ResolveBrush("SuccessBrush", Brushes.Green),
+            "connected" => ResolveBrush("SuccessBrush", Brushes.Green),
+            "launchedexternalclient" => ResolveBrush("WarningBrush", Brushes.Orange),
             "error" => ResolveBrush("ErrorBrush", Brushes.Red),
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
@@ -76,6 +89,6 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         => [DependencyProperty.UnsetValue, DependencyProperty.UnsetValue, DependencyProperty.UnsetValue];
 
-    private static Brush ResolveBrush(string resourceKey, Brush fallback)
-        => Application.Current.TryFindResource(resourceKey) as Brush ?? fallback;
+    private Brush ResolveBrush(string resourceKey, Brush fallback)
+        => _resolveBrush(resourceKey) ?? fallback;
 }

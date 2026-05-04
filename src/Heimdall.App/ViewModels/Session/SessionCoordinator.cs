@@ -319,11 +319,23 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     /// companion pane for SSH connections when
     /// <see cref="AppSettings.SftpAutoOpenOnSsh"/> is enabled.
     /// </summary>
-    private void OnSessionReady(string sessionId, string originalServerId, string displayName, string connectionType, ISessionResult? session)
+    private void OnSessionReady(
+        string sessionId,
+        string originalServerId,
+        string displayName,
+        string connectionType,
+        ISessionResult? session,
+        RdpModeOverride rdpModeOverride)
     {
         if (!_uiDispatcher.CheckAccess())
         {
-            InvokeOnUi(() => OnSessionReady(sessionId, originalServerId, displayName, connectionType, session));
+            InvokeOnUi(() => OnSessionReady(
+                sessionId,
+                originalServerId,
+                displayName,
+                connectionType,
+                session,
+                rdpModeOverride));
             return;
         }
 
@@ -331,7 +343,24 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         if (session is null)
         {
-            _main.StatusText = _localizer.Format("StatusConnected", displayName);
+            if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+            {
+                if (rdpModeOverride != RdpModeOverride.UseProfile)
+                {
+                    var externalTab = _main.Connection.AddSession(sessionId, displayName, connectionType);
+                    externalTab.OriginalServerId = originalServerId;
+                    externalTab.FailureDetails = null;
+                    ApplyRdpModeOverride(externalTab, connectionType, rdpModeOverride);
+                    externalTab.Status = _localizer["StatusLaunchedExternalClient"];
+                }
+
+                _main.StatusText = _localizer["StatusLaunchedExternalClient"];
+            }
+            else
+            {
+                _main.StatusText = _localizer.Format("StatusConnected", displayName);
+            }
+
             return;
         }
 
@@ -358,6 +387,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
         tab.OriginalServerId = originalServerId;
         tab.FailureDetails = null;
+        ApplyRdpModeOverride(tab, connectionType, rdpModeOverride);
         tab.HostControl = _embeddedSessionManager.CreateHostControl(
             tab,
             displayName,
@@ -405,6 +435,26 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             _ = SafeFireAndForgetAsync(
                 RunPostConnectSequenceAsync(tab, originalServerId, displayName, sshSession, _main.Split.GetSessionToken(tab)));
         }
+    }
+
+    private void ApplyRdpModeOverride(
+        SessionTabViewModel tab,
+        string connectionType,
+        RdpModeOverride rdpModeOverride)
+    {
+        if (!string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            || rdpModeOverride == RdpModeOverride.UseProfile)
+        {
+            return;
+        }
+
+        tab.RdpModeOverride = rdpModeOverride;
+        tab.RdpModeOverrideSuffix = rdpModeOverride switch
+        {
+            RdpModeOverride.ForceEmbedded => _localizer["SessionTitleSuffixForcedEmbedded"],
+            RdpModeOverride.ForceExternal => _localizer["SessionTitleSuffixForcedExternal"],
+            _ => string.Empty
+        };
     }
 
     /// <summary>

@@ -166,6 +166,22 @@ Additional guards:
 - **Per-server experience flags**: `AdvancedSettings9.PerformanceFlags` bitmask (wallpaper, themes, animations, drag, cursor shadow, composition) configurable in Server Dialog
 - **TCP-only mode**: `BandwidthDetection = false` + `NetworkConnectionType = 6` (LAN) disables UDP probe to avoid firewall timeouts
 
+### 4b. RDP Profile Resolution and One-Shot Mode Override
+
+**Problem**: Two related sources of confusion in the RDP launch chain. (1) The External path (mstsc) used to fall back to `AppSettings.DefaultResolutionWidth/Height` and ignore the per-server `RdpResolutionMode`, `RdpFixedWidth/Height`, multi-monitor, and smart sizing — so the user-configured profile silently failed to apply. (2) Mode is a per-server property (`RdpMode = "Embedded" | "External"`), with no way to flip it for a single triage launch without editing the profile.
+
+**Solution**: Centralize per-server resolution decisions in `RdpProfileResolver.ResolveResolution(server, settings)` (in `Heimdall.App/Services/`), returning a `RdpResolvedResolution` record `(Width, Height, MultiMonitor, SmartSizing, SelectedMonitorIndices)`. Mirrors the existing `RdpProfileResolver.ResolveColorDepth` precedence rule (server > settings > fallback). Both Embedded (via `RdpDisplayResolver` and the COM property setters) and External (via `RdpFileGenerator.RdpFileOptions`) consume the same resolved record, eliminating the silent divergence.
+
+**One-shot mode override**: `RdpModeOverride` enum (`UseProfile` / `ForceEmbedded` / `ForceExternal`) flows as an optional parameter through `IConnectionService.ConnectRdpAsync` -> `IProtocolHandler.ConnectAsync` -> `RdpHandler.ConnectAsync` -> `ResolveEffectiveMode`. The override never mutates `server.RdpMode`; it lives in the call stack only. Server context-menu entry *Connect with...* exposes `Connect (embedded)` and `Connect (external mstsc)` for RDP profiles only. When an override is active, the resulting session tab title appends a `(forced embedded)` / `(forced external)` suffix.
+
+**Test seams**:
+
+- `IMonitorEnumerator` (impl `WinFormsMonitorEnumerator`) wraps `Screen.AllScreens` so the ServerDialog ViewModel can be unit-tested without an interactive display. Used by the per-profile *Selected monitors* picker introduced for `RdpResolutionMode.Multimon`.
+- `IRdpExternalClientLauncher` abstracts the mstsc spawn so the External handler is testable without launching a real process.
+- `RdpSelectedMonitorValidator` validates persisted monitor indices against the runtime monitor count and silently drops out-of-range entries (fallback to "all monitors" if the resulting list is empty).
+
+**COM property pattern**: `selectedmonitors` is a documented RDP property but is not a first-class member of `IMsRdpClientNonScriptable5`. `RdpActiveXHost.TrySetSelectedMonitors` writes via `MsRdpClientShell.SetRdpProperty("selectedmonitors", "0,2")` (documented path) and falls back to `IMsRdpClientNonScriptable5.SelectedMonitors` only on failure. Reuse this `SetRdpProperty + non-scriptable fallback` pattern any time a documented RDP property has no first-class C# binding on the COM interface.
+
 ### 5. Credential Autofill via EnumThreadWindows
 
 **Problem**: `EnumWindows` only finds top-level windows. CredUI dialogs from embedded ActiveX controls are thread-owned child windows, invisible to standard window enumeration.
@@ -503,6 +519,14 @@ Prefill is snapshot-only, never live-bound back to server fields, and existing
 parameter values always win. Parameters whose technical name matches the secret
 blacklist (`password`, `token`, `secret`, etc.) are structurally excluded from
 prefill even if future alias tables expand.
+
+### 29b. Unified Profile Import Path
+
+**Problem**: Two divergent flows used to import a `.rdp` or `.json` config file. Drag/drop on the main window routed to the rich `ServerListViewModel.ImportRdpFilesAsync` flow (preview + per-item conflict resolution + merge / replace / skip). The `Settings -> Import` button parsed inline with no preview and no conflict resolution. The user had no clue which entry point to use, and the two paths could diverge over time.
+
+**Solution**: `IProfileImportService` (in `Heimdall.App/Services/Import/`) is the single orchestrator for both entry points. It branches on file extension, delegates `.rdp` parsing to `IRdpImportService`, handles `.json` config payloads natively, and surfaces a `ProfileImportResult` to the caller after the user has resolved conflicts via `RdpImportDialogViewModel`. `ServerListViewModel.ImportRdpFilesAsync` is now a thin wrapper that hands the file list to the service, so drag/drop UX is preserved bit-for-bit. `SettingsViewModel.ImportConfigAsync` is also a thin wrapper around the same service — the previous `ImportRdpFileAsync` and `ImportJsonAsync` methods were deleted (no dead code).
+
+Historic formats (`MobaXterm`, `RDCMan`, `mRemoteNG`) keep their dedicated parsers and are not routed through the new service. Their import filter entries remain in the OpenFileDialog so existing workflows are not regressed.
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 

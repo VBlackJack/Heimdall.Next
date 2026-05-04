@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5030%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5281%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -38,16 +38,19 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Remote Desktop (RDP)
 - Embedded sessions via ActiveX MsTscAx in a tabbed interface
-- External sessions via mstsc.exe with credential autofill
+- External sessions via mstsc.exe with credential autofill — the generated `.rdp` honors the per-server resolution profile (no silent fallback to the global defaults)
+- **One-shot mode override**: right-click any RDP profile -> *Connect with...* to launch in embedded or external mode for a single session, leaving the saved profile untouched. Forced sessions show a discreet `(forced embedded/external)` tab-title suffix
 - Dynamic resolution resize with stabilization guard
-- Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon
+- Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon, with a per-profile **Selected monitors** picker in Multimon mode (empty selection = use all monitors, backward-compatible with existing profiles)
 - Automatic DPI scale tracking via `IMsRdpExtendedSettings` with `Window.DpiChanged` updates
 - Tab context-menu resolution submenu with presets, Match Window, Custom, and Save as default
-- Letterboxed fixed-resolution rendering when Smart Sizing is disabled
+- Letterboxed fixed-resolution rendering when Smart Sizing is disabled — the active RDP region is materialized by a 1px border and a first-letterbox hint badge that fades out after a few seconds
 - Fullscreen UX with a high-contrast exit chip plus F11, Esc, and Ctrl+Shift+F11 escape paths
 - Aspect ratio management (Stretch, 16:9, 4:3, 21:9) and anti-idle prevention
 - Full redirection surface: clipboard, drives, printers, COM ports, smart cards, webcam, USB, audio
 - Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
+- **Honest external-launch state**: when an external mstsc client is spawned, the session shows up in warning color with a dedicated *External client launched* status, signalling that Heimdall cannot directly observe the remote session beyond the launch itself
+- **Unified RDP import**: `.rdp` files dragged onto the main window or imported from `Settings → Import` go through the same preview/conflict resolution flow
 - **Performance**: COM pre-warm at startup, DNS pre-resolution on server selection, per-server experience flags (wallpaper/themes/animations), TCP-only mode for firewall-heavy environments
 
 ### SSH Terminal

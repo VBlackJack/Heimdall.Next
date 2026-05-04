@@ -16,6 +16,12 @@
 
 namespace Heimdall.App.Views.EmbeddedRdp;
 
+internal enum RdpOverlayPrimaryAction
+{
+    Reconnect,
+    EditProfile
+}
+
 /// <summary>
 /// Determines which reconnect-overlay actions are useful for a disconnect code.
 /// </summary>
@@ -28,4 +34,9 @@ internal static class RdpDisconnectActionPolicy
         2055 or 2308 or 2311 or 2825 or 3080 or 3848 or 4360 => true,
         _ => false
     };
+
+    public static RdpOverlayPrimaryAction ResolvePrimaryAction(int? disconnectCode)
+        => ShouldOfferEditProfile(disconnectCode)
+            ? RdpOverlayPrimaryAction.EditProfile
+            : RdpOverlayPrimaryAction.Reconnect;
 }

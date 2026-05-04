@@ -275,6 +275,23 @@ public class RdpFileGeneratorTests
         Assert.Contains("screen mode id:i:1", content);
     }
 
+    [Fact]
+    public void Generate_SmartSizingOption_SetsFullscreenScreenModeAndSmartSizing()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            FullScreen = false,
+            SmartSizing = true
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("screen mode id:i:2", content);
+        Assert.Contains("smart sizing:i:1", content);
+        Assert.DoesNotContain("dynamic resolution:i:1", content);
+    }
+
     // ── NLA setting ───────────────────────────────────────────────────
 
     [Fact]
@@ -390,6 +407,68 @@ public class RdpFileGeneratorTests
         var content = RdpFileGenerator.Generate(options);
 
         Assert.Contains("use multimon:i:1", content);
+    }
+
+    [Fact]
+    public void Generate_MultiMonitorOption_IncludesUseMultimon()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            MultiMonitor = true
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("use multimon:i:1", content);
+    }
+
+    [Fact]
+    public void Generate_SelectedMonitorsWithMultiMonitor_IncludesSelectedMonitors()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            MultiMonitor = true,
+            SelectedMonitorIndices = [0, 2]
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("use multimon:i:1", content);
+        Assert.Contains("selectedmonitors:s:0,2", content);
+    }
+
+    [Fact]
+    public void Generate_SelectedMonitorsEmpty_OmitsSelectedMonitors()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            MultiMonitor = true,
+            SelectedMonitorIndices = []
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("use multimon:i:1", content);
+        Assert.DoesNotContain("selectedmonitors:s:", content);
+    }
+
+    [Fact]
+    public void Generate_SelectedMonitorsWithoutMultiMonitor_OmitsSelectedMonitors()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            MultiMonitor = false,
+            SelectedMonitorIndices = [0, 2]
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.DoesNotContain("use multimon:i:1", content);
+        Assert.DoesNotContain("selectedmonitors:s:", content);
     }
 
     [Fact]
