@@ -15,6 +15,8 @@
  */
 
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Heimdall.App.Localization;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -38,6 +40,7 @@ public sealed class TunnelService : ITunnelService
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly IHostKeyVerifier _hostKeyVerifier;
+    private readonly IPlinkHostKeyProbe _plinkHostKeyProbe;
 
     private AppSettings? _currentSettings;
 
@@ -48,6 +51,25 @@ public sealed class TunnelService : ITunnelService
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
         IHostKeyVerifier hostKeyVerifier)
+        : this(
+            tunnelManager,
+            hostKeyStore,
+            hostKeyTrustService,
+            connectionSm,
+            localizer,
+            hostKeyVerifier,
+            new DefaultPlinkHostKeyProbe())
+    {
+    }
+
+    internal TunnelService(
+        TunnelManager tunnelManager,
+        HostKeyStore hostKeyStore,
+        IHostKeyTrustService hostKeyTrustService,
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer,
+        IHostKeyVerifier hostKeyVerifier,
+        IPlinkHostKeyProbe plinkHostKeyProbe)
     {
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
@@ -55,6 +77,7 @@ public sealed class TunnelService : ITunnelService
         _connectionSm = connectionSm;
         _localizer = localizer;
         _hostKeyVerifier = hostKeyVerifier;
+        _plinkHostKeyProbe = plinkHostKeyProbe;
     }
 
     public void UpdateSettings(AppSettings settings)
@@ -119,11 +142,33 @@ public sealed class TunnelService : ITunnelService
         Core.Logging.FileLogger.Info(
             $"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
 
+        List<SshGatewayDto> chainDtos;
+        List<SshConnectionParams> chain;
+        string gatewayChainKey;
+
+        try
+        {
+            chainDtos = GatewayChainResolver.ResolveChainDtos(gatewayId, settings.SshGateways);
+            chain = GatewayChainResolver.ToConnectionParams(
+                chainDtos,
+                ConnectionHelpers.DecryptPassword,
+                settings.SshAgentPreference);
+            gatewayChainKey = BuildGatewayChainKey(chainDtos);
+        }
+        catch (Exception ex)
+        {
+            _connectionSm.SetError(serverId, ex.Message);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+        }
+
         var existingTunnels = _tunnelManager.GetActiveTunnels();
-        var existing = existingTunnels.FirstOrDefault(t =>
-            t.RemoteHost == remoteHost &&
-            t.RemotePort == remotePort &&
-            t.IsAlive);
+        var existing = FindReusableTunnel(
+            existingTunnels,
+            gatewayChainKey,
+            remoteHost,
+            remotePort,
+            socksProxyPort,
+            remoteBindPort);
 
         if (existing is not null)
         {
@@ -140,22 +185,6 @@ public sealed class TunnelService : ITunnelService
 
         localPort = _tunnelManager.AllocatePort(localPort);
         Core.Logging.FileLogger.Info($"Allocated tunnel port: {localPort}");
-
-        List<SshConnectionParams> chain;
-
-        try
-        {
-            chain = GatewayChainResolver.ResolveChain(
-                gatewayId,
-                settings.SshGateways,
-                ConnectionHelpers.DecryptPassword,
-                sshAgentPreference: settings.SshAgentPreference);
-        }
-        catch (Exception ex)
-        {
-            _connectionSm.SetError(serverId, ex.Message);
-            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
-        }
 
         var agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
         if (chain.Any(hop => hop.AgentForwarding)
@@ -184,13 +213,14 @@ public sealed class TunnelService : ITunnelService
                     remoteHost,
                     remotePort,
                     localPort,
-                    ct,
                     hostKeyStore: _hostKeyStore,
                     verifier: _hostKeyVerifier,
+                    cancellationToken: ct,
                     keepAliveIntervalSeconds: keepAlive,
                     socksProxyPort: socksProxyPort,
                     remoteBindPort: remoteBindPort,
-                    remoteLocalPort: remoteLocalPort)
+                    remoteLocalPort: remoteLocalPort,
+                    gatewayChainKey: gatewayChainKey)
                 .ConfigureAwait(false);
         }
         else
@@ -200,12 +230,13 @@ public sealed class TunnelService : ITunnelService
                     remoteHost,
                     remotePort,
                     localPort,
-                    ct,
                     hostKeyStore: _hostKeyStore,
                     verifier: _hostKeyVerifier,
+                    cancellationToken: ct,
                     socksProxyPort: socksProxyPort,
                     remoteBindPort: remoteBindPort,
-                    remoteLocalPort: remoteLocalPort)
+                    remoteLocalPort: remoteLocalPort,
+                    gatewayChainKey: gatewayChainKey)
                 .ConfigureAwait(false);
         }
 
@@ -226,6 +257,7 @@ public sealed class TunnelService : ITunnelService
                     remotePort,
                     localPort,
                     settings,
+                    gatewayChainKey,
                     ct)
                 .ConfigureAwait(false);
         }
@@ -260,13 +292,14 @@ public sealed class TunnelService : ITunnelService
         return result;
     }
 
-    private async Task<TunnelResult> EstablishPlinkTunnelAsync(
+    internal async Task<TunnelResult> EstablishPlinkTunnelAsync(
         string serverId,
         SshConnectionParams gatewayParams,
         string remoteHost,
         int remotePort,
         int localPort,
         AppSettings settings,
+        string gatewayChainKey,
         CancellationToken ct)
     {
         var plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
@@ -278,120 +311,31 @@ public sealed class TunnelService : ITunnelService
         }
 
         var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
-        string? fingerprint = storedFingerprint;
+        var hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
+                gatewayParams.Host,
+                gatewayParams.Port,
+                gatewayParams.Username,
+                plinkPath,
+                settings.HostKeyProbeTimeoutMs,
+                storedFingerprint,
+                _plinkHostKeyProbe,
+                _hostKeyVerifier,
+                _hostKeyTrustService,
+                ct)
+            .ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(storedFingerprint))
+        if (!hostKeyDecision.ShouldProceed)
         {
-            var verifyPresentation = await ProbeHostKeyPresentationAsync(
-                    plinkPath,
-                    gatewayParams.Host,
-                    gatewayParams.Port,
-                    gatewayParams.Username,
-                    settings,
-                    ct)
-                .ConfigureAwait(false);
-
-            if (verifyPresentation is not null
-                && !string.Equals(
-                    verifyPresentation.Fingerprint,
-                    storedFingerprint,
-                    StringComparison.Ordinal))
-            {
-                var decision = await _hostKeyVerifier.VerifyAsync(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        verifyPresentation.Algorithm,
-                        verifyPresentation.Fingerprint,
-                        storedFingerprint,
-                        ct)
-                    .ConfigureAwait(false);
-
-                if (decision == HostKeyDecision.Accept)
-                {
-                    _hostKeyTrustService.Trust(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        verifyPresentation.Fingerprint,
-                        verifyPresentation.Algorithm,
-                        HostKeySource.UserConfirmed);
-                    fingerprint = verifyPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Warn(
-                        $"User accepted replacement tunnel host key for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
-                }
-                else if (decision == HostKeyDecision.TrustOnce)
-                {
-                    _hostKeyTrustService.TrustForSession(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        verifyPresentation.Fingerprint,
-                        verifyPresentation.Algorithm);
-                    fingerprint = verifyPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Warn(
-                        $"User trusted replacement tunnel host key for this session for {gatewayParams.Host}:{gatewayParams.Port}: {verifyPresentation.Fingerprint}");
-                }
-                else
-                {
-                    var message = BuildHostKeyMismatchMessage(
-                        storedFingerprint,
-                        verifyPresentation.Fingerprint);
-                    _connectionSm.SetError(serverId, message);
-                    return new TunnelResult(false, null, message, SshFailureCode.HostKeyMismatch);
-                }
-            }
+            var message = BuildPlinkHostKeyFailureMessage(hostKeyDecision);
+            _connectionSm.SetError(serverId, message);
+            return new TunnelResult(
+                false,
+                null,
+                message,
+                hostKeyDecision.FailureCode ?? SshFailureCode.Unknown);
         }
-        else
-        {
-            var probedPresentation = await ProbeHostKeyPresentationAsync(
-                    plinkPath,
-                    gatewayParams.Host,
-                    gatewayParams.Port,
-                    gatewayParams.Username,
-                    settings,
-                    ct)
-                .ConfigureAwait(false);
 
-            if (probedPresentation is not null)
-            {
-                var decision = await _hostKeyVerifier.VerifyAsync(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        probedPresentation.Algorithm,
-                        probedPresentation.Fingerprint,
-                        storedFingerprint: null,
-                        ct)
-                    .ConfigureAwait(false);
-
-                if (decision == HostKeyDecision.Accept)
-                {
-                    _hostKeyTrustService.Trust(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        probedPresentation.Fingerprint,
-                        probedPresentation.Algorithm,
-                        HostKeySource.UserConfirmed);
-                    fingerprint = probedPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Info(
-                        $"User trusted tunnel host key for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");
-                }
-                else if (decision == HostKeyDecision.TrustOnce)
-                {
-                    _hostKeyTrustService.TrustForSession(
-                        gatewayParams.Host,
-                        gatewayParams.Port,
-                        probedPresentation.Fingerprint,
-                        probedPresentation.Algorithm);
-                    fingerprint = probedPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Info(
-                        $"User trusted tunnel host key for this session for {gatewayParams.Host}:{gatewayParams.Port} fingerprint={probedPresentation.Fingerprint}");
-                }
-                else
-                {
-                    var message = BuildCancelledMessage();
-                    _connectionSm.SetError(serverId, message);
-                    return new TunnelResult(false, null, message, SshFailureCode.Cancelled);
-                }
-            }
-        }
+        var fingerprint = hostKeyDecision.Fingerprint;
 
         var runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
@@ -429,7 +373,10 @@ public sealed class TunnelService : ITunnelService
             remoteHost,
             remotePort,
             DateTime.UtcNow,
-            IsAlive: true);
+            IsAlive: true)
+        {
+            GatewayChainKey = gatewayChainKey
+        };
 
         if (!_tunnelManager.TryRegisterExternalTunnel(tunnelInfo, runner, () => runner.IsRunning))
         {
@@ -447,21 +394,84 @@ public sealed class TunnelService : ITunnelService
         return new TunnelResult(true, tunnelInfo, null, null);
     }
 
-    private Task<PlinkHostKeyPresentation?> ProbeHostKeyPresentationAsync(
-        string plinkPath,
-        string host,
-        int port,
-        string? username,
-        AppSettings settings,
-        CancellationToken ct)
+    internal static TunnelInfo? FindReusableTunnel(
+        IReadOnlyList<TunnelInfo> activeTunnels,
+        string gatewayChainKey,
+        string remoteHost,
+        int remotePort,
+        int socksProxyPort,
+        int remoteBindPort)
     {
-        return PlinkHostKeyProbe.ProbeAsync(
-            plinkPath,
-            host,
-            port,
-            username,
-            settings.HostKeyProbeTimeoutMs,
-            ct);
+        ArgumentNullException.ThrowIfNull(activeTunnels);
+        ArgumentNullException.ThrowIfNull(gatewayChainKey);
+        ArgumentNullException.ThrowIfNull(remoteHost);
+
+        foreach (var tunnel in activeTunnels)
+        {
+            if (!tunnel.IsAlive)
+            {
+                continue;
+            }
+
+            if (!string.Equals(tunnel.GatewayChainKey, gatewayChainKey, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!string.Equals(tunnel.RemoteHost, remoteHost, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (tunnel.RemotePort != remotePort)
+            {
+                continue;
+            }
+
+            if (tunnel.SocksProxyPort != socksProxyPort)
+            {
+                continue;
+            }
+
+            if (tunnel.RemoteBindPort != remoteBindPort)
+            {
+                continue;
+            }
+
+            return tunnel;
+        }
+
+        return null;
+    }
+
+    internal static string BuildGatewayChainKey(IReadOnlyList<SshGatewayDto> chainDtos)
+    {
+        ArgumentNullException.ThrowIfNull(chainDtos);
+        if (chainDtos.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        using var payload = new MemoryStream();
+        foreach (var gateway in chainDtos)
+        {
+            WriteLengthPrefixedString(payload, gateway.Id ?? string.Empty);
+        }
+
+        var hash = SHA256.HashData(payload.ToArray());
+        return $"v1:sha256:{Convert.ToBase64String(hash)}";
+    }
+
+    private static void WriteLengthPrefixedString(Stream destination, string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        var length = bytes.Length;
+
+        destination.WriteByte((byte)(length >> 24));
+        destination.WriteByte((byte)(length >> 16));
+        destination.WriteByte((byte)(length >> 8));
+        destination.WriteByte((byte)length);
+        destination.Write(bytes, 0, bytes.Length);
     }
 
     private string BuildHostKeyMismatchMessage(
@@ -484,6 +494,40 @@ public sealed class TunnelService : ITunnelService
         }
 
         return $"{message} {detail}";
+    }
+
+    private string BuildPlinkHostKeyFailureMessage(PlinkHostKeyDecision decision)
+    {
+        if (decision.FailureCode == SshFailureCode.HostKeyMismatch
+            && decision.StoredFingerprint is not null
+            && decision.PresentedFingerprint is not null)
+        {
+            return BuildHostKeyMismatchMessage(
+                decision.StoredFingerprint,
+                decision.PresentedFingerprint);
+        }
+
+        if (decision.FailureCode == SshFailureCode.Cancelled)
+        {
+            return BuildCancelledMessage();
+        }
+
+        if (decision.FailureCode == SshFailureCode.HostKeyUnavailable)
+        {
+            return BuildHostKeyUnavailableMessage();
+        }
+
+        return decision.FailureMessageKey is null
+            ? _localizer[SshLocalizationKeys.ErrorTunnelFailed]
+            : _localizer[decision.FailureMessageKey];
+    }
+
+    private string BuildHostKeyUnavailableMessage()
+    {
+        var message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
+        return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
+            ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
+            : message;
     }
 
     private string BuildCancelledMessage()

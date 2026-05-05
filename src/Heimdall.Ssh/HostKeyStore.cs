@@ -47,6 +47,19 @@ public sealed class HostKeyStore
     /// <param name="port">Remote port.</param>
     /// <param name="hostKey">Raw host key bytes from the server.</param>
     /// <returns>Verification result indicating trust status.</returns>
+    /// <remarks>
+    /// <b>Obsolete:</b> the on-first-use return value is <c>Trusted = true,
+    /// FirstUse = true</c>, which a naive caller may misread as "trust without
+    /// prompting". Production code must route through
+    /// <see cref="HostKeyTrustService.Verify"/> or
+    /// <see cref="SshConnectionFactory.ResolvePresentedHostKeyAsync"/>,
+    /// which prompt the user via <see cref="IHostKeyVerifier"/> before
+    /// granting trust.
+    /// </remarks>
+    [Obsolete(
+        "Use HostKeyTrustService.Verify or SshConnectionFactory.ResolvePresentedHostKeyAsync. "
+        + "The byte[] overload returns Trusted=true on first use which is unsafe for callers "
+        + "that do not also prompt via IHostKeyVerifier.")]
     public HostKeyVerifyResult Verify(string host, int port, byte[] hostKey)
     {
         ArgumentNullException.ThrowIfNull(host);

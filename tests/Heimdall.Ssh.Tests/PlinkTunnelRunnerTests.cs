@@ -293,6 +293,58 @@ public class PlinkTunnelRunnerTests : IDisposable
 
     // ── Secret redaction in stderr drain ────────────────────────────
 
+    [Fact]
+    public void SanitizeForLog_RedactsBearerToEndOfLine()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog("Authorization: Bearer abc def ghi");
+
+        Assert.Equal("Authorization: [REDACTED]", sanitized);
+        Assert.DoesNotContain("abc", sanitized);
+        Assert.DoesNotContain("def", sanitized);
+        Assert.DoesNotContain("ghi", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_RedactsTokenToEndOfLine()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog("token = xyz some-uuid extra");
+
+        Assert.Equal("[REDACTED]", sanitized);
+        Assert.DoesNotContain("xyz", sanitized);
+        Assert.DoesNotContain("some-uuid", sanitized);
+        Assert.DoesNotContain("extra", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_RedactsSingleTokenPassword()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog("password=secret123 trailing");
+
+        Assert.Equal("[REDACTED] trailing", sanitized);
+        Assert.DoesNotContain("secret123", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_RedactsSingleTokenPassphrase()
+    {
+        var sanitized = PlinkTunnelRunner.SanitizeForLog("passphrase: foobar123 trailing");
+
+        Assert.Equal("[REDACTED] trailing", sanitized);
+        Assert.DoesNotContain("foobar123", sanitized);
+    }
+
+    [Fact]
+    public void SanitizeForLog_DoesNotOverRedactNonCredentialLines()
+    {
+        const string line = "connecting to gateway 192.0.2.1";
+
+        var sanitized = PlinkTunnelRunner.SanitizeForLog(line);
+
+        Assert.Equal(line, sanitized);
+        Assert.DoesNotContain("[REDACTED]", sanitized);
+        Assert.DoesNotContain('?', sanitized);
+    }
+
     [Theory]
     [InlineData("connecting with password=hunter2", "connecting with [REDACTED]")]
     [InlineData("Bearer abcdef0123456789", "[REDACTED]")]

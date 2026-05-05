@@ -87,6 +87,13 @@ public enum SshFailureCode
     /// <summary>Server host key verification failed (TOFU mismatch).</summary>
     HostKeyMismatch,
 
+    /// <summary>
+    /// Heimdall could not resolve a host key for the gateway through any of
+    /// its trusted sources. Used to refuse delegation to an external tool's
+    /// local host-key cache.
+    /// </summary>
+    HostKeyUnavailable,
+
     /// <summary>Port forwarding or proxy operation failed.</summary>
     ForwardingFailed,
 

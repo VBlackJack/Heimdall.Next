@@ -25,6 +25,7 @@ using Heimdall.Core.Ssh;
 using Heimdall.Core.Utilities;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
+using Renci.SshNet.Common;
 
 namespace Heimdall.App.ViewModels;
 
@@ -40,8 +41,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private readonly IUiDispatcher _uiDispatcher;
     private IRemoteBrowser? _browser;
     private SshConnectionParams? _sshParams;
-    private HostKeyStore? _hostKeyStore;
-    private IHostKeyVerifier? _hostKeyVerifier;
+    private HostKeyStore _hostKeyStore = null!;
+    private IHostKeyVerifier _hostKeyVerifier = null!;
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private bool _disposed;
@@ -153,14 +154,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         string endpoint,
         LocalizationManager localizer,
         IDialogService dialogService,
-        SshConnectionParams? sshParams = null,
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? hostKeyVerifier = null)
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
+        SshConnectionParams? sshParams = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         ArgumentNullException.ThrowIfNull(sessionTab);
         ArgumentNullException.ThrowIfNull(localizer);
         ArgumentNullException.ThrowIfNull(dialogService);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(hostKeyVerifier);
 
         bool firstInitialization = _browser is null;
         _browser = browser;
@@ -454,33 +457,21 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             throw new InvalidOperationException("SSH params not available for sudo.");
         }
 
-        PinnedFingerprintVerifier? pinnedVerifier = null;
-        if (_hostKeyStore is not null)
-        {
-            if (_hostKeyVerifier is null)
-            {
-                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-            }
-
-            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                    _sshParams,
-                    _hostKeyStore,
-                    _hostKeyVerifier,
-                    ct)
-                .ConfigureAwait(false);
-        }
+        var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                _sshParams,
+                _hostKeyStore,
+                _hostKeyVerifier,
+                ct)
+            .ConfigureAwait(false);
 
         var connInfo = SshConnectionFactory.Create(_sshParams);
         var ssh = new Renci.SshNet.SshClient(connInfo);
 
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                ssh,
-                _sshParams.Host,
-                _sshParams.Port,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            ssh,
+            _sshParams.Host,
+            _sshParams.Port,
+            pinnedVerifier);
 
         await Task.Run(() =>
         {
@@ -550,27 +541,56 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             throw new InvalidOperationException("Browser not available for sudo upload.");
         }
 
-        string escaped = PathEscaper.EscapeForShell(remotePath);
         string tempRemote = $"{RemoteTempPrefix}upload_{Guid.NewGuid():N}";
+        var commands = SudoUploadCommands.Build(tempRemote, remotePath);
 
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
 
         using var ssh = await CreateSudoSshClientAsync(ct);
         try
         {
-            string escapedTemp = PathEscaper.EscapeForShell(tempRemote);
-            using var cmd = await Task.Run(() =>
-                ssh.RunCommand($"cat {escapedTemp} | sudo tee -- {escaped} > /dev/null && sudo rm -f {escapedTemp}"),
-                ct).ConfigureAwait(false);
-
-            if (cmd.ExitStatus != 0)
+            try
             {
-                throw new InvalidOperationException($"sudo tee failed (exit {cmd.ExitStatus}): {cmd.Error}");
+                using var cmd = await Task.Run(
+                    () => ssh.RunCommand(commands.Write),
+                    ct).ConfigureAwait(false);
+
+                if (cmd.ExitStatus != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"sudo tee failed (exit {cmd.ExitStatus}): {cmd.Error}");
+                }
+            }
+            finally
+            {
+                await TryRemoveSudoTempAsync(ssh, commands.Cleanup, tempRemote).ConfigureAwait(false);
             }
         }
         finally
         {
             ssh.Disconnect();
+        }
+    }
+
+    private static async Task TryRemoveSudoTempAsync(
+        Renci.SshNet.SshClient ssh,
+        string cleanupCommand,
+        string tempPathForLog)
+    {
+        try
+        {
+            using var rmCmd = await Task.Run(() => ssh.RunCommand(cleanupCommand)).ConfigureAwait(false);
+            if (rmCmd.ExitStatus != 0)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"EmbeddedSftpViewModel: failed to remove sudo upload temp file '{tempPathForLog}' "
+                    + $"(exit {rmCmd.ExitStatus}): {rmCmd.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"EmbeddedSftpViewModel: exception while removing sudo upload temp file '{tempPathForLog}': {ex.Message}");
         }
     }
 
@@ -850,31 +870,10 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// </summary>
     public static bool IsPermissionDenied(Exception ex)
     {
-        string typeName = ex.GetType().Name;
-        if (typeName.Contains("PermissionDenied", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
+        ArgumentNullException.ThrowIfNull(ex);
 
-        if (typeName.Contains("PathNotFound", StringComparison.OrdinalIgnoreCase)
-            || typeName.Contains("NoSuchFile", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        string message = ex.Message + (ex.InnerException?.Message ?? "");
-
-        if (message.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("access denied", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("not permitted", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("SSH_FX_PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return message.Contains("Failure", StringComparison.Ordinal)
-            && (typeName.Contains("Sftp", StringComparison.OrdinalIgnoreCase)
-                || typeName.Contains("Ssh", StringComparison.OrdinalIgnoreCase));
+        return ex is SftpPermissionDeniedException
+            or UnauthorizedAccessException;
     }
 
     private async Task LoadDirectoryCoreAsync(string path, bool pushToHistory)
@@ -1038,4 +1037,27 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     private string L10n(string key) => _localizer?.GetString(key) ?? key;
+}
+
+internal static class SudoUploadCommands
+{
+    /// <summary>
+    /// Builds the sudo write command and its independent cleanup command.
+    /// </summary>
+    /// <param name="tempRemotePath">Temporary remote file path uploaded via SFTP.</param>
+    /// <param name="targetRemotePath">Privileged target path to write via sudo tee.</param>
+    /// <returns>The write command and cleanup command.</returns>
+    internal static (string Write, string Cleanup) Build(
+        string tempRemotePath,
+        string targetRemotePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tempRemotePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetRemotePath);
+
+        var escapedTemp = PathEscaper.EscapeForShell(tempRemotePath);
+        var escapedTarget = PathEscaper.EscapeForShell(targetRemotePath);
+        return (
+            Write: $"cat {escapedTemp} | sudo tee -- {escapedTarget} > /dev/null",
+            Cleanup: $"sudo rm -f {escapedTemp}");
+    }
 }

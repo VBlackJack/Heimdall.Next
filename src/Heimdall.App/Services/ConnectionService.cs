@@ -171,7 +171,7 @@ public sealed class ConnectionService : IConnectionService
         CancellationToken ct = default)
         => DispatchAsync("LOCAL", server, settings, ct);
 
-    private Task<ConnectionResult> DispatchAsync(
+    private async Task<ConnectionResult> DispatchAsync(
         string protocol,
         ServerProfileDto server,
         AppSettings settings,
@@ -183,11 +183,19 @@ public sealed class ConnectionService : IConnectionService
 
         if (_handlers.TryGetValue(protocol, out var handler))
         {
-            return handler.ConnectAsync(server, settings, ct, rdpModeOverride);
+            var result = await handler.ConnectAsync(server, settings, ct, rdpModeOverride);
+            if (result.Success && !string.IsNullOrEmpty(result.Warning))
+            {
+                _setStatusText?.Invoke(result.Warning);
+                Core.Logging.FileLogger.Warn(
+                    $"Connection warning for {server.DisplayName}: {result.Warning}");
+            }
+
+            return result;
         }
 
         var message = _localizer.Format("ErrorUnsupportedConnectionType", protocol);
         Core.Logging.FileLogger.Error(message);
-        return Task.FromResult(new ConnectionResult(false, message, null));
+        return new ConnectionResult(false, message, null);
     }
 }

@@ -54,6 +54,9 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     /// <inheritdoc/>
     public bool IsConnected => _connected;
 
+    /// <summary>Whether FTP over TLS is enabled for the current session.</summary>
+    public bool IsTlsEnabled => _useSsl;
+
     /// <summary>
     /// Connects to the FTP server with the supplied credentials.
     /// </summary>
@@ -141,7 +144,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         EnsureConnected();
 
-        string resolved = ResolvePath(path);
+        string resolved = ResolvePath(path, CurrentDirectory);
 
         // Verify the directory exists by listing it
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
@@ -408,6 +411,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         string normalizedPath = NormalizePath(remotePath);
         var uri = new Uri($"ftp://{_host}:{_port}{normalizedPath}");
 
+// TODO(audit-A4): migrate to FluentFTP — see docs/audit/ftp-fluentftp-migration.md
 #pragma warning disable SYSLIB0014 // FtpWebRequest is obsolete but no built-in replacement exists
         var request = (FtpWebRequest)WebRequest.Create(uri);
 #pragma warning restore SYSLIB0014
@@ -423,7 +427,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         return request;
     }
 
-    private static string NormalizePath(string path)
+    internal static string NormalizePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -445,7 +449,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         return path;
     }
 
-    private string ResolvePath(string path)
+    internal static string ResolvePath(string path, string currentDirectory)
     {
         if (path.StartsWith('/'))
         {
@@ -453,7 +457,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         }
 
         // Relative path: resolve against current directory
-        string basePath = CurrentDirectory.TrimEnd('/');
+        string basePath = currentDirectory.TrimEnd('/');
         return NormalizePath($"{basePath}/{path}");
     }
 
@@ -498,7 +502,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     /// Parses a single line from an FTP LIST response.
     /// Supports Unix-style (drwxr-xr-x ...) and DOS-style (01-01-2026 ...) formats.
     /// </summary>
-    private static SftpFileInfo? ParseListLine(string line, string parentPath)
+    internal static SftpFileInfo? ParseListLine(string line, string parentPath)
     {
         // Try Unix-style format first: drwxr-xr-x 2 user group 4096 Jan 01 12:00 filename
         var unixMatch = UnixListRegex().Match(line);
@@ -567,7 +571,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         return null;
     }
 
-    private static DateTime ParseUnixDate(string dateStr)
+    internal static DateTime ParseUnixDate(string dateStr)
     {
         // Formats: "Jan 01 12:00" or "Jan 01  2025"
         if (DateTime.TryParseExact(dateStr.Trim(), new[] { "MMM dd HH:mm", "MMM dd  yyyy", "MMM  d HH:mm", "MMM  d  yyyy" },

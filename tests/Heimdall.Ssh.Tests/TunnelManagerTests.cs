@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Ssh;
+
 namespace Heimdall.Ssh.Tests;
 
 public class TunnelManagerTests : IDisposable
@@ -63,6 +65,10 @@ public class TunnelManagerTests : IDisposable
             Password = "secret",
             ConnectTimeout = TimeSpan.FromMilliseconds(100)
         };
+
+    private static HostKeyStore TestHostKeyStore() => new();
+
+    private static IHostKeyVerifier TestHostKeyVerifier() => RejectingHostKeyVerifier.Instance;
 
     // ── Initial state ─────────────────────────────────────────────────
 
@@ -544,7 +550,9 @@ public class TunnelManagerTests : IDisposable
             MakeSshParams(),
             "target.internal",
             3389,
-            10001);
+            10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier());
 
         Assert.False(result.Success);
         Assert.Null(result.Tunnel);
@@ -569,6 +577,8 @@ public class TunnelManagerTests : IDisposable
             "target.internal",
             3389,
             10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier(),
             cts.Token);
 
         Assert.False(result.Success);
@@ -580,30 +590,7 @@ public class TunnelManagerTests : IDisposable
         Assert.False(_manager.HasTunnel(10001));
     }
 
-    [Fact]
-    public async Task OpenTunnelAsync_HostKeyStoreWithoutVerifier_ReturnsUnknownWithoutEvents()
-    {
-        var openedCount = 0;
-        var closedCount = 0;
-        _manager.TunnelOpened += _ => openedCount++;
-        _manager.TunnelClosed += (_, _) => closedCount++;
-
-        var result = await _manager.OpenTunnelAsync(
-            MakeSshParams(),
-            "target.internal",
-            3389,
-            10001,
-            hostKeyStore: new HostKeyStore(),
-            verifier: null);
-
-        Assert.False(result.Success);
-        Assert.Null(result.Tunnel);
-        Assert.Equal(SshFailureCode.Unknown, result.FailureCode);
-        Assert.Equal("IHostKeyVerifier is required when HostKeyStore is provided.", result.ErrorMessage);
-        Assert.Equal(0, openedCount);
-        Assert.Equal(0, closedCount);
-        Assert.False(_manager.HasTunnel(10001));
-    }
+    // Removed: host-key store without verifier is enforced at compile time after C1 hardening.
 
     // ── OpenChainedTunnelAsync characterization ──────────────────────
 
@@ -614,7 +601,9 @@ public class TunnelManagerTests : IDisposable
             [],
             "target.internal",
             3389,
-            10001);
+            10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier());
 
         Assert.False(result.Success);
         Assert.Null(result.Tunnel);
@@ -636,7 +625,9 @@ public class TunnelManagerTests : IDisposable
             [MakeSshParams("gateway1.example.com"), MakeSshParams("gateway2.example.com")],
             "target.internal",
             3389,
-            10001);
+            10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier());
 
         Assert.False(result.Success);
         Assert.Null(result.Tunnel);
@@ -661,37 +652,14 @@ public class TunnelManagerTests : IDisposable
             "target.internal",
             3389,
             10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier(),
             cts.Token);
 
         Assert.False(result.Success);
         Assert.Null(result.Tunnel);
         Assert.Equal(SshFailureCode.Cancelled, result.FailureCode);
         Assert.Equal("Chained tunnel establishment was cancelled.", result.ErrorMessage);
-        Assert.Equal(0, openedCount);
-        Assert.Equal(0, closedCount);
-        Assert.False(_manager.HasTunnel(10001));
-    }
-
-    [Fact]
-    public async Task OpenChainedTunnelAsync_HostKeyStoreWithoutVerifier_ReturnsUnknownWithoutEvents()
-    {
-        var openedCount = 0;
-        var closedCount = 0;
-        _manager.TunnelOpened += _ => openedCount++;
-        _manager.TunnelClosed += (_, _) => closedCount++;
-
-        var result = await _manager.OpenChainedTunnelAsync(
-            [MakeSshParams("gateway1.example.com"), MakeSshParams("gateway2.example.com")],
-            "target.internal",
-            3389,
-            10001,
-            hostKeyStore: new HostKeyStore(),
-            verifier: null);
-
-        Assert.False(result.Success);
-        Assert.Null(result.Tunnel);
-        Assert.Equal(SshFailureCode.Unknown, result.FailureCode);
-        Assert.Equal("IHostKeyVerifier is required when HostKeyStore is provided.", result.ErrorMessage);
         Assert.Equal(0, openedCount);
         Assert.Equal(0, closedCount);
         Assert.False(_manager.HasTunnel(10001));
@@ -708,6 +676,8 @@ public class TunnelManagerTests : IDisposable
             "target.internal",
             3389,
             10001,
+            TestHostKeyStore(),
+            TestHostKeyVerifier(),
             cts.Token);
 
         Assert.False(result.Success);

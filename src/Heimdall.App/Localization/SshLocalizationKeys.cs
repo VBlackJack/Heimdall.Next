@@ -36,6 +36,7 @@ internal static class SshLocalizationKeys
     public const string ErrorPreflightFailed = "ErrorPreflightFailed";
     public const string ErrorPuttyNotConfigured = "ErrorPuttyNotConfigured";
     public const string ErrorSshCancelled = "ErrorSshCancelled";
+    public const string ErrorSshHostKeyUnavailable = "ErrorSshHostKeyUnavailable";
     public const string ErrorTunnelFailed = "ErrorTunnelFailed";
     public const string ErrorTunnelPortConcurrent = "ErrorTunnelPortConcurrent";
     public const string StatusSshRetryingViaPlink = "StatusSshRetryingViaPlink";

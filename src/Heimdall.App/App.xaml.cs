@@ -339,6 +339,7 @@ public partial class App : System.Windows.Application
 
         // SSH/Tunnel services
         services.AddSingleton<TunnelManager>();
+        services.AddSingleton<IPlinkHostKeyProbe, DefaultPlinkHostKeyProbe>();
         services.AddSingleton<ITunnelService, TunnelService>();
         services.AddSingleton<IRecentConnectionTracker, RecentConnectionTracker>();
 

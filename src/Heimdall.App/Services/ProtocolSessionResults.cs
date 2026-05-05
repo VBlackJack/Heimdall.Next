@@ -30,11 +30,13 @@ namespace Heimdall.App.Services;
 /// <param name="ErrorMessage">Error description on failure; null on success.</param>
 /// <param name="Session">Typed session result on success; null on failure.</param>
 /// <param name="Failure">Optional structured failure details when the connection fails.</param>
+/// <param name="Warning">Optional non-fatal warning to display on a successful connection.</param>
 public sealed record ConnectionResult(
     bool Success,
     string? ErrorMessage,
     ISessionResult? Session,
-    SessionDiagnostic? Failure = null);
+    SessionDiagnostic? Failure = null,
+    string? Warning = null);
 
 /// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
 public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : ISessionResult;

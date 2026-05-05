@@ -32,7 +32,9 @@ public enum KnownHostsDiagnosticCode
     LegacyKeyType,
     MalformedLine,
     DuplicateFingerprintInSourceMerged,
-    IntraFileFingerprintConflict
+    IntraFileFingerprintConflict,
+    FileTooLarge,
+    FileReadError
 }
 
 /// <summary>

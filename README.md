@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5338%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5453%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -65,12 +65,15 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - **OpenSSH config import with ProxyJump**: single-hop and multi-hop chains auto-mapped to Heimdall's gateway model with `ParentGatewayId` links. Unsupported forms (ProxyCommand, `%h`/`%p` tokens, cycles) rejected with explicit diagnostics rather than silently mis-imported.
 - SSH keepalive heartbeat (prevents TMOUT disconnects)
 - User-confirmed TOFU host key verification with persistent fingerprint pinning; trust decisions resolved *before* `Connect()` via a dedicated pre-authentication probe — SSH.NET's `HostKeyReceived` callback never performs async work or UI dispatch
+- Fail-closed host-key enforcement for SSH.NET and Plink fallback paths, including `HostKeyUnavailable` when a pinned gateway key cannot be resolved without falling back to PuTTY/Plink's cache
+- Gateway-aware tunnel reuse identity (stable gateway IDs + normalized chain hash) prevents accidental sharing across overlapping private networks
 - Multi-gateway tunnel chaining with circular dependency detection
 - Dynamic tunnel port allocation with bounded retry on bind-race (`AddressAlreadyInUse`)
 - Tunnel ref-counting (shared tunnels survive individual session close)
 - Terminal resize via SSH window-change request (public `ShellStream.ChangeWindowSize` API, no reflection)
 - X11 forwarding with automatic X server detection and auto-start
-- 25 structured failure codes with localized error messages
+- 29 structured failure codes with localized error messages
+- Typed mid-session security events distinguish host-key attacks from ordinary disconnects and suppress SSH auto-reconnect on MITM signals
 - Auto-reconnect overlay on unexpected disconnect (SSH and RDP)
 
 ### VNC
@@ -89,7 +92,8 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Embedded file browser panel with directory tree and file list
 - Dual edit modes: integrated AvalonEdit editor OR external editor with auto-upload on save
 - **"Browse as root" sudo mode**: toggle in toolbar enables `sudo ls -la` directory listing via SSH exec channel — browse any directory regardless of SFTP user permissions
-- **Full sudo fallback** on all operations: upload (`sudo tee`), download (`sudo cat`), edit, chmod, rename, delete, mkdir — transparently triggered on permission denied
+- **Full sudo fallback** on all operations: upload (`sudo tee`), download (`sudo cat`), edit, chmod, rename, delete, mkdir — triggered only on typed permission-denied exceptions
+- Sudo edit sessions cache the pinned host-key verifier, detect mid-edit host-key rotation, track upload tasks, and clean temporary files even when the privileged write fails
 - Drag-and-drop upload and download
 - Chmod dialog, path bookmarks, filename filter
 
@@ -97,6 +101,8 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - FTP client using built-in .NET (no external dependencies)
 - Reuses the full SFTP browser UI via `IRemoteBrowser` interface
 - Configurable passive mode and SSL/TLS (FTPS) support
+- Cleartext FTP connections with credentials surface a non-blocking warning in the session status area
+- Host and port validation matches SSH/SFTP handlers; long-term migration to FluentFTP is tracked in `docs/audit/ftp-fluentftp-migration.md`
 - Unix and DOS directory listing format support
 
 ### Citrix
@@ -248,12 +254,14 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Plink password file: atomic ACL creation on Windows, mode 0600 on Unix (no fallback)
 - Wake-on-LAN via UDP magic packet (right-click context menu)
 - User-confirmed SSH host key first-use and mismatch handling across SSH.NET and Plink fallback paths, with interactive decisions resolved in a pre-authentication probe rather than inside SSH.NET's `HostKeyReceived` callback
-- Centralized `HostKeyTrustService` with per-entry metadata (first seen, last seen, algorithm, source) — production paths **fail closed** when a `HostKeyStore` is provided without a verifier; no silent auto-accept fallbacks in release code
+- Centralized `HostKeyTrustService` with per-entry metadata (first seen, last seen, algorithm, source) — production paths require host-key verifier dependencies at compile time; no silent auto-accept fallbacks in release code
+- Compile-time non-null host-key dependencies on SSH/SFTP/tunnel/sudo entry points; `RejectingHostKeyVerifier` is the safe fail-closed verifier and `AutoAcceptHostKeyVerifier` is test-only
+- Mid-session host-key mismatch events propagate through `SshSessionSecurityEvent` / `HostKeyRotatedDuringUpload` instead of being collapsed into generic disconnect text
 - `Settings > SSH & SFTP > Trusted host keys` sub-panel: dense auditable grid of every trusted host key with source provenance, import from `~/.ssh/known_hosts`, export to it, explicit per-row conflict resolution ("Keep existing" default), and copy/remove row actions
 - Opt-in `known_hosts` synchronization at startup so Heimdall, OpenSSH CLI, and Plink share one view of trust
-- Plink fallback sessions enforce pinned `-hostkey` fingerprints from the shared trust store
+- Plink fallback sessions enforce pinned `-hostkey` fingerprints from the shared trust store and refuse to launch when Heimdall cannot resolve a pinned/probed fingerprint safely
 - Credential broker autofill requires an RDP host-title match before injecting passwords
-- Known security limitations and threat model notes are tracked in [SECURITY.md](SECURITY.md)
+- Known security limitations and threat model notes are tracked in [docs/SECURITY.md](docs/SECURITY.md)
 - Session-scoped CredMan entries with deterministic cleanup
 
 ### Import and Migration

@@ -75,12 +75,16 @@ internal sealed class PageantHostAlgorithm : HostAlgorithm
     /// it holds in memory; the private key never leaves the agent.
     /// </summary>
     /// <remarks>
-    /// Pageant returns the full SSH signature blob: [algo_len:4][algo][sig_len:4][sig].
-    /// SSH.NET expects only the raw signature bytes (it wraps them internally),
-    /// so we strip the algorithm name prefix before returning.
+    /// Pageant returns the full SSH signature blob:
+    /// <c>[algo_name_len:4][algo_name][raw_sig_len:4][raw_sig]</c>.
+    /// SSH.NET's <see cref="Renci.SshNet.PrivateKeyAuthenticationMethod"/>
+    /// expects <see cref="HostAlgorithm.Sign"/> to return this exact format
+    /// (matching <c>KeyHostAlgorithm.Sign</c> which wraps via
+    /// <c>SignatureData</c>). We pass the blob through unchanged; do
+    /// <b>not</b> strip the algorithm name prefix.
     /// </remarks>
     /// <param name="data">Data to sign (session hash + auth request from SSH.NET).</param>
-    /// <returns>Raw signature bytes (without algorithm name prefix).</returns>
+    /// <returns>Full SSH signature blob, including the algorithm name prefix.</returns>
     public override byte[] Sign(byte[] data)
     {
         // Pageant returns the full SSH signature blob:

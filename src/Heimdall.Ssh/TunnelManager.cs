@@ -81,25 +81,29 @@ public sealed partial class TunnelManager : IDisposable
     /// <param name="remoteHost">Target host on the remote network.</param>
     /// <param name="remotePort">Target port on the remote network.</param>
     /// <param name="localPort">Local port to bind for forwarding.</param>
+    /// <param name="hostKeyStore">TOFU host key store for server verification.</param>
+    /// <param name="verifier">Verifier used when a host key is unknown or changed.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
-    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <returns>Result indicating success or structured failure.</returns>
     public async Task<TunnelResult> OpenTunnelAsync(
         SshConnectionParams gatewayParams,
         string remoteHost,
         int remotePort,
         int localPort,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
         CancellationToken cancellationToken = default,
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? verifier = null,
         int keepAliveIntervalSeconds = 30,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
         int remoteLocalPort = 0,
-        string? label = null)
+        string? label = null,
+        string? gatewayChainKey = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
 
         if (IsPortTracked(localPort))
         {
@@ -156,7 +160,8 @@ public sealed partial class TunnelManager : IDisposable
                 remotePort,
                 socksProxyPort,
                 remoteBindPort,
-                label);
+                label,
+                gatewayChainKey);
 
             var session = context.CreateSession(info);
 
@@ -177,24 +182,28 @@ public sealed partial class TunnelManager : IDisposable
     /// <param name="remoteHost">Final target host on the remote network.</param>
     /// <param name="remotePort">Final target port on the remote network.</param>
     /// <param name="localPort">Local port to bind for the outermost forwarding.</param>
+    /// <param name="hostKeyStore">TOFU host key store for server verification.</param>
+    /// <param name="verifier">Verifier used when a host key is unknown or changed.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
-    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <returns>Result indicating success or structured failure.</returns>
     public async Task<TunnelResult> OpenChainedTunnelAsync(
         IReadOnlyList<SshConnectionParams> gatewayChain,
         string remoteHost,
         int remotePort,
         int localPort,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
         CancellationToken cancellationToken = default,
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? verifier = null,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
         int remoteLocalPort = 0,
-        string? label = null)
+        string? label = null,
+        string? gatewayChainKey = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayChain);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
 
         if (gatewayChain.Count == 0)
         {
@@ -204,10 +213,11 @@ public sealed partial class TunnelManager : IDisposable
         // Single gateway: delegate to simple tunnel
         if (gatewayChain.Count == 1)
         {
-            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore,
-                    verifier,
+            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, hostKeyStore, verifier,
+                    cancellationToken,
                     socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort,
-                    label: label)
+                    label: label,
+                    gatewayChainKey: gatewayChainKey)
                 .ConfigureAwait(false);
         }
 
@@ -325,7 +335,8 @@ public sealed partial class TunnelManager : IDisposable
                 remotePort,
                 socksProxyPort,
                 remoteBindPort,
-                label);
+                label,
+                gatewayChainKey);
 
             return RegisterTunnelSession(context.CreateSession(tunnelInfo), localPort, tunnelInfo);
         }

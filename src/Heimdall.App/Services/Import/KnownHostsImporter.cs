@@ -17,6 +17,7 @@
 using System.IO;
 using System.Text;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,8 +48,64 @@ public sealed class KnownHostsImporter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-        var content = await File.ReadAllTextAsync(filePath, Encoding.UTF8, ct).ConfigureAwait(false);
-        return KnownHostsParser.Parse(content);
+        return await Task.Run(() => ParseFileStreaming(filePath), ct).ConfigureAwait(false);
+    }
+
+    private static KnownHostsParseResult ParseFileStreaming(string filePath)
+    {
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            if (fileInfo.Length > KnownHostsParser.MaxFileSizeBytes)
+            {
+                FileLogger.Warn(
+                    $"known_hosts import refused: file '{filePath}' exceeds {KnownHostsParser.MaxFileSizeBytes} bytes ({fileInfo.Length} bytes).");
+
+                return new KnownHostsParseResult(
+                    Entries: [],
+                    Diagnostics:
+                    [
+                        new KnownHostsImportDiagnostic(
+                            KnownHostsDiagnosticLevel.Warning,
+                            SourceLineNumber: 0,
+                            Code: KnownHostsDiagnosticCode.FileTooLarge,
+                            Context: $"{fileInfo.Length} bytes")
+                    ]);
+            }
+
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            return KnownHostsParser.Parse(reader);
+        }
+        catch (IOException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: I/O error reading '{filePath}': {ex.Message}");
+            return EmptyResultWithReadError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: access denied to '{filePath}': {ex.Message}");
+            return EmptyResultWithReadError(ex);
+        }
+        catch (DecoderFallbackException ex)
+        {
+            FileLogger.Warn($"known_hosts import skipped: decoding error in '{filePath}': {ex.Message}");
+            return EmptyResultWithReadError(ex);
+        }
+    }
+
+    private static KnownHostsParseResult EmptyResultWithReadError(Exception ex)
+    {
+        return new KnownHostsParseResult(
+            Entries: [],
+            Diagnostics:
+            [
+                new KnownHostsImportDiagnostic(
+                    KnownHostsDiagnosticLevel.Warning,
+                    SourceLineNumber: 0,
+                    Code: KnownHostsDiagnosticCode.FileReadError,
+                    Context: ex.Message)
+            ]);
     }
 
     public async Task<KnownHostsImportPreview> BuildPreviewAsync(

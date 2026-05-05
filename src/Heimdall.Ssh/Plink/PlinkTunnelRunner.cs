@@ -319,6 +319,12 @@ public sealed class PlinkTunnelRunner : IDisposable
             args.Add("-hostkey");
             args.Add(hostKeyFingerprint);
         }
+        else
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"PlinkTunnelRunner: launching without -hostkey for {gatewayHost}:{gatewayPort}. " +
+                "This should never happen in production paths after the fail-closed refactor.");
+        }
 
         if (!string.IsNullOrEmpty(keyPath))
         {
@@ -450,11 +456,20 @@ public sealed class PlinkTunnelRunner : IDisposable
     }
 
     /// <summary>
-    /// Match credential-like assignments such as <c>password=...</c>,
-    /// <c>passphrase: ...</c>, <c>token=...</c>, <c>bearer ...</c>.
+    /// Match credential-like assignments where the secret is a single token
+    /// (<c>password=...</c>, <c>passphrase: ...</c>, <c>secret=...</c>).
     /// </summary>
-    private static readonly Regex CredentialAssignmentPattern = new(
-        @"(?i)\b(password|passphrase|secret|token|bearer)\b\s*[:=]?\s*\S+",
+    private static readonly Regex SingleTokenCredentialPattern = new(
+        @"(?i)\b(password|passphrase|secret)\b\s*[:=]?\s*\S+",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// Match credential-like assignments where the secret can span multiple
+    /// tokens (<c>token ...</c>, <c>Authorization: Bearer ...</c>). Greedy
+    /// to end-of-line so trailing words are not leaked.
+    /// </summary>
+    private static readonly Regex EndOfLineCredentialPattern = new(
+        @"(?i)\b(token|bearer)\b\s*[:=]?\s*.+",
         RegexOptions.Compiled);
 
     /// <summary>
@@ -491,7 +506,8 @@ public sealed class PlinkTunnelRunner : IDisposable
         // Redact known secret-bearing patterns. Done after the control-char
         // pass so attackers cannot smuggle a regex break via embedded \0 etc.
         var redacted = PlinkCredentialFlagPattern.Replace(builder.ToString(), RedactedMarker);
-        redacted = CredentialAssignmentPattern.Replace(redacted, RedactedMarker);
+        redacted = EndOfLineCredentialPattern.Replace(redacted, RedactedMarker);
+        redacted = SingleTokenCredentialPattern.Replace(redacted, RedactedMarker);
 
         const int maxLength = 256;
         if (redacted.Length <= maxLength)
