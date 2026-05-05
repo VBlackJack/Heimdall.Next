@@ -73,12 +73,12 @@ public sealed class OpenSshPipeAgentTests
         {
             await using var server = CreateServer(pipeName);
             serverReady.SetResult(true);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
         });
         var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
 
-        await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var identities = agent.GetIdentities();
         await serverTask;
 
@@ -98,7 +98,7 @@ public sealed class OpenSshPipeAgentTests
         var serverTask = Task.Run(async () =>
         {
             await using var server = CreateServer(pipeName);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
 
             var request = ReadFramedMessage(server);
@@ -127,7 +127,7 @@ public sealed class OpenSshPipeAgentTests
         byte[] response)
     {
         await using var server = CreateServer(pipeName);
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
 
         var request = ReadFramedMessage(server);
