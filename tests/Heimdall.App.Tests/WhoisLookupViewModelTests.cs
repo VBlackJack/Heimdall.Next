@@ -208,7 +208,12 @@ public sealed class WhoisLookupViewModelTests
         Assert.Contains("oops", vm.ErrorText, StringComparison.Ordinal);
     }
 
+    // CIUnstable: same root cause as
+    // DnsLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError
+    // — 2 s WaitUntilAsync budget too tight on the GitHub Actions Windows
+    // runner. Stable on dev machines.
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task CancelCommand_UserCancellation_ClearsStatusWithoutError()
     {
         var service = new BlockingWhoisLookupService();

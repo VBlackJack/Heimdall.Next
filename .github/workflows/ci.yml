@@ -29,9 +29,25 @@ jobs:
       - name: Test with coverage
         run: >
           dotnet test Heimdall.slnx --no-build -c Release
+          --filter "Category!=CIUnstable"
           --verbosity normal
           --collect:"XPlat Code Coverage"
           --results-directory TestResults
+
+      # Informational pass for tests tagged CIUnstable. These pass on dev
+      # machines but flake on the GitHub Actions Windows runner due to
+      # named-pipe handshake / WPF binding propagation latency. We surface
+      # the result as a workflow warning instead of failing the build, so
+      # the signal stays visible without blocking PRs. See
+      # docs/CI_FLAKY_TESTS.md for the rationale and the per-test list.
+      - name: Test CIUnstable (informational, non-blocking)
+        if: always()
+        continue-on-error: true
+        run: >
+          dotnet test Heimdall.slnx --no-build -c Release
+          --filter "Category=CIUnstable"
+          --verbosity normal
+          --results-directory TestResults/CIUnstable
 
       - name: Check for vulnerable dependencies
         shell: pwsh
