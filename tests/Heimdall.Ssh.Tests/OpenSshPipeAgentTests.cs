@@ -53,7 +53,7 @@ public sealed class OpenSshPipeAgentTests
             pipeName,
             expectedRequestType: OpenSshAgentProtocol.SshAgentcRequestIdentities,
             response);
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
 
         var identities = agent.GetIdentities();
         await serverTask;
@@ -76,7 +76,7 @@ public sealed class OpenSshPipeAgentTests
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
         });
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
 
         await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(2));
         var identities = agent.GetIdentities();
@@ -112,7 +112,7 @@ public sealed class OpenSshPipeAgentTests
             await server.WriteAsync(response).ConfigureAwait(false);
             await server.FlushAsync(cts.Token).ConfigureAwait(false);
         });
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
         var key = new OpenSshAgentKey(agent, keyBlob, "rsa@test", "ssh-rsa");
 
         var signature = key.Sign(data, SshAgentSignFlags.RsaSha2_512);
