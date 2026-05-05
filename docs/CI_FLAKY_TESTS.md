@@ -46,6 +46,7 @@ Two distinct root causes share the same symptom (`TaskCanceledException`,
 | `TextDiffSmokeTests` (whole class) | `tests/Heimdall.App.UiTests/Pilots/TextDiffSmokeTests.cs` |
 | `HashGeneratorSmokeTests` (whole class) | `tests/Heimdall.App.UiTests/Pilots/HashGeneratorSmokeTests.cs` |
 | `DnsLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/DnsLookupViewModelTests.cs` |
+| `WhoisLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/WhoisLookupViewModelTests.cs` |
 
 `OpenSshPipeAgentTests.IsAvailable_NoServer_ReturnsFalse` is intentionally
 NOT tagged: it is a negative-path test that asserts a 25 ms
