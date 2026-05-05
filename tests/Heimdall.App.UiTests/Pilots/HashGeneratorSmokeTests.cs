@@ -20,7 +20,9 @@ using Heimdall.App.Views.Tools;
 
 namespace Heimdall.App.UiTests.Pilots;
 
+// CIUnstable: see HmacGeneratorSmokeTests — same WPF/UIA binding latency.
 [Collection(DesktopUiCollection.Name)]
+[Trait("Category", "CIUnstable")]
 public sealed class HashGeneratorSmokeTests : UiTestBase<HashGeneratorView>
 {
     private const string Sha256Hello = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";

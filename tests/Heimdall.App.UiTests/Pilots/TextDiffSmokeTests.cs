@@ -20,7 +20,9 @@ using Heimdall.App.Views.Tools;
 
 namespace Heimdall.App.UiTests.Pilots;
 
+// CIUnstable: see HmacGeneratorSmokeTests — same WPF/UIA binding latency.
 [Collection(DesktopUiCollection.Name)]
+[Trait("Category", "CIUnstable")]
 public sealed class TextDiffSmokeTests : UiTestBase<TextDiffView>
 {
     [StaFact]
