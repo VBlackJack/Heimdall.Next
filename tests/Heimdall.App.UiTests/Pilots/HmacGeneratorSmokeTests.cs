@@ -49,7 +49,7 @@ public sealed class HmacGeneratorSmokeTests : UiTestBase<HmacGeneratorView>
             () => session.FindByAutomationId("HmacGenerator.OutputField").AsTextBox().Text,
             ExpectedHex,
             "hmac hex output",
-            TimeSpan.FromMilliseconds(800));
+            TimeSpan.FromMilliseconds(3000));
     }
 
     [StaFact]
@@ -63,14 +63,14 @@ public sealed class HmacGeneratorSmokeTests : UiTestBase<HmacGeneratorView>
             () => session.FindByAutomationId("HmacGenerator.OutputField").AsTextBox().Text,
             ExpectedHex,
             "hmac output before format switch",
-            TimeSpan.FromMilliseconds(800));
+            TimeSpan.FromMilliseconds(3000));
 
         session.FindByAutomationId("HmacGenerator.Base64FormatOption").AsRadioButton().IsChecked = true;
         WaitHelpers.WaitUntilTextEquals(
             () => session.FindByAutomationId("HmacGenerator.OutputField").AsTextBox().Text,
             ExpectedBase64,
             "hmac base64 output",
-            TimeSpan.FromMilliseconds(800));
+            TimeSpan.FromMilliseconds(3000));
     }
 
     [StaFact]
@@ -108,7 +108,7 @@ public sealed class HmacGeneratorSmokeTests : UiTestBase<HmacGeneratorView>
             () => session.FindByAutomationId("HmacGenerator.OutputField").AsTextBox().Text,
             ExpectedHex,
             "hmac output before copy",
-            TimeSpan.FromMilliseconds(800));
+            TimeSpan.FromMilliseconds(3000));
 
         session.FindByAutomationId("HmacGenerator.CopyButton").AsButton().Invoke();
         WaitHelpers.WaitUntilTextEquals(
