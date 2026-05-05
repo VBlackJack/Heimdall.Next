@@ -32,11 +32,12 @@ public sealed class RemoteFileEditor : IDisposable
     /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
     public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
+    private static readonly TimeSpan UploadDrainTimeout = TimeSpan.FromSeconds(2);
 
     private readonly IRemoteBrowser _browser;
     private readonly string _editorPath;
-    private readonly HostKeyStore? _hostKeyStore;
-    private readonly IHostKeyVerifier? _hostKeyVerifier;
+    private readonly HostKeyStore _hostKeyStore;
+    private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly ConcurrentDictionary<string, EditSession> _activeSessions = new();
     private bool _disposed;
 
@@ -46,22 +47,29 @@ public sealed class RemoteFileEditor : IDisposable
     public event Action<string, bool>? FileUploaded;
 
     /// <summary>
+    /// Raised when an auto-upload is rejected because the host key changed
+    /// after the sudo edit session was opened.
+    /// </summary>
+    public event Action<HostKeyRotationEvent>? HostKeyRotatedDuringUpload;
+
+    /// <summary>
     /// Creates a new <see cref="RemoteFileEditor"/> backed by the given SFTP browser.
     /// </summary>
     /// <param name="browser">Connected SFTP browser used for file transfers.</param>
+    /// <param name="hostKeyStore">TOFU host key store for server verification on SSH connections.</param>
+    /// <param name="hostKeyVerifier">Verifier used when a host key is unknown or changed.</param>
     /// <param name="editorPath">
     /// Path to the external editor executable (defaults to <c>notepad.exe</c>).
     /// </param>
-    /// <param name="hostKeyStore">
-    /// Optional TOFU host key store for server verification on sudo SSH connections.
-    /// </param>
     public RemoteFileEditor(
         IRemoteBrowser browser,
-        string editorPath = "notepad.exe",
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? hostKeyVerifier = null)
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
+        string editorPath = "notepad.exe")
     {
         ArgumentNullException.ThrowIfNull(browser);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(hostKeyVerifier);
         _browser = browser;
         _editorPath = editorPath;
         _hostKeyStore = hostKeyStore;
@@ -129,34 +137,22 @@ public sealed class RemoteFileEditor : IDisposable
         string localPath = CreateTempFilePath(remotePath);
         string escapedPath = PathEscaper.EscapeForShell(remotePath);
 
-        PinnedFingerprintVerifier? pinnedVerifier = null;
-        if (_hostKeyStore is not null)
-        {
-            if (_hostKeyVerifier is null)
-            {
-                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-            }
-
-            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                    sshParams,
-                    _hostKeyStore,
-                    _hostKeyVerifier,
-                    ct)
-                .ConfigureAwait(false);
-        }
+        var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                sshParams,
+                _hostKeyStore,
+                _hostKeyVerifier,
+                ct)
+            .ConfigureAwait(false);
 
         // Download with sudo via SSH command
         var connectionInfo = SshConnectionFactory.Create(sshParams);
         using var sshClient = new SshClient(connectionInfo);
 
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                sshClient,
-                sshParams.Host,
-                sshParams.Port,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            sshClient,
+            sshParams.Host,
+            sshParams.Port,
+            pinnedVerifier);
 
         await Task.Run(() =>
         {
@@ -195,8 +191,7 @@ public sealed class RemoteFileEditor : IDisposable
             LocalPath = localPath,
             IsSudo = true,
             SshParams = sshParams,
-            HostKeyStore = _hostKeyStore,
-            HostKeyVerifier = _hostKeyVerifier,
+            Verifier = pinnedVerifier,
             LastUploadTime = DateTime.UtcNow
         };
 
@@ -221,7 +216,7 @@ public sealed class RemoteFileEditor : IDisposable
 
         if (_activeSessions.TryRemove(remotePath, out var session))
         {
-            session.Dispose();
+            DrainSession(session);
             CleanupTempFile(session.LocalPath);
         }
     }
@@ -230,6 +225,20 @@ public sealed class RemoteFileEditor : IDisposable
     public IReadOnlyList<string> GetActiveEdits()
     {
         return _activeSessions.Keys.ToList();
+    }
+
+    internal IReadOnlyDictionary<string, EditSession> ActiveSessionsForTesting => _activeSessions;
+
+    internal bool AddSessionForTesting(EditSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return _activeSessions.TryAdd(session.RemotePath, session);
+    }
+
+    internal void TriggerOnFileChangedForTesting(EditSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        OnFileChanged(session);
     }
 
     /// <inheritdoc/>
@@ -242,10 +251,13 @@ public sealed class RemoteFileEditor : IDisposable
 
         _disposed = true;
 
-        foreach (var kvp in _activeSessions)
+        foreach (var kvp in _activeSessions.ToArray())
         {
-            kvp.Value.Dispose();
-            CleanupTempFile(kvp.Value.LocalPath);
+            if (_activeSessions.TryRemove(kvp.Key, out var session))
+            {
+                DrainSession(session);
+                CleanupTempFile(session.LocalPath);
+            }
         }
 
         _activeSessions.Clear();
@@ -332,51 +344,95 @@ public sealed class RemoteFileEditor : IDisposable
 
     private void OnFileChanged(EditSession session)
     {
-        _ = OnFileChangedAsync(session);
+        CancellationToken ct;
+        try
+        {
+            ct = session.UploadCts.Token;
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var upload = OnFileChangedAsync(session, ct);
+        session.CurrentUpload = upload;
+        _ = upload.ContinueWith(
+            static task =>
+            {
+                if (task.Exception is { } exception)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"RemoteFileEditor auto-upload task faulted unexpectedly: {exception.GetBaseException().Message}");
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
-    private async Task OnFileChangedAsync(EditSession session)
+    private async Task OnFileChangedAsync(EditSession session, CancellationToken ct)
     {
+        var enteredSemaphore = false;
+
         if (!session.ShouldUpload)
         {
             return;
         }
 
-        // Serialize uploads per file — prevents concurrent saves from overlapping
-        if (!await session.UploadSemaphore.WaitAsync(0).ConfigureAwait(false))
-        {
-            return; // Another upload is in progress, skip (debounce will catch the next one)
-        }
-
         bool success;
         try
         {
+            // Serialize uploads per file — prevents concurrent saves from overlapping
+            if (!await session.UploadSemaphore.WaitAsync(0, ct).ConfigureAwait(false))
+            {
+                return; // Another upload is in progress, skip (debounce will catch the next one)
+            }
+
+            enteredSemaphore = true;
+            ct.ThrowIfCancellationRequested();
             session.LastUploadTime = DateTime.UtcNow;
 
             if (session.IsSudo && session.SshParams is not null)
             {
-                await UploadWithSudoAsync(session).ConfigureAwait(false);
+                await UploadWithSudoAsync(session, ct).ConfigureAwait(false);
             }
             else
             {
                 await _browser.UploadFileAsync(
                     session.LocalPath,
-                    session.RemotePath).ConfigureAwait(false);
+                    session.RemotePath,
+                    ct).ConfigureAwait(false);
             }
 
             success = true;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            Heimdall.Core.Logging.FileLogger.Info(
+                $"RemoteFileEditor auto-upload cancelled for {session.RemotePath}.");
+            FileUploaded?.Invoke(session.RemotePath, false);
+            return;
+        }
         catch (Heimdall.Ssh.HostKeyRejectedException ex)
         {
             // A host key change between the open-edit step and the upload step
-            // is a security event, not a benign upload failure. Log loudly and
-            // re-throw so the UI can prompt the user instead of silently
-            // pushing the file under a potentially MITM'd connection.
+            // is a security event, not a benign upload failure.
             Heimdall.Core.Logging.FileLogger.Error(
                 $"RemoteFileEditor: host key rejected during upload of {session.RemotePath} "
                 + $"({ex.Host}:{ex.Port}, presented={ex.PresentedFingerprint}, stored={ex.StoredFingerprint ?? "<none>"}). Upload aborted.");
+            HostKeyRotatedDuringUpload?.Invoke(new HostKeyRotationEvent(
+                session.RemotePath,
+                ex.PresentedFingerprint,
+                ex.StoredFingerprint,
+                ex.Host,
+                ex.Port));
             FileUploaded?.Invoke(session.RemotePath, false);
-            throw;
+            return;
         }
         catch (Exception ex)
         {
@@ -386,83 +442,88 @@ public sealed class RemoteFileEditor : IDisposable
         }
         finally
         {
-            session.UploadSemaphore.Release();
+            if (enteredSemaphore)
+            {
+                try
+                {
+                    session.UploadSemaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The session may have been closed while a non-cancellable
+                    // upload API was still unwinding.
+                }
+            }
         }
 
         FileUploaded?.Invoke(session.RemotePath, success);
     }
 
-    private static async Task UploadWithSudoAsync(EditSession session)
+    internal static async Task UploadWithSudoAsync(EditSession session, CancellationToken ct = default)
     {
         if (session.SshParams is null)
         {
             throw new InvalidOperationException("SSH parameters required for sudo upload.");
         }
 
+        if (session.Verifier is null)
+        {
+            throw new InvalidOperationException(
+                "Sudo edit session must have a cached pinned verifier; was the session created via EditFileSudoAsync?");
+        }
+
         string escapedPath = PathEscaper.EscapeForShell(session.RemotePath);
         string tempRemotePath = $"{RemoteTempPrefix}edit_{Guid.NewGuid():N}";
-
-        PinnedFingerprintVerifier? pinnedVerifier = null;
-        if (session.HostKeyStore is not null)
-        {
-            if (session.HostKeyVerifier is null)
-            {
-                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-            }
-
-            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                    session.SshParams,
-                    session.HostKeyStore,
-                    session.HostKeyVerifier)
-                .ConfigureAwait(false);
-        }
 
         var connectionInfo = SshConnectionFactory.Create(session.SshParams);
         using var sftpClient = new SftpClient(connectionInfo);
         using var sshClient = new SshClient(connectionInfo);
 
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                sftpClient,
-                session.SshParams.Host,
-                session.SshParams.Port,
-                pinnedVerifier);
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                sshClient,
-                session.SshParams.Host,
-                session.SshParams.Port,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            sftpClient,
+            session.SshParams.Host,
+            session.SshParams.Port,
+            session.Verifier);
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            sshClient,
+            session.SshParams.Host,
+            session.SshParams.Port,
+            session.Verifier);
 
         await Task.Run(() =>
         {
+            ct.ThrowIfCancellationRequested();
             sftpClient.Connect();
+            ct.ThrowIfCancellationRequested();
             sshClient.Connect();
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         try
         {
             // Upload to temp location via SFTP (unprivileged)
             await Task.Run(() =>
             {
+                ct.ThrowIfCancellationRequested();
                 using var fileStream = File.OpenRead(session.LocalPath);
                 sftpClient.UploadFile(fileStream, tempRemotePath);
-            }).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+            }, ct).ConfigureAwait(false);
 
             // Move to final location with sudo
             string escapedTemp = PathEscaper.EscapeForShell(tempRemotePath);
             await Task.Run(() =>
             {
+                ct.ThrowIfCancellationRequested();
                 using var result = sshClient.RunCommand(
                     $"cat {escapedTemp} | sudo tee -- {escapedPath} > /dev/null");
+                ct.ThrowIfCancellationRequested();
 
                 if (result.ExitStatus != 0)
                 {
                     throw new InvalidOperationException(
                         $"sudo tee failed (exit {result.ExitStatus}): {result.Error}");
                 }
-            }).ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -483,33 +544,81 @@ public sealed class RemoteFileEditor : IDisposable
         }
     }
 
+    private static void DrainSession(EditSession session)
+    {
+        try
+        {
+            session.UploadCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        var pendingUpload = session.CurrentUpload;
+        if (pendingUpload is not null && !pendingUpload.IsCompleted)
+        {
+            try
+            {
+                if (!pendingUpload.Wait(UploadDrainTimeout))
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"RemoteFileEditor upload drain timed out for {session.RemotePath}.");
+                }
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions.All(static inner =>
+                inner is OperationCanceledException or TaskCanceledException))
+            {
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"RemoteFileEditor upload drain observed a fault for {session.RemotePath}: {ex.Message}");
+            }
+        }
+
+        session.Dispose();
+    }
+
+    /// <summary>
+    /// Resolves the configured editor to a concrete executable path.
+    /// </summary>
+    /// <param name="editorPath">Configured editor path, or null/empty for the default editor.</param>
+    /// <returns>The editor executable path to launch.</returns>
+    internal static string ResolveEditorPath(string? editorPath)
+    {
+        var trimmed = editorPath?.Trim();
+        var isDefault = string.IsNullOrEmpty(trimmed)
+            || string.Equals(trimmed, "notepad.exe", StringComparison.OrdinalIgnoreCase);
+
+        if (isDefault && OperatingSystem.IsWindows())
+        {
+            var systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            return Path.Combine(systemDirectory, "notepad.exe");
+        }
+
+        return string.IsNullOrEmpty(trimmed) ? "notepad.exe" : trimmed;
+    }
+
     private static void LaunchEditor(string editorPath, string localPath)
     {
         Process? proc = null;
         try
         {
-            if (!string.IsNullOrWhiteSpace(editorPath) &&
-                !string.Equals(editorPath, "notepad.exe", StringComparison.OrdinalIgnoreCase))
+            var resolvedEditorPath = ResolveEditorPath(editorPath);
+            var psi = new ProcessStartInfo
             {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = editorPath,
-                    UseShellExecute = false
-                };
-                // ArgumentList performs proper Win32-aware quoting per arg, so a
-                // local path containing quotes / spaces / special chars cannot
-                // break out of the editor argument.
-                psi.ArgumentList.Add(localPath);
-                proc = Process.Start(psi);
-            }
-            else
-            {
-                proc = Process.Start(new ProcessStartInfo
-                {
-                    FileName = localPath,
-                    UseShellExecute = true
-                });
-            }
+                FileName = resolvedEditorPath,
+                UseShellExecute = false
+            };
+
+            // ArgumentList performs proper Win32-aware quoting per arg, so a
+            // local path containing quotes, spaces, or shell metacharacters
+            // cannot break out of the editor argument.
+            psi.ArgumentList.Add(localPath);
+            proc = Process.Start(psi);
         }
         finally
         {
@@ -517,6 +626,16 @@ public sealed class RemoteFileEditor : IDisposable
         }
     }
 }
+
+/// <summary>
+/// Carries details for a host-key rotation detected during a sudo auto-upload.
+/// </summary>
+public sealed record HostKeyRotationEvent(
+    string RemotePath,
+    string PresentedFingerprint,
+    string? StoredFingerprint,
+    string Host,
+    int Port);
 
 /// <summary>
 /// Tracks state for a single remote file editing session.
@@ -535,17 +654,23 @@ internal sealed class EditSession : IDisposable
     /// <summary>SSH connection parameters for sudo operations. Null for non-sudo edits.</summary>
     public SshConnectionParams? SshParams { get; init; }
 
-    /// <summary>TOFU host key store for server verification on sudo connections.</summary>
-    public HostKeyStore? HostKeyStore { get; init; }
-
-    /// <summary>Host key verifier for sudo SSH connections.</summary>
-    public IHostKeyVerifier? HostKeyVerifier { get; init; }
+    /// <summary>
+    /// Pinned host-key verifier resolved when the sudo edit session opened.
+    /// Non-null for sudo sessions; null for direct-browser sessions.
+    /// </summary>
+    public PinnedFingerprintVerifier? Verifier { get; init; }
 
     /// <summary>File system watcher for auto-upload on save.</summary>
     public FileSystemWatcher? Watcher { get; set; }
 
     /// <summary>Serializes upload operations per file to prevent concurrent save races.</summary>
     public SemaphoreSlim UploadSemaphore { get; } = new(1, 1);
+
+    /// <summary>Cancels in-flight auto-upload work when the edit session closes.</summary>
+    public CancellationTokenSource UploadCts { get; } = new();
+
+    /// <summary>Most recent auto-upload task, retained so teardown can observe it.</summary>
+    public Task? CurrentUpload { get; set; }
 
     /// <summary>Timestamp of the last successful upload (UTC).</summary>
     public DateTime LastUploadTime { get; set; }
@@ -562,6 +687,7 @@ internal sealed class EditSession : IDisposable
     {
         Watcher?.Dispose();
         UploadSemaphore.Dispose();
+        UploadCts.Dispose();
         GC.SuppressFinalize(this);
     }
 }

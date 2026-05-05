@@ -49,10 +49,11 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private SshConnectionParams? _sshParams;
-    private Heimdall.Ssh.HostKeyStore? _hostKeyStore;
+    private Heimdall.Ssh.HostKeyStore _hostKeyStore = null!;
     private CancellationTokenSource? _transferCts;
     private System.Threading.Timer? _healthTimer;
     private System.Threading.Timer? _errorResetTimer;
+    private string? _pendingBrowserSecurityStatus;
 
     private bool _disposed;
 
@@ -100,13 +101,14 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         string endpoint,
         LocalizationManager localizer,
         IDialogService dialogService,
-        SshConnectionParams? sshParams = null,
-        Heimdall.Ssh.HostKeyStore? hostKeyStore = null)
+        Heimdall.Ssh.HostKeyStore hostKeyStore,
+        SshConnectionParams? sshParams = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         ArgumentNullException.ThrowIfNull(sessionTab);
         ArgumentNullException.ThrowIfNull(localizer);
         ArgumentNullException.ThrowIfNull(dialogService);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
 
         if (_disposed)
         {
@@ -126,15 +128,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             endpoint,
             localizer,
             dialogService,
-            sshParams,
             hostKeyStore,
-            _hostKeyVerifier);
+            _hostKeyVerifier,
+            sshParams);
 
         _editor = new RemoteFileEditor(
             browser,
             hostKeyStore: hostKeyStore,
             hostKeyVerifier: _hostKeyVerifier);
         _editor.FileUploaded += OnEditorFileUploaded;
+        _editor.HostKeyRotatedDuringUpload += OnHostKeyRotatedDuringUpload;
 
         // Hide sudo toggle for FTP sessions (no SSH channel for sudo)
         BtnSudoMode.Visibility = sshParams is not null
@@ -146,6 +149,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _browser.DirectoryChanged += OnDirectoryChanged;
         _browser.TransferProgress += OnTransferProgress;
         _browser.Disconnected += OnBrowserDisconnected;
+        if (_browser is SftpBrowser sftpBrowser)
+        {
+            sftpBrowser.SecurityEventOccurred += OnBrowserSecurityEvent;
+        }
 
         ApplyLocalization();
         UpdateStatus(_localizer["SftpStatusConnected"]);
@@ -172,6 +179,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         if (_editor is not null)
         {
             _editor.FileUploaded -= OnEditorFileUploaded;
+            _editor.HostKeyRotatedDuringUpload -= OnHostKeyRotatedDuringUpload;
             _editor.Dispose();
             _editor = null;
         }
@@ -181,6 +189,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             _browser.DirectoryChanged -= OnDirectoryChanged;
             _browser.TransferProgress -= OnTransferProgress;
             _browser.Disconnected -= OnBrowserDisconnected;
+            if (_browser is SftpBrowser sftpBrowser)
+            {
+                sftpBrowser.SecurityEventOccurred -= OnBrowserSecurityEvent;
+            }
 
             try { _browser.Disconnect(); }
             catch (ObjectDisposedException) { /* Expected when disposing already-closed connection */ }
@@ -1158,6 +1170,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 _browser.DirectoryChanged -= OnDirectoryChanged;
                 _browser.TransferProgress -= OnTransferProgress;
                 _browser.Disconnected -= OnBrowserDisconnected;
+                if (_browser is SftpBrowser sftpBrowser)
+                {
+                    sftpBrowser.SecurityEventOccurred -= OnBrowserSecurityEvent;
+                }
                 StopHealthTimer();
 
                 try { _browser.Dispose(); }
@@ -1175,11 +1191,13 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             _browser.DirectoryChanged += OnDirectoryChanged;
             _browser.TransferProgress += OnTransferProgress;
             _browser.Disconnected += OnBrowserDisconnected;
+            newBrowser.SecurityEventOccurred += OnBrowserSecurityEvent;
 
             // Recreate editor with new browser
             if (_editor is not null)
             {
                 _editor.FileUploaded -= OnEditorFileUploaded;
+                _editor.HostKeyRotatedDuringUpload -= OnHostKeyRotatedDuringUpload;
                 _editor.Dispose();
             }
             _editor = new RemoteFileEditor(
@@ -1187,6 +1205,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 hostKeyStore: _hostKeyStore,
                 hostKeyVerifier: _hostKeyVerifier);
             _editor.FileUploaded += OnEditorFileUploaded;
+            _editor.HostKeyRotatedDuringUpload += OnHostKeyRotatedDuringUpload;
             _viewModel.Initialize(
                 newBrowser,
                 _sessionTab ?? throw new InvalidOperationException("Session tab not available."),
@@ -1194,9 +1213,9 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 EndpointTextBlock.Text,
                 _localizer ?? throw new InvalidOperationException("Localizer not available."),
                 _dialogService ?? throw new InvalidOperationException("Dialog service not available."),
-                _sshParams,
                 _hostKeyStore,
-                _hostKeyVerifier);
+                _hostKeyVerifier,
+                _sshParams);
             _viewModel.CurrentPath = reconnectPath;
 
             // Restore connected UI state
@@ -1230,7 +1249,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 : (_localizer?.Format("SftpErrorSessionDied", errorMessage)
                     ?? $"Session lost: {errorMessage}");
 
-            UpdateStatus(status);
+            if (_pendingBrowserSecurityStatus is { } securityStatus)
+            {
+                _pendingBrowserSecurityStatus = null;
+                ShowError(securityStatus);
+            }
+            else
+            {
+                UpdateStatus(status);
+            }
+
             ShowDisconnectedState();
         });
     }
@@ -1304,10 +1332,67 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             }
             else
             {
+                if (_editor?.GetActiveEdits().Contains(remotePath, StringComparer.Ordinal) != true)
+                {
+                    return;
+                }
+
                 ShowError(_localizer?.Format("SftpStatusAutoUploadFailed", fileName, "upload error")
                     ?? $"Auto-upload failed: {fileName}");
             }
         });
+    }
+
+    private void OnHostKeyRotatedDuringUpload(HostKeyRotationEvent evt)
+    {
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            ShowError(_localizer?.Format(
+                    "SftpHostKeyRotatedDuringUpload",
+                    evt.RemotePath,
+                    evt.Host,
+                    evt.Port,
+                    evt.PresentedFingerprint)
+                ?? $"Host key for {evt.Host}:{evt.Port} changed while saving {evt.RemotePath}. Save aborted.");
+            _editor?.CloseEdit(evt.RemotePath);
+        });
+    }
+
+    private void OnBrowserSecurityEvent(SshSessionSecurityEvent evt)
+    {
+        if (evt.Code != SshFailureCode.HostKeyMismatch)
+        {
+            return;
+        }
+
+        var message = FormatHostKeyMismatchMidSession(evt);
+        _pendingBrowserSecurityStatus = message;
+
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            ShowError(message);
+        });
+    }
+
+    private string FormatHostKeyMismatchMidSession(SshSessionSecurityEvent evt)
+    {
+        return _localizer?.Format(
+                "SftpHostKeyMismatchMidSession",
+                evt.Host,
+                evt.Port,
+                evt.PresentedFingerprint ?? "?",
+                evt.StoredFingerprint ?? "?")
+            ?? $"Security warning: host key for {evt.Host}:{evt.Port} changed during the session. Presented fingerprint: {evt.PresentedFingerprint ?? "?"}. Trusted fingerprint: {evt.StoredFingerprint ?? "?"}.";
     }
 
     // ------------------------------------------------------------------

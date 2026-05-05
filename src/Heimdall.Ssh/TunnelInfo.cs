@@ -47,4 +47,12 @@ public sealed record TunnelInfo(
     /// Optional user-facing label for manually created tunnels.
     /// </summary>
     public string? Label { get; init; }
+
+    /// <summary>
+    /// Stable identifier of the gateway chain that opened this tunnel. Used by
+    /// callers to decide whether an alive tunnel can be reused for a new
+    /// request, instead of matching only on the remote endpoint. Empty for
+    /// tunnels opened without an associated gateway chain.
+    /// </summary>
+    public string GatewayChainKey { get; init; } = string.Empty;
 }

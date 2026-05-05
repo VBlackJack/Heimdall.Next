@@ -42,6 +42,7 @@ internal sealed class SshHandler : IProtocolHandler
     private readonly IHostKeyVerifier _hostKeyVerifier;
     private readonly X11ServerManager _x11ServerManager;
     private readonly IDialogService _dialogService;
+    private readonly IPlinkHostKeyProbe _plinkHostKeyProbe;
 
     internal Action<string>? SetStatusText { get; set; }
 
@@ -53,7 +54,8 @@ internal sealed class SshHandler : IProtocolHandler
         IHostKeyTrustService hostKeyTrustService,
         IHostKeyVerifier hostKeyVerifier,
         X11ServerManager x11ServerManager,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IPlinkHostKeyProbe? plinkHostKeyProbe = null)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
@@ -63,6 +65,7 @@ internal sealed class SshHandler : IProtocolHandler
         _hostKeyVerifier = hostKeyVerifier;
         _x11ServerManager = x11ServerManager;
         _dialogService = dialogService;
+        _plinkHostKeyProbe = plinkHostKeyProbe ?? new DefaultPlinkHostKeyProbe();
     }
 
     public string Protocol => "SSH";
@@ -413,142 +416,29 @@ internal sealed class SshHandler : IProtocolHandler
             : targetHost;
 
         var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
-        string? hostKeyArg = storedFingerprint;
+        var hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
+                targetHost,
+                targetPort,
+                server.SshUsername,
+                plinkPath,
+                settings.HostKeyProbeTimeoutMs,
+                storedFingerprint,
+                _plinkHostKeyProbe,
+                _hostKeyVerifier,
+                _hostKeyTrustService,
+                ct)
+            .ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(storedFingerprint))
+        if (!hostKeyDecision.ShouldProceed)
         {
-            Core.Logging.FileLogger.Info(
-                $"Using pinned host key for Plink path {targetHost}:{targetPort}: {storedFingerprint}");
-
-            var verifyPresentation = await ProbeHostKeyPresentationAsync(
-                    plinkPath,
-                    targetHost,
-                    targetPort,
-                    server.SshUsername,
-                    settings,
-                    ct)
-                .ConfigureAwait(false);
-
-            if (verifyPresentation is not null
-                && !string.Equals(
-                    verifyPresentation.Fingerprint,
-                    storedFingerprint,
-                    StringComparison.Ordinal))
-            {
-                Core.Logging.FileLogger.Error(
-                    $"HOST KEY MISMATCH (plink path) for {targetHost}:{targetPort}! " +
-                    $"Stored={storedFingerprint} Presented={verifyPresentation.Fingerprint}");
-
-                var decision = await _hostKeyVerifier.VerifyAsync(
-                        targetHost,
-                        targetPort,
-                        verifyPresentation.Algorithm,
-                        verifyPresentation.Fingerprint,
-                        storedFingerprint,
-                        ct)
-                    .ConfigureAwait(false);
-
-                if (decision == HostKeyDecision.Accept)
-                {
-                    _hostKeyTrustService.Trust(
-                        targetHost,
-                        targetPort,
-                        verifyPresentation.Fingerprint,
-                        verifyPresentation.Algorithm,
-                        HostKeySource.UserConfirmed);
-                    hostKeyArg = verifyPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Warn(
-                        $"User accepted replacement host key for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
-                }
-                else if (decision == HostKeyDecision.TrustOnce)
-                {
-                    _hostKeyTrustService.TrustForSession(
-                        targetHost,
-                        targetPort,
-                        verifyPresentation.Fingerprint,
-                        verifyPresentation.Algorithm);
-                    hostKeyArg = verifyPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Warn(
-                        $"User trusted replacement host key for this session for {targetHost}:{targetPort}: {verifyPresentation.Fingerprint}");
-                }
-                else
-                {
-                    var msg = BuildHostKeyMismatchMessage(
-                        storedFingerprint,
-                        verifyPresentation.Fingerprint);
-                    _connectionSm.SetError(server.Id, msg);
-                    return new ConnectionResult(
-                        false,
-                        msg,
-                        null,
-                        SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
-                            storedFingerprint,
-                            verifyPresentation.Fingerprint,
-                            targetHost,
-                            targetPort));
-                }
-            }
+            return BuildPlinkHostKeyRejectionResult(
+                server.Id,
+                targetHost,
+                targetPort,
+                hostKeyDecision);
         }
-        else
-        {
-            var probedPresentation = await ProbeHostKeyPresentationAsync(
-                    plinkPath,
-                    targetHost,
-                    targetPort,
-                    server.SshUsername,
-                    settings,
-                    ct)
-                .ConfigureAwait(false);
 
-            if (probedPresentation is not null)
-            {
-                var decision = await _hostKeyVerifier.VerifyAsync(
-                        targetHost,
-                        targetPort,
-                        probedPresentation.Algorithm,
-                        probedPresentation.Fingerprint,
-                        storedFingerprint: null,
-                        ct)
-                    .ConfigureAwait(false);
-
-                if (decision == HostKeyDecision.Accept)
-                {
-                    _hostKeyTrustService.Trust(
-                        targetHost,
-                        targetPort,
-                        probedPresentation.Fingerprint,
-                        probedPresentation.Algorithm,
-                        HostKeySource.UserConfirmed);
-                    hostKeyArg = probedPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Info(
-                        $"User trusted Plink host key for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");
-                }
-                else if (decision == HostKeyDecision.TrustOnce)
-                {
-                    _hostKeyTrustService.TrustForSession(
-                        targetHost,
-                        targetPort,
-                        probedPresentation.Fingerprint,
-                        probedPresentation.Algorithm);
-                    hostKeyArg = probedPresentation.Fingerprint;
-                    Core.Logging.FileLogger.Info(
-                        $"User trusted Plink host key for this session for {targetHost}:{targetPort} fingerprint={probedPresentation.Fingerprint}");
-                }
-                else
-                {
-                    var message = BuildCancelledMessage();
-                    _connectionSm.SetError(server.Id, message);
-                    return new ConnectionResult(
-                        false,
-                        message,
-                        null,
-                        SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                            SshLocalizationKeys.ErrorSshCancelled,
-                            message,
-                            SshFailureCode.Cancelled));
-                }
-            }
-        }
+        var hostKeyArg = hostKeyDecision.Fingerprint;
 
         var passwordFilePath = CreatePlinkPasswordFile(
             ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted));
@@ -683,27 +573,6 @@ internal sealed class SshHandler : IProtocolHandler
         {
             Core.Logging.FileLogger.Warn($"[SshHandler] DeletePlinkPasswordFile: {ex.Message}");
         }
-    }
-
-    /// <summary>
-    /// Probes the SSH host key presentation by running <c>plink -batch -v</c>.
-    /// Returns null if the key is already cached or the fingerprint cannot be parsed.
-    /// </summary>
-    private Task<PlinkHostKeyPresentation?> ProbeHostKeyPresentationAsync(
-        string plinkPath,
-        string host,
-        int port,
-        string? username,
-        AppSettings settings,
-        CancellationToken ct)
-    {
-        return PlinkHostKeyProbe.ProbeAsync(
-            plinkPath,
-            host,
-            port,
-            username,
-            settings.HostKeyProbeTimeoutMs,
-            ct);
     }
 
     internal static System.Diagnostics.ProcessStartInfo BuildPuttyStartInfo(
@@ -856,6 +725,65 @@ internal sealed class SshHandler : IProtocolHandler
         }
 
         return $"{message} {detail}";
+    }
+
+    private ConnectionResult BuildPlinkHostKeyRejectionResult(
+        string serverId,
+        string targetHost,
+        int targetPort,
+        PlinkHostKeyDecision decision)
+    {
+        if (decision.FailureCode == SshFailureCode.HostKeyMismatch
+            && decision.StoredFingerprint is not null
+            && decision.PresentedFingerprint is not null)
+        {
+            var message = BuildHostKeyMismatchMessage(
+                decision.StoredFingerprint,
+                decision.PresentedFingerprint);
+            _connectionSm.SetError(serverId, message);
+            return new ConnectionResult(
+                false,
+                message,
+                null,
+                SshSessionDiagnosticFactory.CreateHostKeyMismatchFailure(
+                    decision.StoredFingerprint,
+                    decision.PresentedFingerprint,
+                    targetHost,
+                    targetPort));
+        }
+
+        if (decision.FailureCode == SshFailureCode.Cancelled)
+        {
+            var message = BuildCancelledMessage();
+            _connectionSm.SetError(serverId, message);
+            return new ConnectionResult(
+                false,
+                message,
+                null,
+                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                    SshLocalizationKeys.ErrorSshCancelled,
+                    message,
+                    SshFailureCode.Cancelled));
+        }
+
+        var unavailableMessage = BuildHostKeyUnavailableMessage();
+        _connectionSm.SetError(serverId, unavailableMessage);
+        return new ConnectionResult(
+            false,
+            unavailableMessage,
+            null,
+            SshSessionDiagnosticFactory.CreateHostKeyUnavailableFailure(
+                unavailableMessage,
+                targetHost,
+                targetPort));
+    }
+
+    private string BuildHostKeyUnavailableMessage()
+    {
+        var message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
+        return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
+            ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
+            : message;
     }
 
     private string BuildCancelledMessage()

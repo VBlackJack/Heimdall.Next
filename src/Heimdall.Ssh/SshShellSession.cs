@@ -29,6 +29,17 @@ public sealed class SshShellSession : IDisposable
 {
     private const int ReadBufferSize = 8192;
 
+    /// <summary>
+    /// Best-effort wait for the read loop to honour cancellation before
+    /// stream/client disposal begins.
+    /// </summary>
+    private static readonly TimeSpan StopReadLoopGraceful = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// Final wait before accepting that a native SSH.NET pipe read may be stuck.
+    /// </summary>
+    private static readonly TimeSpan StopReadLoopFinal = TimeSpan.FromSeconds(2);
+
     private SshClient? _client;
     private ShellStream? _stream;
     private CancellationTokenSource? _readCts;
@@ -44,6 +55,11 @@ public sealed class SshShellSession : IDisposable
     /// </summary>
     public event Action<string?>? Disconnected;
 
+    /// <summary>
+    /// Raised when a security-relevant failure occurs. Fired in addition to <see cref="Disconnected"/>.
+    /// </summary>
+    public event Action<SshSessionSecurityEvent>? SecurityEventOccurred;
+
     /// <summary>Whether the underlying SSH connection is active.</summary>
     public bool IsConnected => _client?.IsConnected == true && _stream is not null;
 
@@ -56,20 +72,23 @@ public sealed class SshShellSession : IDisposable
     /// <see cref="DataReceived"/> for each chunk of output.
     /// </summary>
     /// <param name="connectionParams">SSH connection parameters.</param>
+    /// <param name="hostKeyStore">TOFU host key store for server verification.</param>
+    /// <param name="hostKeyVerifier">Verifier used when a host key is unknown or changed.</param>
     /// <param name="terminalColumns">Initial terminal width in columns.</param>
     /// <param name="terminalRows">Initial terminal height in rows.</param>
-    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
     public async Task ConnectAsync(
         SshConnectionParams connectionParams,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
         int terminalColumns = 80,
         int terminalRows = 24,
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? hostKeyVerifier = null,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(connectionParams);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(hostKeyVerifier);
 
         // Fail fast on a pre-cancelled token: without this, the linked CTS
         // and read-loop Task.Run further down would silently swallow the
@@ -81,33 +100,21 @@ public sealed class SshShellSession : IDisposable
             throw new InvalidOperationException("Session is already connected. Call Disconnect() first.");
         }
 
-        PinnedFingerprintVerifier? pinnedVerifier = null;
-        if (hostKeyStore is not null)
-        {
-            if (hostKeyVerifier is null)
-            {
-                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-            }
-
-            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                    connectionParams,
-                    hostKeyStore,
-                    hostKeyVerifier,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
+        var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                connectionParams,
+                hostKeyStore,
+                hostKeyVerifier,
+                cancellationToken)
+            .ConfigureAwait(false);
 
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
         _client = new SshClient(connectionInfo);
 
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                _client,
-                connectionParams.Host,
-                connectionParams.Port,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            _client,
+            connectionParams.Host,
+            connectionParams.Port,
+            pinnedVerifier);
 
         await using var connectReg = cancellationToken.Register(
             () => { try { _client.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("SSH disconnect cleanup suppressed", ex); } });
@@ -199,7 +206,28 @@ public sealed class SshShellSession : IDisposable
             return;
         }
 
-        StopReadLoop();
+        var loopExited = StopReadLoop();
+        if (!loopExited && _readLoopTask is { } pending)
+        {
+            try
+            {
+                if (!pending.Wait(StopReadLoopFinal))
+                {
+                    Core.Logging.FileLogger.Error(
+                        "SshShellSession: read loop is still running after a "
+                        + $"{StopReadLoopFinal.TotalSeconds:F0}-second wait during Disconnect. "
+                        + "Underlying SSH.NET pipe may be stuck; task will be leaked.");
+                }
+            }
+            catch (AggregateException)
+            {
+                // The loop observes and logs non-cancellation failures itself.
+            }
+        }
+
+        DisposeReadLoopCancellationSource();
+        _readLoopTask = null;
+
         CleanupStream();
         DisconnectClient();
 
@@ -215,7 +243,28 @@ public sealed class SshShellSession : IDisposable
 
         _disposed = true;
 
-        StopReadLoop();
+        var loopExited = StopReadLoop();
+        if (!loopExited && _readLoopTask is { } pending)
+        {
+            try
+            {
+                if (!pending.Wait(StopReadLoopFinal))
+                {
+                    Core.Logging.FileLogger.Error(
+                        "SshShellSession: read loop is still running after a "
+                        + $"{StopReadLoopFinal.TotalSeconds:F0}-second wait during Dispose. "
+                        + "Underlying SSH.NET pipe may be stuck; task will be leaked.");
+                }
+            }
+            catch (AggregateException)
+            {
+                // The loop observes and logs non-cancellation failures itself.
+            }
+        }
+
+        DisposeReadLoopCancellationSource();
+        _readLoopTask = null;
+
         CleanupStream();
         DisconnectClient();
     }
@@ -230,7 +279,7 @@ public sealed class SshShellSession : IDisposable
 
         try
         {
-            while (!cancellationToken.IsCancellationRequested && _stream is not null)
+            while (!cancellationToken.IsCancellationRequested && !_disposed && _stream is not null)
             {
                 int bytesRead;
 
@@ -240,6 +289,11 @@ public sealed class SshShellSession : IDisposable
                         .ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
+                {
+                    break;
+                }
+
+                if (_disposed || cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
@@ -262,36 +316,77 @@ public sealed class SshShellSession : IDisposable
         {
             if (!_disposed)
             {
-                Disconnected?.Invoke(ex.Message);
+                SshSessionFailureDispatcher.Dispatch(
+                    ex,
+                    SecurityEventOccurred,
+                    Disconnected);
             }
         }
     }
 
-    /// <summary>Signals the read loop to stop and waits briefly for it to complete.</summary>
-    private void StopReadLoop()
+    /// <summary>
+    /// Signals the read loop to stop and waits briefly for it to complete.
+    /// The cancellation source is disposed by the caller after the final wait.
+    /// </summary>
+    private bool StopReadLoop()
+    {
+        var cts = _readCts;
+        if (cts is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            return _readLoopTask is null || _readLoopTask.IsCompleted;
+        }
+
+        var task = _readLoopTask;
+        if (task is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            if (!task.Wait(StopReadLoopGraceful))
+            {
+                Core.Logging.FileLogger.Warn(
+                    "SshShellSession: read loop did not honour cancellation within "
+                    + $"{StopReadLoopGraceful.TotalMilliseconds:F0} ms; will retry during final teardown.");
+                return false;
+            }
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(static e => e is OperationCanceledException or ObjectDisposedException))
+        {
+            // Expected from task cancellation during teardown
+        }
+        catch (AggregateException ex)
+        {
+            Core.Logging.FileLogger.Warn($"SshShellSession read loop stop: {ex.InnerException?.Message ?? ex.Message}");
+        }
+
+        return true;
+    }
+
+    private void DisposeReadLoopCancellationSource()
     {
         if (_readCts is not null)
         {
             try
             {
-                _readCts.Cancel();
-                _readLoopTask?.Wait(TimeSpan.FromMilliseconds(500));
-            }
-            catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is OperationCanceledException or ObjectDisposedException))
-            {
-                // Expected from task cancellation during teardown
-            }
-            catch (AggregateException ex)
-            {
-                Core.Logging.FileLogger.Warn($"SshShellSession read loop stop: {ex.InnerException?.Message ?? ex.Message}");
-            }
-            finally
-            {
                 _readCts.Dispose();
-                _readCts = null;
-                _readLoopTask = null;
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
+
+        _readCts = null;
     }
 
     /// <summary>Closes and disposes the shell stream.</summary>

@@ -26,23 +26,16 @@ public sealed partial class TunnelManager
     private const int DefaultMaxStartAttempts = 3;
     private const int DefaultRetryDelayMs = 50;
 
-    private static async Task<PinnedFingerprintVerifier?> ResolvePinnedVerifierAsync(
+    private static async Task<PinnedFingerprintVerifier> ResolvePinnedVerifierAsync(
         SshConnectionParams connectionParams,
         string verificationHost,
         int verificationPort,
-        HostKeyStore? hostKeyStore,
-        IHostKeyVerifier? verifier,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier verifier,
         CancellationToken cancellationToken)
     {
-        if (hostKeyStore is null)
-        {
-            return null;
-        }
-
-        if (verifier is null)
-        {
-            throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-        }
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(verifier);
 
         return await SshConnectionFactory.ResolveHostKeyAsync(
                 connectionParams,
@@ -58,18 +51,15 @@ public sealed partial class TunnelManager
         SshClient client,
         string verificationHost,
         int verificationPort,
-        PinnedFingerprintVerifier? pinnedVerifier,
+        PinnedFingerprintVerifier pinnedVerifier,
         CancellationToken cancellationToken,
         string cancelLogMessage)
     {
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                client,
-                verificationHost,
-                verificationPort,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            client,
+            verificationHost,
+            verificationPort,
+            pinnedVerifier);
 
         await using var connectReg = cancellationToken.Register(
             () =>
@@ -138,7 +128,8 @@ public sealed partial class TunnelManager
         int remotePort,
         int socksProxyPort,
         int remoteBindPort,
-        string? label = null)
+        string? label = null,
+        string? gatewayChainKey = null)
     {
         return new TunnelInfo(
             gatewayHost,
@@ -150,7 +141,8 @@ public sealed partial class TunnelManager
         {
             SocksProxyPort = socksProxyPort,
             RemoteBindPort = remoteBindPort,
-            Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim()
+            Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim(),
+            GatewayChainKey = gatewayChainKey ?? string.Empty
         };
     }
 

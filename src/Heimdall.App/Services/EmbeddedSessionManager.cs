@@ -554,7 +554,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         var view = new EmbeddedSftpView();
         view.InitializeSession(
             browser, tab, displayName, string.Empty,
-            _localizer, _dialogService, sshParams, _hostKeyStore);
+            _localizer, _dialogService, _hostKeyStore, sshParams);
 
         // Wire "Open in Terminal" to send a cd command to any SSH terminal
         // in the same tab's split tree.

@@ -101,6 +101,22 @@ internal static class SshSessionDiagnosticFactory
             detail);
     }
 
+    internal static SessionDiagnostic CreateHostKeyUnavailableFailure(
+        string? detail,
+        string host,
+        int port)
+    {
+        var diagnosticDetail = string.IsNullOrWhiteSpace(detail)
+            ? $"SSH host key unavailable for {host}:{port}."
+            : $"{detail} ({host}:{port})";
+
+        return new SessionDiagnostic(
+            SessionFailureStage.SshHostKey,
+            "ErrorSshHostKeyUnavailable",
+            (int)SshFailureCode.HostKeyUnavailable,
+            diagnosticDetail);
+    }
+
     internal static SessionDiagnostic CreateGenericFailure(string messageKey, string? detail)
     {
         return new SessionDiagnostic(
@@ -125,6 +141,7 @@ internal static class SshSessionDiagnosticFactory
                 => SessionFailureStage.SshAuth,
 
             SshFailureCode.HostKeyMismatch
+                or SshFailureCode.HostKeyUnavailable
                 => SessionFailureStage.SshHostKey,
 
             SshFailureCode.NetworkRefused

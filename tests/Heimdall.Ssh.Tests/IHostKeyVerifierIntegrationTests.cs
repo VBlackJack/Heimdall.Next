@@ -250,31 +250,31 @@ public sealed class IHostKeyVerifierIntegrationTests
     }
 
     [Fact]
-    public async Task SshShellSession_WithHostKeyStoreAndMissingVerifier_FailsClosedBeforeNetwork()
+    public async Task SshShellSession_WithNullVerifier_ThrowsBeforeNetwork()
     {
         using var session = new SshShellSession();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<ArgumentNullException>(
             () => session.ConnectAsync(
                 CreateConnectionParams(),
                 hostKeyStore: new HostKeyStore(),
-                hostKeyVerifier: null));
+                hostKeyVerifier: null!));
 
-        Assert.Contains("IHostKeyVerifier", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("hostKeyVerifier", ex.ParamName);
     }
 
     [Fact]
-    public async Task SftpBrowser_WithHostKeyStoreAndMissingVerifier_FailsClosedBeforeNetwork()
+    public async Task SftpBrowser_WithNullVerifier_ThrowsBeforeNetwork()
     {
         using var browser = new SftpBrowser();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<ArgumentNullException>(
             () => browser.ConnectAsync(
                 CreateConnectionParams(),
                 hostKeyStore: new HostKeyStore(),
-                hostKeyVerifier: null));
+                hostKeyVerifier: null!));
 
-        Assert.Contains("IHostKeyVerifier", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("hostKeyVerifier", ex.ParamName);
     }
 
     private static Task<PinnedFingerprintVerifier> ResolvePresentationAsync(

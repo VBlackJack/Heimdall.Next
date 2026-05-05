@@ -453,9 +453,9 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
                     remoteHost,
                     vm.RemotePort,
                     vm.LocalPort,
-                    ct,
                     hostKeyStore: _hostKeyStore,
                     verifier: _hostKeyVerifier,
+                    cancellationToken: ct,
                     keepAliveIntervalSeconds: settings.SshKeepAliveIntervalSeconds,
                     label: label)
                 .ConfigureAwait(false);
@@ -466,9 +466,9 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
                 remoteHost,
                 vm.RemotePort,
                 vm.LocalPort,
-                ct,
                 hostKeyStore: _hostKeyStore,
                 verifier: _hostKeyVerifier,
+                cancellationToken: ct,
                 label: label)
             .ConfigureAwait(false);
     }

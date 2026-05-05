@@ -12,6 +12,90 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-05 — SSH/SFTP/FTP security audit closure
+
+Pair-architect security cycle closing the consolidated SSH/SFTP audit plan
+(`audit-ssh-sftp-action-plan.md`). 15 items shipped across P0/P1/P2, with
+FTP coverage and cleartext-warning work closing the final deferred item.
+
+Security hardening:
+
+- **Gateway-aware tunnel reuse** — reusable tunnels now match on remote target,
+  forwarding mode, and a collision-safe gateway chain key built from stable
+  gateway IDs and a versioned SHA-256 hash. Overlapping private networks behind
+  different bastions no longer share the same local tunnel.
+- **Plink host-key fail-closed** — Plink fallback paths use
+  `PlinkHostKeyDecider` plus injectable `IPlinkHostKeyProbe`; if Heimdall
+  cannot resolve a stored or safely probed fingerprint, the connection fails
+  with `SshFailureCode.HostKeyUnavailable` instead of falling back to the
+  PuTTY/Plink cache.
+- **Compile-time host-key dependencies** — production SSH/SFTP/tunnel/sudo
+  entry points now require non-null `HostKeyStore` and `IHostKeyVerifier`
+  dependencies. `RejectingHostKeyVerifier` is the safe fail-closed verifier;
+  `AutoAcceptHostKeyVerifier` remains isolated to tests that explicitly need
+  first-use acceptance.
+- **Typed sudo permission handling** — sudo escalation in the SFTP view now
+  triggers only on typed permission-denied exceptions, removing the old
+  substring heuristic that treated generic `Failure` messages as permission
+  denials.
+- **Sudo edit verifier caching** — sudo edit sessions cache the pinned
+  verifier created when the file is opened. A host-key rotation during
+  auto-upload emits `HostKeyRotatedDuringUpload`, closes the edit session, and
+  does not silently re-prompt.
+- **Mid-session security events** — `SftpBrowser` and `SshShellSession` expose
+  typed `SshSessionSecurityEvent` values via `SshSessionFailureDispatcher`;
+  SSH auto-reconnect is suppressed on host-key mismatch signals.
+- **Sudo upload cleanup** — privileged uploads split the write and cleanup
+  commands so `/tmp/.heimdall_*` files are removed from a `finally` path even
+  when `sudo tee` fails.
+- **External editor launch** — the default editor resolves to the absolute
+  Windows Notepad path and launches with `UseShellExecute=false`, avoiding
+  file association surprises for privileged temp files.
+- **Known hosts importer** — the app-side importer now mirrors the core
+  streaming `TextReader` path, refuses files above 50 MB, and reports typed
+  `FileTooLarge` / `FileReadError` diagnostics.
+- **Remote edit upload lifecycle** — file-watcher uploads are tracked,
+  cancellation-aware, and drained on `CloseEdit` / `Dispose` so exceptions are
+  observed instead of falling into `UnobservedTaskException`.
+- **Legacy host-key verify API** — `HostKeyStore.Verify(byte[])` is marked
+  `[Obsolete]` with tests preserving the legacy first-use contract.
+- **Shell teardown hygiene** — `SshShellSession` no longer disposes its read
+  loop cancellation source while the loop may still be running.
+
+FTP follow-up:
+
+- `FtpBrowser` now has parser/path tests for Unix and DOS listing formats,
+  malformed lines, oversized filenames, path normalization, and date rollover.
+- `FtpHandler` validates host and port before connect and reuses localized
+  validation messages.
+- Credentialed FTP sessions without TLS produce a non-blocking
+  `ConnectionResult.Warning` routed to the status surface.
+- FluentFTP migration rationale and scope are documented in
+  `docs/audit/ftp-fluentftp-migration.md`.
+
+Audit documents:
+
+- `audit-ssh-sftp-claude.md`
+- `audit-ssh-sftp-codex.md`
+- `audit-ssh-sftp-action-plan.md`
+- `prompts/01-*.md` through `prompts/12-*.md`
+
+Documentation reorganization:
+
+- Added `docs/DEVELOPMENT.md` as the versioned development reference for
+  build/test commands, versioning, code standards, i18n conventions, namespace
+  rules, and CI expectations.
+- Inverted the security documentation layout: root `SECURITY.md` is now the
+  short GitHub-detected reporting policy, while `docs/SECURITY.md` is the
+  canonical threat model, controls, limitations, and security test reference.
+- Added `docs/TOOLS.md` as the developer reference for the built-in tool
+  catalog, `ToolRegistry`, `IToolView`, SSH gateway routing, external tool
+  providers, SecNumCloud audit engine, and Command Library / TwinShell
+  integration.
+
+Test baseline after this pass: **5,453 passing + 6 skipped** (was 5,030),
+zero warnings, i18n parity preserved (en=fr=5,489 leaf keys).
+
 ## 2026-05-04 — RDP UX deferred polish sprint
 
 Pair-architect follow-up sprint closing the 14 deferred findings + 2

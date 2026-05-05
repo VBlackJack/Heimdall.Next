@@ -16,6 +16,8 @@
 
 using Heimdall.Core.Ssh;
 
+#pragma warning disable CS0618 // Type or member is obsolete — this test exercises the legacy byte[] contract intentionally.
+
 namespace Heimdall.Ssh.Tests;
 
 // The plink TOFU caller shells out to plink.exe and is not currently isolated
@@ -38,6 +40,19 @@ public class HostKeyStoreTests
         Assert.True(result.FirstUse);
         Assert.Null(result.StoredFingerprint);
         Assert.StartsWith("SHA256:", result.Fingerprint);
+    }
+
+    [Fact]
+    public void LegacyByteOverload_FirstUse_ReturnsTrustedTrueByDesign()
+    {
+        // This test documents the obsolete legacy contract: the byte[] overload
+        // returns Trusted=true on first use, which is why production code must
+        // route through HostKeyTrustService instead. See the [Obsolete] message
+        // on HostKeyStore.Verify(string, int, byte[]) for the migration path.
+        var result = _store.Verify("first.example.com", 22, _sampleKey);
+
+        Assert.True(result.FirstUse);
+        Assert.True(result.Trusted);
     }
 
     [Fact]
@@ -556,3 +571,5 @@ public class HostKeyStoreTests
         Assert.False(HostKeyStore.ConstantTimeEquals(null!, null!));
     }
 }
+
+#pragma warning restore CS0618

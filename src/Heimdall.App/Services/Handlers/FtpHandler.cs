@@ -17,8 +17,11 @@
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
+using System.Globalization;
+using System.Net;
 
 namespace Heimdall.App.Services.Handlers;
 
@@ -61,10 +64,24 @@ internal sealed class FtpHandler : IProtocolHandler
             return new ConnectionResult(false, msg, null);
         }
 
+        var host = server.RemoteServer;
+        if (!IsValidFtpHost(host))
+        {
+            var msg = _localizer["ErrorInvalidTargetHost"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        var port = server.FtpPort > 0 ? server.FtpPort : DefaultPorts.Ftp;
+        if (!InputValidator.ValidatePortRange(port))
+        {
+            var msg = _localizer.Format("ErrorInvalidPort", port.ToString(CultureInfo.InvariantCulture));
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingFtp);
 
-        var host = server.RemoteServer;
-        var port = server.FtpPort > 0 ? server.FtpPort : DefaultPorts.Ftp;
         var username = server.FtpUsername;
         var password = ConnectionHelpers.DecryptPassword(server.FtpPasswordEncrypted);
 
@@ -92,6 +109,44 @@ internal sealed class FtpHandler : IProtocolHandler
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-        return new ConnectionResult(true, null, new FtpSessionBundle(browser));
+        var warning = ComputeCleartextWarning(
+            server.FtpUseSsl,
+            username,
+            host,
+            port,
+            _localizer);
+
+        return new ConnectionResult(
+            true,
+            null,
+            new FtpSessionBundle(browser),
+            Warning: warning);
+    }
+
+    internal static string? ComputeCleartextWarning(
+        bool useSsl,
+        string? username,
+        string host,
+        int port,
+        LocalizationManager localizer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        ArgumentNullException.ThrowIfNull(localizer);
+
+        if (useSsl || string.IsNullOrEmpty(username))
+        {
+            return null;
+        }
+
+        return localizer.Format(
+            "WarnFtpCleartext",
+            host,
+            port.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static bool IsValidFtpHost(string host)
+    {
+        return !string.IsNullOrWhiteSpace(host)
+            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 }

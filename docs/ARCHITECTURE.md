@@ -80,12 +80,12 @@ Heimdall.slnx (14 projects)
 
 1. **SSH.NET (primary)**: Programmatic auth with password, private key file, or keyboard-interactive. Custom `PageantClient` communicates with Pageant via Win32 shared memory (`CreateFileMapping` + `WM_COPYDATA`) and wraps keys as `IPrivateKeySource` for SSH.NET.
 
-2. **Plink fallback**: When `AuthPreflightChecker.RequiresPageantFallback()` detects that the only viable auth method is Pageant, `PlinkTunnelRunner` handles tunnels and `PipeModeSession` handles interactive SSH. Plink communicates with Pageant natively.
+2. **Plink fallback**: When `AuthPreflightChecker.RequiresPageantFallback()` detects that the only viable auth method is Pageant, `PlinkTunnelRunner` handles tunnels and `PipeModeSession` handles interactive SSH. Plink communicates with Pageant natively, but Heimdall still owns host-key trust. `PlinkHostKeyDecider` accepts a stored fingerprint, or uses injectable `IPlinkHostKeyProbe` plus `IHostKeyVerifier` to resolve first-use trust before launch. If no Heimdall-trusted fingerprint can be resolved, the path fails with `SshFailureCode.HostKeyUnavailable` instead of falling back to PuTTY/Plink's cache.
 
 **Pageant integration fixes** (3 critical bugs resolved):
 - `AGENT_COPYDATA_ID` must be `0x804e50ba` — any other value causes Pageant to silently ignore the request
 - RSA-SHA2 algorithms (`rsa-sha2-256`, `rsa-sha2-512`) must be registered on the `ConnectionInfo` for modern servers that reject legacy `ssh-rsa`
-- `PageantHostAlgorithm.Sign()` must return the full SSH signature blob (algorithm name length + algorithm name + signature length + signature), not just the raw signature bytes — SSH.NET expects the wire-format blob
+- `PageantHostAlgorithm.Sign()` must return the full SSH signature blob (algorithm name length + algorithm name + signature length + signature), not just the raw signature bytes — SSH.NET expects the wire-format blob. `PageantClient.SignData()` already returns this blob unchanged.
 
 ### 2. Pipe Mode for SSH Terminals (NOT ConPTY)
 
@@ -202,11 +202,15 @@ Additional guards:
 
 ### 6. TOFU Host Key Verification
 
-SSH host-key trust is orchestrated by `HostKeyTrustService`, which composes the lower-level `HostKeyStore` and persists enriched `HostKeyEntry` metadata in `settings.json` under `trustedHostKeysV2` (`Fingerprint`, `FirstSeen`, `LastSeen`, `Algorithm`, `Source`, optional `PublicKeyBase64`). Legacy `trustedHostKeys` entries are read additively and migrated in memory without deleting the old key, preserving downgrade safety. Both the SSH.NET path and the Plink fallback path resolve first-use and mismatch decisions before the real connection attempt via `IHostKeyVerifier`; SSH.NET's `HostKeyReceived` callback remains synchronous and receives only a pre-resolved `PinnedFingerprintVerifier`. Steady-state matches refresh `LastSeen` silently. Mismatches display stored and presented fingerprints side by side, allow deliberate replacement after out-of-band verification, and reject with `SshFailureCode.HostKeyMismatch` when the user declines. Plink sessions use the pinned fingerprint as `-hostkey` and never silently trust a newly probed key. Optional known_hosts import/export is explicit, except for the opt-in startup import flag.
+SSH host-key trust is orchestrated by `HostKeyTrustService`, which composes the lower-level `HostKeyStore` and persists enriched `HostKeyEntry` metadata in `settings.json` under `trustedHostKeysV2` (`Fingerprint`, `FirstSeen`, `LastSeen`, `Algorithm`, `Source`, optional `PublicKeyBase64`). Legacy `trustedHostKeys` entries are read additively and migrated in memory without deleting the old key, preserving downgrade safety. SSH.NET paths resolve first-use and mismatch decisions before the real connection attempt via `IHostKeyVerifier`; SSH.NET's `HostKeyReceived` callback remains synchronous and receives only a pre-resolved `PinnedFingerprintVerifier`. Production SSH/SFTP/tunnel/sudo entry points require `HostKeyStore` and `IHostKeyVerifier` as non-nullable dependencies. `RejectingHostKeyVerifier` is the safe fail-closed verifier, while `AutoAcceptHostKeyVerifier` is reserved for explicit tests.
+
+Plink fallback follows the same trust model through `PlinkHostKeyDecider`: stored fingerprints are passed as `-hostkey`; first-use probes go through the normal verifier; unresolved fingerprints fail with `HostKeyUnavailable`. Steady-state matches refresh `LastSeen` silently. Mismatches display stored and presented fingerprints side by side, allow deliberate replacement after out-of-band verification, and reject with `SshFailureCode.HostKeyMismatch` when the user declines. Optional known_hosts import/export is explicit, except for the opt-in startup import flag.
+
+Mid-session host-key failures do not collapse into generic disconnect text. `SshSessionFailureDispatcher` maps `HostKeyRejectedException` to `SshSessionSecurityEvent` for `SftpBrowser` and `SshShellSession`; the SSH UI suppresses auto-reconnect on MITM signals. `RemoteFileEditor` raises `HostKeyRotatedDuringUpload` when a sudo edit session sees a changed host key during auto-upload.
 
 ### 7. SSH Failure Classification
 
-`FailureClassifier` maps SSH.NET exceptions (and Plink stderr patterns) to 25 structured `SshFailureCode` values. This enables the UI to display targeted, localized error messages (e.g., `ErrorSshKeyRejected`, `ErrorSshNetworkTimedOut`) instead of raw exception text.
+`FailureClassifier` maps SSH.NET exceptions (and Plink stderr patterns) to 29 structured `SshFailureCode` values. This enables the UI to display targeted, localized error messages (e.g., `ErrorSshKeyRejected`, `ErrorSshNetworkTimedOut`, `ErrorSshHostKeyUnavailable`) instead of raw exception text.
 
 ### 8. Citrix StoreBrowse Integration
 
@@ -229,6 +233,8 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 - `VncSessionResult` — WebSocket proxy handle, noVNC connection info
 - `TelnetSessionResult` — `TelnetSession` reference (raw TCP)
 - `FtpSessionResult` — `FtpBrowser` (IRemoteBrowser) reference
+
+`ConnectionResult.Warning` is an optional, non-blocking status message for successful connections that still need user-visible caution, such as credentialed FTP without TLS. It is routed to the status surface rather than a modal.
 
 ### 10. Multi-Exec Broadcast
 
@@ -262,6 +268,8 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Solution**: `IRemoteBrowser` defines the common surface (`Connect`, `ListDirectory`, `Upload`, `Download`, `Disconnect`, events). `SftpBrowser` (SSH.NET) and `FtpBrowser` (`FtpWebRequest`) both implement this interface. `EmbeddedSftpView` binds to `IRemoteBrowser` without knowing the underlying protocol. `RemoteFileEditor` works with both via the same interface.
 
+`FtpHandler` validates host and port before connect. When `FtpUseSsl` is false and credentials are present, it returns a successful `ConnectionResult` with `Warning = WarnFtpCleartext`; the UI shows this as non-blocking status text. `FtpBrowser` still uses the deprecated `FtpWebRequest` API for now; migration rationale and scope are tracked in `docs/audit/ftp-fluentftp-migration.md`.
+
 **Dual edit modes**: Right-click a file to choose between:
 - **Edit (integrated)**: Opens AvalonEdit inside the app with syntax highlighting. Save triggers upload.
 - **Edit with external editor**: Downloads to temp, launches the configured editor (Settings > Advanced > External editor), `FileSystemWatcher` with 2-second debounce auto-uploads on save.
@@ -273,8 +281,8 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 **Solution**: Two-tier approach using SSH exec channels alongside the SFTP session:
 
 **Tier 1 — Automatic fallback** (transparent to user):
-Every file operation catches `SftpPermissionDeniedException` and `SshException("Failure")` (SSH_FX_FAILURE, common on servers that don't distinguish error codes), then retries via SSH exec:
-- Upload: SFTP to `/tmp/` → `sudo tee` to target
+Every file operation catches typed permission-denied exceptions (`SftpPermissionDeniedException`, plus local `UnauthorizedAccessException` for temp-file paths), then retries via SSH exec:
+- Upload: SFTP to `/tmp/` → `sudo tee` to target; cleanup runs as a separate `sudo rm -f` command from a `finally` path
 - Download: `sudo cat` via SSH exec
 - Edit: delegates to `RemoteFileEditor.EditFileSudoAsync`
 - Chmod/Rename/Delete/Mkdir: `sudo chmod`/`mv`/`rm`/`mkdir` via SSH exec
@@ -286,7 +294,9 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 
 - **SSH auth must match the main session**: Sudo helpers must use `SshConnectionFactory.Create()` with the same Pageant/key/password auth as the original connection. Early implementation used raw `new SshClient(connInfo)` which bypassed Pageant integration — the SSH connection failed with "Permission denied (publickey,password)" and the user saw a confusing error.
 - **Host key verification required**: Sudo SSH clients must use `SshConnectionFactory.Create()` with the shared `HostKeyStore` and production `IHostKeyVerifier` so they receive the same preflight trust resolution and pinned verifier as normal SSH/SFTP sessions. Bypassing the factory skips the fail-closed host-key flow.
-- **Exception detection is fragile**: SSH.NET throws `SftpPermissionDeniedException` for explicit denials, but many servers return `SSH_FX_FAILURE` (status 4) instead of `SSH_FX_PERMISSION_DENIED` (status 3). This surfaces as `SshException("Failure")` — the classifier checks both `Sftp*` and `Ssh*` exception type names with "Failure" message.
+- **Escalation must stay typed**: SSH.NET can surface broad `SshException("Failure")` messages for many non-permission conditions. The sudo path intentionally does not substring-match generic failures; false negatives are safer than privileged operations on unrelated errors.
+- **Remote edit sessions cache trust**: sudo edit upload uses the `PinnedFingerprintVerifier` resolved at file-open time. Host-key rotation during an edit raises `HostKeyRotatedDuringUpload`, closes the edit session, and does not re-run TOFU on every save.
+- **Upload tasks are owned**: `RemoteFileEditor` tracks the active upload task per edit session, propagates cancellation through `CloseEdit`/`Dispose`, and observes task faults.
 - **`ls -la` output parsing**: The `--time-style=long-iso` format produces **8 columns** (permissions, links, owner, group, size, date, time, name). Early parser expected 9 columns and silently skipped all entries. Filename column must be the last split part to handle spaces.
 - **Sudo toggle hidden for FTP**: FTP sessions have no SSH channel, so the sudo button is collapsed.
 
@@ -687,7 +697,11 @@ Error state reachable from Ready or Busy.
 | Temp file security | ACL enforcement on .rdp files, Plink -pwfile (atomic ACL, no fallback), SFTP edit directories |
 | XXE prevention | `DtdProcessing.Prohibit` + `XmlResolver = null` on all XML importers |
 | Citrix argument validation | Shell metacharacter check on `CitrixLaunchCommandLine` before `Process.Start` |
-| SSH host trust | User-confirmed TOFU via `IHostKeyVerifier`; fingerprints persisted to `settings.json`, loaded at startup, and enforced on SSH.NET and Plink paths |
+| SSH host trust | User-confirmed TOFU via `IHostKeyVerifier`; non-null host-key dependencies on production entry points; fingerprints persisted to `settings.json`, loaded at startup, and enforced on SSH.NET and Plink paths |
+| Plink fallback | `PlinkHostKeyDecider` fails closed with `HostKeyUnavailable` when no Heimdall-trusted fingerprint can be resolved |
+| Tunnel reuse | Remote target + forwarding mode + `GatewayChainKey` prevent cross-gateway reuse on overlapping private ranges |
+| SFTP sudo escalation | Typed permission-denied only; no generic `Failure` substring sudo escalation |
+| FTP cleartext | Credentialed FTP without TLS emits non-blocking `ConnectionResult.Warning` |
 | File writes | UTF-8 without BOM via `SecureFileWriter` |
 | Memory | Credentials cleared after COM injection, `SecureString` for handoff paths |
 | Exception handling | Global handlers registered before first await, unobserved task exceptions caught |
@@ -730,7 +744,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 4460 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 4454 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 5459 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 5453 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 

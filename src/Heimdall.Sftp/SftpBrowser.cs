@@ -43,6 +43,11 @@ public sealed class SftpBrowser : IRemoteBrowser
     /// </summary>
     public event Action<string?>? Disconnected;
 
+    /// <summary>
+    /// Raised when a security-relevant failure occurs. Fired in addition to <see cref="Disconnected"/>.
+    /// </summary>
+    public event Action<SshSessionSecurityEvent>? SecurityEventOccurred;
+
     /// <summary>Current remote working directory.</summary>
     public string CurrentDirectory { get; private set; } = "/";
 
@@ -53,50 +58,42 @@ public sealed class SftpBrowser : IRemoteBrowser
     /// Connects to the remote host using the supplied SSH connection parameters.
     /// </summary>
     /// <param name="connectionParams">SSH connection parameters (host, credentials, etc.).</param>
-    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
+    /// <param name="hostKeyStore">TOFU host key store for server verification.</param>
+    /// <param name="hostKeyVerifier">Verifier used when a host key is unknown or changed.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="ObjectDisposedException">This instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Already connected.</exception>
     public async Task ConnectAsync(
         SshConnectionParams connectionParams,
-        HostKeyStore? hostKeyStore = null,
-        IHostKeyVerifier? hostKeyVerifier = null,
+        HostKeyStore hostKeyStore,
+        IHostKeyVerifier hostKeyVerifier,
         CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(connectionParams);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+        ArgumentNullException.ThrowIfNull(hostKeyVerifier);
 
         if (_client?.IsConnected == true)
         {
             throw new InvalidOperationException("SFTP browser is already connected.");
         }
 
-        PinnedFingerprintVerifier? pinnedVerifier = null;
-        if (hostKeyStore is not null)
-        {
-            if (hostKeyVerifier is null)
-            {
-                throw new InvalidOperationException("IHostKeyVerifier is required when HostKeyStore is provided.");
-            }
-
-            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                    connectionParams,
-                    hostKeyStore,
-                    hostKeyVerifier,
-                    ct)
-                .ConfigureAwait(false);
-        }
+        var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                connectionParams,
+                hostKeyStore,
+                hostKeyVerifier,
+                ct)
+            .ConfigureAwait(false);
 
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
         _client = new SftpClient(connectionInfo);
 
-        if (pinnedVerifier is not null)
-        {
-            SshConnectionFactory.AttachPinnedHostKeyVerification(
-                _client,
-                connectionParams.Host,
-                connectionParams.Port,
-                pinnedVerifier);
-        }
+        SshConnectionFactory.AttachPinnedHostKeyVerification(
+            _client,
+            connectionParams.Host,
+            connectionParams.Port,
+            pinnedVerifier);
 
         await Task.Run(() =>
         {
@@ -487,7 +484,10 @@ public sealed class SftpBrowser : IRemoteBrowser
 
     private void OnErrorOccurred(object? sender, Renci.SshNet.Common.ExceptionEventArgs e)
     {
-        Disconnected?.Invoke(e.Exception.Message);
+        SshSessionFailureDispatcher.Dispatch(
+            e.Exception,
+            SecurityEventOccurred,
+            Disconnected);
     }
 
     /// <summary>

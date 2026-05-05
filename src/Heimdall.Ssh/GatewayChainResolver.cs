@@ -47,9 +47,29 @@ public static class GatewayChainResolver
         int maxDepth = 5,
         SshAgentPreference sshAgentPreference = SshAgentPreference.AutoOpenSshFirst)
     {
+        ArgumentNullException.ThrowIfNull(decryptPassword);
+
+        var chain = ResolveChainDtos(targetGatewayId, allGateways, maxDepth);
+        return ToConnectionParams(chain, decryptPassword, sshAgentPreference);
+    }
+
+    /// <summary>
+    /// Builds an ordered list of gateway DTOs from the root gateway to the
+    /// target gateway by following ParentGatewayId references.
+    /// </summary>
+    /// <param name="targetGatewayId">ID of the gateway to start resolution from.</param>
+    /// <param name="allGateways">All known gateway definitions.</param>
+    /// <param name="maxDepth">Maximum allowed chain depth (default 5).</param>
+    /// <returns>Ordered list from root gateway to target gateway.</returns>
+    /// <exception cref="ArgumentException">Target gateway not found.</exception>
+    /// <exception cref="InvalidOperationException">Circular dependency or depth exceeded.</exception>
+    public static List<SshGatewayDto> ResolveChainDtos(
+        string targetGatewayId,
+        IReadOnlyList<SshGatewayDto> allGateways,
+        int maxDepth = 5)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetGatewayId);
         ArgumentNullException.ThrowIfNull(allGateways);
-        ArgumentNullException.ThrowIfNull(decryptPassword);
 
         var gatewayMap = allGateways.ToDictionary(g => g.Id, StringComparer.OrdinalIgnoreCase);
 
@@ -96,9 +116,21 @@ public static class GatewayChainResolver
 
         // Reverse to get root-first order
         chain.Reverse();
+        return chain;
+    }
 
-        // Convert DTOs to connection parameters
-        return chain.Select(gw => ToConnectionParams(gw, decryptPassword, sshAgentPreference)).ToList();
+    /// <summary>
+    /// Converts an ordered gateway DTO chain to SSH connection parameters.
+    /// </summary>
+    public static List<SshConnectionParams> ToConnectionParams(
+        IReadOnlyList<SshGatewayDto> gatewayChain,
+        Func<string, string?> decryptPassword,
+        SshAgentPreference sshAgentPreference = SshAgentPreference.AutoOpenSshFirst)
+    {
+        ArgumentNullException.ThrowIfNull(gatewayChain);
+        ArgumentNullException.ThrowIfNull(decryptPassword);
+
+        return gatewayChain.Select(gw => ToConnectionParams(gw, decryptPassword, sshAgentPreference)).ToList();
     }
 
     /// <summary>

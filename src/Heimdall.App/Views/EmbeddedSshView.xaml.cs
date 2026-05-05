@@ -205,6 +205,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _userInitiatedDisconnect;
     private bool _isRecording;
     private bool _localeChangeSubscribed;
+    private string? _pendingSecurityDisconnectMessage;
     private int _autoReconnectAttempt;
     private int _autoReconnectSecondsRemaining;
 
@@ -351,6 +352,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _session.DataReceived += OnDataReceived;
         _session.Disconnected += OnDisconnected;
+        _session.SecurityEventOccurred += OnSessionSecurityEvent;
 
         UpdateStatus("Connected");
         StartKeepAliveTimer(keepAliveIntervalSeconds);
@@ -435,6 +437,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             _session.DataReceived -= OnDataReceived;
             _session.Disconnected -= OnDisconnected;
+            _session.SecurityEventOccurred -= OnSessionSecurityEvent;
 
             try
             {
@@ -1111,6 +1114,17 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             }
 
             PostTerminalMessage("session-ended:");
+
+            var securityDisconnectMessage = _pendingSecurityDisconnectMessage;
+            _pendingSecurityDisconnectMessage = null;
+            if (!string.IsNullOrWhiteSpace(securityDisconnectMessage))
+            {
+                ReconnectMessageText.Text = securityDisconnectMessage;
+                UpdateStatus("Error");
+                ShowReconnectOverlay();
+                return;
+            }
+
             UpdateStatus("Disconnected");
 
             if (_userInitiatedDisconnect)
@@ -1129,6 +1143,29 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             }
 
             ShowReconnectOverlay();
+        });
+    }
+
+    private void OnSessionSecurityEvent(SshSessionSecurityEvent evt)
+    {
+        if (evt.Code != SshFailureCode.HostKeyMismatch)
+        {
+            return;
+        }
+
+        var message = FormatHostKeyMismatchMidSession(evt);
+        _pendingSecurityDisconnectMessage = message;
+
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            ReconnectMessageText.Text = message;
+            var securityText = $"\r\n\x1b[91m{message}\x1b[0m\r\n";
+            QueueOutput(Encoding.UTF8.GetBytes(securityText));
         });
     }
 
@@ -1386,6 +1423,18 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
     private string L(string key) => _localizer?[key] ?? key;
+
+    private string FormatHostKeyMismatchMidSession(SshSessionSecurityEvent evt)
+    {
+        var template = L("SftpHostKeyMismatchMidSession");
+        return string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            template,
+            evt.Host,
+            evt.Port,
+            evt.PresentedFingerprint ?? "?",
+            evt.StoredFingerprint ?? "?");
+    }
 
     private void LocalizeButtons()
     {

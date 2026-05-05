@@ -50,11 +50,15 @@ Index of all issues encountered during development and their solutions.
 35. [RDP Resize — Still Reconnecting (Delta/Debounce Tuning)](#rdp-resize-still-reconnecting-deltadebounce-tuning)
 36. [SFTP — Sudo Fallback Permission Denied (Auth Failure)](#sftp-sudo-fallback-auth-failure)
 37. [SFTP — Sudo ls Parser Shows Empty Directory](#sftp-sudo-ls-parser-empty)
-38. [SFTP — SshException("Failure") Not Caught as Permission Denied](#sftp-sshexception-failure-not-caught)
+38. [SFTP — Sudo Fallback Uses Typed Permission Denied Only](#sftp-typed-permission-denied-only)
 39. [WebView2 — Side-by-Side Configuration Error (0x800736B1)](#webview2-sxs-error)
 40. [HTTP Traversal — Sibling Prefix Bypass](#http-traversal-sibling-prefix)
 41. [Tool Tunnel Scan — Few or No Hosts Found](#tool-tunnel-scan-few-hosts)
 42. [SSH — TestEnv Gateway Dropdown Empty After Import](#ssh-testenv-gateway-dropdown-empty)
+43. [RDP — IMsRdpExtendedSettings Not Reachable via dynamic Property Access](#rdp-extendedsettings-dynamic-access)
+44. [SSH — Host Key Unavailable on Plink Fallback](#ssh-host-key-unavailable-plink)
+45. [SSH/SFTP — Host Key Mismatch Mid-Session](#ssh-sftp-host-key-mismatch-mid-session)
+46. [FTP — Cleartext Credential Warning](#ftp-cleartext-credential-warning)
 
 ---
 
@@ -411,14 +415,9 @@ connectionInfo.HostKeyAlgorithms["rsa-sha2-512"] = ...;
 
 **Symptom**: SSH authentication starts (key is offered) but fails during the signature exchange. Server rejects the signature.
 
-**Root Cause**: `PageantHostAlgorithm.Sign()` was returning just the raw signature bytes from Pageant. SSH.NET expects the full SSH wire-format signature blob: `[4 bytes: algorithm name length][algorithm name][4 bytes: signature length][signature bytes]`.
+**Root Cause**: SSH.NET expects the full SSH wire-format signature blob: `[4 bytes: algorithm name length][algorithm name][4 bytes: signature length][signature bytes]`. `PageantClient.SignData()` already returns that full blob from Pageant. Stripping the algorithm prefix, wrapping the blob a second time, or returning only raw signature bytes corrupts the signature.
 
-**Solution**: Wrap the raw signature in the SSH blob format:
-```csharp
-// Build SSH signature blob: algo_len + algo + sig_len + sig
-byte[] algoBytes = Encoding.ASCII.GetBytes(algorithmName);
-// ... assemble full blob
-```
+**Solution**: `PageantHostAlgorithm.Sign()` must return the Pageant blob unchanged. The XML docs and `PageantHostAlgorithmTests.Sign_ReturnsBlobFromAgentUnchanged` pin this contract.
 
 **Files**: `Pageant/PageantHostAlgorithm.cs`
 
@@ -679,15 +678,15 @@ The parser used `Split(null, 9)` and checked `parts.Length < 9`, which skipped A
 
 ---
 
-## 38. SFTP — SshException("Failure") Not Caught as Permission Denied {#sftp-sshexception-failure-not-caught}
+## 38. SFTP — Sudo Fallback Uses Typed Permission Denied Only {#sftp-typed-permission-denied-only}
 
-**Symptom**: Uploading/downloading root-owned files shows a generic error instead of triggering sudo fallback. Log shows `SshException: Failure` but the `when` filter doesn't match.
+**Symptom**: Uploading/downloading a root-owned file shows a generic transfer error instead of triggering sudo fallback. The log may show `SshException: Failure`.
 
-**Root cause**: Many SSH servers return `SSH_FX_FAILURE` (status code 4) instead of `SSH_FX_PERMISSION_DENIED` (status code 3) for permission errors. SSH.NET surfaces this as `SshException("Failure")` — the `IsPermissionDenied()` classifier only checked `SftpPermissionDeniedException` by type name and `Sftp*` types for the "Failure" string.
+**Root cause**: Heimdall intentionally no longer treats generic `Failure` strings as permission denied. That heuristic could trigger privileged sudo operations on non-permission failures such as channel errors, network drops, or server-side policy failures.
 
-**Solution**: Broadened `IsPermissionDenied()` to match any `Ssh*` or `Sftp*` exception type containing "Failure" in the message, not just `Sftp*`-prefixed types.
+**Solution**: `EmbeddedSftpViewModel.IsPermissionDenied()` accepts typed permission-denied signals only: `SftpPermissionDeniedException` and local `UnauthorizedAccessException`. If a server returns an ambiguous generic failure for a real permission issue, retry manually with "Browse as root" or inspect the server logs; do not reintroduce substring matching.
 
-**Key lesson**: SSH.NET exception hierarchy is not always intuitive. `SshException` is the base for many SFTP errors, not just `Sftp*` types. Always log the full exception type name and message for debugging.
+**Key lesson**: False negatives are safer than privileged false positives. Sudo escalation must be based on typed errors, not message text.
 
 **Files**: `Views/EmbeddedSftpView.xaml.cs` (`IsPermissionDenied` method)
 
@@ -807,3 +806,57 @@ Do **not** use `IServiceProvider.QueryService` for this case. On `MsTscAx.MsTscA
 **Key lesson**: For MsTscAx sibling COM interfaces, trust direct QueryInterface on the OCX, not the dynamic IDispatch surface exposed by the AxHost wrapper.
 
 **Files**: `Heimdall.Rdp/ActiveX/ComInterfaces.cs`, `Heimdall.Rdp/ActiveX/RdpActiveXHost.cs`
+
+---
+
+## 44. SSH — Host Key Unavailable on Plink Fallback {#ssh-host-key-unavailable-plink}
+
+**Symptom**: A Pageant-only SSH or tunneled session fails before launching plink with a localized host-key-unavailable message.
+
+**Root cause**: Heimdall could not resolve a host-key fingerprint through its own trust model. This can happen when there is no stored fingerprint and the `IPlinkHostKeyProbe` cannot parse a presented key, times out, or is unavailable. Heimdall deliberately refuses to fall back to PuTTY/Plink's registry cache because that would bypass the app's TOFU store.
+
+**Solution**:
+
+1. Start a normal interactive SSH/SFTP connection path that can complete the Heimdall host-key prompt, or import the key through `Settings > SSH & SFTP > Trusted host keys`.
+2. Verify that the configured plink path is valid and that `PlinkHostKeyProbe` can execute it.
+3. For tests, inject `IPlinkHostKeyProbe`; do not spawn `plink.exe` from unit tests.
+
+**Key lesson**: `SshFailureCode.HostKeyUnavailable` means no trustworthy comparison could be made. It is not a mismatch; do not remap it to `HostKeyMismatch`.
+
+**Files**: `Services/PlinkHostKeyDecider.cs`, `Services/IPlinkHostKeyProbe.cs`, `Services/TunnelService.cs`, `Services/Handlers/SshHandler.cs`
+
+---
+
+## 45. SSH/SFTP — Host Key Mismatch Mid-Session {#ssh-sftp-host-key-mismatch-mid-session}
+
+**Symptom**: An existing SSH/SFTP session disconnects and the UI shows a security warning instead of a generic reconnect prompt. SSH auto-reconnect does not start.
+
+**Root cause**: A secondary connection or read-loop path observed `HostKeyRejectedException` after the session was already established. Heimdall routes this through typed security events so a possible MITM is not hidden behind "Disconnected".
+
+**Solution**:
+
+1. Treat the warning as a security event. Compare the presented fingerprint with an out-of-band trusted source.
+2. If the host was legitimately re-keyed, update the trusted host key through the explicit trust UI.
+3. Do not auto-reconnect or silently accept from this path.
+
+**Key lesson**: `SshSessionSecurityEvent` and `HostKeyRotatedDuringUpload` are additive signals. Existing `Disconnected` events still fire for compatibility, but security UI must preserve the typed event.
+
+**Files**: `SshSessionFailureDispatcher.cs`, `SshSessionSecurityEvent.cs`, `SftpBrowser.cs`, `SshShellSession.cs`, `RemoteFileEditor.cs`, `Views/EmbeddedSftpView.xaml.cs`, `Views/EmbeddedSshView.xaml.cs`
+
+---
+
+## 46. FTP — Cleartext Credential Warning {#ftp-cleartext-credential-warning}
+
+**Symptom**: Connecting to FTP succeeds but the status area warns that the channel is cleartext.
+
+**Root cause**: The profile uses FTP with `FtpUseSsl=false` and a non-empty username. In this mode, FTP transmits credentials without encryption.
+
+**Solution**:
+
+1. Prefer SFTP when the server supports SSH.
+2. If FTP is required, enable FTPS (`FtpUseSsl=true`) and verify the server certificate path.
+3. Leave anonymous cleartext FTP for public, non-sensitive endpoints only.
+
+**Key lesson**: This is a non-blocking `ConnectionResult.Warning`, not a connection failure. It should route to status text rather than a modal so legacy FTP workflows remain possible.
+
+**Files**: `Services/Handlers/FtpHandler.cs`, `Services/ProtocolSessionResults.cs`, `Services/ConnectionService.cs`, `Sftp/FtpBrowser.cs`
