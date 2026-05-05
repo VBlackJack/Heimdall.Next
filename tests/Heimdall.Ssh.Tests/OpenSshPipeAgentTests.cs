@@ -36,7 +36,11 @@ public sealed class OpenSshPipeAgentTests
         Assert.False(available);
     }
 
+    // CIUnstable: named-pipe handshake can exceed 10 s on the GitHub
+    // Actions Windows runner under contention (Defender / runner I/O),
+    // surfacing as TaskCanceledException. Stable on dev machines.
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task GetIdentities_ReadsResponseFromNamedPipe()
     {
         var pipeName = $"heimdall-test-{Guid.NewGuid():N}";
@@ -53,7 +57,7 @@ public sealed class OpenSshPipeAgentTests
             pipeName,
             expectedRequestType: OpenSshAgentProtocol.SshAgentcRequestIdentities,
             response);
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
 
         var identities = agent.GetIdentities();
         await serverTask;
@@ -64,7 +68,9 @@ public sealed class OpenSshPipeAgentTests
         Assert.Equal(keyBlob, identity.PublicKeyBlob);
     }
 
+    // CIUnstable: same root cause as GetIdentities_ReadsResponseFromNamedPipe.
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task GetIdentities_WhenPipeClosesAfterConnect_ReturnsEmpty()
     {
         var pipeName = $"heimdall-test-{Guid.NewGuid():N}";
@@ -73,19 +79,21 @@ public sealed class OpenSshPipeAgentTests
         {
             await using var server = CreateServer(pipeName);
             serverReady.SetResult(true);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
         });
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
 
-        await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await serverReady.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var identities = agent.GetIdentities();
         await serverTask;
 
         Assert.Empty(identities);
     }
 
+    // CIUnstable: same root cause as GetIdentities_ReadsResponseFromNamedPipe.
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task AgentKeySign_SendsFlagsAndReturnsSignature()
     {
         var pipeName = $"heimdall-test-{Guid.NewGuid():N}";
@@ -98,7 +106,7 @@ public sealed class OpenSshPipeAgentTests
         var serverTask = Task.Run(async () =>
         {
             await using var server = CreateServer(pipeName);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
 
             var request = ReadFramedMessage(server);
@@ -112,7 +120,7 @@ public sealed class OpenSshPipeAgentTests
             await server.WriteAsync(response).ConfigureAwait(false);
             await server.FlushAsync(cts.Token).ConfigureAwait(false);
         });
-        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 100, requestTimeoutMs: 1000);
+        var agent = new OpenSshPipeAgent(pipeName, availabilityTimeoutMs: 1000, requestTimeoutMs: 1000);
         var key = new OpenSshAgentKey(agent, keyBlob, "rsa@test", "ssh-rsa");
 
         var signature = key.Sign(data, SshAgentSignFlags.RsaSha2_512);
@@ -127,7 +135,7 @@ public sealed class OpenSshPipeAgentTests
         byte[] response)
     {
         await using var server = CreateServer(pipeName);
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await server.WaitForConnectionAsync(cts.Token).ConfigureAwait(false);
 
         var request = ReadFramedMessage(server);

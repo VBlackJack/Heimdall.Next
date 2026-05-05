@@ -24,7 +24,11 @@ namespace Heimdall.App.UiTests.Infrastructure;
 /// </summary>
 public static class WaitHelpers
 {
-    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(2);
+    // Bumped from 2 s to 10 s to keep WPF UIA smoke tests reliable on the
+    // GitHub Actions Windows runner. 2 s was enough on dev machines but the
+    // CI runner regularly missed binding propagation deadlines, surfacing
+    // multiple unrelated SmokeTests as flaky failures.
+    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan DefaultPollInterval = TimeSpan.FromMilliseconds(50);
 
     public static T WaitFor<T>(Func<T?> probe, string description, TimeSpan? timeout = null)

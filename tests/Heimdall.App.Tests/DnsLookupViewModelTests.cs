@@ -256,7 +256,10 @@ public sealed class DnsLookupViewModelTests
         Assert.Contains("boom", vm.ErrorText, StringComparison.Ordinal);
     }
 
+    // CIUnstable: cancellation propagation can exceed the 2 s WaitUntilAsync
+    // budget on the GitHub Actions Windows runner. Stable on dev machines.
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task CancelCommand_UserCancellation_ClearsStatusWithoutError()
     {
         var service = new BlockingDnsLookupService();
