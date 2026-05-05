@@ -411,7 +411,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         string normalizedPath = NormalizePath(remotePath);
         var uri = new Uri($"ftp://{_host}:{_port}{normalizedPath}");
 
-// TODO(audit-A4): migrate to FluentFTP — see docs/audit/ftp-fluentftp-migration.md
+        // TODO(audit-A4): migrate to FluentFTP — see docs/audit/ftp-fluentftp-migration.md
 #pragma warning disable SYSLIB0014 // FtpWebRequest is obsolete but no built-in replacement exists
         var request = (FtpWebRequest)WebRequest.Create(uri);
 #pragma warning restore SYSLIB0014
