@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Heimdall.Rdp;
 
 namespace Heimdall.Ssh.Tests;
@@ -642,5 +644,93 @@ public class RdpFileGeneratorTests
         var content = RdpFileGenerator.Generate(options);
 
         Assert.Contains("audiomode:i:2", content);
+    }
+
+    // ── WriteToFileAsync — atomic ACL (TOCTOU regression) ─────────────
+
+    [Fact]
+    public async Task WriteToFileAsync_WritesExpectedContent()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heimdall-rdp-test-{Guid.NewGuid():N}.rdp");
+        try
+        {
+            var options = new RdpFileOptions { Host = "server.example.com", Port = 3389 };
+
+            await RdpFileGenerator.WriteToFileAsync(path, options);
+
+            var content = await File.ReadAllTextAsync(path);
+            Assert.Contains("full address:s:server.example.com:3389", content);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task WriteToFileAsync_OverwritesExistingFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heimdall-rdp-test-{Guid.NewGuid():N}.rdp");
+        try
+        {
+            await File.WriteAllTextAsync(path, "stale content");
+
+            var options = new RdpFileOptions { Host = "fresh.example.com" };
+            await RdpFileGenerator.WriteToFileAsync(path, options);
+
+            var content = await File.ReadAllTextAsync(path);
+            Assert.DoesNotContain("stale content", content);
+            Assert.Contains("full address:s:fresh.example.com", content);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task WriteToFileAsync_AppliesRestrictedAclAtCreation()
+    {
+        // Regression test for the TOCTOU window between file creation and ACL
+        // application. Verify that the file is created with inheritance disabled
+        // and only the current user / Administrators / SYSTEM are explicitly
+        // allowed — no inherited entries from %TEMP% leak through.
+        var path = Path.Combine(Path.GetTempPath(), $"heimdall-rdp-test-{Guid.NewGuid():N}.rdp");
+        try
+        {
+            await RdpFileGenerator.WriteToFileAsync(path, new RdpFileOptions { Host = "srv" });
+
+            var fileInfo = new FileInfo(path);
+            var security = fileInfo.GetAccessControl();
+
+            Assert.True(
+                security.AreAccessRulesProtected,
+                "Inheritance should be disabled — TOCTOU regression");
+
+            var rules = security
+                .GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier))
+                .Cast<FileSystemAccessRule>()
+                .ToList();
+
+            // No inherited rules — every rule must be explicit
+            Assert.All(rules, r => Assert.False(r.IsInherited));
+
+            // Only known SIDs are allowed
+            var currentUser = WindowsIdentity.GetCurrent().User!;
+            var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            var system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            var allowedSids = new HashSet<SecurityIdentifier> { currentUser, admins, system };
+
+            foreach (var rule in rules)
+            {
+                Assert.True(
+                    allowedSids.Contains((SecurityIdentifier)rule.IdentityReference),
+                    $"Unexpected ACE for {rule.IdentityReference.Value}");
+            }
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 }
