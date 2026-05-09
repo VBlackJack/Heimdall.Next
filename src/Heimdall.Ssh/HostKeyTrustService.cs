@@ -88,7 +88,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
 
         var sessionEntry = _store.GetSessionEntry(host, port);
         if (sessionEntry is not null
-            && string.Equals(sessionEntry.Fingerprint, presentedFingerprint, StringComparison.Ordinal))
+            && HostKeyStore.ConstantTimeEquals(sessionEntry.Fingerprint, presentedFingerprint))
         {
             return new HostKeyVerifyResult(
                 Trusted: true,
@@ -115,7 +115,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
                 StoredFingerprint: null);
         }
 
-        var match = string.Equals(existing.Fingerprint, presentedFingerprint, StringComparison.Ordinal);
+        var match = HostKeyStore.ConstantTimeEquals(existing.Fingerprint, presentedFingerprint);
         if (!match)
         {
             return new HostKeyVerifyResult(
@@ -183,7 +183,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
 
         _store.SetEntry(host, port, entry, raiseEvent: true);
 
-        if (existing is not null && !string.Equals(existing.Fingerprint, fingerprint, StringComparison.Ordinal))
+        if (existing is not null && !HostKeyStore.ConstantTimeEquals(existing.Fingerprint, fingerprint))
         {
             EntryReplaced?.Invoke(hostPort, existing, entry);
         }
@@ -216,7 +216,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
 
         _store.SetEntry(host, port, entry, raiseEvent: true);
 
-        if (existing is not null && !string.Equals(existing.Fingerprint, fingerprint, StringComparison.Ordinal))
+        if (existing is not null && !HostKeyStore.ConstantTimeEquals(existing.Fingerprint, fingerprint))
         {
             EntryReplaced?.Invoke(hostPort, existing, entry);
         }

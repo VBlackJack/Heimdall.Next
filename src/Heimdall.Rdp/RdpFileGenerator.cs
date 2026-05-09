@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-using System.IO;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Text;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Rdp;
 
@@ -165,18 +163,15 @@ public static class RdpFileGenerator
 
     /// <summary>
     /// Write an .rdp file with ACL restricted to the current user + Administrators + SYSTEM.
+    /// The ACL is applied atomically at file-creation time to eliminate the TOCTOU
+    /// window where the file briefly exists with the parent directory's inherited ACL.
     /// </summary>
-    public static async Task WriteToFileAsync(string filePath, RdpFileOptions options, CancellationToken ct = default)
+    public static Task WriteToFileAsync(string filePath, RdpFileOptions options, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         var content = Generate(options);
-
-        // Write with UTF-8 no BOM (standard for .rdp files)
-        await File.WriteAllTextAsync(filePath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), ct);
-
-        // Restrict file ACL to current user + Administrators + SYSTEM
-        ApplyRestrictedAcl(filePath);
+        return SecureFileWriter.WriteAndProtectAsync(filePath, content, ct);
     }
 
     /// <summary>
@@ -200,58 +195,6 @@ public static class RdpFileGenerator
     }
 
     private static int BoolToInt(bool value) => value ? 1 : 0;
-
-    /// <summary>
-    /// Applies a restricted ACL to the .rdp file: current user (Full Control),
-    /// Administrators (Full Control), SYSTEM (Full Control). All inherited ACEs removed.
-    /// </summary>
-    private static void ApplyRestrictedAcl(string filePath)
-    {
-        try
-        {
-            var fileInfo = new FileInfo(filePath);
-            var security = fileInfo.GetAccessControl();
-
-            // Remove all inherited rules
-            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
-            var existingRules = security.GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier));
-            foreach (FileSystemAccessRule rule in existingRules)
-            {
-                security.RemoveAccessRule(rule);
-            }
-
-            // Current user
-            var currentUser = WindowsIdentity.GetCurrent().User;
-            if (currentUser is not null)
-            {
-                security.AddAccessRule(new FileSystemAccessRule(
-                    currentUser,
-                    FileSystemRights.FullControl,
-                    AccessControlType.Allow));
-            }
-
-            // Administrators
-            var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-            security.AddAccessRule(new FileSystemAccessRule(
-                admins,
-                FileSystemRights.FullControl,
-                AccessControlType.Allow));
-
-            // SYSTEM
-            var system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
-            security.AddAccessRule(new FileSystemAccessRule(
-                system,
-                FileSystemRights.FullControl,
-                AccessControlType.Allow));
-
-            fileInfo.SetAccessControl(security);
-        }
-        catch (Exception ex)
-        {
-            // Best effort — ACL may fail on network paths or restricted environments
-            Core.Logging.FileLogger.Warn($"[RdpFileGenerator] ACL restriction failed: {ex.Message}");
-        }
-    }
 }
 
 /// <summary>

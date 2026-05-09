@@ -12,6 +12,37 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-09 — SSH/RDP audit follow-up
+
+Fresh audit pass over the SSH and RDP stacks after the 2026-05-05 closure.
+Three findings shipped (1 P1, 2 P2); no P0. Build green, +3 tests.
+
+- **`.rdp` file ACL applied atomically (P1).** `RdpFileGenerator.WriteToFileAsync`
+  used to write the file with the parent directory's inherited ACL and apply
+  the restrictive ACL afterwards — a brief TOCTOU window where another local
+  process could read host/user/gateway data. The path now routes through the
+  new `SecureFileWriter.WriteAndProtectAsync` helper (async sibling of
+  `WriteAndProtect`) so the restrictive ACL is set at file-creation time. The
+  previously private `ApplyRestrictedAcl` helper is gone. A regression test
+  pins the new behaviour: `WriteToFileAsync_AppliesRestrictedAclAtCreation`
+  asserts that immediately after creation, inheritance is disabled and only
+  the current user, Administrators, and SYSTEM are present.
+- **Host-key fingerprint comparison unified on `ConstantTimeEquals` (P2).**
+  `HostKeyTrustService.Verify` / `Trust` / `Import` previously used
+  `string.Equals(..., Ordinal)` while `HostKeyStore.ConstantTimeEquals`
+  (FixedTimeEquals-backed) sat right next to it. Fingerprints are not secret
+  so this is defense-in-depth, not a load-bearing mitigation, but the
+  inconsistency invited copy-paste drift. The four sites now share the same
+  helper; `SECURITY.md` reflects the broader scope.
+- **Plaintext-credential limitation reaffirmed (P2).** Audit confirmed the
+  `SECURITY.md` "Credential lifetime in managed memory" section already
+  covers the three remaining surfaces (RDP `put_ClearTextPassword`, SSH
+  password auth, `CredentialAutofill` `WM_SETTEXT`). No code change — the
+  limitation is inherent to .NET's immutable `System.String` and the COM/UIA
+  marshalling on credential entry points. Mitigation remains workstation
+  lock; `SecureString` does not provide stronger guarantees on modern
+  Windows.
+
 ## 2026-05-05 — SSH/SFTP/FTP security audit closure
 
 Pair-architect security cycle closing the consolidated SSH/SFTP audit plan
