@@ -208,11 +208,16 @@ that `NamedPipeClientStream` silently ignores in some modes.
 
 ### Host-key fingerprint comparison
 
-`HostKeyStore.Verify` compares stored vs presented fingerprints with
-`CryptographicOperations.FixedTimeEquals` (after a length-equality guard
+`HostKeyStore.Verify` and `HostKeyTrustService.Verify` / `Trust` / `Import`
+compare stored vs presented fingerprints with the shared
+`HostKeyStore.ConstantTimeEquals` helper, which delegates to
+`CryptographicOperations.FixedTimeEquals` after a length-equality guard
 that is safe here because OpenSSH host-key fingerprints are fixed at
-`SHA256:` + 43 base64 chars). The pattern is local to `HostKeyStore` and
-should not be copied verbatim to variable-length secret comparisons.
+`SHA256:` + 43 base64 chars. Host-key fingerprints are not secret
+(servers publish them, `ssh-keyscan` retrieves them, DNS SSHFP records
+expose them) so this is defense-in-depth, not a load-bearing mitigation.
+The pattern is local to `HostKeyStore` and should not be copied verbatim
+to variable-length secret comparisons.
 
 ### known_hosts import — DoS bounds
 

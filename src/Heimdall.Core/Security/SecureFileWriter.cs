@@ -110,10 +110,61 @@ public static class SecureFileWriter
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
 
+        var security = BuildRestrictedSecurity();
+        var fileInfo = new FileInfo(filePath);
+        using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
+            FileShare.None, 4096, FileOptions.None, security);
+
+        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
+        try
+        {
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        finally
+        {
+            Array.Clear(bytes);
+        }
+    }
+
+    /// <summary>
+    /// Async variant of <see cref="WriteAndProtect"/>. Same TOCTOU-free guarantee:
+    /// the restrictive ACL is applied atomically when the file is created, before
+    /// any data is written, so an observer never sees the file with a permissive
+    /// inherited ACL.
+    /// </summary>
+    /// <param name="filePath">The target file path.</param>
+    /// <param name="text">The text content to write.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public static async Task WriteAndProtectAsync(
+        string filePath,
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
+
+        var security = BuildRestrictedSecurity();
+        var fileInfo = new FileInfo(filePath);
+        await using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
+            FileShare.None, 4096, FileOptions.Asynchronous, security);
+
+        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
+        try
+        {
+            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Array.Clear(bytes);
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static FileSecurity BuildRestrictedSecurity()
+    {
         var currentUser = WindowsIdentity.GetCurrent().User
             ?? throw new InvalidOperationException("Cannot determine current user SID.");
 
-        // Build a restrictive ACL before creating the file
         var security = new FileSecurity();
         security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
         security.AddAccessRule(new FileSystemAccessRule(
@@ -128,21 +179,7 @@ public static class SecureFileWriter
             new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
             FileSystemRights.FullControl,
             AccessControlType.Allow));
-
-        // Create the file with the restrictive ACL applied atomically
-        var fileInfo = new FileInfo(filePath);
-        using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
-            FileShare.None, 4096, FileOptions.None, security);
-
-        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
-        try
-        {
-            stream.Write(bytes, 0, bytes.Length);
-        }
-        finally
-        {
-            Array.Clear(bytes);
-        }
+        return security;
     }
 
     /// <summary>
