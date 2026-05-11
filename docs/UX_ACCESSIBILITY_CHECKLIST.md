@@ -31,6 +31,12 @@ Use this checklist for every new tool and during significant UX refactors.
 - Large result grids hide secondary columns before becoming unreadable.
 - Footers and status areas stay readable on narrow widths.
 
+## Sidebar And Search
+
+- Session sidebar search stays full-width on the first toolbar row, with action buttons on the second row.
+- Icon-only sidebar actions keep localized tooltips and `AutomationProperties.Name`.
+- Long session names preserve the leading identifier; tooltips expose the full `DisplayName`.
+
 ## Localization
 
 - No user-visible placeholder or default text is hardcoded in XAML.

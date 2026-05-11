@@ -133,7 +133,10 @@ These are still better as manual smokes:
 - visual drop-target highlight confirmation
 - SSH failure disclosure (`Stage` / `Code` / `Detail`) on auth, gateway, and network errors
 - RDP pre-tab failure disclosure (tunnel / credential / `.rdp` write / launch) when an easy repro is available
+- RDP RD Gateway profile: entering `RdpGateway` forces External mode, imported `.rdp` gateway profiles launch externally, and the lightweight mstsc tab shows launch/autofill/closed status without exposing the password
+- RDP Settings presets: add/remove/reset width-height rows, invalid rows stay visible, Save is blocked until fixed
 - RDP mid-session pane-scoped disclosure and clear-on-reconnect behavior when a test server is available
+- RDP Fit Window mode (default): connect to any RDP target and verify no horizontal or vertical scrollbars appear on the embedded session at any window size or after a resolution change
 - RDP fullscreen exit via the chip, F11, Esc, and Ctrl+Shift+F11, with focus both on WPF chrome and inside the RDP session
 - RDP fullscreen foreground filter: while Heimdall is fullscreen but another app is foreground, Esc / F11 must reach that foreground app and not be absorbed by Heimdall
 - RDP letterbox bars in fixed-resolution mode render with the themed background color, not the default light-grey host surface

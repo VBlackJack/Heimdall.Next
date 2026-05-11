@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5453%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5489%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -42,6 +42,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - **One-shot mode override**: right-click any RDP profile -> *Connect with...* to launch in embedded or external mode for a single session, leaving the saved profile untouched. Forced sessions show a discreet `(forced embedded/external)` tab-title suffix
 - Dynamic resolution resize with stabilization guard
 - Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon, with a per-profile **Selected monitors** picker in Multimon mode (empty selection = use all monitors, backward-compatible with existing profiles)
+- Fit Window mode scales the remote desktop to the host area with Smart Sizing enabled by default, eliminating native Win32 scrollbars on real Windows RDP targets; use Fixed mode for pixel-perfect native rendering
 - Automatic DPI scale tracking via `IMsRdpExtendedSettings` with `Window.DpiChanged` updates
 - **Mode-aware Resolution menu and toolbar button**: the menu starts with an `Active mode: <mode>` header (showing `Fixed (1920×1080)` when applicable) and the toolbar button glyph changes per mode (Auto / Fit / Smart / Fixed / Multimon)
 - Tab context-menu resolution submenu with presets, Match Window, Custom, and Save as default — same `Active mode` header as the toolbar menu
@@ -228,6 +229,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Built-in help button ("?") on all 59 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
 - **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, an always-present Favorites section, single-click launch, and right-click favorite management without accidental tool launch. Ctrl+Shift+T toggles the active sidebar tab
+- **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
 - Bilingual interface: English and French (~5,485 i18n keys)

@@ -172,7 +172,13 @@ Additional guards:
 
 **Solution**: Centralize per-server resolution decisions in `RdpProfileResolver.ResolveResolution(server, settings)` (in `Heimdall.App/Services/`), returning a `RdpResolvedResolution` record `(Width, Height, MultiMonitor, SmartSizing, SelectedMonitorIndices)`. Mirrors the existing `RdpProfileResolver.ResolveColorDepth` precedence rule (server > settings > fallback). Both Embedded (via `RdpDisplayResolver` and the COM property setters) and External (via `RdpFileGenerator.RdpFileOptions`) consume the same resolved record, eliminating the silent divergence.
 
+For Embedded sessions, `RdpDisplayResolver` resolves `RdpResolutionMode.FitWindow` with `smartSizing: true` (`reason: explicit-fit-window-scaled`) so Fit Window scales to the host area instead of triggering MsTscAx non-client scrollbars. Fixed and Multimon keep non-smart rendering for pixel-perfect or multi-monitor scenarios.
+
 **One-shot mode override**: `RdpModeOverride` enum (`UseProfile` / `ForceEmbedded` / `ForceExternal`) flows as an optional parameter through `IConnectionService.ConnectRdpAsync` -> `IProtocolHandler.ConnectAsync` -> `RdpHandler.ConnectAsync` -> `ResolveEffectiveMode`. The override never mutates `server.RdpMode`; it lives in the call stack only. Server context-menu entry *Connect with...* exposes `Connect (embedded)` and `Connect (external mstsc)` for RDP profiles only. When an override is active, the resulting session tab title appends a `(forced embedded)` / `(forced external)` suffix.
+
+**RD Gateway rule**: `ServerProfileDto.RdpGateway` is distinct from the SSH gateway tunnel chain. Embedded MsTscAx gateway support is intentionally not exposed yet; any non-empty `RdpGateway` forces the effective launch mode to External, including `ForceEmbedded` overrides and `.rdp` imports with `gatewayhostname`. The Server dialog disables Embedded mode and shows a localized explanation so gateway settings are not silently ignored.
+
+**External mstsc tab tracking**: External RDP launches now return `ExternalRdpSessionResult` instead of a null session. `SessionCoordinator` creates a lightweight tab for every mstsc launch, including saved profiles whose `RdpMode` is already `External`. `ExternalRdpSessionModel` exposes password-free status states (`Launched`, `AutofillSearching`, `AutofillFilled`, `AutofillTimedOut`, `AutofillFailed`, `Closed`) and is updated by `RdpHandler` while the real mstsc process remains unmanaged by tab close.
 
 **Test seams**:
 
@@ -717,7 +723,7 @@ The Settings panel uses a left-navigation `TabControl` with 6 sub-tabs:
 | **General** | Appearance: language, theme, max sessions, prevent sleep, collapse tunnels default |
 | **Terminal** | Font family, font size, color scheme |
 | **SSH & SFTP** | Plink path, default mode, anti-idle, TMOUT reset, SFTP auto-open, X11, gateways |
-| **RDP** | Default mode, resolution, color depth, audio, NLA, dynamic res, multi-monitor, device redirection, caching |
+| **RDP** | Default mode, resolution, color depth, audio, NLA, dynamic res, multi-monitor, device redirection, caching, reconnect/keep-alive tuning, editable resolution presets |
 | **Security** | External credential provider (command/database/browse/presets/test), Credential Guard |
 | **Advanced** | Logging, session logging, timeouts (tunnel/RDP/external tools), File sharing (TFTP enablement + disclaimer), External editor (path + browse), third-party tool detection, command library sync, external tools list (edit/preview/test/validate) |
 
