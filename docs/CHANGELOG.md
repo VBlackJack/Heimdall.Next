@@ -12,6 +12,13 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-11 — RDP scrollbar root cause fix and sidebar UX pass
+
+Tonight's pass closed the RDP scrollbar investigation with a resolver-level fix and made the production-sized session sidebar easier to scan.
+
+- **RDP scrollbar fix** — `RdpDisplayResolver.cs` now resolves `RdpResolutionMode.FitWindow` with `smartSizing: true` (`reason: explicit-fit-window-scaled`). The old FitWindow path used `smartSizing: false`, so MsTscAx rendered the remote desktop at native pixel size; on real Windows RDP servers, when that desktop exceeded the AxHost client rect, Windows painted non-client scrollbars. The attempted Win32 workaround (`RdpActiveXHost` stripping `WS_HSCROLL | WS_VSCROLL` via `EnumChildWindows` plus a 12-second `DispatcherTimer`) lost to MsTscAx's own layout loop, which re-applies the bits every layout pass. The resolver flip trades a small amount of bitmap scaling at non-integer ratios for scrollbar-free FitWindow semantics; Fixed mode remains available for pixel-perfect native rendering, explicit Smart Sizing remains available as a named scaled mode, and the strip plumbing remains as defense in depth for the remaining non-smart modes.
+- **Sidebar UX pass** — `MainWindow.xaml` now gives the Sessions sidebar a two-row toolbar (full-width search first, icon-only actions second), including an icon-only Import button. `SidebarDisplayNameFormatter` preserves the head of long names and ellipsizes only trailing parenthesized suffixes (`MaxLength = 40`, Unicode `\u2026`), `WindowUIState.DefaultSidebarWidth` moved from 260 to 320 px, the `(No group)` drop zone is visually toned down, and `TreeViewIndentGuideBrush` was added across all seven Dracula variants for hierarchy guides. Folder and leaf row density now differ more clearly, with about 25 tests covering `SidebarDisplayNameFormatterTests`, `RdpDisplayResolverTests`, and the post-connect strip timer.
+
 ## 2026-05-09 — SSH/RDP audit follow-up
 
 Fresh audit pass over the SSH and RDP stacks after the 2026-05-05 closure.
