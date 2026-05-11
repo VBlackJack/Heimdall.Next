@@ -19,6 +19,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Rdp;
@@ -54,13 +55,14 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     public const int MaxAutoReconnectAttempts = 20;
 
     /// <summary>TCP keep-alive interval in milliseconds (60 seconds).</summary>
-    private const int KeepAliveIntervalMs = 60_000;
+    public const int DefaultKeepAliveIntervalMs = 60_000;
 
     private object? _activeX;
     private bool _disposed;
     private ConnectionPointCookie? _cookie;
     private MsTscAxEventSink? _sink;
     private readonly string _activeXClsid;
+    private readonly RdpPostConnectStripTimer _postConnectStripTimer;
 
     // Pending configuration applied before the ActiveX handle is created
     private string _pendingHost = string.Empty;
@@ -80,11 +82,64 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     private IReadOnlyList<(int Width, int Height)> _pendingResolutionPresets = [];
     private IReadOnlyList<int> _pendingSelectedMonitorIndices = [];
     private RdpRedirectionOptions _pendingRedirections = new();
+    private int _maxAutoReconnectAttempts = MaxAutoReconnectAttempts;
+    private int _keepAliveIntervalMs = DefaultKeepAliveIntervalMs;
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int PutUseMultimonDelegate(
         IntPtr self,
         [MarshalAs(UnmanagedType.VariantBool)] bool useMultimon);
+
+    private const int GWL_STYLE = -16;
+    private const long WS_HSCROLL = 0x0010_0000L;
+    private const long WS_VSCROLL = 0x0020_0000L;
+    private const long ScrollbarStyleMask = WS_HSCROLL | WS_VSCROLL;
+    private const int SB_BOTH = 3;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
+
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool EnumChildProc(IntPtr hwnd, IntPtr lParam);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLong", SetLastError = true)]
+    private static extern int GetWindowLong32(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", SetLastError = true)]
+    private static extern IntPtr GetWindowLongPtr64(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong", SetLastError = true)]
+    private static extern int SetWindowLong32(IntPtr hwnd, int index, int newLong);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", SetLastError = true)]
+    private static extern IntPtr SetWindowLongPtr64(IntPtr hwnd, int index, IntPtr newLong);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr hwnd,
+        IntPtr hwndInsertAfter,
+        int x,
+        int y,
+        int cx,
+        int cy,
+        uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowScrollBar(
+        IntPtr hwnd,
+        int bar,
+        [MarshalAs(UnmanagedType.Bool)] bool show);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumChildWindows(
+        IntPtr hwndParent,
+        EnumChildProc enumFunc,
+        IntPtr lParam);
 
     /// <inheritdoc />
     public event Action? Connected;
@@ -135,6 +190,17 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         : base(activeXClsid ?? DefaultMsTscAxClsid)
     {
         _activeXClsid = activeXClsid ?? DefaultMsTscAxClsid;
+        _postConnectStripTimer = new RdpPostConnectStripTimer(
+            () => new DispatcherRdpStripTimer(Dispatcher.CurrentDispatcher, DispatcherPriority.Background),
+            SystemRdpPostConnectStripTimerClock.Instance,
+            () => StripScrollbarStylesRecursiveOnUiThread("post-connect-timer"),
+            Core.Logging.FileLogger.Info);
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        StripScrollbarStylesRecursive();
     }
 
     /// <summary>
@@ -292,6 +358,26 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     }
 
     /// <inheritdoc />
+    public void SetResilienceOptions(int maxAutoReconnectAttempts, int keepAliveIntervalMs)
+    {
+        _maxAutoReconnectAttempts = Math.Clamp(maxAutoReconnectAttempts, 1, 60);
+        _keepAliveIntervalMs = Math.Clamp(keepAliveIntervalMs, 5_000, 300_000);
+
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetResilienceOptions: reconnectAttempts={_maxAutoReconnectAttempts} keepAliveMs={_keepAliveIntervalMs} handleCreated={IsHandleCreated}");
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyRedirectionSettings(ocx);
+        }
+    }
+
+    public int EffectiveMaxAutoReconnectAttempts => _maxAutoReconnectAttempts;
+
+    public int EffectiveKeepAliveIntervalMs => _keepAliveIntervalMs;
+
+    /// <inheritdoc />
     public void Connect()
     {
         var ocx = GetActiveXInstance()
@@ -369,6 +455,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
             Core.Logging.FileLogger.Info(
                 $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} physical={physicalWidthMm}x{physicalHeightMm}mm scale={desktopScaleFactor}/{deviceScaleFactor} (seamless)");
+            StripScrollbarStylesRecursiveOnUiThread("UpdateSessionDisplaySettings");
             return RdpDisplayUpdateResult.Seamless;
         }
         catch (Exception ex)
@@ -394,6 +481,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
                 Core.Logging.FileLogger.Info(
                     $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} (reconnect fallback)");
+                StripScrollbarStylesRecursiveOnUiThread("Reconnect");
                 return RdpDisplayUpdateResult.ReconnectFallback;
             }
             catch (Exception exFallback)
@@ -542,23 +630,35 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     {
         IsConnected = true;
         Connected?.Invoke();
+        StripScrollbarStylesRecursiveOnUiThread("OnConnected");
+        BeginPostConnectStripTimerOnUiThread("OnConnected");
     }
 
     internal void RaiseDisconnected(int discReason)
     {
         IsConnected = false;
+        StopPostConnectStripTimerOnUiThread($"OnDisconnected reason={discReason}");
         Disconnected?.Invoke(discReason);
     }
 
     internal void RaiseFatalError(int errorCode)
     {
         IsConnected = false;
+        StopPostConnectStripTimerOnUiThread($"OnFatalError error={errorCode}");
         FatalError?.Invoke(errorCode);
     }
 
     internal void RaiseLoginComplete()
     {
         LoginComplete?.Invoke();
+        StripScrollbarStylesRecursiveOnUiThread("OnLoginComplete");
+    }
+
+    internal void RaiseRemoteDesktopSizeChanged(int width, int height)
+    {
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.OnRemoteDesktopSizeChange: width={width} height={height}");
+        StripScrollbarStylesRecursiveOnUiThread("OnRemoteDesktopSizeChange");
     }
 
     internal void RaiseAutoReconnecting(int disconnectReason, int attemptCount)
@@ -571,9 +671,174 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     {
         IsConnected = true;
         AutoReconnected?.Invoke();
+        StripScrollbarStylesRecursiveOnUiThread("OnAutoReconnected");
+        BeginPostConnectStripTimerOnUiThread("OnAutoReconnected");
     }
 
     #endregion
+
+    internal static long StripScrollbarBits(long style) => style & ~ScrollbarStyleMask;
+
+    private static IntPtr GetWindowLongPtr(IntPtr hwnd, int index)
+    {
+        return IntPtr.Size == 8
+            ? GetWindowLongPtr64(hwnd, index)
+            : new IntPtr(GetWindowLong32(hwnd, index));
+    }
+
+    private static IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr newLong)
+    {
+        return IntPtr.Size == 8
+            ? SetWindowLongPtr64(hwnd, index, newLong)
+            : new IntPtr(SetWindowLong32(hwnd, index, unchecked((int)newLong.ToInt64())));
+    }
+
+    private static void StripScrollbarStyles(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            var style = GetWindowLongPtr(hwnd, GWL_STYLE).ToInt64();
+            var newStyle = StripScrollbarBits(style);
+            if (newStyle != style)
+            {
+                _ = SetWindowLongPtr(hwnd, GWL_STYLE, new IntPtr(newStyle));
+                _ = SetWindowPos(
+                    hwnd,
+                    IntPtr.Zero,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.StripScrollbarStyles: hwnd=0x{hwnd.ToInt64():X} style=0x{style:X}->0x{newStyle:X}");
+            }
+
+            // Some native controls can also keep scrollbar visibility outside WS_*SCROLL.
+            _ = ShowScrollBar(hwnd, SB_BOTH, false);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[RdpActiveXHost] StripScrollbarStyles({hwnd}): {ex.Message}");
+        }
+    }
+
+    private void StripScrollbarStylesRecursive(string reason = "direct")
+    {
+        if (!IsHandleCreated)
+        {
+            return;
+        }
+
+        StripScrollbarStyles(Handle);
+
+        try
+        {
+            EnumChildProc enumChild = (child, _) =>
+            {
+                StripScrollbarStyles(child);
+                return true;
+            };
+
+            _ = EnumChildWindows(Handle, enumChild, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[RdpActiveXHost] EnumChildWindows ({reason}): {ex.Message}");
+        }
+    }
+
+    private void StripScrollbarStylesRecursiveOnUiThread(string reason)
+    {
+        if (_disposed || IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+
+        try
+        {
+            if (InvokeRequired)
+            {
+                _ = BeginInvoke((System.Windows.Forms.MethodInvoker)(() =>
+                {
+                    StripScrollbarStylesRecursive(reason);
+                }));
+                return;
+            }
+
+            StripScrollbarStylesRecursive(reason);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[RdpActiveXHost] StripScrollbarStylesRecursive ({reason}): {ex.Message}");
+        }
+    }
+
+    private void BeginPostConnectStripTimerOnUiThread(string reason)
+    {
+        if (_disposed || IsDisposed || !IsHandleCreated)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.PostConnectStripTimer start skipped: reason={reason} disposed={_disposed} isDisposed={IsDisposed} handleCreated={IsHandleCreated} handle=0x{GetHandleForLog().ToInt64():X}");
+            return;
+        }
+
+        try
+        {
+            if (InvokeRequired)
+            {
+                _ = BeginInvoke((System.Windows.Forms.MethodInvoker)(() => _postConnectStripTimer.Begin(reason)));
+                return;
+            }
+
+            _postConnectStripTimer.Begin(reason);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[RdpActiveXHost] PostConnectStripTimer start failed: {ex.Message}");
+        }
+    }
+
+    private void StopPostConnectStripTimerOnUiThread(string reason)
+    {
+        try
+        {
+            if (!_disposed && !IsDisposed && IsHandleCreated && InvokeRequired)
+            {
+                _ = BeginInvoke((System.Windows.Forms.MethodInvoker)(() => _postConnectStripTimer.Stop(reason)));
+                return;
+            }
+
+            _postConnectStripTimer.Stop(reason);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[RdpActiveXHost] PostConnectStripTimer stop failed: {ex.Message}");
+        }
+    }
+
+    private IntPtr GetHandleForLog()
+    {
+        try
+        {
+            return IsHandleCreated ? Handle : IntPtr.Zero;
+        }
+        catch
+        {
+            return IntPtr.Zero;
+        }
+    }
 
     #region Disconnect reason decoder
 
@@ -1243,6 +1508,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         ax.ColorDepth = _pendingColorDepth;
 
         ApplySmartSizing(ocx, InitialSmartSizing);
+        StripScrollbarStylesRecursive();
     }
 
     private void ApplyDisplayScaleSettings(object ocx)
@@ -1336,7 +1602,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
         if (_pendingRedirections.AutoReconnect)
         {
-            TrySetDynamic("MaxReconnectAttempts", () => adv.MaxReconnectAttempts = MaxAutoReconnectAttempts);
+            TrySetDynamic("MaxReconnectAttempts", () => adv.MaxReconnectAttempts = _maxAutoReconnectAttempts);
         }
 
         // USB / PnP device redirection
@@ -1358,7 +1624,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         TrySetDynamic("allowBackgroundInput", () => adv.allowBackgroundInput = 1);
 
         // TCP keep-alive interval for network break detection
-        TrySetDynamic("KeepAliveInterval", () => adv.KeepAliveInterval = KeepAliveIntervalMs);
+        TrySetDynamic("KeepAliveInterval", () => adv.KeepAliveInterval = _keepAliveIntervalMs);
 
         // Performance flags (disable visual effects for bandwidth optimization)
         if (_pendingRedirections.PerformanceFlags > 0)
@@ -1407,6 +1673,9 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
             if (disposing)
             {
+                try { _postConnectStripTimer.Dispose(); }
+                catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose PostConnectStripTimer: {ex.Message}"); }
+
                 try { DetachEventSink(); }
                 catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose DetachEventSink: {ex.Message}"); }
             }
@@ -1422,4 +1691,168 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     }
 
     #endregion
+}
+
+internal interface IRdpStripTimer : IDisposable
+{
+    event EventHandler? Tick;
+
+    TimeSpan Interval { get; set; }
+
+    void Start();
+
+    void Stop();
+}
+
+internal interface IRdpPostConnectStripTimerClock
+{
+    DateTimeOffset UtcNow { get; }
+}
+
+internal sealed class SystemRdpPostConnectStripTimerClock : IRdpPostConnectStripTimerClock
+{
+    public static SystemRdpPostConnectStripTimerClock Instance { get; } = new();
+
+    private SystemRdpPostConnectStripTimerClock()
+    {
+    }
+
+    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+}
+
+internal sealed class DispatcherRdpStripTimer : IRdpStripTimer
+{
+    private readonly DispatcherTimer _timer;
+
+    public DispatcherRdpStripTimer(Dispatcher dispatcher, DispatcherPriority priority)
+    {
+        _timer = new DispatcherTimer(priority, dispatcher);
+        _timer.Tick += OnTick;
+    }
+
+    public event EventHandler? Tick;
+
+    public TimeSpan Interval
+    {
+        get => _timer.Interval;
+        set => _timer.Interval = value;
+    }
+
+    public void Start() => _timer.Start();
+
+    public void Stop() => _timer.Stop();
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        _timer.Tick -= OnTick;
+    }
+
+    private void OnTick(object? sender, EventArgs e)
+    {
+        Tick?.Invoke(this, e);
+    }
+}
+
+internal sealed class RdpPostConnectStripTimer : IDisposable
+{
+    internal static readonly TimeSpan DefaultInterval = TimeSpan.FromMilliseconds(250);
+    internal static readonly TimeSpan DefaultMaxDuration = TimeSpan.FromMilliseconds(12_000);
+
+    private readonly Func<IRdpStripTimer> _timerFactory;
+    private readonly IRdpPostConnectStripTimerClock _clock;
+    private readonly Action _stripAction;
+    private readonly Action<string> _logInfo;
+    private readonly TimeSpan _interval;
+    private readonly TimeSpan _maxDuration;
+
+    private IRdpStripTimer? _timer;
+    private DateTimeOffset _startedAt;
+    private bool _disposed;
+
+    public RdpPostConnectStripTimer(
+        Func<IRdpStripTimer> timerFactory,
+        IRdpPostConnectStripTimerClock clock,
+        Action stripAction,
+        Action<string> logInfo,
+        TimeSpan? interval = null,
+        TimeSpan? maxDuration = null)
+    {
+        ArgumentNullException.ThrowIfNull(timerFactory);
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(stripAction);
+        ArgumentNullException.ThrowIfNull(logInfo);
+
+        _timerFactory = timerFactory;
+        _clock = clock;
+        _stripAction = stripAction;
+        _logInfo = logInfo;
+        _interval = interval ?? DefaultInterval;
+        _maxDuration = maxDuration ?? DefaultMaxDuration;
+    }
+
+    public bool IsRunning => _timer is not null;
+
+    public void Begin(string reason)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        StopCore($"restart-before-{reason}", logWhenStopped: _timer is not null);
+
+        _startedAt = _clock.UtcNow;
+        _timer = _timerFactory();
+        _timer.Interval = _interval;
+        _timer.Tick += OnTick;
+        _timer.Start();
+
+        _logInfo(
+            $"RdpActiveXHost.PostConnectStripTimer started: reason={reason} intervalMs={_interval.TotalMilliseconds:0} maxDurationMs={_maxDuration.TotalMilliseconds:0}");
+    }
+
+    public void Stop(string reason)
+    {
+        StopCore(reason, logWhenStopped: true);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        StopCore("Dispose", logWhenStopped: true);
+        _disposed = true;
+    }
+
+    private void OnTick(object? sender, EventArgs e)
+    {
+        _stripAction();
+
+        if (_clock.UtcNow - _startedAt >= _maxDuration)
+        {
+            StopCore("max-duration", logWhenStopped: true);
+        }
+    }
+
+    private void StopCore(string reason, bool logWhenStopped)
+    {
+        var timer = _timer;
+        if (timer is null)
+        {
+            return;
+        }
+
+        _timer = null;
+        timer.Tick -= OnTick;
+        timer.Stop();
+        timer.Dispose();
+
+        if (logWhenStopped)
+        {
+            var elapsed = _clock.UtcNow - _startedAt;
+            _logInfo(
+                $"RdpActiveXHost.PostConnectStripTimer stopped: reason={reason} elapsedMs={elapsed.TotalMilliseconds:0}");
+        }
+    }
 }
