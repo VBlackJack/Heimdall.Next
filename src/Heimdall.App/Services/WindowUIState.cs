@@ -31,7 +31,7 @@ namespace Heimdall.App.Services;
 public sealed class WindowUIState
 {
     /// <summary>Default sidebar (TreeView column) width when restored.</summary>
-    public const double DefaultSidebarWidth = 260d;
+    public const double DefaultSidebarWidth = 320d;
 
     /// <summary>Minimum sidebar column width when visible.</summary>
     public const double MinSidebarWidth = 180d;
