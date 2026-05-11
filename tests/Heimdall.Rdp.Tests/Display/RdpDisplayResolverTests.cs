@@ -187,7 +187,7 @@ public sealed class RdpDisplayResolverTests
     }
 
     [Fact]
-    public void Resolve_FitWindow_UsesViewportWithoutSmartSizing()
+    public void Resolve_FitWindow_UsesViewportWithSmartSizing()
     {
         var result = Resolve(
             RdpResolutionMode.FitWindow,
@@ -197,9 +197,9 @@ public sealed class RdpDisplayResolverTests
         Assert.Equal(RdpResolutionMode.FitWindow, result.EffectiveMode);
         Assert.Equal(1280, result.Width);
         Assert.Equal(721, result.Height);
-        Assert.False(result.SmartSizingEnabled);
+        Assert.True(result.SmartSizingEnabled);
         Assert.False(result.MultiMonitorEnabled);
-        Assert.Equal("explicit-fit-window", result.Reason);
+        Assert.Equal("explicit-fit-window-scaled", result.Reason);
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public sealed class RdpDisplayResolverTests
 
         Assert.Equal(1500, result.Width);
         Assert.Equal(820, result.Height);
-        Assert.Equal("explicit-fit-window", result.Reason);
+        Assert.Equal("explicit-fit-window-scaled", result.Reason);
     }
 
     [Fact]

@@ -93,6 +93,9 @@ public interface IMsTscAxEvents
     [DispId(10)]
     void OnFatalError(int errorCode);
 
+    [DispId(12)]
+    void OnRemoteDesktopSizeChange(int width, int height);
+
     [DispId(22)]
     void OnAutoReconnecting(int disconnectReason, int attemptCount, out bool continueReconnect);
 
@@ -118,6 +121,7 @@ public class MsTscAxEventSink : IMsTscAxEvents
     public void OnDisconnected(int discReason) => _host.RaiseDisconnected(discReason);
     public void OnLoginComplete() => _host.RaiseLoginComplete();
     public void OnFatalError(int errorCode) => _host.RaiseFatalError(errorCode);
+    public void OnRemoteDesktopSizeChange(int width, int height) => _host.RaiseRemoteDesktopSizeChanged(width, height);
 
     public void OnAutoReconnecting(int disconnectReason, int attemptCount, out bool continueReconnect)
     {

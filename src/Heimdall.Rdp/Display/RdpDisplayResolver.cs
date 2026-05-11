@@ -83,9 +83,9 @@ public static class RdpDisplayResolver
                 ResolveViewportOrFallback(hostContext, out _),
                 desktopScaleFactor,
                 deviceScaleFactor,
-                smartSizing: false,
+                smartSizing: true,
                 multiMonitor: false,
-                reason: "explicit-fit-window",
+                reason: "explicit-fit-window-scaled",
                 floorWidthToDesktopMinimum: false)
         };
     }
