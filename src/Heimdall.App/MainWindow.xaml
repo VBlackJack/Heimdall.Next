@@ -283,82 +283,13 @@
                             <DockPanel x:Name="SidebarSessionsContent"
                                        Visibility="{Binding IsChecked, ElementName=SidebarTabSessions, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <!-- Filter + add/expand/collapse toolbar -->
-                                <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
-                                    <Button x:Name="CollapseAllButton"
-                                            DockPanel.Dock="Right"
-                                            Content="&#xE70D;"
-                                            FontFamily="Segoe MDL2 Assets"
-                                            Click="OnCollapseAllClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                            Width="32" Height="32"
-                                            Margin="2,0,0,0"
-                                            ToolTip="{loc:Translate TooltipCollapseAll}"
-                                            AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"/>
-                                    <Button x:Name="ExpandAllButton"
-                                            DockPanel.Dock="Right"
-                                            Content="&#xE70E;"
-                                            FontFamily="Segoe MDL2 Assets"
-                                            Click="OnExpandAllClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                            Width="32" Height="32"
-                                            Margin="2,0,0,0"
-                                            ToolTip="{loc:Translate TooltipExpandAll}"
-                                            AutomationProperties.Name="{loc:Translate TooltipExpandAll}"/>
-                                    <Button x:Name="AddButton"
-                                            DockPanel.Dock="Right"
-                                            Click="OnAddButtonClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="6,6" FontSize="{StaticResource FontSizeBody}"
-                                            Width="32" Height="32"
-                                            Margin="4,0,0,0"
-                                            ToolTip="{loc:Translate TooltipAddMenu}"
-                                            AutomationProperties.Name="{loc:Translate TooltipAddMenu}">
-                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
-                                        <Button.ContextMenu>
-                                            <ContextMenu x:Name="AddMenu"
-                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem x:Name="Mw_AddMenuSession" Header="{loc:Translate AddMenuSession}" Command="{Binding ServerList.AddServerCommand}"/>
-                                                <MenuItem x:Name="Mw_AddMenuTool" Header="{loc:Translate AddMenuTool}" Click="OnAddToolMenuClick"/>
-                                                <Separator/>
-                                                <MenuItem x:Name="Mw_AddMenuGateway" Header="{loc:Translate AddMenuGateway}" Command="{Binding Settings.AddGatewayCommand}"/>
-                                                <MenuItem x:Name="Mw_AddMenuFolder" Header="{loc:Translate AddMenuFolder}" Click="OnAddFolderFromMenu"/>
-                                            </ContextMenu>
-                                        </Button.ContextMenu>
-                                    </Button>
-                                    <Button x:Name="ImportButton"
-                                            DockPanel.Dock="Right"
-                                            Click="OnImportButtonClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="8,6"
-                                            Margin="4,0,0,0"
-                                            ToolTip="{loc:Translate A11yImportMenu}"
-                                            AutomationProperties.Name="{loc:Translate A11yImportMenu}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"/>
-                                            <TextBlock Text="{loc:Translate BtnImport}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Button.ContextMenu>
-                                            <ContextMenu x:Name="ImportMenu"
-                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem Header="{loc:Translate MenuImportRdp}"
-                                                          Click="OnImportRdpClick"
-                                                          AutomationProperties.Name="{loc:Translate A11yImportRdp}"/>
-                                                <MenuItem Header="{loc:Translate MenuImportOpenSshConfig}"
-                                                          Click="OnImportOpenSshConfigClick"
-                                                          AutomationProperties.Name="{loc:Translate A11yImportOpenSshConfig}"/>
-                                                <MenuItem Header="{loc:Translate MenuImportPuttySessions}"
-                                                          Click="OnImportPuttySessionsClick"
-                                                          AutomationProperties.Name="{loc:Translate A11yImportPuttySessions}"/>
-                                                <Separator/>
-                                                <MenuItem Header="{loc:Translate MenuImportKnownHosts}"
-                                                          Command="{Binding ServerList.ImportKnownHostsCommand}"
-                                                          AutomationProperties.Name="{loc:Translate A11yImportKnownHosts}"/>
-                                            </ContextMenu>
-                                        </Button.ContextMenu>
-                                    </Button>
-                                    <Grid>
+                                <Grid DockPanel.Dock="Top" Margin="8,8,8,6">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0" MinWidth="120">
                                         <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                                  Style="{DynamicResource SearchTextBoxStyle}"
                                                  Tag="{loc:Translate SearchPlaceholder}" Padding="10,6,28,6"
@@ -376,20 +307,98 @@
                                                 Visibility="Collapsed"
                                                 AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
                                     </Grid>
-                                    <TextBlock x:Name="Mw_FilterResultCount"
-                                               FontSize="{StaticResource FontSizeSmallCaption}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               HorizontalAlignment="Right"
-                                               Margin="0,2,4,0"
-                                               Visibility="Collapsed"/>
-                                </DockPanel>
+
+                                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="Mw_FilterResultCount"
+                                                   Grid.Column="0"
+                                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Visibility="Collapsed"/>
+                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    HorizontalAlignment="Right">
+                                            <Button x:Name="AddButton"
+                                                    Click="OnAddButtonClick"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    Padding="6,6" FontSize="{StaticResource FontSizeBody}"
+                                                    Width="32" Height="32"
+                                                    Margin="0,0,4,0"
+                                                    ToolTip="{loc:Translate TooltipAddMenu}"
+                                                    AutomationProperties.Name="{loc:Translate TooltipAddMenu}">
+                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
+                                                <Button.ContextMenu>
+                                                    <ContextMenu x:Name="AddMenu"
+                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                        <MenuItem x:Name="Mw_AddMenuSession" Header="{loc:Translate AddMenuSession}" Command="{Binding ServerList.AddServerCommand}"/>
+                                                        <MenuItem x:Name="Mw_AddMenuTool" Header="{loc:Translate AddMenuTool}" Click="OnAddToolMenuClick"/>
+                                                        <Separator/>
+                                                        <MenuItem x:Name="Mw_AddMenuGateway" Header="{loc:Translate AddMenuGateway}" Command="{Binding Settings.AddGatewayCommand}"/>
+                                                        <MenuItem x:Name="Mw_AddMenuFolder" Header="{loc:Translate AddMenuFolder}" Click="OnAddFolderFromMenu"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                            <Button x:Name="ImportButton"
+                                                    Click="OnImportButtonClick"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    Padding="6,6" FontSize="{StaticResource FontSizeBody}"
+                                                    Width="32" Height="32"
+                                                    Margin="0,0,4,0"
+                                                    ToolTip="{loc:Translate A11yImportMenu}"
+                                                    AutomationProperties.Name="{loc:Translate A11yImportMenu}">
+                                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
+                                                <Button.ContextMenu>
+                                                    <ContextMenu x:Name="ImportMenu"
+                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                        <MenuItem Header="{loc:Translate MenuImportRdp}"
+                                                                  Click="OnImportRdpClick"
+                                                                  AutomationProperties.Name="{loc:Translate A11yImportRdp}"/>
+                                                        <MenuItem Header="{loc:Translate MenuImportOpenSshConfig}"
+                                                                  Click="OnImportOpenSshConfigClick"
+                                                                  AutomationProperties.Name="{loc:Translate A11yImportOpenSshConfig}"/>
+                                                        <MenuItem Header="{loc:Translate MenuImportPuttySessions}"
+                                                                  Click="OnImportPuttySessionsClick"
+                                                                  AutomationProperties.Name="{loc:Translate A11yImportPuttySessions}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="{loc:Translate MenuImportKnownHosts}"
+                                                                  Command="{Binding ServerList.ImportKnownHostsCommand}"
+                                                                  AutomationProperties.Name="{loc:Translate A11yImportKnownHosts}"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                            <Button x:Name="ExpandAllButton"
+                                                    Content="&#xE70E;"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    Click="OnExpandAllClick"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
+                                                    Width="32" Height="32"
+                                                    Margin="0,0,2,0"
+                                                    ToolTip="{loc:Translate TooltipExpandAll}"
+                                                    AutomationProperties.Name="{loc:Translate TooltipExpandAll}"/>
+                                            <Button x:Name="CollapseAllButton"
+                                                    Content="&#xE70D;"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    Click="OnCollapseAllClick"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
+                                                    Width="32" Height="32"
+                                                    ToolTip="{loc:Translate TooltipCollapseAll}"
+                                                    AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
 
                                 <Border x:Name="SessionTreeNoGroupDropZone"
                                         DockPanel.Dock="Top"
-                                        Margin="0,0,0,6"
-                                        Padding="8,5"
-                                        Background="{DynamicResource CardBrush}"
-                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        Margin="0,2,0,4"
+                                        Padding="4,3"
                                         BorderThickness="1"
                                         CornerRadius="{StaticResource CornerRadiusMd}"
                                         AllowDrop="True"
@@ -398,17 +407,31 @@
                                         Drop="OnTreeViewDrop"
                                         ToolTip="{loc:Translate TreeNodeNoGroup}"
                                         AutomationProperties.Name="{loc:Translate TreeNodeNoGroup}">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource TreeViewIndentGuideBrush}"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="theming:DropTargetVisualState.IsDropTarget" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <StackPanel Orientation="Horizontal">
                                         <Path Data="{StaticResource Geo.Tree.Group}"
-                                              Fill="{DynamicResource TextSecondaryBrush}"
-                                              Width="12"
-                                              Height="12"
+                                              Fill="{DynamicResource TextDisabledBrush}"
+                                              Width="10"
+                                              Height="10"
+                                              Opacity="0.7"
                                               Stretch="Uniform"
                                               VerticalAlignment="Center"
                                               Margin="0,0,6,0"/>
                                         <TextBlock Text="{loc:Translate TreeNodeNoGroup}"
                                                    FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                                   Opacity="0.85"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
@@ -437,48 +460,62 @@
                                 <!-- Folder node template (recursive — unlimited nesting) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:FolderViewModel}"
                                                           ItemsSource="{Binding Children}">
-                                    <Grid Margin="0,2,0,0" ToolTip="{Binding FullPath}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Path Grid.Column="0"
-                                              Data="{StaticResource Geo.Tree.Group}"
-                                              Fill="{DynamicResource InfoBrush}"
-                                              Width="14" Height="14"
-                                              Stretch="Uniform"
-                                              VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="2" Padding="6,2" CornerRadius="{StaticResource CornerRadiusMd}" Margin="6,0,0,0"
-                                                Background="{DynamicResource CardBrush}"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ServerCount}" FontSize="{StaticResource FontSizeCaption}"
+                                    <Border Margin="0,3,4,1"
+                                            Padding="4,3,6,3"
+                                            MinHeight="26"
+                                            Background="Transparent"
+                                            ToolTip="{Binding FullPath}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="0"
+                                                  Data="{StaticResource Geo.Tree.Group}"
+                                                  Fill="{DynamicResource InfoBrush}"
+                                                  Width="13" Height="13"
+                                                  Stretch="Uniform"
+                                                  VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                       FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding ServerCount}"
+                                                       FontSize="{StaticResource FontSizeSmallCaption}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       HorizontalAlignment="Center"/>
-                                        </Border>
-                                    </Grid>
+                                                       VerticalAlignment="Center"
+                                                       Margin="8,0,2,0"/>
+                                        </Grid>
+                                    </Border>
                                 </HierarchicalDataTemplate>
 
                                 <!-- Server leaf node template -->
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <Border x:Name="ServerSelectionChrome"
-                                            Margin="0,1"
+                                            Margin="0,0,4,0"
                                             HorizontalAlignment="Stretch"
-                                            Padding="2,1"
+                                            MinHeight="24"
+                                            Padding="3,2,4,2"
                                             CornerRadius="0"
                                             BorderThickness="3,0,0,0"
                                             BorderBrush="Transparent"
                                             Background="Transparent"
-                                            ToolTip="{Binding DisplayName}">
-                                        <StackPanel Orientation="Horizontal">
+                                            ToolTip="{Binding DisplayName}"
+                                            ToolTipService.InitialShowDelay="150">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
                                             <!-- Protocol / tool vector icon (resolved by converters).
                                                  The ThemeRevision trigger forces re-evaluation on runtime theme swap. -->
-                                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                            <Path Grid.Column="0"
+                                                  Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
                                                   Style="{StaticResource GeoIconSmall}"
                                                   VerticalAlignment="Center" Margin="0,0,4,0">
                                                 <Path.Fill>
@@ -489,7 +526,8 @@
                                                 </Path.Fill>
                                             </Path>
                                             <!-- Status dot -->
-                                            <Ellipse Width="7" Height="7" Margin="2,0,8,0"
+                                            <Ellipse Grid.Column="1"
+                                                     Width="7" Height="7" Margin="2,0,8,0"
                                                      VerticalAlignment="Center">
                                                 <Ellipse.Fill>
                                                     <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
@@ -500,11 +538,13 @@
                                                 </Ellipse.Fill>
                                             </Ellipse>
                                             <!-- Server name -->
-                                            <TextBlock Text="{Binding DisplayName}" FontSize="{StaticResource FontSizeBody}"
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding SidebarDisplayName}" FontSize="{StaticResource FontSizeBody}"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <Border Background="{DynamicResource CardBrush}"
+                                            <Border Grid.Column="3"
+                                                    Background="{DynamicResource CardBrush}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
                                                     BorderThickness="1"
                                                     CornerRadius="3"
@@ -519,7 +559,7 @@
                                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                                            VerticalAlignment="Center"/>
                                             </Border>
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsSelected, FallbackValue=False}" Value="True">
@@ -536,6 +576,89 @@
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                                     <Setter Property="Padding" Value="1,1"/>
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                                                <Grid SnapsToDevicePixels="True">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <ToggleButton x:Name="Expander"
+                                                                  Grid.Row="0"
+                                                                  Grid.Column="0"
+                                                                  Margin="0,2,2,0"
+                                                                  Style="{StaticResource TreeViewExpanderToggleButtonStyle}"
+                                                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                  ClickMode="Press"/>
+                                                    <Border x:Name="SelectionBorder"
+                                                            Grid.Row="0"
+                                                            Grid.Column="1"
+                                                            Margin="0,1,0,1"
+                                                            Padding="{TemplateBinding Padding}"
+                                                            Background="Transparent"
+                                                            BorderBrush="Transparent"
+                                                            BorderThickness="3,0,0,0"
+                                                            CornerRadius="0">
+                                                        <ContentPresenter x:Name="HeaderHost"
+                                                                          ContentSource="Header"
+                                                                          HorizontalAlignment="Stretch"/>
+                                                    </Border>
+                                                    <Grid Grid.Row="1"
+                                                          Grid.Column="1"
+                                                          Margin="0,1,0,0">
+                                                        <Border x:Name="IndentGuide"
+                                                                Width="1"
+                                                                HorizontalAlignment="Left"
+                                                                Margin="6,0,0,0"
+                                                                Background="{DynamicResource TreeViewIndentGuideBrush}"
+                                                                Visibility="Collapsed"/>
+                                                        <ItemsPresenter x:Name="ItemsHost"
+                                                                        Margin="12,1,0,0"/>
+                                                    </Grid>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="HasItems" Value="False">
+                                                        <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                                        <Setter TargetName="IndentGuide" Property="Visibility" Value="Collapsed"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsExpanded" Value="False">
+                                                        <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                        <Setter TargetName="IndentGuide" Property="Visibility" Value="Collapsed"/>
+                                                    </Trigger>
+                                                    <MultiTrigger>
+                                                        <MultiTrigger.Conditions>
+                                                            <Condition Property="HasItems" Value="True"/>
+                                                            <Condition Property="IsExpanded" Value="True"/>
+                                                        </MultiTrigger.Conditions>
+                                                        <Setter TargetName="IndentGuide" Property="Visibility" Value="Visible"/>
+                                                    </MultiTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                        <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource CardBrush}"/>
+                                                        <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                        <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="theming:DropTargetVisualState.IsDropTarget" Value="True">
+                                                        <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                        <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsEnabled" Value="False">
+                                                        <Setter TargetName="SelectionBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
                                     <EventSetter Event="PreviewMouseLeftButtonDown"
                                                  Handler="OnSessionTreeViewItemPreviewMouseLeftButtonDown"/>
                                     <Style.Triggers>
@@ -2303,6 +2426,28 @@
                                                          AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpCredentialAutofillTimeoutLabel}"/>
                                                 <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                             </StackPanel>
+
+                                            <TextBlock x:Name="Mw_SettingsRdpAutoReconnectMaxAttemptsLabel"
+                                                       Text="{loc:Translate SettingsLabelRdpAutoReconnectMaxAttempts}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Margin="0,12,0,4"/>
+                                            <TextBox Text="{Binding Settings.RdpAutoReconnectMaxAttempts, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="120"
+                                                     HorizontalAlignment="Left"
+                                                     AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpAutoReconnectMaxAttemptsLabel}"/>
+
+                                            <TextBlock x:Name="Mw_SettingsRdpKeepAliveIntervalLabel"
+                                                       Text="{loc:Translate SettingsLabelRdpKeepAliveInterval}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Margin="0,12,0,4"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Text="{Binding Settings.RdpKeepAliveIntervalMs, UpdateSourceTrigger=PropertyChanged}"
+                                                         Width="120"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpKeepAliveIntervalLabel}"/>
+                                                <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                            </StackPanel>
                                         </StackPanel>
                                     </Expander>
                                 </Border>
@@ -2329,23 +2474,73 @@
                                                    FontSize="{StaticResource FontSizeCaption}"
                                                    Margin="0,0,0,6"
                                                    TextWrapping="Wrap"/>
-                                        <TextBox Text="{Binding Settings.RdpResolutionPresetsText, UpdateSourceTrigger=LostFocus}"
-                                                 AcceptsReturn="True"
-                                                 TextWrapping="NoWrap"
-                                                 VerticalScrollBarVisibility="Auto"
-                                                 MinHeight="120"
-                                                 MaxHeight="200"
-                                                 FontFamily="Consolas"
-                                                 AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpResolutionPresetsLabel}"/>
-                                        <Button Content="{loc:Translate SettingsRdpResolutionPresetsReset}"
-                                                Command="{Binding Settings.ResetRdpResolutionPresetsCommand}"
-                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                FontSize="{StaticResource FontSizeCaption}"
-                                                Foreground="{DynamicResource TextTertiaryBrush}"
-                                                HorizontalAlignment="Left"
-                                                Padding="0,4"
-                                                Margin="0,8,0,0"
-                                                AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetsReset}"/>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{loc:Translate SettingsRdpResolutionPresetWidth}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{loc:Translate SettingsRdpResolutionPresetHeight}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="{StaticResource FontSizeCaption}"/>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding Settings.RdpResolutionPresetItems}"
+                                                      AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpResolutionPresetsLabel}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="120"/>
+                                                                <ColumnDefinition Width="12"/>
+                                                                <ColumnDefinition Width="120"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBox Grid.Column="2"
+                                                                     Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <Button Grid.Column="4"
+                                                                    Content="{loc:Translate SettingsRdpResolutionPresetRemove}"
+                                                                    Command="{Binding DataContext.Settings.RemoveRdpResolutionPresetCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                                    Padding="6,3"
+                                                                    AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetRemove}"/>
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Error}"
+                                                                   Foreground="{DynamicResource ErrorBrush}"
+                                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                                   Margin="0,4,0,0"
+                                                                   Visibility="{Binding Error, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <Button Content="{loc:Translate SettingsRdpResolutionPresetAdd}"
+                                                    Command="{Binding Settings.AddRdpResolutionPresetCommand}"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    Foreground="{DynamicResource TextTertiaryBrush}"
+                                                    Padding="0,4"
+                                                    AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetAdd}"/>
+                                            <Button Content="{loc:Translate SettingsRdpResolutionPresetsReset}"
+                                                    Command="{Binding Settings.ResetRdpResolutionPresetsCommand}"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    Foreground="{DynamicResource TextTertiaryBrush}"
+                                                    Padding="0,4"
+                                                    Margin="16,0,0,0"
+                                                    AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetsReset}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 

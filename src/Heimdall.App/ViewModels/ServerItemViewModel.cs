@@ -122,6 +122,8 @@ public partial class ServerItemViewModel : ObservableObject
             ? L("StatusLaunchedExternalClientTooltip")
             : ConnectionStateDisplayName;
 
+    public string SidebarDisplayName => SidebarDisplayNameFormatter.Format(DisplayName) ?? "";
+
     public string ConnectionTypeBadge => ConnectionType.ToUpperInvariant() switch
     {
         "RDP" => "RDP",
@@ -210,6 +212,10 @@ public partial class ServerItemViewModel : ObservableObject
         OnPropertyChanged(nameof(ConnectionTypeBadge));
     }
 
+    partial void OnDisplayNameChanged(string value)
+    {
+        OnPropertyChanged(nameof(SidebarDisplayName));
+    }
 
     partial void OnRemoteServerChanged(string value)
         => Endpoint = string.IsNullOrEmpty(value) ? "" : (RemotePort > 0 ? $"{value}:{RemotePort}" : value);
