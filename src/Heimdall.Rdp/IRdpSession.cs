@@ -58,6 +58,9 @@ public interface IRdpSession : IDisposable
     /// <summary>Configure device and feature redirections.</summary>
     void SetRedirections(RdpRedirectionOptions redirections);
 
+    /// <summary>Configure ActiveX reconnect and keep-alive resilience knobs.</summary>
+    void SetResilienceOptions(int maxAutoReconnectAttempts, int keepAliveIntervalMs);
+
     /// <summary>Initiate the RDP connection.</summary>
     void Connect();
 

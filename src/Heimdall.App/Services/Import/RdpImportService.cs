@@ -305,6 +305,7 @@ public sealed class RdpImportService(IConfigManager configManager, LocalizationM
             && schema.GatewayUsageMethod.GetValueOrDefault(1) != 0)
         {
             candidate.RdpGateway = schema.GatewayHostname;
+            candidate.RdpMode = "External";
         }
 
         if (schema.ScreenModeId.HasValue)

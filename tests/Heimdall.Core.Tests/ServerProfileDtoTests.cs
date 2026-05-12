@@ -316,6 +316,7 @@ public class ServerProfileDtoTests
         Assert.NotNull(deserialized);
         Assert.Equal(0, deserialized.RdpResizeEnableDelayMs);
     }
+
     [Fact]
     public void JsonSerialization_UsesBackCompatibleFixedResolutionNames()
     {

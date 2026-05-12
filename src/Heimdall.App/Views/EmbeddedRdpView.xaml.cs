@@ -145,6 +145,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private bool _userInitiatedDisconnect;
     private int _antiIdleIntervalSeconds;
     private int _beginConnectAttempt;
+    private int _effectiveMaxAutoReconnectAttempts = RdpActiveXHost.MaxAutoReconnectAttempts;
     private int _lastAppliedWidth;
     private int _lastAppliedHeight;
     private int _manualResolutionWidth;
@@ -374,6 +375,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _localizer = localizer;
         _tunnelPort = tunnelPort;
         _initialResizeEnableDelay = TimeSpan.FromMilliseconds(resizeEnableDelayMs);
+        _effectiveMaxAutoReconnectAttempts = Math.Clamp(settings.RdpAutoReconnectMaxAttempts, 1, 60);
         _connectionStateMachine = connectionStateMachine;
         _connectStatusOverrideKey = connectStatusOverrideKey;
         if (_connectionStateMachine is not null)
@@ -1588,8 +1590,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             if (_dpiChangeDroppedDuringLockout)
             {
                 _dpiChangeDroppedDuringLockout = false;
-                Core.Logging.FileLogger.Info("EmbeddedRDP skipped queued display refresh after dropped DPI change.");
-                return;
+                Core.Logging.FileLogger.Info("EmbeddedRDP applying queued DPI refresh after stabilization.");
+                await ApplyCurrentResolutionAsync("post-stabilization-dpi", force: true);
             }
 
             var (queuedWidth, queuedHeight) = GetDisplayDimensions();
@@ -1753,6 +1755,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             Dock = WinForms.DockStyle.Fill,
             InitialSmartSizing = ResolveInitialSmartSizing(_server)
         };
+        if (_settings is not null)
+        {
+            _rdpHost.SetResilienceOptions(
+                _settings.RdpAutoReconnectMaxAttempts,
+                _settings.RdpKeepAliveIntervalMs);
+        }
 
         _rdpHost.Connected += OnRdpConnected;
         _rdpHost.Disconnected += OnRdpDisconnected;
@@ -2369,7 +2377,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
     }
 
-
     private void ApplyConnectStatusOverride()
     {
         if (string.IsNullOrWhiteSpace(_connectStatusOverrideKey) || _comDrivenStatusActive)
@@ -2380,6 +2387,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         StatusTextBlock.Text = L(_connectStatusOverrideKey);
         StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
     }
+
     private string FormatConnectionStateStatus(string statusKey)
     {
         if (_localizer is null)
@@ -2437,7 +2445,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             localizedLabel = _localizer.Format(
                 RdpSessionStatusKeys.GetKey(status),
                 attempt,
-                RdpActiveXHost.MaxAutoReconnectAttempts);
+                _effectiveMaxAutoReconnectAttempts);
         }
         else
         {
@@ -2459,10 +2467,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         {
             RdpLoadingBar.IsIndeterminate = false;
             RdpLoadingBar.Minimum = 0;
-            RdpLoadingBar.Maximum = RdpActiveXHost.MaxAutoReconnectAttempts;
+            RdpLoadingBar.Maximum = _effectiveMaxAutoReconnectAttempts;
             RdpLoadingBar.Value = ResolveReconnectProgressValue(
                 reconnectAttempt ?? 0,
-                RdpActiveXHost.MaxAutoReconnectAttempts);
+                _effectiveMaxAutoReconnectAttempts);
         }
         else
         {

@@ -286,6 +286,30 @@ public class SchemaValidatorTests
         Assert.True(result.IsValid);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(61)]
+    public void ValidateSettings_RdpAutoReconnectMaxAttempts_OutOfRange_ReturnsError(int value)
+    {
+        var settings = new AppSettings { RdpAutoReconnectMaxAttempts = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.RdpAutoReconnectMaxAttempts)));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(60)]
+    public void ValidateSettings_RdpAutoReconnectMaxAttempts_BoundaryValues_IsValid(int value)
+    {
+        var settings = new AppSettings { RdpAutoReconnectMaxAttempts = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
 
     [Theory]
     [InlineData(-1)]
@@ -313,6 +337,32 @@ public class SchemaValidatorTests
 
         Assert.True(result.IsValid);
     }
+
+    [Theory]
+    [InlineData(4999)]
+    [InlineData(300001)]
+    public void ValidateSettings_RdpKeepAliveIntervalMs_OutOfRange_ReturnsError(int value)
+    {
+        var settings = new AppSettings { RdpKeepAliveIntervalMs = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.RdpKeepAliveIntervalMs)));
+    }
+
+    [Theory]
+    [InlineData(5000)]
+    [InlineData(300000)]
+    public void ValidateSettings_RdpKeepAliveIntervalMs_BoundaryValues_IsValid(int value)
+    {
+        var settings = new AppSettings { RdpKeepAliveIntervalMs = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(21)]

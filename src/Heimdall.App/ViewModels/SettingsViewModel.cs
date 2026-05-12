@@ -39,6 +39,12 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class SettingsViewModel : ObservableValidator
 {
+    private static readonly string[] DefaultRdpResolutionPresets =
+    [
+        "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
+        "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
+    ];
+
     private static bool HasUtf8Bom(byte[] bytes) =>
         bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
 
@@ -244,53 +250,187 @@ public partial class SettingsViewModel : ObservableValidator
     private string[] _rdpResolutionPresets = [];
 
     [ObservableProperty]
+    private ObservableCollection<RdpResolutionPresetItemViewModel> _rdpResolutionPresetItems = new();
+
+    [ObservableProperty]
     private bool _rdpDialogAdvancedDefault;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 60, ErrorMessage = "RDP auto-reconnect attempts must be between 1 and 60.")]
+    private int _rdpAutoReconnectMaxAttempts = 20;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(5000, 300000, ErrorMessage = "RDP keep-alive interval must be between 5000 and 300000 ms.")]
+    private int _rdpKeepAliveIntervalMs = 60000;
+
+    private bool _syncingRdpResolutionPresets;
 
     /// <summary>
     /// Multi-line text representation of <see cref="RdpResolutionPresets"/>
     /// for the Settings UI: one preset per line, format <c>WIDTHxHEIGHT</c>.
-    /// Setter parses, trims, validates and rebuilds the array. Invalid lines
-    /// are silently dropped — the user keeps editing what's left in the box.
+    /// Setter parses, trims, validates and rebuilds the editable list.
+    /// Invalid rows stay visible in <see cref="RdpResolutionPresetItems"/>
+    /// and block Save instead of being silently discarded.
     /// </summary>
     public string RdpResolutionPresetsText
     {
-        get => string.Join(Environment.NewLine, RdpResolutionPresets);
+        get => string.Join(Environment.NewLine, RdpResolutionPresetItems.Select(item =>
+            string.IsNullOrWhiteSpace(item.Height)
+                ? item.Width
+                : $"{item.Width}x{item.Height}"));
         set
         {
-            var parsed = (value ?? string.Empty)
+            var presets = (value ?? string.Empty)
                 .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
-                .Where(line =>
-                {
-                    var parts = line.Split(['x', 'X', '×'], 2);
-                    return parts.Length == 2
-                        && int.TryParse(parts[0].Trim(), out var w) && w > 0
-                        && int.TryParse(parts[1].Trim(), out var h) && h > 0;
-                })
                 .ToArray();
 
-            if (!parsed.SequenceEqual(RdpResolutionPresets))
-            {
-                RdpResolutionPresets = parsed;
-                OnPropertyChanged();
-            }
+            ReplaceRdpResolutionPresetItems(presets);
+            SyncRdpResolutionPresetsFromItems();
+            OnPropertyChanged();
         }
     }
 
     [RelayCommand]
     private void ResetRdpResolutionPresets()
     {
-        RdpResolutionPresets =
-        [
-            "1920x1080", "1680x1050", "1600x900", "1440x900", "1366x768",
-            "1280x1024", "1280x720", "1024x768", "2560x1440", "3840x2160"
-        ];
+        RdpResolutionPresets = [.. DefaultRdpResolutionPresets];
         OnPropertyChanged(nameof(RdpResolutionPresetsText));
+    }
+
+    [RelayCommand]
+    private void AddRdpResolutionPreset()
+    {
+        RdpResolutionPresetItems.Add(CreateRdpResolutionPresetItem("1920", "1080"));
+    }
+
+    [RelayCommand]
+    private void RemoveRdpResolutionPreset(RdpResolutionPresetItemViewModel? item)
+    {
+        if (item is not null)
+        {
+            RdpResolutionPresetItems.Remove(item);
+        }
     }
 
     partial void OnRdpResolutionPresetsChanged(string[] value)
     {
+        if (!_syncingRdpResolutionPresets)
+        {
+            ReplaceRdpResolutionPresetItems(value ?? []);
+        }
+
         OnPropertyChanged(nameof(RdpResolutionPresetsText));
+    }
+
+    private RdpResolutionPresetItemViewModel CreateRdpResolutionPresetItem(string width, string height)
+    {
+        return new RdpResolutionPresetItemViewModel(
+            width,
+            height,
+            () => _localizer["SettingsRdpResolutionPresetInvalid"]);
+    }
+
+    private void ReplaceRdpResolutionPresetItems(IEnumerable<string> presets)
+    {
+        RdpResolutionPresetItems.CollectionChanged -= OnRdpResolutionPresetItemsCollectionChanged;
+        foreach (var item in RdpResolutionPresetItems)
+        {
+            item.PropertyChanged -= OnRdpResolutionPresetItemPropertyChanged;
+        }
+
+        _syncingRdpResolutionPresets = true;
+        try
+        {
+            RdpResolutionPresetItems.Clear();
+            foreach (var preset in presets)
+            {
+                var item = RdpResolutionPresetItemViewModel.FromPreset(
+                    preset,
+                    () => _localizer["SettingsRdpResolutionPresetInvalid"]);
+                item.PropertyChanged += OnRdpResolutionPresetItemPropertyChanged;
+                RdpResolutionPresetItems.Add(item);
+            }
+        }
+        finally
+        {
+            _syncingRdpResolutionPresets = false;
+            RdpResolutionPresetItems.CollectionChanged += OnRdpResolutionPresetItemsCollectionChanged;
+        }
+
+        OnPropertyChanged(nameof(RdpResolutionPresetsText));
+        RefreshValidationSummary();
+    }
+
+    private void OnRdpResolutionPresetItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (RdpResolutionPresetItemViewModel item in e.OldItems)
+            {
+                item.PropertyChanged -= OnRdpResolutionPresetItemPropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (RdpResolutionPresetItemViewModel item in e.NewItems)
+            {
+                item.PropertyChanged += OnRdpResolutionPresetItemPropertyChanged;
+            }
+        }
+
+        SyncRdpResolutionPresetsFromItems();
+    }
+
+    private void OnRdpResolutionPresetItemPropertyChanged(
+        object? sender,
+        System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(RdpResolutionPresetItemViewModel.Width)
+            or nameof(RdpResolutionPresetItemViewModel.Height)
+            or nameof(RdpResolutionPresetItemViewModel.IsValid)
+            or nameof(RdpResolutionPresetItemViewModel.Error))
+        {
+            SyncRdpResolutionPresetsFromItems();
+        }
+    }
+
+    private void SyncRdpResolutionPresetsFromItems()
+    {
+        if (_syncingRdpResolutionPresets)
+        {
+            return;
+        }
+
+        var presets = RdpResolutionPresetItems
+            .Select(item => item.ToPresetString())
+            .Where(preset => !string.IsNullOrWhiteSpace(preset))
+            .Select(preset => preset!)
+            .ToArray();
+
+        _syncingRdpResolutionPresets = true;
+        try
+        {
+            if (!presets.SequenceEqual(RdpResolutionPresets))
+            {
+                RdpResolutionPresets = presets;
+            }
+        }
+        finally
+        {
+            _syncingRdpResolutionPresets = false;
+        }
+
+        OnPropertyChanged(nameof(RdpResolutionPresetsText));
+        RefreshValidationSummary();
+    }
+
+    private string? GetFirstRdpResolutionPresetError()
+    {
+        return RdpResolutionPresetItems.FirstOrDefault(item => !item.IsValid)?.Error;
     }
 
     // --- Security ---
@@ -415,6 +555,7 @@ public partial class SettingsViewModel : ObservableValidator
         _dialogService = dialogService;
         _profileImportService = profileImportService;
         TrustedHostKeys = trustedHostKeys;
+        RdpResolutionPresetItems.CollectionChanged += OnRdpResolutionPresetItemsCollectionChanged;
     }
 
     public TrustedHostKeysSettingsViewModel TrustedHostKeys { get; }
@@ -564,6 +705,8 @@ public partial class SettingsViewModel : ObservableValidator
         RdpDefaultAudioMode = settings.RdpDefaultAudioMode;
         RdpResolutionPresets = settings.RdpResolutionPresets ?? [];
         RdpDialogAdvancedDefault = settings.RdpDialogAdvancedDefault;
+        RdpAutoReconnectMaxAttempts = settings.RdpAutoReconnectMaxAttempts;
+        RdpKeepAliveIntervalMs = settings.RdpKeepAliveIntervalMs;
 
         // Security
         UseExternalCredentialProvider = settings.UseExternalCredentialProvider;
@@ -634,8 +777,11 @@ public partial class SettingsViewModel : ObservableValidator
         ValidateAllProperties();
         RefreshValidationSummary();
 
-        if (HasErrors)
+        var presetError = GetFirstRdpResolutionPresetError();
+        if (HasErrors || presetError is not null)
         {
+            ValidationSummary ??= presetError;
+            HasValidationErrors = true;
             return;
         }
 
@@ -707,6 +853,8 @@ public partial class SettingsViewModel : ObservableValidator
         settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
         settings.RdpResolutionPresets = RdpResolutionPresets;
         settings.RdpDialogAdvancedDefault = RdpDialogAdvancedDefault;
+        settings.RdpAutoReconnectMaxAttempts = RdpAutoReconnectMaxAttempts;
+        settings.RdpKeepAliveIntervalMs = RdpKeepAliveIntervalMs;
 
         // Security
         settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
@@ -848,6 +996,13 @@ public partial class SettingsViewModel : ObservableValidator
         RdpDefaultBitmapCaching = defaults.RdpDefaultBitmapCaching;
         RdpDefaultCompression = defaults.RdpDefaultCompression;
         RdpDefaultAudioMode = defaults.RdpDefaultAudioMode;
+        RdpResolutionPresets = defaults.RdpResolutionPresets ?? [.. DefaultRdpResolutionPresets];
+        RdpDialogAdvancedDefault = defaults.RdpDialogAdvancedDefault;
+        RdpResizeEnableDelayMs = defaults.RdpResizeEnableDelayMs;
+        RdpArtifactCleanupDelayMs = defaults.RdpArtifactCleanupDelayMs;
+        RdpCredentialAutofillTimeoutMs = defaults.RdpCredentialAutofillTimeoutMs;
+        RdpAutoReconnectMaxAttempts = defaults.RdpAutoReconnectMaxAttempts;
+        RdpKeepAliveIntervalMs = defaults.RdpKeepAliveIntervalMs;
     }
 
     [RelayCommand]
@@ -1456,6 +1611,8 @@ public partial class SettingsViewModel : ObservableValidator
         ["Tunnel establishment delay must be between 0 and 30000 ms."] = "ValidationSettingsTunnelDelay",
         ["Embedded RDP timeout must be between 1000 and 120000 ms."] = "ValidationSettingsRdpTimeout",
         ["External tool timeout must be between 5000 and 600000 ms."] = "ValidationSettingsExtToolTimeout",
+        ["RDP auto-reconnect attempts must be between 1 and 60."] = "ValidationSettingsRdpReconnectAttempts",
+        ["RDP keep-alive interval must be between 5000 and 300000 ms."] = "ValidationSettingsRdpKeepAlive",
     };
 
     private string? GetLocalizedFieldError(string propertyName)
@@ -1482,7 +1639,10 @@ public partial class SettingsViewModel : ObservableValidator
             ?? GetLocalizedFieldError(nameof(SshTmoutResetInterval))
             ?? GetLocalizedFieldError(nameof(TunnelEstablishmentDelayMs))
             ?? GetLocalizedFieldError(nameof(EmbeddedRdpTimeoutMs))
-            ?? GetLocalizedFieldError(nameof(ExternalToolTimeoutMs));
+            ?? GetLocalizedFieldError(nameof(ExternalToolTimeoutMs))
+            ?? GetLocalizedFieldError(nameof(RdpAutoReconnectMaxAttempts))
+            ?? GetLocalizedFieldError(nameof(RdpKeepAliveIntervalMs))
+            ?? GetFirstRdpResolutionPresetError();
 
         ValidationSummary = firstError;
         HasValidationErrors = firstError is not null;

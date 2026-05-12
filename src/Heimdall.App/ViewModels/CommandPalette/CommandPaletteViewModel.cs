@@ -410,9 +410,13 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
                 rdpView.SetOwningPane(tab.PrimaryPane);
             }
 
-            tab.Status = _localizer["StatusConnected"];
-            _main.StatusText = _localizer.Format("StatusConnected",
-                !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
+            tab.Status = result.Session is ExternalRdpSessionResult externalRdp
+                ? externalRdp.Session.Status
+                : _localizer["StatusConnected"];
+            _main.StatusText = result.Session is ExternalRdpSessionResult
+                ? _localizer["StatusLaunchedExternalClient"]
+                : _localizer.Format("StatusConnected",
+                    !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
         }
         else if (result.Success)
         {

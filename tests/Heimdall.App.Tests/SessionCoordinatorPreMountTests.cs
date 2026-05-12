@@ -105,6 +105,52 @@ public sealed class SessionCoordinatorPreMountTests
     }
 
     [Fact]
+    public async Task RunConnectionPipelineAsync_RdpExternalProfileCreatesLightweightTab()
+    {
+        using var harness = TestHarness.Create();
+        var rdpHandler = harness.GetHandler("RDP");
+        var server = harness.CreateServer("RDP");
+        server.RdpMode = "External";
+        rdpHandler.Result.SetResult(new ConnectionResult(true, null, null));
+
+        var outcome = await harness.RunPipelineAsync(
+            server,
+            "session-rdp-profile-external").WaitAsync(TestTimeout);
+
+        Assert.Equal(BulkConnectOutcomeStatus.Success, outcome.Status);
+        var tab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(RdpModeOverride.UseProfile, tab.RdpModeOverride);
+        Assert.Equal("External client launched", tab.Status);
+    }
+
+    [Fact]
+    public async Task RunConnectionPipelineAsync_TrackedExternalRdpSessionUsesSessionStatus()
+    {
+        using var harness = TestHarness.Create();
+        var rdpHandler = harness.GetHandler("RDP");
+        var server = harness.CreateServer("RDP");
+        var external = new ExternalRdpSessionModel(
+            "Demo RDP",
+            "rdp.example.com:3389",
+            42,
+            ExternalRdpSessionState.AutofillSearching,
+            "Credential autofill is waiting for the Windows prompt.");
+        rdpHandler.Result.SetResult(new ConnectionResult(
+            true,
+            null,
+            new ExternalRdpSessionResult(server, external)));
+
+        var outcome = await harness.RunPipelineAsync(
+            server,
+            "session-rdp-tracked-external").WaitAsync(TestTimeout);
+
+        Assert.Equal(BulkConnectOutcomeStatus.Success, outcome.Status);
+        var tab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        Assert.Equal("Credential autofill is waiting for the Windows prompt.", tab.Status);
+        Assert.Equal(1, harness.EmbeddedSessionManager.CreateHostControlCalls);
+    }
+
+    [Fact]
     public async Task RunConnectionPipelineAsync_SshFailure_RemovesPlaceholderTab()
     {
         using var harness = TestHarness.Create();

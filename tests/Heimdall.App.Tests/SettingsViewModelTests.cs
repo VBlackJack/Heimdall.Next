@@ -93,6 +93,8 @@ public sealed class SettingsViewModelTests
         viewModel.RdpResizeEnableDelayMs = 5000;
         viewModel.RdpArtifactCleanupDelayMs = 7000;
         viewModel.RdpCredentialAutofillTimeoutMs = 60000;
+        viewModel.RdpAutoReconnectMaxAttempts = 12;
+        viewModel.RdpKeepAliveIntervalMs = 45000;
 
         await viewModel.SaveCommand.ExecuteAsync(null);
 
@@ -101,6 +103,8 @@ public sealed class SettingsViewModelTests
         Assert.Equal(5000, saved.RdpResizeEnableDelayMs);
         Assert.Equal(7000, saved.RdpArtifactCleanupDelayMs);
         Assert.Equal(60000, saved.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(12, saved.RdpAutoReconnectMaxAttempts);
+        Assert.Equal(45000, saved.RdpKeepAliveIntervalMs);
 
         var reloaded = CreateViewModel(new FakeConfigManager());
         reloaded.LoadFromSettings(saved);
@@ -109,6 +113,27 @@ public sealed class SettingsViewModelTests
         Assert.Equal(5000, reloaded.RdpResizeEnableDelayMs);
         Assert.Equal(7000, reloaded.RdpArtifactCleanupDelayMs);
         Assert.Equal(60000, reloaded.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(12, reloaded.RdpAutoReconnectMaxAttempts);
+        Assert.Equal(45000, reloaded.RdpKeepAliveIntervalMs);
+        Assert.Equal(2, reloaded.RdpResolutionPresetItems.Count);
+        Assert.All(reloaded.RdpResolutionPresetItems, item => Assert.True(item.IsValid));
+    }
+
+    [Fact]
+    public async Task SaveAsync_InvalidResolutionPresetStaysVisibleAndBlocksSave()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.RdpResolutionPresetsText = "2560x1440\r\nbad";
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Null(config.SavedSettings);
+        Assert.Equal(2, viewModel.RdpResolutionPresetItems.Count);
+        Assert.False(viewModel.RdpResolutionPresetItems[1].IsValid);
+        Assert.NotNull(viewModel.RdpResolutionPresetItems[1].Error);
+        Assert.Equal(new[] { "2560x1440" }, viewModel.RdpResolutionPresets);
+        Assert.True(viewModel.HasValidationErrors);
     }
 
     [Fact]
@@ -276,6 +301,13 @@ public sealed class SettingsViewModelTests
         Assert.False(viewModel.RdpDefaultNla);
         Assert.False(viewModel.RdpDefaultRedirectClipboard);
         Assert.False(viewModel.RdpDefaultAutoReconnect);
+        Assert.Equal(["800x600"], viewModel.RdpResolutionPresets);
+        Assert.True(viewModel.RdpDialogAdvancedDefault);
+        Assert.Equal(1234, viewModel.RdpResizeEnableDelayMs);
+        Assert.Equal(2345, viewModel.RdpArtifactCleanupDelayMs);
+        Assert.Equal(3456, viewModel.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(3, viewModel.RdpAutoReconnectMaxAttempts);
+        Assert.Equal(10000, viewModel.RdpKeepAliveIntervalMs);
     }
 
     [Fact]
@@ -408,6 +440,13 @@ public sealed class SettingsViewModelTests
         viewModel.RdpDefaultBitmapCaching = false;
         viewModel.RdpDefaultCompression = false;
         viewModel.RdpDefaultAudioMode = 2;
+        viewModel.RdpResolutionPresets = ["800x600"];
+        viewModel.RdpDialogAdvancedDefault = true;
+        viewModel.RdpResizeEnableDelayMs = 1234;
+        viewModel.RdpArtifactCleanupDelayMs = 2345;
+        viewModel.RdpCredentialAutofillTimeoutMs = 3456;
+        viewModel.RdpAutoReconnectMaxAttempts = 3;
+        viewModel.RdpKeepAliveIntervalMs = 10000;
     }
 
     private static void AssertRdpDefaultsMatch(SettingsViewModel viewModel, AppSettings expected)
@@ -431,6 +470,13 @@ public sealed class SettingsViewModelTests
         Assert.Equal(expected.RdpDefaultBitmapCaching, viewModel.RdpDefaultBitmapCaching);
         Assert.Equal(expected.RdpDefaultCompression, viewModel.RdpDefaultCompression);
         Assert.Equal(expected.RdpDefaultAudioMode, viewModel.RdpDefaultAudioMode);
+        Assert.Equal(expected.RdpResolutionPresets, viewModel.RdpResolutionPresets);
+        Assert.Equal(expected.RdpDialogAdvancedDefault, viewModel.RdpDialogAdvancedDefault);
+        Assert.Equal(expected.RdpResizeEnableDelayMs, viewModel.RdpResizeEnableDelayMs);
+        Assert.Equal(expected.RdpArtifactCleanupDelayMs, viewModel.RdpArtifactCleanupDelayMs);
+        Assert.Equal(expected.RdpCredentialAutofillTimeoutMs, viewModel.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(expected.RdpAutoReconnectMaxAttempts, viewModel.RdpAutoReconnectMaxAttempts);
+        Assert.Equal(expected.RdpKeepAliveIntervalMs, viewModel.RdpKeepAliveIntervalMs);
     }
 
     private sealed class FakeConfigManager : IConfigManager

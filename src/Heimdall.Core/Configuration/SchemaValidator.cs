@@ -107,6 +107,10 @@ public static partial class SchemaValidator
             nameof(settings.RdpArtifactCleanupDelayMs));
         ValidateRdpResizeDelay(errors, settings.RdpResizeEnableDelayMs,
             nameof(settings.RdpResizeEnableDelayMs));
+        ValidateRange(errors, settings.RdpAutoReconnectMaxAttempts, 1, 60,
+            nameof(settings.RdpAutoReconnectMaxAttempts));
+        ValidateRange(errors, settings.RdpKeepAliveIntervalMs, 5000, 300000,
+            nameof(settings.RdpKeepAliveIntervalMs));
         ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
             nameof(settings.SshKeepAliveIntervalSeconds));
         ValidateRange(errors, settings.SshAutoReconnectAttempts, 1, 10,

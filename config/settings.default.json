@@ -18,6 +18,8 @@
     "rdpCredentialAutofillTimeoutMs": 90000,
     "rdpArtifactCleanupDelayMs": 10000,
     "rdpResizeEnableDelayMs": 10000,
+    "rdpAutoReconnectMaxAttempts": 20,
+    "rdpKeepAliveIntervalMs": 60000,
     "sshKeepAliveIntervalSeconds": 30,
     "plinkPortCheckIntervalMs": 2000,
     "plinkKillGracePeriodMs": 2000,

@@ -930,6 +930,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(RdpFixedWidthError),
         nameof(RdpFixedHeightError),
         nameof(RdpResizeEnableDelayMsError),
+        nameof(RdpGatewayError),
         nameof(TunnelingTabErrorCount),
         nameof(OptionsTabErrorCount),
         nameof(FirstInvalidField),
@@ -989,6 +990,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _rdpResizeEnableDelayMsError;
 
+    [ObservableProperty]
+    private string? _rdpGatewayError;
+
     // Tab error counts for badge display
     [ObservableProperty]
     private int _tunnelingTabErrorCount;
@@ -1038,6 +1042,12 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool ShowRdpSelectedMonitors =>
         ShowRdpMultimonNote && IsMultimonAvailable;
+
+    public bool HasRdpGateway => IsRdpConnection && !string.IsNullOrWhiteSpace(RdpGateway);
+
+    public bool CanChooseEmbeddedRdpMode => !HasRdpGateway;
+
+    public string RdpGatewayExternalModeMessage => L("RdpGatewayRequiresExternalMode");
 
     public string RdpResizeEnableDelayPlaceholder =>
         string.Format(
@@ -1192,6 +1202,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         RdpFixedWidthError = null;
         RdpFixedHeightError = null;
         RdpResizeEnableDelayMsError = null;
+        RdpGatewayError = null;
         TunnelingTabErrorCount = 0;
         OptionsTabErrorCount = 0;
         FirstInvalidField = null;
@@ -1202,13 +1213,15 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
             ?? LocalPortError ?? AudioModeError ?? ColorDepthError
-            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError;
+            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError
+            ?? RdpGatewayError;
         TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
         OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0)
             + (ColorDepthError is not null ? 1 : 0)
             + (RdpFixedWidthError is not null ? 1 : 0)
             + (RdpFixedHeightError is not null ? 1 : 0)
-            + (RdpResizeEnableDelayMsError is not null ? 1 : 0);
+            + (RdpResizeEnableDelayMsError is not null ? 1 : 0)
+            + (RdpGatewayError is not null ? 1 : 0);
     }
 
     [RelayCommand]
@@ -1233,6 +1246,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             ClearErrors(nameof(RdpFixedWidth));
             ClearErrors(nameof(RdpFixedHeight));
             ClearErrors(nameof(RdpResizeEnableDelayMs));
+            RdpGatewayError = null;
         }
         if (!ShowRdpFixedResolutionFields)
         {
@@ -1265,6 +1279,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         RdpResizeEnableDelayMsError = ShowRdpResizeEnableDelay
             ? GetLocalizedFieldError(nameof(RdpResizeEnableDelayMs))
             : null;
+        RdpGatewayError = IsRdpConnection ? ValidateRdpGatewayValue() : null;
 
         // Tab error counts
         TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
@@ -1272,7 +1287,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             + (ColorDepthError is not null ? 1 : 0)
             + (RdpFixedWidthError is not null ? 1 : 0)
             + (RdpFixedHeightError is not null ? 1 : 0)
-            + (RdpResizeEnableDelayMsError is not null ? 1 : 0);
+            + (RdpResizeEnableDelayMsError is not null ? 1 : 0)
+            + (RdpGatewayError is not null ? 1 : 0);
 
         // First invalid field for auto-focus
         FirstInvalidField = DisplayNameError is not null ? nameof(DisplayName)
@@ -1284,12 +1300,39 @@ public partial class ServerDialogViewModel : ObservableValidator
             : RdpFixedWidthError is not null ? nameof(RdpFixedWidth)
             : RdpFixedHeightError is not null ? nameof(RdpFixedHeight)
             : RdpResizeEnableDelayMsError is not null ? nameof(RdpResizeEnableDelayMs)
+            : RdpGatewayError is not null ? nameof(RdpGateway)
             : null;
 
         // Aggregate summary
         ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
             ?? LocalPortError ?? AudioModeError ?? ColorDepthError
-            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError;
+            ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError
+            ?? RdpGatewayError;
+    }
+
+    partial void OnRdpModeChanged(string value)
+    {
+        if (HasRdpGateway && string.Equals(value, "Embedded", StringComparison.OrdinalIgnoreCase))
+        {
+            RdpMode = "External";
+            return;
+        }
+
+        OnPropertyChanged(nameof(CanChooseEmbeddedRdpMode));
+    }
+
+    partial void OnRdpGatewayChanged(string value)
+    {
+        if (HasRdpGateway && string.Equals(RdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
+        {
+            RdpMode = "External";
+        }
+
+        RdpGatewayError = IsRdpConnection ? ValidateRdpGatewayValue() : null;
+        OnPropertyChanged(nameof(HasRdpGateway));
+        OnPropertyChanged(nameof(CanChooseEmbeddedRdpMode));
+        OnPropertyChanged(nameof(RdpGatewayExternalModeMessage));
+        RefreshValidationSummary();
     }
 
     partial void OnRdpPerformanceFlagsChanged(int value)
@@ -1525,6 +1568,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         var sshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath;
         var snappedRdpFixedWidth = RdpDisplayHelper.SnapToMultipleOf(RdpFixedWidth, 4);
+        var hasRdpGateway = !string.IsNullOrWhiteSpace(RdpGateway);
+        var effectiveRdpMode = hasRdpGateway ? "External" : RdpMode;
 
         return new ServerProfileDto
         {
@@ -1587,7 +1632,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(RdpPassword),
-            RdpMode = RdpMode,
+            RdpMode = effectiveRdpMode,
             RdpUseGlobalDefaults = RdpUseGlobalDefaults,
             RdpAntiIdle = RdpAntiIdle,
             RdpRedirectClipboard = RedirectClipboard,
@@ -1619,7 +1664,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpFullScreen = RdpFullScreen,
             RdpPerformanceFlags = ComposePerformanceFlags(),
             RdpDisableUdp = RdpDisableUdp,
-            RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
+            RdpGateway = hasRdpGateway ? RdpGateway.Trim() : null,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
             ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
@@ -1957,6 +2002,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsLocalConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
+        OnPropertyChanged(nameof(HasRdpGateway));
+        OnPropertyChanged(nameof(CanChooseEmbeddedRdpMode));
+        OnPropertyChanged(nameof(RdpGatewayExternalModeMessage));
         OnPropertyChanged(nameof(CanSelectGateway));
         OnPropertyChanged(nameof(GatewayComboHelpText));
         OnPropertyChanged(nameof(CanEditTunnelPort));
@@ -2014,6 +2062,18 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         return new System.ComponentModel.DataAnnotations.ValidationResult(
             "RDP resize delay must be inherited, zero, or between 1000 and 60000 ms.");
+    }
+
+    private string? ValidateRdpGatewayValue()
+    {
+        if (!IsRdpConnection || string.IsNullOrWhiteSpace(RdpGateway))
+        {
+            return null;
+        }
+
+        return Heimdall.Core.Security.InputValidator.Validate(RdpGateway.Trim(), "Address")
+            ? null
+            : L("ValidationRdpGatewayAddress");
     }
 
     private string? GetEndpointPortError()

@@ -225,6 +225,56 @@ public sealed class ServerDialogViewModelRdpOptionsTests
     }
 
     [Fact]
+    public void Rdp_gateway_forces_external_mode_on_save_and_load()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpMode = "Embedded",
+            RdpGateway = "rdgw.example.com"
+        };
+
+        Assert.True(vm.HasRdpGateway);
+        Assert.False(vm.CanChooseEmbeddedRdpMode);
+        Assert.Equal("External", vm.RdpMode);
+
+        var dto = vm.ToDto();
+
+        Assert.Equal("External", dto.RdpMode);
+        Assert.Equal("rdgw.example.com", dto.RdpGateway);
+
+        var roundTripped = ServerDialogViewModel.FromDto(new ServerProfileDto
+        {
+            ConnectionType = "RDP",
+            RdpMode = "Embedded",
+            RdpGateway = "rdgw.example.com"
+        });
+
+        Assert.Equal("External", roundTripped.RdpMode);
+        Assert.True(roundTripped.HasRdpGateway);
+    }
+
+    [Fact]
+    public void Rdp_gateway_validation_reports_invalid_host()
+    {
+        var vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpGateway = "bad host"
+        };
+
+        vm.ValidateCommand.Execute(null);
+
+        Assert.NotNull(vm.RdpGatewayError);
+        Assert.Equal(nameof(ServerDialogViewModel.RdpGateway), vm.FirstInvalidField);
+        Assert.Equal(1, vm.OptionsTabErrorCount);
+    }
+
+    [Fact]
     public void Rdp_multimon_monitor_choices_are_populated_from_enumerator()
     {
         var vm = new ServerDialogViewModel(new FakeMonitorEnumerator(

@@ -166,6 +166,7 @@ public sealed class RdpImportServiceTests
         Assert.Equal(24, candidate.RdpColorDepth);
         Assert.True(candidate.RdpNla);
         Assert.Equal("rdgw.example.com", candidate.RdpGateway);
+        Assert.Equal("External", candidate.RdpMode);
         Assert.Equal(2, candidate.RdpAudioMode);
     }
 

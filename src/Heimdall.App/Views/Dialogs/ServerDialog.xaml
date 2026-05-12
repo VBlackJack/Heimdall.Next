@@ -1598,6 +1598,23 @@
                                             <TextBlock x:Name="DlgSrv_RdpOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
                                             <TextBlock x:Name="DlgSrv_RdpOptionsDesc"
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <StackPanel Margin="0,16,0,0">
+                                                <TextBlock Text="{loc:Translate RdpGateway}"
+                                                           Style="{StaticResource LabelStyle}"
+                                                           Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding RdpGateway, UpdateSourceTrigger=PropertyChanged}"
+                                                         Tag="{loc:Translate RdpGatewayPlaceholder}"
+                                                         TabIndex="59"
+                                                         AutomationProperties.Name="{loc:Translate A11yServerRdpGateway}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <TextBlock Text="{Binding RdpGatewayError}"
+                                                           Style="{StaticResource FieldValidationErrorStyle}"
+                                                           Visibility="{Binding RdpGatewayError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                <TextBlock Text="{Binding RdpGatewayExternalModeMessage}"
+                                                           Style="{StaticResource DialogHintTextStyle}"
+                                                           Margin="0,6,0,0"
+                                                           Visibility="{Binding HasRdpGateway, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            </StackPanel>
                                             <StackPanel>
                                                 <StackPanel.Style>
                                                     <Style TargetType="StackPanel">
@@ -1628,7 +1645,12 @@
                                                               SelectedValue="{Binding RdpMode}"
                                                               SelectedValuePath="Tag"
                                                               Style="{StaticResource DialogFormComboBoxStyle}">
-                                                        <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded" Content="" Tag="Embedded"/>
+                                                        <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded"
+                                                                      Content=""
+                                                                      Tag="Embedded"
+                                                                      IsEnabled="{Binding CanChooseEmbeddedRdpMode}"
+                                                                      ToolTipService.ShowOnDisabled="True"
+                                                                      ToolTip="{loc:Translate RdpGatewayRequiresExternalMode}"/>
                                                         <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="" Tag="External"/>
                                                     </ComboBox>
                                                     <ComboBox Grid.Row="1" Grid.Column="1"
@@ -1723,6 +1745,8 @@
                                                                           SelectedValue="{Binding RdpResolutionMode}"
                                                                           SelectedValuePath="Tag"
                                                                           Style="{StaticResource DialogFormComboBoxStyle}">
+                                                                    <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeAutoTitle}"
+                                                                                  Tag="{x:Static config:RdpResolutionMode.Auto}"/>
                                                                     <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFitWindow}"
                                                                                   Tag="{x:Static config:RdpResolutionMode.FitWindow}"/>
                                                                     <ComboBoxItem Content="{loc:Translate ServerDialogResolutionModeFixed}"

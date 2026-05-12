@@ -67,7 +67,9 @@ public sealed class RdpHandlerTests
             RdpModeOverride.ForceExternal);
 
         Assert.True(result.Success);
-        Assert.Null(result.Session);
+        var session = Assert.IsType<ExternalRdpSessionResult>(result.Session);
+        Assert.Equal(ExternalRdpSessionState.Launched, session.Session.State);
+        Assert.DoesNotContain("password", session.Session.Status, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(1, launcher.LaunchCalls);
         Assert.False(string.IsNullOrWhiteSpace(launcher.LastRdpFilePath));
         Assert.Equal("Embedded", server.RdpMode);
@@ -88,6 +90,36 @@ public sealed class RdpHandlerTests
 
         Assert.Equal(expectedMode, actualMode);
         Assert.Equal(profileMode, server.RdpMode);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_RdpGatewayForcesExternalEvenWhenEmbeddedIsRequested()
+    {
+        var launcher = new TrackingRdpExternalClientLauncher
+        {
+            ProcessToReturn = new FakeLaunchedRdpClientProcess(4243)
+        };
+        var handler = CreateHandler(launcher);
+        var server = CreateServer("Embedded");
+        server.RdpGateway = "rdgw.example.com";
+        var settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        var result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceEmbedded);
+
+        Assert.True(result.Success);
+        Assert.IsType<ExternalRdpSessionResult>(result.Session);
+        Assert.Equal(1, launcher.LaunchCalls);
+        Assert.Equal("Embedded", server.RdpMode);
+        Assert.Equal("RdpGatewayRequiresExternalMode", result.Warning);
+        Assert.Equal("External", RdpHandler.ResolveEffectiveMode(server, RdpModeOverride.ForceEmbedded));
     }
 
     private static RdpHandler CreateHandler(IRdpExternalClientLauncher launcher) =>

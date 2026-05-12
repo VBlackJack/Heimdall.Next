@@ -41,6 +41,89 @@ public sealed record ConnectionResult(
 /// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
 public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : ISessionResult;
 
+/// <summary>
+/// State exposed by a lightweight tab that follows an externally launched RDP client.
+/// </summary>
+public enum ExternalRdpSessionState
+{
+    Launched = 0,
+    AutofillSearching,
+    AutofillFilled,
+    AutofillTimedOut,
+    AutofillFailed,
+    Closed
+}
+
+/// <summary>
+/// Observable, password-free status model for an external mstsc.exe launch.
+/// </summary>
+public sealed class ExternalRdpSessionModel
+{
+    private readonly object _syncRoot = new();
+    private ExternalRdpSessionState _state;
+    private string _status;
+
+    public ExternalRdpSessionModel(
+        string displayName,
+        string endpoint,
+        int processId,
+        ExternalRdpSessionState initialState,
+        string initialStatus)
+    {
+        DisplayName = displayName;
+        Endpoint = endpoint;
+        ProcessId = processId;
+        _state = initialState;
+        _status = initialStatus;
+    }
+
+    public string DisplayName { get; }
+
+    public string Endpoint { get; }
+
+    public int ProcessId { get; }
+
+    public ExternalRdpSessionState State
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _state;
+            }
+        }
+    }
+
+    public string Status
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _status;
+            }
+        }
+    }
+
+    public event EventHandler? StatusChanged;
+
+    public void UpdateState(ExternalRdpSessionState state, string status)
+    {
+        lock (_syncRoot)
+        {
+            _state = state;
+            _status = status;
+        }
+
+        StatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+/// <summary>Wraps a tracked external mstsc.exe launch for a lightweight session tab.</summary>
+public sealed record ExternalRdpSessionResult(
+    ServerProfileDto Server,
+    ExternalRdpSessionModel Session) : ISessionResult;
+
 /// <summary>Wraps an SSH.NET shell session.</summary>
 public sealed record SshSessionResult(SshShellSession Session) : ISessionResult;
 

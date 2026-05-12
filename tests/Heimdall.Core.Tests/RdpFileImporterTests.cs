@@ -92,6 +92,7 @@ public class RdpFileImporterTests
 
         Assert.NotNull(result);
         Assert.Equal("gw.example.com", result!.RdpGateway);
+        Assert.Equal("External", result.RdpMode);
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public class RdpFileImporterTests
 
         Assert.NotNull(result);
         Assert.Equal("RDP", result!.ConnectionType);
-        Assert.Equal("Embedded", result.RdpMode);
+        Assert.Equal("External", result.RdpMode);
         Assert.True(result.UseDirectConnection);
     }
 

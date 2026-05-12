@@ -120,6 +120,16 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         var sshKeepAliveInterval = settings?.SshTmoutResetIntervalSeconds ?? 240;
 
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase) &&
+            session is ExternalRdpSessionResult externalRdp)
+        {
+            var view = new ExternalRdpSessionView(externalRdp.Session);
+            sessionTab.Status = externalRdp.Session.Status;
+            externalRdp.Session.StatusChanged += (_, _) =>
+                UpdateExternalRdpTabStatus(sessionTab, externalRdp.Session);
+            return view;
+        }
+
+        if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase) &&
             session is RdpSessionResult rdp)
         {
             var view = new EmbeddedRdpView();
@@ -542,6 +552,20 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             TelnetUsername = server.TelnetUsername,
             TelnetPasswordEncrypted = server.TelnetPasswordEncrypted
         };
+
+    private static void UpdateExternalRdpTabStatus(
+        SessionTabViewModel sessionTab,
+        ExternalRdpSessionModel session)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            sessionTab.Status = session.Status;
+            return;
+        }
+
+        dispatcher.BeginInvoke(() => sessionTab.Status = session.Status);
+    }
 
     public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
     {

@@ -122,7 +122,10 @@ public static class RdpFileImporter
             dto.RdpMultiMonitor = multimon == "1";
 
         if (props.TryGetValue("gatewayhostname", out var gw) && !string.IsNullOrWhiteSpace(gw))
+        {
             dto.RdpGateway = gw;
+            dto.RdpMode = "External";
+        }
 
         return dto;
     }

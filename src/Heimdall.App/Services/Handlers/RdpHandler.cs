@@ -62,7 +62,7 @@ internal sealed class RdpHandler : IProtocolHandler
         ArgumentNullException.ThrowIfNull(settings);
 
         Core.Logging.FileLogger.Info(
-            $"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"}");
+            $"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"} RdGateway={server.RdpGateway ?? "none"}");
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
         var (tunnelOk, usesTunnel, targetHost, targetPort, tunnelError) =
@@ -82,6 +82,16 @@ internal sealed class RdpHandler : IProtocolHandler
 
         var rdpMode = ResolveEffectiveMode(server, rdpModeOverride);
         Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
+        var gatewayForcedExternal = HasRdpGateway(server)
+            && rdpModeOverride == RdpModeOverride.ForceEmbedded;
+        var gatewayOverrideWarning = gatewayForcedExternal
+            ? _localizer["RdpGatewayRequiresExternalMode"]
+            : null;
+        if (gatewayForcedExternal)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"RDP embedded override ignored for {server.DisplayName}: RD Gateway requires external mstsc.exe.");
+        }
 
         if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
         {
@@ -229,6 +239,12 @@ internal sealed class RdpHandler : IProtocolHandler
             }
 
             var mstscPid = mstscProcess.Id;
+            var externalSession = new ExternalRdpSessionModel(
+                server.DisplayName,
+                $"{rdpHost}:{rdpPort}",
+                mstscPid,
+                ExternalRdpSessionState.Launched,
+                _localizer["RdpExternalStatusLaunched"]);
             Core.Logging.FileLogger.Info(
                 $"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
 
@@ -250,6 +266,9 @@ internal sealed class RdpHandler : IProtocolHandler
 
                 Core.Logging.FileLogger.Info(
                     $"External mstsc.exe exited PID={mstscPid} ExitCode={exitCode} server={displayNameForExitClosure}");
+                externalSession.UpdateState(
+                    ExternalRdpSessionState.Closed,
+                    _localizer["RdpExternalStatusClosed"]);
 
                 try
                 {
@@ -282,6 +301,9 @@ internal sealed class RdpHandler : IProtocolHandler
                 {
                     try
                     {
+                        externalSession.UpdateState(
+                            ExternalRdpSessionState.AutofillSearching,
+                            _localizer["RdpExternalAutofillSearching"]);
                         var autofillTimeout = TimeSpan.FromMilliseconds(settings.RdpCredentialAutofillTimeoutMs);
                         var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
                                 mstscPid,
@@ -292,8 +314,17 @@ internal sealed class RdpHandler : IProtocolHandler
                             .ConfigureAwait(false);
                         if (!filled)
                         {
+                            externalSession.UpdateState(
+                                ExternalRdpSessionState.AutofillTimedOut,
+                                _localizer["RdpExternalAutofillTimedOut"]);
                             Core.Logging.FileLogger.Warn(
                                 $"External RDP CredUI autofill timed out for {server.DisplayName}");
+                        }
+                        else
+                        {
+                            externalSession.UpdateState(
+                                ExternalRdpSessionState.AutofillFilled,
+                                _localizer["RdpExternalAutofillFilled"]);
                         }
                     }
                     catch (OperationCanceledException)
@@ -301,6 +332,9 @@ internal sealed class RdpHandler : IProtocolHandler
                     }
                     catch (Exception ex)
                     {
+                        externalSession.UpdateState(
+                            ExternalRdpSessionState.AutofillFailed,
+                            _localizer["RdpExternalAutofillFailed"]);
                         Core.Logging.FileLogger.Warn($"External RDP CredUI autofill failed: {ex.Message}");
                     }
                 }, ct);
@@ -323,7 +357,11 @@ internal sealed class RdpHandler : IProtocolHandler
                 }
             }, CancellationToken.None);
 
-            return new ConnectionResult(true, null, null);
+            return new ConnectionResult(
+                true,
+                null,
+                new ExternalRdpSessionResult(server, externalSession),
+                Warning: gatewayOverrideWarning);
         }
         catch (Exception ex)
         {
@@ -351,10 +389,17 @@ internal sealed class RdpHandler : IProtocolHandler
 
         return rdpModeOverride switch
         {
+            _ when HasRdpGateway(server) => "External",
             RdpModeOverride.ForceEmbedded => "Embedded",
             RdpModeOverride.ForceExternal => "External",
             _ => server.RdpMode ?? "Embedded"
         };
+    }
+
+    internal static bool HasRdpGateway(ServerProfileDto server)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        return !string.IsNullOrWhiteSpace(server.RdpGateway);
     }
 
     /// <summary>

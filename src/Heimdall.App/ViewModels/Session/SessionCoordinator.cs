@@ -345,14 +345,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         {
             if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
             {
-                if (rdpModeOverride != RdpModeOverride.UseProfile)
-                {
-                    var externalTab = _main.Connection.AddSession(sessionId, displayName, connectionType);
-                    externalTab.OriginalServerId = originalServerId;
-                    externalTab.FailureDetails = null;
-                    ApplyRdpModeOverride(externalTab, connectionType, rdpModeOverride);
-                    externalTab.Status = _localizer["StatusLaunchedExternalClient"];
-                }
+                var externalTab = _main.Connection.AddSession(sessionId, displayName, connectionType);
+                externalTab.OriginalServerId = originalServerId;
+                externalTab.FailureDetails = null;
+                ApplyRdpModeOverride(externalTab, connectionType, rdpModeOverride);
+                externalTab.Status = _localizer["StatusLaunchedExternalClient"];
 
                 _main.StatusText = _localizer["StatusLaunchedExternalClient"];
             }
@@ -398,9 +395,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         {
             rdpView.SetOwningPane(tab.PrimaryPane);
         }
-        tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? _localizer["StatusConnectingProgress"]
-            : _localizer["StatusConnected"];
+        tab.Status = session is ExternalRdpSessionResult externalRdp
+            ? externalRdp.Session.Status
+            : string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+                ? _localizer["StatusConnectingProgress"]
+                : _localizer["StatusConnected"];
 
         CompleteReadySession(tab, sessionId, originalServerId, displayName, connectionType, session);
     }
@@ -417,9 +416,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         // (uses sessionId - correct for state machine lookup)
         tab.TunnelRoute = _main.Tunnels.ResolveRoute(sessionId);
 
-        _main.StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
-            : _localizer.Format("StatusConnected", displayName);
+        _main.StatusText = session is ExternalRdpSessionResult
+            ? _localizer["StatusLaunchedExternalClient"]
+            : string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+                ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
+                : _localizer.Format("StatusConnected", displayName);
 
         // Auto-open SFTP alongside SSH - use original server ID for inventory lookup
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)

@@ -52,6 +52,8 @@ public sealed class AppSettings
     public int RdpCredentialAutofillTimeoutMs { get; set; } = 90000;
     public int RdpArtifactCleanupDelayMs { get; set; } = 10000;
     public int RdpResizeEnableDelayMs { get; set; } = 10000;
+    public int RdpAutoReconnectMaxAttempts { get; set; } = 20;
+    public int RdpKeepAliveIntervalMs { get; set; } = 60000;
     public int SshKeepAliveIntervalSeconds { get; set; } = 30;
     public int PlinkPortCheckIntervalMs { get; set; } = 2000;
     public int PlinkKillGracePeriodMs { get; set; } = 2000;
