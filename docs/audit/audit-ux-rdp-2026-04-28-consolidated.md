@@ -3,8 +3,8 @@
 **Date:** 2026-04-28
 **Audit type:** UX (user experience), consolidated from a parallel double pass
 **Sources:**
-- `docs/audit/audit-ux-rdp-2026-04-28.md` (Cowork / Claude — 30 findings)
-- `docs/audit/audit-ux-rdp-codex-2026-04-28.md` (Codex CLI — 11 findings)
+- `../archive/2026/rdp-ux-audit/audit-ux-rdp-2026-04-28.md` (Cowork / Claude — 30 findings)
+- `../archive/2026/rdp-ux-audit/audit-ux-rdp-codex-2026-04-28.md` (Codex CLI — 11 findings)
 - Cross-referenced and severity-arbitrated by Julien Bombled.
 **Scope:** `src/Heimdall.Rdp/**`, `src/Heimdall.App/Services/Handlers/{RdpHandler,CitrixHandler,RdpSessionDiagnosticFactory}.cs`, `src/Heimdall.App/Views/{EmbeddedRdpView,EmbeddedCitrixView}.xaml(.cs)`, `src/Heimdall.App/Views/EmbeddedRdp/RdpHostDiagnosticFactory.cs`, `src/Heimdall.App/Views/Dialogs/{ServerDialog,RdpImportDialog}.xaml(.cs)`, `src/Heimdall.App/ViewModels/Dialogs/ServerDialogViewModel.cs`, `src/Heimdall.App/ViewModels/SettingsViewModel.cs`, `src/Heimdall.App/Services/SplitService.cs` (split path), `src/Heimdall.App/MainWindow.xaml` (RDP/Citrix/Settings tabs), `locales/en.json`, `locales/fr.json`.
 **Standards:** Nielsen 10 usability heuristics, internal `CLAUDE.md` RDP gotchas, prior SSH UX audit (`audit-ux-ssh-2026-04-25.md`) format reference.

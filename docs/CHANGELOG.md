@@ -64,7 +64,7 @@ Three findings shipped (1 P1, 2 P2); no P0. Build green, +3 tests.
 ## 2026-05-05 — SSH/SFTP/FTP security audit closure
 
 Pair-architect security cycle closing the consolidated SSH/SFTP audit plan
-(`audit-ssh-sftp-action-plan.md`). 15 items shipped across P0/P1/P2, with
+(`archive/2026/ssh-sftp-audit/audit-ssh-sftp-action-plan.md`). 15 items shipped across P0/P1/P2, with
 FTP coverage and cleartext-warning work closing the final deferred item.
 
 Security hardening:
@@ -124,10 +124,10 @@ FTP follow-up:
 
 Audit documents:
 
-- `audit-ssh-sftp-claude.md`
-- `audit-ssh-sftp-codex.md`
-- `audit-ssh-sftp-action-plan.md`
-- `prompts/01-*.md` through `prompts/12-*.md`
+- `archive/2026/ssh-sftp-audit/audit-ssh-sftp-claude.md`
+- `archive/2026/ssh-sftp-audit/audit-ssh-sftp-codex.md`
+- `archive/2026/ssh-sftp-audit/audit-ssh-sftp-action-plan.md`
+- `archive/2026/ssh-sftp-prompts/01-*.md` through `archive/2026/ssh-sftp-prompts/12-*.md`
 
 Documentation reorganization:
 
@@ -704,10 +704,10 @@ Baseline after the roadmap: **4,448 passing + 6 skipped** (`4,454` discovered), 
 - Version bump from 2026.042003 to 2026.042101 (`InformationalVersion`).
 - Consolidates batches 55.1, 58, and 59 (see entries below dated 2026-04-19).
 - Adds the remote-access audit package:
-  - `docs/audit-connection-sequences-2026-04-19.md`
-  - `docs/audit-gap-rdp-2026-04-19.md`
-  - `docs/audit-gap-ssh-terminal-sftp-2026-04-19.md`
-  - `docs/audit-roadmap-remote-access-2026-04-19.md`
+  - `archive/2026/audits/audit-connection-sequences-2026-04-19.md`
+  - `archive/2026/audits/audit-gap-rdp-2026-04-19.md`
+  - `archive/2026/audits/audit-gap-ssh-terminal-sftp-2026-04-19.md`
+  - `archive/2026/audits/audit-roadmap-remote-access-2026-04-19.md`
 - No new runtime feature in this release.
 
 ## 2026-04-19 — batch 55.1 — Remove legacy workspace path
