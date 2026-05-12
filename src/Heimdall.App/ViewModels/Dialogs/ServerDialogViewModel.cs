@@ -800,7 +800,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(1000, 30000, ErrorMessage = "RDP resize delay must be inherited or between 1000 and 30000 ms.")]
+    [CustomValidation(typeof(ServerDialogViewModel), nameof(ValidateRdpResizeEnableDelayMsValue))]
     private int? _rdpResizeEnableDelayMs;
 
     [ObservableProperty]
@@ -1995,10 +1995,26 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["Color depth must be between 8 and 32."] = "ValidationColorDepth",
         ["RDP fixed width must be between 200 and 7680."] = "ValidationRdpFixedWidthRange",
         ["RDP fixed height must be between 200 and 4320."] = "ValidationRdpFixedHeightRange",
-        ["RDP resize delay must be inherited or between 1000 and 30000 ms."] = "ValidationRdpResizeEnableDelayRange",
+        ["RDP resize delay must be inherited, zero, or between 1000 and 60000 ms."] = "ValidationRdpResizeEnableDelayRange",
         ["FTP port must be between 1 and 65535."] = "ValidationFtpPortRange",
         ["VNC port must be between 1 and 65535."] = "ValidationVncPortRange",
     };
+
+    public static System.ComponentModel.DataAnnotations.ValidationResult? ValidateRdpResizeEnableDelayMsValue(
+        int? value,
+        ValidationContext context)
+    {
+        _ = context;
+
+        // Zero explicitly disables the resize lockout; 1..999 is too short to be meaningful.
+        if (!value.HasValue || value.Value == 0 || value.Value is >= 1000 and <= 60000)
+        {
+            return System.ComponentModel.DataAnnotations.ValidationResult.Success;
+        }
+
+        return new System.ComponentModel.DataAnnotations.ValidationResult(
+            "RDP resize delay must be inherited, zero, or between 1000 and 60000 ms.");
+    }
 
     private string? GetEndpointPortError()
     {

@@ -303,6 +303,20 @@ public class ServerProfileDtoTests
     }
 
     [Fact]
+    public void RdpResizeEnableDelayMs_RoundTrip_ZeroPreservesValue()
+    {
+        var original = new ServerProfileDto
+        {
+            RdpResizeEnableDelayMs = 0
+        };
+
+        var json = JsonSerializer.Serialize(original);
+        var deserialized = JsonSerializer.Deserialize<ServerProfileDto>(json);
+
+        Assert.NotNull(deserialized);
+        Assert.Equal(0, deserialized.RdpResizeEnableDelayMs);
+    }
+    [Fact]
     public void JsonSerialization_UsesBackCompatibleFixedResolutionNames()
     {
         var dto = new ServerProfileDto

@@ -286,6 +286,33 @@ public class SchemaValidatorTests
         Assert.True(result.IsValid);
     }
 
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(999)]
+    [InlineData(60001)]
+    public void ValidateSettings_RdpResizeEnableDelayMs_OutOfRange_ReturnsError(int value)
+    {
+        var settings = new AppSettings { RdpResizeEnableDelayMs = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.RdpResizeEnableDelayMs)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1000)]
+    [InlineData(60000)]
+    public void ValidateSettings_RdpResizeEnableDelayMs_BoundaryValues_IsValid(int value)
+    {
+        var settings = new AppSettings { RdpResizeEnableDelayMs = value };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
     [Theory]
     [InlineData(0)]
     [InlineData(21)]
@@ -456,8 +483,9 @@ public class SchemaValidatorTests
 
     [Theory]
     [InlineData(null)]
+    [InlineData(0)]
     [InlineData(1000)]
-    [InlineData(30000)]
+    [InlineData(60000)]
     public void ValidateServer_RdpResizeEnableDelayAllowedRange_IsValid(int? delayMs)
     {
         var server = CreateValidServer();
@@ -469,9 +497,9 @@ public class SchemaValidatorTests
     }
 
     [Theory]
-    [InlineData(0)]
+    [InlineData(-1)]
     [InlineData(999)]
-    [InlineData(30001)]
+    [InlineData(60001)]
     public void ValidateServer_RdpResizeEnableDelayOutOfRange_ReturnsError(int delayMs)
     {
         var server = CreateValidServer();

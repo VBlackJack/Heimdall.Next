@@ -391,12 +391,17 @@ public sealed class ServerDialogViewModelRdpOptionsTests
 
         Assert.Null(vm.RdpResizeEnableDelayMsError);
 
-        vm.RdpResizeEnableDelayMs = 30000;
+        vm.RdpResizeEnableDelayMs = 0;
         vm.ValidateCommand.Execute(null);
 
         Assert.Null(vm.RdpResizeEnableDelayMsError);
 
-        vm.RdpResizeEnableDelayMs = 30001;
+        vm.RdpResizeEnableDelayMs = 60000;
+        vm.ValidateCommand.Execute(null);
+
+        Assert.Null(vm.RdpResizeEnableDelayMsError);
+
+        vm.RdpResizeEnableDelayMs = 60001;
         vm.ValidateCommand.Execute(null);
 
         Assert.NotNull(vm.RdpResizeEnableDelayMsError);

@@ -32,8 +32,9 @@ public static partial class SchemaValidator
     private const int MaxRdpFixedHeight = 4320;
     private const int MinColorDepth = 8;
     private const int MaxColorDepth = 32;
+    private const int DisabledRdpResizeDelayMs = 0;
     private const int MinRdpResizeDelayMs = 1000;
-    private const int MaxRdpResizeDelayMs = 30000;
+    private const int MaxRdpResizeDelayMs = 60000;
     private const int MaxEmbeddedSessionsLimit = 20;
     private const int MinAntiIdleInterval = 10;
     private const int MaxAntiIdleInterval = 600;
@@ -104,7 +105,7 @@ public static partial class SchemaValidator
             nameof(settings.RdpCredentialAutofillTimeoutMs));
         ValidateRange(errors, settings.RdpArtifactCleanupDelayMs, 1000, 60000,
             nameof(settings.RdpArtifactCleanupDelayMs));
-        ValidateRange(errors, settings.RdpResizeEnableDelayMs, 1000, 60000,
+        ValidateRdpResizeDelay(errors, settings.RdpResizeEnableDelayMs,
             nameof(settings.RdpResizeEnableDelayMs));
         ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
             nameof(settings.SshKeepAliveIntervalSeconds));
@@ -240,9 +241,20 @@ public static partial class SchemaValidator
 
         if (server.RdpResizeEnableDelayMs.HasValue)
         {
-            ValidateRange(errors, server.RdpResizeEnableDelayMs.Value,
-                MinRdpResizeDelayMs, MaxRdpResizeDelayMs, nameof(server.RdpResizeEnableDelayMs));
+            ValidateRdpResizeDelay(errors, server.RdpResizeEnableDelayMs.Value,
+                nameof(server.RdpResizeEnableDelayMs));
         }
+    }
+
+    private static void ValidateRdpResizeDelay(List<string> errors, int value, string fieldName)
+    {
+        // Zero explicitly disables the resize lockout; 1..999 ms is too short to be meaningful.
+        if (value == DisabledRdpResizeDelayMs)
+        {
+            return;
+        }
+
+        ValidateRange(errors, value, MinRdpResizeDelayMs, MaxRdpResizeDelayMs, fieldName);
     }
 
     /// <summary>
