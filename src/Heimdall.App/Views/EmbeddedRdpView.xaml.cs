@@ -119,6 +119,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private Core.Localization.LocalizationManager? _localizer;
     private int? _tunnelPort;
+    private string? _connectStatusOverrideKey;
     private RdpAutofillState _autofillState;
 
     private RdpConnectionPhase _connectionPhase = RdpConnectionPhase.None;
@@ -349,7 +350,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Core.Localization.LocalizationManager? localizer = null,
         int? tunnelPort = null,
         int resizeEnableDelayMs = 10000,
-        ConnectionStateMachine? connectionStateMachine = null)
+        ConnectionStateMachine? connectionStateMachine = null,
+        string? connectStatusOverrideKey = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -373,6 +375,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _tunnelPort = tunnelPort;
         _initialResizeEnableDelay = TimeSpan.FromMilliseconds(resizeEnableDelayMs);
         _connectionStateMachine = connectionStateMachine;
+        _connectStatusOverrideKey = connectStatusOverrideKey;
         if (_connectionStateMachine is not null)
         {
             _connectionStateMachine.StateChanged += OnConnectionStateChanged;
@@ -2334,6 +2337,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     {
         UpdateSessionStatus(RdpSessionStatus.Connecting);
         ApplyCurrentConnectionStateStatus();
+        ApplyConnectStatusOverride();
     }
 
     private void ApplyCurrentConnectionStateStatus()
@@ -2365,6 +2369,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
     }
 
+
+    private void ApplyConnectStatusOverride()
+    {
+        if (string.IsNullOrWhiteSpace(_connectStatusOverrideKey) || _comDrivenStatusActive)
+        {
+            return;
+        }
+
+        StatusTextBlock.Text = L(_connectStatusOverrideKey);
+        StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
+    }
     private string FormatConnectionStateStatus(string statusKey)
     {
         if (_localizer is null)
