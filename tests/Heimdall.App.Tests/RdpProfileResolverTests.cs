@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+using System.Drawing;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Rdp;
-using System.Drawing;
 
 namespace Heimdall.App.Tests;
 

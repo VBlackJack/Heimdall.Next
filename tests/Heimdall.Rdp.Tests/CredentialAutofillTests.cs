@@ -15,8 +15,8 @@
  */
 
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Heimdall.Core.Logging;
 using Heimdall.Rdp;
 
