@@ -38,10 +38,10 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Remote Desktop (RDP)
 - Embedded sessions via ActiveX MsTscAx in a tabbed interface
-- External sessions via mstsc.exe with credential autofill — the generated `.rdp` honors the per-server resolution profile (no silent fallback to the global defaults)
+- External sessions via mstsc.exe with credential autofill — the generated `.rdp` honors the per-server resolution profile, and Auto mode now matches embedded Auto with Smart Sizing, windowed launch, single-monitor mode, and primary working-area dimensions (`ae0dd70`)
 - **One-shot mode override**: right-click any RDP profile -> *Connect with...* to launch in embedded or external mode for a single session, leaving the saved profile untouched. Forced sessions show a discreet `(forced embedded/external)` tab-title suffix
 - Dynamic resolution resize with stabilization guard
-- Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon, with a per-profile **Selected monitors** picker in Multimon mode (empty selection = use all monitors, backward-compatible with existing profiles)
+- Per-server resolution profiles: Fit Window, Fixed, Smart Sizing, and Multimon, with a per-profile **Selected monitors** picker in Multimon mode (empty selection = use all monitors, backward-compatible with existing profiles) and connect-time topology validation that falls back to single-monitor mode when the host cannot honor the saved selection (`2e9b938`)
 - Fit Window mode scales the remote desktop to the host area with Smart Sizing enabled by default, eliminating native Win32 scrollbars on real Windows RDP targets; use Fixed mode for pixel-perfect native rendering
 - Automatic DPI scale tracking via `IMsRdpExtendedSettings` with `Window.DpiChanged` updates
 - **Mode-aware Resolution menu and toolbar button**: the menu starts with an `Active mode: <mode>` header (showing `Fixed (1920×1080)` when applicable) and the toolbar button glyph changes per mode (Auto / Fit / Smart / Fixed / Multimon)
@@ -53,7 +53,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - **Auto-collapsed redirection indicators**: by default the toolbar status zone hides redirections that are off and surfaces them through a discreet `+N` expand chip; opt-in `RdpRedirectionIndicatorsAlwaysExpanded` setting keeps the legacy "show all" behaviour
 - **SendKeys System shortcuts**: in addition to Ctrl+Alt+Del / Win / Alt+Tab / Ctrl+Esc / PrtSc / Esc, the SendKeys menu now includes `Win+L` (lock workstation), `Win+D` (show desktop) and `Win+E` (file explorer) for quick admin tasks
 - **Edit profile always reachable from the reconnect overlay**: every disconnect code (network, transient, security) keeps the `Edit profile` button visible so users can tweak resolution, gateway or multi-monitor without closing the overlay first
-- Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
+- Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation), with Debug broker-window diagnostics limited to metadata such as title, handle, PID, and process name; credential fields are never logged (`1d7c78c`)
 - **Honest external-launch state**: when an external mstsc client is spawned, the session shows up in warning color with a dedicated *External client launched* status, signalling that Heimdall cannot directly observe the remote session beyond the launch itself
 - **Unified RDP import**: `.rdp` files dragged onto the main window or imported from `Settings → Import` go through the same preview/conflict resolution flow
 - **Performance**: COM pre-warm at startup, DNS pre-resolution on server selection, per-server experience flags (wallpaper/themes/animations), TCP-only mode for firewall-heavy environments

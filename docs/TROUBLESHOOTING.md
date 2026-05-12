@@ -162,6 +162,8 @@ foreach (ProcessThread thread in Process.GetCurrentProcess().Threads)
 
 Also use UI Automation (`System.Windows.Automation`) for modern XAML-based CredUI dialogs, with Win32 `SendMessage`/`BM_CLICK` as fallback for classic dialogs.
 
+When autofill silently fails, enable Debug-level logging for `CredentialAutofill` and inspect the broker enumeration entry added in `1d7c78c`: candidate window titles, process names, and rejection reasons show why a prompt was rejected. These diagnostics include metadata only; credential fields and edit-field contents do not appear in the log.
+
 **Files**: `CredentialAutofill.cs` — `GetVisibleWindows()`, `InjectPassword()`
 
 ---
