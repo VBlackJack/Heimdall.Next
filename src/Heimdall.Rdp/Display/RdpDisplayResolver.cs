@@ -90,6 +90,31 @@ public static class RdpDisplayResolver
         };
     }
 
+
+    public static RdpMultimonValidation ValidateMultimon(
+        RdpDisplayCapabilities host,
+        RdpDisplaySettings requested)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(requested);
+
+        if (!requested.UseMultimon)
+        {
+            return new RdpMultimonValidation(false, MultimonFallbackReason.None, requested);
+        }
+
+        if (host.MonitorCount == 1)
+        {
+            return CreateMultimonFallback(requested, MultimonFallbackReason.SingleMonitorHost);
+        }
+
+        if (requested.SelectedMonitorIndices.Any(index => index >= host.MonitorCount))
+        {
+            return CreateMultimonFallback(requested, MultimonFallbackReason.InvalidMonitorIndex);
+        }
+
+        return new RdpMultimonValidation(false, MultimonFallbackReason.None, requested);
+    }
     private static EffectiveDisplayContext ResolveAuto(
         HostDisplayContext hostContext,
         IReadOnlyList<(int Width, int Height)> presets,
@@ -123,6 +148,20 @@ public static class RdpDisplayResolver
             floorWidthToDesktopMinimum: false);
     }
 
+
+    private static RdpMultimonValidation CreateMultimonFallback(
+        RdpDisplaySettings requested,
+        MultimonFallbackReason reason)
+    {
+        var coerced = requested with
+        {
+            ResolutionMode = RdpResolutionMode.FitWindow,
+            UseMultimon = false,
+            SelectedMonitorIndices = []
+        };
+
+        return new RdpMultimonValidation(true, reason, coerced);
+    }
     private static EffectiveDisplayContext Create(
         RdpResolutionMode configuredMode,
         RdpResolutionMode effectiveMode,

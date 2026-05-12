@@ -23,8 +23,10 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.StateMachine;
+using Heimdall.Rdp.Display;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
+using WinForms = System.Windows.Forms;
 
 namespace Heimdall.App.Services;
 
@@ -122,6 +124,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         {
             var view = new EmbeddedRdpView();
             var rdpSettings = settings ?? new AppSettings();
+            var (runtimeServer, multimonFallbackStatusKey) = ResolveEmbeddedRdpRuntimeServer(rdp.Server);
             var globalResizeDelay = settings?.RdpResizeEnableDelayMs ?? DefaultRdpResizeEnableDelayMs;
             if (globalResizeDelay < 0)
             {
@@ -129,16 +132,17 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                     $"EmbeddedSessionManager.RdpResizeEnableDelayMs invalid global value={globalResizeDelay}; fallback={DefaultRdpResizeEnableDelayMs}");
             }
 
-            var resizeDelay = ResolveRdpResizeEnableDelayMs(rdp.Server.RdpResizeEnableDelayMs, globalResizeDelay);
+            var resizeDelay = ResolveRdpResizeEnableDelayMs(runtimeServer.RdpResizeEnableDelayMs, globalResizeDelay);
             view.InitializeSession(
-                rdp.Server,
+                runtimeServer,
                 sessionTab,
                 rdpSettings,
                 antiIdleInterval,
                 _localizer,
                 rdp.TunnelPort,
                 resizeDelay,
-                _connectionSm);
+                _connectionSm,
+                multimonFallbackStatusKey);
             WireSplitRequested(view, sessionTab);
             view.ReconnectRequested += () =>
                 ReconnectRequestedCallback?.Invoke(
@@ -394,6 +398,150 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
 
         return globalValue >= 0 ? globalValue : DefaultRdpResizeEnableDelayMs;
     }
+
+    private static (ServerProfileDto Server, string? StatusKey) ResolveEmbeddedRdpRuntimeServer(ServerProfileDto server)
+    {
+        var requested = new RdpDisplaySettings(
+            server.RdpResolutionMode,
+            UseMultimon: server.RdpResolutionMode == RdpResolutionMode.Multimon,
+            SelectedMonitorIndices: server.RdpSelectedMonitorIndices);
+        var host = new RdpDisplayCapabilities(GetRdpHostMonitorCount());
+        var validation = RdpDisplayResolver.ValidateMultimon(host, requested);
+
+        if (!validation.ShouldFallback)
+        {
+            return (server, null);
+        }
+
+        Core.Logging.FileLogger.Warn(
+            "EmbeddedSessionManager.RdpMultimonFallback "
+            + $"reason={validation.Reason} requestedMode={requested.ResolutionMode} requestedUseMultimon={requested.UseMultimon} "
+            + $"selectedMonitors={FormatMonitorIndices(requested.SelectedMonitorIndices)} monitorCount={host.MonitorCount} "
+            + $"coercedMode={validation.CoercedSettings.ResolutionMode} coercedUseMultimon={validation.CoercedSettings.UseMultimon}");
+
+        var runtimeServer = CloneServerProfile(server);
+        runtimeServer.RdpResolutionMode = validation.CoercedSettings.ResolutionMode;
+        runtimeServer.RdpMultiMonitor = validation.CoercedSettings.UseMultimon;
+        runtimeServer.RdpSelectedMonitorIndices = [.. validation.CoercedSettings.SelectedMonitorIndices];
+
+        return (runtimeServer, ResolveMultimonFallbackStatusKey(validation.Reason));
+    }
+
+    private static int GetRdpHostMonitorCount()
+    {
+        try
+        {
+            return WinForms.Screen.AllScreens.Length;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"EmbeddedSessionManager.RdpMultimonFallback monitor enumeration failed: {ex.Message}");
+            return 0;
+        }
+    }
+
+    private static string FormatMonitorIndices(IReadOnlyList<int> indices)
+        => indices.Count == 0 ? "all" : string.Join(',', indices);
+
+    private static string? ResolveMultimonFallbackStatusKey(MultimonFallbackReason reason)
+        => reason switch
+        {
+            MultimonFallbackReason.SingleMonitorHost => "RdpMultimonFallbackSingleMonitor",
+            MultimonFallbackReason.InvalidMonitorIndex => "RdpMultimonFallbackInvalidSelection",
+            _ => null
+        };
+
+    private static ServerProfileDto CloneServerProfile(ServerProfileDto server)
+        => new()
+        {
+            Id = server.Id,
+            DisplayName = server.DisplayName,
+            Origin = server.Origin,
+            RemoteServer = server.RemoteServer,
+            RemotePort = server.RemotePort,
+            LocalPort = server.LocalPort,
+            Group = server.Group,
+            SshGatewayId = server.SshGatewayId,
+            RdpUsername = server.RdpUsername,
+            RdpPasswordEncrypted = server.RdpPasswordEncrypted,
+            UseDirectConnection = server.UseDirectConnection,
+            ProjectId = server.ProjectId,
+            ConnectionType = server.ConnectionType,
+            SshUsername = server.SshUsername,
+            SshPort = server.SshPort,
+            SshMode = server.SshMode,
+            SshAgentForwarding = server.SshAgentForwarding,
+            SshKeyPath = server.SshKeyPath,
+            SshPasswordEncrypted = server.SshPasswordEncrypted,
+            SshKeyPassphraseEncrypted = server.SshKeyPassphraseEncrypted,
+            SshCompression = server.SshCompression,
+            SshX11Forwarding = server.SshX11Forwarding,
+            SocksProxyPort = server.SocksProxyPort,
+            RemoteBindPort = server.RemoteBindPort,
+            RemoteLocalPort = server.RemoteLocalPort,
+            PostConnectSteps = [.. server.PostConnectSteps],
+            PostConnectCommand = server.PostConnectCommand,
+            PostConnectDelayMs = server.PostConnectDelayMs,
+            RdpAntiIdle = server.RdpAntiIdle,
+            RdpAspectRatio = server.RdpAspectRatio,
+            RdpResolutionMode = server.RdpResolutionMode,
+            RdpFixedWidth = server.RdpFixedWidth,
+            RdpFixedHeight = server.RdpFixedHeight,
+            RdpInitialSmartSizing = server.RdpInitialSmartSizing,
+            RdpResizeEnableDelayMs = server.RdpResizeEnableDelayMs,
+            TunnelsPanelExpanded = server.TunnelsPanelExpanded,
+            IsFavorite = server.IsFavorite,
+            SortOrder = server.SortOrder,
+            Tags = server.Tags,
+            RdpMode = server.RdpMode,
+            RdpUseGlobalDefaults = server.RdpUseGlobalDefaults,
+            RdpRedirectClipboard = server.RdpRedirectClipboard,
+            RdpRedirectDrives = server.RdpRedirectDrives,
+            RdpRedirectPrinters = server.RdpRedirectPrinters,
+            RdpRedirectComPorts = server.RdpRedirectComPorts,
+            RdpRedirectSmartCards = server.RdpRedirectSmartCards,
+            RdpRedirectWebcam = server.RdpRedirectWebcam,
+            RdpRedirectUsb = server.RdpRedirectUsb,
+            RdpAudioMode = server.RdpAudioMode,
+            RdpAudioCapture = server.RdpAudioCapture,
+            RdpMultiMonitor = server.RdpMultiMonitor,
+            RdpSelectedMonitorIndices = [.. server.RdpSelectedMonitorIndices],
+            RdpDynamicResolution = server.RdpDynamicResolution,
+            RdpNla = server.RdpNla,
+            RdpColorDepth = server.RdpColorDepth,
+            RdpBitmapCaching = server.RdpBitmapCaching,
+            RdpCompression = server.RdpCompression,
+            RdpAutoReconnect = server.RdpAutoReconnect,
+            RdpAdminMode = server.RdpAdminMode,
+            RdpFullScreen = server.RdpFullScreen,
+            RdpPerformanceFlags = server.RdpPerformanceFlags,
+            RdpDisableUdp = server.RdpDisableUdp,
+            RdpGateway = server.RdpGateway,
+            Environment = server.Environment,
+            MacAddress = server.MacAddress,
+            LocalShellExecutable = server.LocalShellExecutable,
+            LocalShellArguments = server.LocalShellArguments,
+            LocalShellWorkingDirectory = server.LocalShellWorkingDirectory,
+            LocalShellElevated = server.LocalShellElevated,
+            ElevationMode = server.ElevationMode,
+            CitrixStoreFrontUrl = server.CitrixStoreFrontUrl,
+            CitrixAppName = server.CitrixAppName,
+            CitrixIcaFilePath = server.CitrixIcaFilePath,
+            CitrixSeamlessMode = server.CitrixSeamlessMode,
+            CitrixUseSso = server.CitrixUseSso,
+            CitrixLaunchCommandLine = server.CitrixLaunchCommandLine,
+            FtpPort = server.FtpPort,
+            FtpUsername = server.FtpUsername,
+            FtpPasswordEncrypted = server.FtpPasswordEncrypted,
+            VncPort = server.VncPort,
+            VncPassword = server.VncPassword,
+            FtpPassiveMode = server.FtpPassiveMode,
+            FtpUseSsl = server.FtpUseSsl,
+            VncViewOnly = server.VncViewOnly,
+            TelnetPort = server.TelnetPort,
+            TelnetUsername = server.TelnetUsername,
+            TelnetPasswordEncrypted = server.TelnetPasswordEncrypted
+        };
 
     public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
     {

@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Configuration;
+
 namespace Heimdall.Rdp.Display;
 
-/// <summary>
-/// Current host display topology used for RDP display decisions.
-/// </summary>
-public sealed record RdpDisplayCapabilities(int MonitorCount)
+public enum MultimonFallbackReason
 {
-    /// <summary>
-    /// Multimon requires at least two attached screens.
-    /// </summary>
-    public static bool IsMultimonAvailable(int screenCount) => screenCount >= 2;
+    None = 0,
+    SingleMonitorHost,
+    InvalidMonitorIndex
 }
+
+public sealed record RdpDisplaySettings(
+    RdpResolutionMode ResolutionMode,
+    bool UseMultimon,
+    IReadOnlyList<int> SelectedMonitorIndices);
+
+public sealed record RdpMultimonValidation(
+    bool ShouldFallback,
+    MultimonFallbackReason Reason,
+    RdpDisplaySettings CoercedSettings);
