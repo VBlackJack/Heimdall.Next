@@ -34,6 +34,8 @@ namespace Heimdall.App.Services;
 /// </summary>
 public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
 {
+    internal const int DefaultRdpResizeEnableDelayMs = 10000;
+
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
     private readonly HostKeyStore _hostKeyStore;
@@ -120,7 +122,14 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         {
             var view = new EmbeddedRdpView();
             var rdpSettings = settings ?? new AppSettings();
-            var resizeDelay = rdpSettings.RdpResizeEnableDelayMs;
+            var globalResizeDelay = settings?.RdpResizeEnableDelayMs ?? DefaultRdpResizeEnableDelayMs;
+            if (globalResizeDelay < 0)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"EmbeddedSessionManager.RdpResizeEnableDelayMs invalid global value={globalResizeDelay}; fallback={DefaultRdpResizeEnableDelayMs}");
+            }
+
+            var resizeDelay = ResolveRdpResizeEnableDelayMs(rdp.Server.RdpResizeEnableDelayMs, globalResizeDelay);
             view.InitializeSession(
                 rdp.Server,
                 sessionTab,
@@ -374,6 +383,16 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
+    }
+
+    internal static int ResolveRdpResizeEnableDelayMs(int? profileValue, int globalValue)
+    {
+        if (profileValue.HasValue)
+        {
+            return Math.Max(0, profileValue.Value);
+        }
+
+        return globalValue >= 0 ? globalValue : DefaultRdpResizeEnableDelayMs;
     }
 
     public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
