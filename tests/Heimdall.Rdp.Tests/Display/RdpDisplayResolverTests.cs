@@ -263,6 +263,24 @@ public sealed class RdpDisplayResolverTests
         Assert.Equal(100, result.Height);
     }
 
+    [Theory]
+    [InlineData(1920, 1080, 1920, 1080)]
+    [InlineData(1366, 768, 1364, 768)]
+    [InlineData(1919, 1079, 1916, 1076)]
+    public void ResolveExternalAutoWindowedSize_SnapsWorkingAreaToMultipleOf4(
+        int width,
+        int height,
+        int expectedWidth,
+        int expectedHeight)
+    {
+        var result = RdpDisplayResolver.ResolveExternalAutoWindowedSize(
+            new Size(width, height),
+            new Size(1024, 768));
+
+        Assert.Equal(expectedWidth, result.Width);
+        Assert.Equal(expectedHeight, result.Height);
+    }
+
     private static EffectiveDisplayContext Resolve(
         RdpResolutionMode configuredMode,
         HostDisplayContext hostContext,

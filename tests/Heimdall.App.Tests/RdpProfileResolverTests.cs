@@ -16,6 +16,8 @@
 
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
+using Heimdall.Rdp;
+using System.Drawing;
 
 namespace Heimdall.App.Tests;
 
@@ -251,12 +253,12 @@ public sealed class RdpProfileResolverTests
     }
 
     [Fact]
-    public void ResolveResolution_Auto_UsesSettingsDefaults()
+    public void ResolveResolution_Auto_UsesPrimaryWorkingAreaSmartSizingAndSingleMonitor()
     {
         var server = new ServerProfileDto
         {
             RdpResolutionMode = RdpResolutionMode.Auto,
-            RdpMultiMonitor = false
+            RdpMultiMonitor = true
         };
         var settings = new AppSettings
         {
@@ -265,12 +267,62 @@ public sealed class RdpProfileResolverTests
             RdpDefaultMultiMonitor = true
         };
 
-        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+        var resolution = RdpProfileResolver.ResolveResolution(
+            server,
+            settings,
+            primaryWorkingArea: new Size(1366, 768));
 
-        Assert.Equal(1600, resolution.Width);
-        Assert.Equal(900, resolution.Height);
-        Assert.True(resolution.MultiMonitor);
-        Assert.False(resolution.SmartSizing);
+        Assert.Equal(1364, resolution.Width);
+        Assert.Equal(768, resolution.Height);
+        Assert.False(resolution.MultiMonitor);
+        Assert.True(resolution.SmartSizing);
+        Assert.Equal(RdpFileScreenMode.Windowed, resolution.ScreenMode);
+        Assert.True(resolution.EmitDisabledMultiMonitor);
+    }
+
+    [Fact]
+    public void GenerateExternalRdp_Auto_WritesEmbeddedParityDisplaySettings()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Auto,
+            RdpMultiMonitor = true,
+            RdpFullScreen = true
+        };
+        var settings = new AppSettings
+        {
+            RdpDefaultMultiMonitor = true
+        };
+
+        var content = GenerateExternalRdpContent(
+            server,
+            settings,
+            primaryWorkingArea: new Size(1366, 768));
+
+        Assert.Contains("desktopwidth:i:1364", content);
+        Assert.Contains("desktopheight:i:768", content);
+        Assert.Contains("smart sizing:i:1", content);
+        Assert.Contains("use multimon:i:0", content);
+        Assert.Contains("screen mode id:i:1", content);
+        Assert.DoesNotContain("use multimon:i:1", content);
+    }
+
+    [Fact]
+    public void GenerateExternalRdp_MultimonMode_WritesUseMultimon()
+    {
+        var server = new ServerProfileDto
+        {
+            RdpResolutionMode = RdpResolutionMode.Multimon,
+            RdpMultiMonitor = true
+        };
+
+        var content = GenerateExternalRdpContent(
+            server,
+            new AppSettings(),
+            availableMonitorCount: 2);
+
+        Assert.Contains("use multimon:i:1", content);
+        Assert.DoesNotContain("use multimon:i:0", content);
     }
 
     [Fact]
@@ -439,12 +491,15 @@ public sealed class RdpProfileResolverTests
             DefaultResolutionHeight = -1
         };
 
-        var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+        var resolution = RdpProfileResolver.ResolveResolution(
+            server,
+            settings,
+            primaryWorkingArea: Size.Empty);
 
         Assert.Equal(1920, resolution.Width);
         Assert.Equal(1080, resolution.Height);
         Assert.False(resolution.MultiMonitor);
-        Assert.False(resolution.SmartSizing);
+        Assert.True(resolution.SmartSizing);
     }
 
     [Fact]
@@ -494,5 +549,37 @@ public sealed class RdpProfileResolverTests
         Assert.Equal(asGlobal.BitmapCaching, asServer.BitmapCaching);
         Assert.Equal(asGlobal.Compression, asServer.Compression);
         Assert.Equal(asGlobal.AutoReconnect, asServer.AutoReconnect);
+    }
+
+    private static string GenerateExternalRdpContent(
+        ServerProfileDto server,
+        AppSettings settings,
+        int? availableMonitorCount = null,
+        Size? primaryWorkingArea = null)
+    {
+        var resolution = RdpProfileResolver.ResolveResolution(
+            server,
+            settings,
+            availableMonitorCount,
+            primaryWorkingArea);
+        var redirections = RdpProfileResolver.BuildRedirections(server, settings);
+        if (resolution.EmitDisabledMultiMonitor)
+        {
+            redirections.MultiMonitor = false;
+        }
+
+        return RdpFileGenerator.Generate(new RdpFileOptions
+        {
+            Host = "srv",
+            Width = resolution.Width,
+            Height = resolution.Height,
+            FullScreen = server.RdpFullScreen,
+            ScreenMode = resolution.ScreenMode,
+            MultiMonitor = resolution.MultiMonitor,
+            EmitDisabledMultiMonitor = resolution.EmitDisabledMultiMonitor,
+            SmartSizing = resolution.SmartSizing,
+            SelectedMonitorIndices = resolution.SelectedMonitorIndices,
+            Redirections = redirections
+        });
     }
 }

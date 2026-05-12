@@ -37,6 +37,10 @@ public static class RdpFileGenerator
         var sb = new StringBuilder();
         var useSmartSizing = options.SmartSizing;
         var useMultiMonitor = options.MultiMonitor || options.Redirections.MultiMonitor;
+        var screenMode = options.ScreenMode
+            ?? (options.FullScreen || useSmartSizing
+                ? RdpFileScreenMode.FullScreen
+                : RdpFileScreenMode.Windowed);
         var selectedMonitorIndices = options.SelectedMonitorIndices
             .Where(index => index >= 0)
             .Distinct()
@@ -57,7 +61,7 @@ public static class RdpFileGenerator
         // Display
         sb.AppendLine($"desktopwidth:i:{options.Width}");
         sb.AppendLine($"desktopheight:i:{options.Height}");
-        sb.AppendLine($"screen mode id:i:{(options.FullScreen || useSmartSizing ? 2 : 1)}");
+        sb.AppendLine($"screen mode id:i:{(int)screenMode}");
         sb.AppendLine($"session bpp:i:{options.ColorDepth}");
 
         // Admin mode
@@ -100,6 +104,10 @@ public static class RdpFileGenerator
             {
                 sb.AppendLine($"selectedmonitors:s:{string.Join(',', selectedMonitorIndices)}");
             }
+        }
+        else if (options.EmitDisabledMultiMonitor)
+        {
+            sb.AppendLine("use multimon:i:0");
         }
 
         // Dynamic resolution
@@ -197,6 +205,12 @@ public static class RdpFileGenerator
     private static int BoolToInt(bool value) => value ? 1 : 0;
 }
 
+public enum RdpFileScreenMode
+{
+    Windowed = 1,
+    FullScreen = 2
+}
+
 /// <summary>
 /// Options for generating an .rdp file.
 /// </summary>
@@ -226,8 +240,14 @@ public sealed class RdpFileOptions
     /// <summary>Whether to launch in full-screen mode.</summary>
     public bool FullScreen { get; init; }
 
+    /// <summary>Explicit screen mode override. Null preserves the legacy generator mapping.</summary>
+    public RdpFileScreenMode? ScreenMode { get; init; }
+
     /// <summary>Whether to request multi-monitor mode.</summary>
     public bool MultiMonitor { get; init; }
+
+    /// <summary>Whether to write use multimon:i:0 when multi-monitor is disabled.</summary>
+    public bool EmitDisabledMultiMonitor { get; init; }
 
     /// <summary>Selected local monitor indices for multi-monitor mode. Empty means all monitors.</summary>
     public int[] SelectedMonitorIndices { get; init; } = [];

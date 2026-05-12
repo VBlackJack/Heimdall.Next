@@ -90,7 +90,6 @@ public static class RdpDisplayResolver
         };
     }
 
-
     public static RdpMultimonValidation ValidateMultimon(
         RdpDisplayCapabilities host,
         RdpDisplaySettings requested)
@@ -115,6 +114,18 @@ public static class RdpDisplayResolver
 
         return new RdpMultimonValidation(false, MultimonFallbackReason.None, requested);
     }
+
+    public static Size ResolveExternalAutoWindowedSize(Size primaryWorkingArea, Size fallback)
+    {
+        var source = IsValidSize(primaryWorkingArea)
+            ? primaryWorkingArea
+            : fallback;
+
+        return new Size(
+            SnapDimension(source.Width),
+            SnapDimension(source.Height));
+    }
+
     private static EffectiveDisplayContext ResolveAuto(
         HostDisplayContext hostContext,
         IReadOnlyList<(int Width, int Height)> presets,
@@ -148,7 +159,6 @@ public static class RdpDisplayResolver
             floorWidthToDesktopMinimum: false);
     }
 
-
     private static RdpMultimonValidation CreateMultimonFallback(
         RdpDisplaySettings requested,
         MultimonFallbackReason reason)
@@ -162,6 +172,7 @@ public static class RdpDisplayResolver
 
         return new RdpMultimonValidation(true, reason, coerced);
     }
+
     private static EffectiveDisplayContext Create(
         RdpResolutionMode configuredMode,
         RdpResolutionMode effectiveMode,
@@ -250,6 +261,12 @@ public static class RdpDisplayResolver
     }
 
     private static bool IsValidSize(Size size) => size.Width > 0 && size.Height > 0;
+
+    private static int SnapDimension(int value)
+    {
+        var snapped = RdpDisplayHelper.SnapToMultipleOf(value, 4);
+        return snapped > 0 ? snapped : 4;
+    }
 
     private static int SnapWidth(int width, bool floorToDesktopMinimum)
     {

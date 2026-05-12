@@ -125,6 +125,12 @@ internal sealed class RdpHandler : IProtocolHandler
 
             var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
             var resolution = RdpProfileResolver.ResolveResolution(server, settings);
+            var redirections = RdpProfileResolver.BuildRedirections(server, settings);
+            if (resolution.EmitDisabledMultiMonitor)
+            {
+                redirections.MultiMonitor = false;
+            }
+
             var rdpContent = Heimdall.Rdp.RdpFileGenerator.Generate(new Heimdall.Rdp.RdpFileOptions
             {
                 Host = rdpHost,
@@ -134,12 +140,14 @@ internal sealed class RdpHandler : IProtocolHandler
                 Height = resolution.Height,
                 ColorDepth = RdpProfileResolver.ResolveColorDepth(server, settings),
                 FullScreen = server.RdpFullScreen,
+                ScreenMode = resolution.ScreenMode,
                 MultiMonitor = resolution.MultiMonitor,
+                EmitDisabledMultiMonitor = resolution.EmitDisabledMultiMonitor,
                 SmartSizing = resolution.SmartSizing,
                 SelectedMonitorIndices = resolution.SelectedMonitorIndices,
                 AdminMode = server.RdpAdminMode,
                 GatewayHostname = server.RdpGateway,
-                Redirections = RdpProfileResolver.BuildRedirections(server, settings)
+                Redirections = redirections
             });
 
             if (OperatingSystem.IsWindows())

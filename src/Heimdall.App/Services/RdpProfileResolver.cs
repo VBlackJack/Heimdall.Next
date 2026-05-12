@@ -18,6 +18,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
 using Heimdall.Rdp;
 using Heimdall.Rdp.Display;
+using DrawingSize = System.Drawing.Size;
 using WinForms = System.Windows.Forms;
 
 namespace Heimdall.App.Services;
@@ -30,7 +31,9 @@ public sealed record RdpResolvedResolution(
     int Height,
     bool MultiMonitor,
     bool SmartSizing,
-    int[] SelectedMonitorIndices);
+    int[] SelectedMonitorIndices,
+    RdpFileScreenMode? ScreenMode = null,
+    bool EmitDisabledMultiMonitor = false);
 
 /// <summary>
 /// Resolves connect-time RDP options from a server profile and the global settings.
@@ -125,7 +128,8 @@ internal static class RdpProfileResolver
     public static RdpResolvedResolution ResolveResolution(
         ServerProfileDto server,
         AppSettings settings,
-        int? availableMonitorCount = null)
+        int? availableMonitorCount = null,
+        DrawingSize? primaryWorkingArea = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
@@ -136,6 +140,22 @@ internal static class RdpProfileResolver
         var defaultHeight = settings.DefaultResolutionHeight > 0
             ? settings.DefaultResolutionHeight
             : FallbackHeight;
+
+        if (server.RdpResolutionMode == RdpResolutionMode.Auto)
+        {
+            var autoSize = RdpDisplayResolver.ResolveExternalAutoWindowedSize(
+                primaryWorkingArea ?? GetPrimaryWorkingArea(),
+                new DrawingSize(defaultWidth, defaultHeight));
+
+            return new RdpResolvedResolution(
+                autoSize.Width,
+                autoSize.Height,
+                MultiMonitor: false,
+                SmartSizing: true,
+                SelectedMonitorIndices: [],
+                ScreenMode: RdpFileScreenMode.Windowed,
+                EmitDisabledMultiMonitor: true);
+        }
 
         return server.RdpResolutionMode switch
         {
@@ -163,12 +183,6 @@ internal static class RdpProfileResolver
                 MultiMonitor: true,
                 SmartSizing: false,
                 SelectedMonitorIndices: ResolveSelectedMonitorIndices(server, availableMonitorCount)),
-            RdpResolutionMode.Auto => new RdpResolvedResolution(
-                defaultWidth,
-                defaultHeight,
-                ResolveAutoMultiMonitor(server, settings),
-                SmartSizing: false,
-                SelectedMonitorIndices: []),
             _ => new RdpResolvedResolution(
                 defaultWidth,
                 defaultHeight,
@@ -176,6 +190,14 @@ internal static class RdpProfileResolver
                 SmartSizing: false,
                 SelectedMonitorIndices: [])
         };
+    }
+
+    private static DrawingSize GetPrimaryWorkingArea()
+    {
+        var workArea = System.Windows.SystemParameters.WorkArea;
+        return new DrawingSize(
+            (int)Math.Round(workArea.Width, MidpointRounding.AwayFromZero),
+            (int)Math.Round(workArea.Height, MidpointRounding.AwayFromZero));
     }
 
     private static int[] ResolveSelectedMonitorIndices(
