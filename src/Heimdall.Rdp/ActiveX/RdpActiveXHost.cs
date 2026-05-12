@@ -252,7 +252,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         _pendingPassword = password;
         _pendingDomain = domain;
         Core.Logging.FileLogger.Info(
-            $"RdpActiveXHost.SetCredentials: user={username} domain={domain ?? string.Empty} hasPassword={!string.IsNullOrEmpty(password)} handleCreated={IsHandleCreated}");
+            $"RdpActiveXHost.SetCredentials: valuesReceived=True handleCreated={IsHandleCreated}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
