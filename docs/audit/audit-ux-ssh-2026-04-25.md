@@ -436,4 +436,4 @@ Pour éviter les passes UX qui « trouvent toujours plus » et pour respecter `r
 - **Heuristiques** : Nielsen Norman Group, 10 usability heuristics (1994).
 - **Source skill** : `C:\Users\User\AppData\Roaming\Claude\local-agent-mode-sessions\skills-plugin\…\skills\project-audit\references\ux.md`.
 - **Méthodologie** : un seul pass exhaustif sur 8 catégories Nielsen, lecture directe des sources (XAML + code-behind + ViewModel + locales JSON), zéro spéculation — chaque finding pointe vers un fichier et une ligne vérifiables.
-- **Audits SSH précédents dans `docs/`** : `audit-ux-ssh-2026-04-11.md`, `audit-gap-ssh-terminal-sftp-2026-04-19.md`. Le présent audit a été produit **sans les lire**, pour rester indépendant. Une comparaison croisée (« qu'avons-nous corrigé depuis 04-11 ? ») est un travail à part, pas couvert ici.
+- **Audits SSH précédents dans `docs/`** : `../archive/2026/audits/audit-ux-ssh-2026-04-11.md`, `../archive/2026/audits/audit-gap-ssh-terminal-sftp-2026-04-19.md`. Le présent audit a été produit **sans les lire**, pour rester indépendant. Une comparaison croisée (« qu'avons-nous corrigé depuis 04-11 ? ») est un travail à part, pas couvert ici.
