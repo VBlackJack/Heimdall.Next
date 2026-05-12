@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,185 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 4,460 automated tests (4,454 passing + 6 known skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,491 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 5,511 automated tests (5,505 passing + 6 known skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -174,6 +174,8 @@ Additional guards:
 
 For Embedded sessions, `RdpDisplayResolver` resolves `RdpResolutionMode.FitWindow` with `smartSizing: true` (`reason: explicit-fit-window-scaled`) so Fit Window scales to the host area instead of triggering MsTscAx non-client scrollbars. Fixed and Multimon keep non-smart rendering for pixel-perfect or multi-monitor scenarios.
 
+Auto mode has an explicit embedded/external contract. Embedded Auto is the reference: viewport-driven size with Smart Sizing enabled. External `.rdp` Auto mirrors that contract by writing Smart Sizing on, Multimon off, `screen mode id:i:1` (windowed), and deterministic primary working-area dimensions snapped to a multiple of 4 through `RdpDisplayHelper`; this keeps `RdpFileGenerator` as a writer while `RdpProfileResolver` owns policy (`ae0dd70`).
+
 **One-shot mode override**: `RdpModeOverride` enum (`UseProfile` / `ForceEmbedded` / `ForceExternal`) flows as an optional parameter through `IConnectionService.ConnectRdpAsync` -> `IProtocolHandler.ConnectAsync` -> `RdpHandler.ConnectAsync` -> `ResolveEffectiveMode`. The override never mutates `server.RdpMode`; it lives in the call stack only. Server context-menu entry *Connect with...* exposes `Connect (embedded)` and `Connect (external mstsc)` for RDP profiles only. When an override is active, the resulting session tab title appends a `(forced embedded)` / `(forced external)` suffix.
 
 **RD Gateway rule**: `ServerProfileDto.RdpGateway` is distinct from the SSH gateway tunnel chain. Embedded MsTscAx gateway support is intentionally not exposed yet; any non-empty `RdpGateway` forces the effective launch mode to External, including `ForceEmbedded` overrides and `.rdp` imports with `gatewayhostname`. The Server dialog disables Embedded mode and shows a localized explanation so gateway settings are not silently ignored.
@@ -185,6 +187,8 @@ For Embedded sessions, `RdpDisplayResolver` resolves `RdpResolutionMode.FitWindo
 - `IMonitorEnumerator` (impl `WinFormsMonitorEnumerator`) wraps `Screen.AllScreens` so the ServerDialog ViewModel can be unit-tested without an interactive display. Used by the per-profile *Selected monitors* picker introduced for `RdpResolutionMode.Multimon`.
 - `IRdpExternalClientLauncher` abstracts the mstsc spawn so the External handler is testable without launching a real process.
 - `RdpSelectedMonitorValidator` validates persisted monitor indices against the runtime monitor count and silently drops out-of-range entries (fallback to "all monitors" if the resulting list is empty).
+
+Connect-time Multimon topology validation lives in `RdpDisplayResolver.ValidateMultimon`. The helper is pure and checks the actual `RdpDisplayCapabilities` before settings are applied to the ActiveX host: Multimon on a single-monitor host, or any selected monitor index greater than or equal to `MonitorCount`, is coerced to single-monitor mode. Empty `selectedmonitors` remains "use all monitors." The fallback is non-blocking, logged at Warning, and routed through the existing reconnect/status text surface (`EmbeddedRdpView.StatusTextBlock`) rather than a modal (`2e9b938`).
 
 **COM property pattern**: `selectedmonitors` is a documented RDP property but is not a first-class member of `IMsRdpClientNonScriptable5`. `RdpActiveXHost.TrySetSelectedMonitors` writes via `MsRdpClientShell.SetRdpProperty("selectedmonitors", "0,2")` (documented path) and falls back to `IMsRdpClientNonScriptable5.SelectedMonitors` only on failure. Reuse this `SetRdpProperty + non-scriptable fallback` pattern any time a documented RDP property has no first-class C# binding on the COM interface.
 
@@ -731,6 +735,8 @@ Action buttons (Save / Reset / Export / Import) are pinned at the bottom, always
 
 Settings persistence: ViewModel -> AppSettings -> ConfigManager -> settings.json (UTF-8 no BOM). ConfigManager writes are protected by a `SemaphoreSlim` to prevent concurrent save corruption.
 
+Per-profile settings that mirror a global `AppSettings` value resolve in a fixed order: profile value when non-null, then global setting, then a hardcoded default as the final safety net. `RdpResizeEnableDelayMs` is the reference implementation via the pure `EmbeddedSessionManager.ResolveRdpResizeEnableDelayMs` helper: profile `0` disables the post-connect resize lockout, negative profile values clamp to `0` at runtime while schema/dialog validation rejects them, and a negative global setting falls back to the 10,000 ms default with a Warning log (`038992f`).
+
 ## WebView2 Deployment Strategy
 
 WebView2 is required for embedded SSH terminals (xterm.js) and VNC sessions (noVNC). `WebView2Helper` centralizes runtime detection:
@@ -750,7 +756,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 5459 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 5453 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 5,511 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 5,505 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 

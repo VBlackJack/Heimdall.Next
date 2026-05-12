@@ -68,13 +68,21 @@ process whose name is in the trusted whitelist
 `keepassxc-proxy`, `keepassxc`) before sending any agent traffic, mitigating
 window-class spoofing.
 
-### CredentialAutofill visibility
+### Credential logging boundaries
 
-`CredentialAutofill` logs Win32 window handles, titles, PIDs, and process names
-at `Info` level for troubleshooting. Window titles may contain host names, such
-as `Enter credentials for server01.corp.local`. Deployments with logging review
-obligations, including GDPR or HIPAA environments, should lower logger
-verbosity for `CredentialAutofill` or redirect the category to a separate sink.
+RDP, SSH, SFTP, and credential-handling code paths never log usernames,
+domains, password presence, password length, passwords, passphrases, or
+credential edit-field contents. Connect log lines may identify the target host
+and protocol only.
+
+`CredentialAutofill.cs` is the canonical RDP example. Since `1d7c78c`, broker
+enumeration diagnostics are emitted as one Debug entry per autofill attempt,
+with an Info-level final outcome and Warning-level logging only when
+enumeration itself throws. Those diagnostics may include OS window titles,
+handles, PIDs, process names, and rejection reasons, but never edit-field
+contents. Window titles may contain host-identifying data; for example,
+`Enter credentials for server01.corp.local` is supplied by the OS or remote
+client and is outside this layer's credential-field policy.
 
 ### TunnelManager port allocation race
 
