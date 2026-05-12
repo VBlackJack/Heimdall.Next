@@ -15,6 +15,7 @@
  */
 
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Automation;
 using Heimdall.Core.Logging;
@@ -86,6 +87,8 @@ public static partial class CredentialAutofill
 
     /// <summary>Default delay after bringing the credential dialog to the foreground.</summary>
     private static readonly TimeSpan DefaultFocusDelay = TimeSpan.FromMilliseconds(300);
+
+    private static readonly JsonSerializerOptions DiagnosticJsonOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>Known credential broker process names spawned by Windows for CredUI.</summary>
     private static readonly string[] CredentialBrokerProcessNames =
@@ -166,7 +169,7 @@ public static partial class CredentialAutofill
                 cancellationToken.ThrowIfCancellationRequested();
                 scan++;
 
-                var target = FindCredentialDialog(mstscProcessId, hostHintPattern, scan);
+                var target = FindCredentialDialog(mstscProcessId, targetHost, hostHintPattern, scan);
                 if (target is not null)
                 {
                     FileLogger.Info(
@@ -188,7 +191,7 @@ public static partial class CredentialAutofill
                 await Task.Delay(DefaultScanInterval, cancellationToken).ConfigureAwait(false);
             }
 
-            FileLogger.Warn($"CredentialAutofill timed out after {scan} scans.");
+            FileLogger.Info($"CredentialAutofill timed out after {scan} scans; brokerMatch=no-match.");
             return false;
         }
         finally
@@ -201,64 +204,208 @@ public static partial class CredentialAutofill
     /// Scans all visible top-level windows via EnumWindows to find a CredUI dialog
     /// matching the title pattern and owned by the target process or a known credential broker.
     /// </summary>
-    private static WindowInfo? FindCredentialDialog(int mstscProcessId, Regex? hostHintPattern, int scan)
+    private static WindowInfo? FindCredentialDialog(
+        int mstscProcessId,
+        string targetHost,
+        Regex? hostHintPattern,
+        int scan)
     {
         var windows = GetVisibleWindows();
-        FileLogger.Info($"CredentialAutofill scan {scan}: visibleWindows={windows.Count}");
-
         var candidates = windows.Where(IsCredentialDialogCandidate).ToList();
-        if (candidates.Count == 0)
-        {
-            FileLogger.Info($"CredentialAutofill scan {scan}: no dialog candidates.");
-            return null;
-        }
 
-        foreach (var candidate in candidates.Take(6))
-        {
-            FileLogger.Info(
-                $"CredentialAutofill scan {scan}: candidate handle=0x{candidate.Handle.ToInt64():X} class={candidate.ClassName} title='{candidate.Title}' pid={candidate.ProcessId} process={candidate.ProcessName}");
-        }
-
-        return SelectCredentialDialogTarget(mstscProcessId, hostHintPattern, candidates, scan);
+        return SelectCredentialDialogTarget(
+            mstscProcessId,
+            hostHintPattern,
+            candidates,
+            scan,
+            targetHost,
+            windows.Count);
     }
 
     internal static WindowInfo? SelectCredentialDialogTarget(
         int mstscProcessId,
         Regex? hostHintPattern,
         IReadOnlyList<WindowInfo> candidates,
-        int scan)
+        int scan,
+        string? targetHost = null,
+        int? visibleWindowCount = null,
+        Func<WindowInfo, bool>? isCredentialBroker = null)
     {
+        var evaluation = EvaluateCredentialDialogTarget(
+            mstscProcessId,
+            hostHintPattern,
+            candidates,
+            scan,
+            targetHost,
+            visibleWindowCount,
+            isCredentialBroker ?? (window => IsCredentialBroker(window.ProcessId, window.ProcessName)));
+
+        // OS window titles are already public desktop metadata; log them as-is for diagnostics.
+        FileLogger.Debug(
+            "CredentialAutofillBrokerMatch "
+            + JsonSerializer.Serialize(evaluation.Diagnostics, DiagnosticJsonOptions));
+
+        if (evaluation.BrokerEnumerationException is not null)
+        {
+            FileLogger.Warn(
+                "CredentialAutofillBrokerEnumerationFailed "
+                + JsonSerializer.Serialize(
+                    new CredentialBrokerEnumerationFailureLog(
+                        scan,
+                        targetHost ?? string.Empty,
+                        evaluation.BrokerEnumerationException.GetType().Name,
+                        evaluation.BrokerEnumerationException.Message),
+                    DiagnosticJsonOptions));
+        }
+
+        FileLogger.Info(
+            $"CredentialAutofill broker match outcome: scan={scan} targetHost={targetHost ?? string.Empty} outcome={evaluation.Diagnostics.Outcome} matchedHandle={evaluation.Diagnostics.MatchedHandle}");
+
+        return evaluation.Selected;
+    }
+
+    private static CredentialBrokerMatchEvaluation EvaluateCredentialDialogTarget(
+        int mstscProcessId,
+        Regex? hostHintPattern,
+        IReadOnlyList<WindowInfo> candidates,
+        int scan,
+        string? targetHost,
+        int? visibleWindowCount,
+        Func<WindowInfo, bool> isCredentialBroker)
+    {
+        var selected = (WindowInfo?)null;
+        var outcome = "no-match";
+        Exception? brokerEnumerationException = null;
+        var decisions = new Dictionary<IntPtr, (string Decision, string Reason)>();
+
         // Prefer windows owned by the target mstsc process.
         var ownedByTarget = candidates.Where(w => w.ProcessId == mstscProcessId).ToList();
         if (ownedByTarget.Count > 0)
         {
-            return SelectBestMatch(ownedByTarget, hostHintPattern);
-        }
-
-        // Fall back to known credential broker processes only if their title
-        // matches the host hint. Unmatched brokers may belong to unrelated apps.
-        var brokerMatches = candidates
-            .Where(w => IsCredentialBroker(w.ProcessId, w.ProcessName))
-            .ToList();
-        if (brokerMatches.Count > 0)
-        {
-            if (hostHintPattern is not null)
+            selected = SelectBestMatch(ownedByTarget, hostHintPattern);
+            outcome = "matched-target-process";
+            foreach (var candidate in candidates)
             {
-                var hostMatched = brokerMatches.Where(w => hostHintPattern.IsMatch(w.Title)).ToList();
-                if (hostMatched.Count > 0)
+                decisions[candidate.Handle] = candidate.Handle == selected.Value.Handle
+                    ? ("accepted", "owned-by-target-process")
+                    : candidate.ProcessId == mstscProcessId
+                        ? ("rejected", "owned-by-target-process-not-selected")
+                        : ("rejected", "target-process-match-took-priority");
+            }
+        }
+        else
+        {
+            var brokerClassifications = new Dictionary<IntPtr, bool>();
+            try
+            {
+                foreach (var candidate in candidates)
                 {
-                    return SelectBestMatch(hostMatched, hostHintPattern);
+                    brokerClassifications[candidate.Handle] = isCredentialBroker(candidate);
+                }
+            }
+            catch (Exception ex)
+            {
+                brokerEnumerationException = ex;
+                outcome = "broker-enumeration-failed";
+                foreach (var candidate in candidates)
+                {
+                    decisions[candidate.Handle] = ("rejected", "broker-enumeration-failed");
                 }
             }
 
-            FileLogger.Info(
-                $"CredentialAutofill scan {scan}: broker candidates ignored by strict host gate.");
-            return null;
+            if (brokerEnumerationException is null)
+            {
+                var brokerMatches = candidates
+                    .Where(w => brokerClassifications.TryGetValue(w.Handle, out var isBroker) && isBroker)
+                    .ToList();
+
+                if (brokerMatches.Count > 0)
+                {
+                    if (hostHintPattern is not null)
+                    {
+                        var hostMatched = brokerMatches.Where(w => hostHintPattern.IsMatch(w.Title)).ToList();
+                        if (hostMatched.Count > 0)
+                        {
+                            selected = SelectBestMatch(hostMatched, hostHintPattern);
+                            outcome = "matched-broker-host-title";
+                        }
+                    }
+
+                    foreach (var candidate in candidates)
+                    {
+                        var isBroker = brokerClassifications.TryGetValue(candidate.Handle, out var value) && value;
+                        decisions[candidate.Handle] = ResolveBrokerCandidateDecision(
+                            candidate,
+                            isBroker,
+                            hostHintPattern,
+                            selected);
+                    }
+                }
+                else
+                {
+                    foreach (var candidate in candidates)
+                    {
+                        decisions[candidate.Handle] = ("rejected", "not-target-process-or-known-broker");
+                    }
+                }
+            }
         }
 
-        FileLogger.Warn(
-            $"CredentialAutofill scan {scan}: candidates found but none matched target pid {mstscProcessId} or known brokers.");
-        return null;
+        var candidateLogs = candidates
+            .Select(candidate =>
+            {
+                var decision = decisions.TryGetValue(candidate.Handle, out var value)
+                    ? value
+                    : ("rejected", "not-evaluated");
+                return new CredentialBrokerCandidateLog(
+                    FormatHandle(candidate.Handle),
+                    candidate.Title,
+                    candidate.ClassName,
+                    candidate.ProcessId,
+                    candidate.ProcessName,
+                    decision.Item1,
+                    decision.Item2);
+            })
+            .ToArray();
+
+        return new CredentialBrokerMatchEvaluation(
+            selected,
+            brokerEnumerationException,
+            new CredentialBrokerMatchLog(
+                scan,
+                targetHost ?? string.Empty,
+                mstscProcessId,
+                visibleWindowCount.GetValueOrDefault(candidates.Count),
+                candidates.Count,
+                candidateLogs,
+                outcome,
+                selected is { } selectedWindow ? FormatHandle(selectedWindow.Handle) : "no-match"));
+    }
+
+    private static (string Decision, string Reason) ResolveBrokerCandidateDecision(
+        WindowInfo candidate,
+        bool isBroker,
+        Regex? hostHintPattern,
+        WindowInfo? selected)
+    {
+        if (!isBroker)
+        {
+            return ("rejected", "not-known-broker");
+        }
+
+        if (hostHintPattern is null)
+        {
+            return ("rejected", "missing-host-hint");
+        }
+
+        if (!hostHintPattern.IsMatch(candidate.Title))
+        {
+            return ("rejected", "host-title-mismatch");
+        }
+
+        return selected is { } selectedWindow && selectedWindow.Handle == candidate.Handle
+            ? ("accepted", "host-title-match")
+            : ("rejected", "host-title-match-not-selected");
     }
 
     /// <summary>
@@ -613,6 +760,36 @@ public static partial class CredentialAutofill
         int ProcessId,
         string ProcessName);
 
+    private sealed record CredentialBrokerMatchEvaluation(
+        WindowInfo? Selected,
+        Exception? BrokerEnumerationException,
+        CredentialBrokerMatchLog Diagnostics);
+
+    private sealed record CredentialBrokerMatchLog(
+        int Scan,
+        string TargetHost,
+        int MstscProcessId,
+        int VisibleWindowCount,
+        int CandidateCount,
+        IReadOnlyList<CredentialBrokerCandidateLog> Candidates,
+        string Outcome,
+        string MatchedHandle);
+
+    private sealed record CredentialBrokerCandidateLog(
+        string Handle,
+        string Title,
+        string ClassName,
+        int ProcessId,
+        string ProcessName,
+        string Decision,
+        string Reason);
+
+    private sealed record CredentialBrokerEnumerationFailureLog(
+        int Scan,
+        string TargetHost,
+        string ExceptionType,
+        string Message);
+
     /// <summary>
     /// Enumerates ALL visible top-level windows with non-empty titles via EnumWindows.
     /// Unlike Process.MainWindowTitle which returns only one window per process,
@@ -772,6 +949,8 @@ public static partial class CredentialAutofill
             return false;
         }
     }
+
+    private static string FormatHandle(IntPtr handle) => $"0x{handle.ToInt64():X}";
 
     #endregion
 }

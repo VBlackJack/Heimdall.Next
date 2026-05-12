@@ -14,13 +14,47 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Text.RegularExpressions;
+using System.Text.Json;
+using Heimdall.Core.Logging;
 using Heimdall.Rdp;
 
 namespace Heimdall.Rdp.Tests;
 
-public sealed class CredentialAutofillTests
+[CollectionDefinition("CredentialAutofillLogging", DisableParallelization = true)]
+public sealed class CredentialAutofillLoggingCollectionDefinition;
+
+[Collection("CredentialAutofillLogging")]
+public sealed class CredentialAutofillTests : IDisposable
 {
+    private readonly string _tempDir;
+
+    public CredentialAutofillTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), "Heimdall.Rdp.Tests." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempDir);
+        FileLogger.Initialize(_tempDir, flushIntervalMs: 60000);
+        FileLogger.SetEnabled(true);
+    }
+
+    public void Dispose()
+    {
+        FileLogger.Flush();
+        FileLogger.SetEnabled(true);
+        try
+        {
+            if (Directory.Exists(_tempDir))
+            {
+                Directory.Delete(_tempDir, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup.
+        }
+    }
+
     [Theory]
     [InlineData("Windows Security")]
     [InlineData("S\u00e9curit\u00e9 de Windows")]
@@ -62,10 +96,99 @@ public sealed class CredentialAutofillTests
 
         var result = CredentialAutofill.SelectCredentialDialogTarget(
             mstscProcessId: 9999,
-            hostHintPattern,
-            windows,
+            hostHintPattern: hostHintPattern,
+            candidates: windows,
             scan: 1);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void SelectCredentialDialogTarget_NoMatch_LogsStructuredBrokerDiagnostics()
+    {
+        var windows = new List<CredentialAutofill.WindowInfo>
+        {
+            new(new IntPtr(0x1001), "Windows Security", "Credential Dialog Xaml Host", 2001, "CredentialUIBroker"),
+            new(new IntPtr(0x1002), "Windows Security", "Credential Dialog Xaml Host", 2002, "CredentialUIBroker")
+        };
+        const string targetHost = "server01.corp.local";
+        var hostHintPattern = new Regex(Regex.Escape(targetHost), RegexOptions.IgnoreCase);
+
+        var result = CredentialAutofill.SelectCredentialDialogTarget(
+            mstscProcessId: 9999,
+            hostHintPattern: hostHintPattern,
+            candidates: windows,
+            scan: 3,
+            targetHost: targetHost,
+            visibleWindowCount: 12);
+
+        Assert.Null(result);
+        FileLogger.Flush();
+        var lines = ReadLogLines();
+        var debugLine = Assert.Single(lines, line =>
+            line.Contains("[DEBUG]", StringComparison.Ordinal)
+            && line.Contains("CredentialAutofillBrokerMatch ", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(ExtractPayload(debugLine, "CredentialAutofillBrokerMatch "));
+        var root = document.RootElement;
+
+        Assert.Equal(targetHost, root.GetProperty("targetHost").GetString());
+        Assert.Equal(12, root.GetProperty("visibleWindowCount").GetInt32());
+        Assert.Equal(2, root.GetProperty("candidateCount").GetInt32());
+        Assert.Equal("no-match", root.GetProperty("outcome").GetString());
+
+        var candidates = root.GetProperty("candidates").EnumerateArray().ToArray();
+        Assert.Equal(2, candidates.Length);
+        Assert.All(candidates, candidate =>
+        {
+            Assert.True(candidate.TryGetProperty("title", out _));
+            Assert.True(candidate.TryGetProperty("processName", out _));
+            Assert.True(candidate.TryGetProperty("decision", out _));
+            Assert.True(candidate.TryGetProperty("reason", out _));
+        });
+        Assert.Contains(lines, line =>
+            line.Contains("[INFO]", StringComparison.Ordinal)
+            && line.Contains("CredentialAutofill broker match outcome", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SelectCredentialDialogTarget_BrokerEnumerationException_LogsWarning()
+    {
+        var windows = new List<CredentialAutofill.WindowInfo>
+        {
+            new(new IntPtr(0x2001), "Windows Security", "Credential Dialog Xaml Host", 3001, string.Empty)
+        };
+
+        var result = CredentialAutofill.SelectCredentialDialogTarget(
+            mstscProcessId: 9999,
+            hostHintPattern: new Regex("server01", RegexOptions.IgnoreCase),
+            candidates: windows,
+            scan: 1,
+            targetHost: "server01",
+            visibleWindowCount: 1,
+            isCredentialBroker: _ => throw new InvalidOperationException("broker enumeration failed"));
+
+        Assert.Null(result);
+        FileLogger.Flush();
+        var warningLine = Assert.Single(ReadLogLines(), line =>
+            line.Contains("[WARN]", StringComparison.Ordinal)
+            && line.Contains("CredentialAutofillBrokerEnumerationFailed ", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(ExtractPayload(
+            warningLine,
+            "CredentialAutofillBrokerEnumerationFailed "));
+
+        Assert.Equal("InvalidOperationException", document.RootElement.GetProperty("exceptionType").GetString());
+    }
+
+    private string[] ReadLogLines()
+    {
+        var logFile = Directory.GetFiles(_tempDir, "heimdall_*.log").Single();
+        return File.ReadAllLines(logFile);
+    }
+
+    private static string ExtractPayload(string line, string marker)
+    {
+        var markerIndex = line.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(markerIndex >= 0);
+        return line[(markerIndex + marker.Length)..];
     }
 }

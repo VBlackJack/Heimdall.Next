@@ -1388,13 +1388,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             var displayUpdateSettings = GetDisplayUpdateSettings(width, height);
 
             Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height} dpi={displayUpdateSettings.DpiScaleX:0.##}x{displayUpdateSettings.DpiScaleY:0.##} scale={displayUpdateSettings.DesktopScaleFactor}/{displayUpdateSettings.DeviceScaleFactor} handle=0x{_rdpHost.HostHandle.ToInt64():X} clsid={_rdpHost.ActiveXClsid}");
+                $"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} size={width}x{height} dpi={displayUpdateSettings.DpiScaleX:0.##}x{displayUpdateSettings.DpiScaleY:0.##} scale={displayUpdateSettings.DesktopScaleFactor}/{displayUpdateSettings.DeviceScaleFactor} handle=0x{_rdpHost.HostHandle.ToInt64():X} clsid={_rdpHost.ActiveXClsid}");
 
             _rdpHost.SetServer(connectHost, connectPort);
             if (!string.IsNullOrWhiteSpace(username))
             {
                 _rdpHost.SetCredentials(username, password, domain);
-                Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
+                Core.Logging.FileLogger.Info("EmbeddedRDP SetCredentials called.");
             }
 
             _rdpHost.SetDisplayScaleFactors(
