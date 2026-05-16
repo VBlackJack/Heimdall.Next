@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Windows;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Models;
 
@@ -29,16 +28,6 @@ namespace Heimdall.App.Services;
 /// </summary>
 public interface ISessionTabContextCallbacks
 {
-    /// <summary>
-    /// Handles aspect-ratio menu item clicks. The event sender's
-    /// <see cref="FrameworkElement.Tag"/> carries the ratio identifier
-    /// (<c>"Stretch"</c>, <c>"Auto"</c>, <c>"Ratio16x9"</c>,
-    /// <c>"Ratio4x3"</c>, <c>"Ratio21x9"</c>). Signature preserves the
-    /// existing MainWindow handler so the factory can wire it as a
-    /// <see cref="RoutedEventHandler"/> directly.
-    /// </summary>
-    void OnAspectRatioClick(object sender, RoutedEventArgs e);
-
     /// <summary>Applies a resolution choice to the given session pane.</summary>
     void OnResolutionChanged(SessionPaneModel pane, ResolutionChoice choice);
 

@@ -1821,18 +1821,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         e.Handled = true;
     }
 
-    private void OnAspectRatioClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem menuItem) return;
-        if (DataContext is not MainViewModel vm) return;
-        var session = vm.Connection.ActiveSession;
-        if (session?.HostControl is not Views.EmbeddedRdpView rdpView) return;
-
-        var ratioName = menuItem.Tag?.ToString() ?? "Stretch";
-        Heimdall.Core.Logging.FileLogger.Info($"Aspect ratio changed to {ratioName}");
-        rdpView.UpdateAspectRatio(ratioName);
-    }
-
     private async Task OnResolutionChangedAsync(SessionPaneModel pane, ResolutionChoice choice)
     {
         if (DataContext is not MainViewModel vm) return;
@@ -2296,14 +2284,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     // ── ISessionTabContextCallbacks ───────────────────────────────────
-    // OnAspectRatioClick and ToggleFullscreen stay in MainWindow (aspect
-    // ratio touches the active RDP view, fullscreen touches named XAML
-    // elements via MainWindow.WindowUI.cs). All split/merge/detach
+    // OnResolutionChanged and ToggleFullscreen stay in MainWindow
+    // (fullscreen touches named XAML elements via MainWindow.WindowUI.cs;
+    // resolution dispatches to the active RDP view). All split/merge/detach
     // operations delegate to SessionSplitService.
-
-    /// <inheritdoc />
-    void ISessionTabContextCallbacks.OnAspectRatioClick(object sender, RoutedEventArgs e)
-        => OnAspectRatioClick(sender, e);
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.OnResolutionChanged(SessionPaneModel pane, ResolutionChoice choice)
