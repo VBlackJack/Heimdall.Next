@@ -1804,7 +1804,7 @@
   "ErrorTelnetConnectionFailed": "Telnet connection failed: {0}",
 
   "SessionDisconnect": "Disconnect",
-  "SessionAspectRatio": "Aspect Ratio",
+  "SessionAspectStretch": "Stretch",
   "SessionFullscreen": "Fullscreen (F11)",
   "SessionCloseSession": "Close Session",
   "SessionTitleSuffixForcedEmbedded": "(forced embedded)",

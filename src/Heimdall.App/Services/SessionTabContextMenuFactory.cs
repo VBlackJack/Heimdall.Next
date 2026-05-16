@@ -120,79 +120,9 @@ public sealed class SessionTabContextMenuFactory
     {
         menu.Items.Add(new Separator());
 
-        // Aspect ratio submenu
-        var aspectMenu = new MenuItem { Header = vm.Localize("SessionAspectRatio") };
-        foreach (var (label, tag) in new[]
-        {
-            ("Stretch", "Stretch"),
-            ("Auto", "Auto"),
-            ("16:9", "Ratio16x9"),
-            ("4:3", "Ratio4x3"),
-            ("21:9", "Ratio21x9")
-        })
-        {
-            var item = new MenuItem { Header = label, Tag = tag };
-            item.Click += callbacks.OnAspectRatioClick;
-            aspectMenu.Items.Add(item);
-        }
-        menu.Items.Add(aspectMenu);
-
         if (session.PrimaryPane.HostControl is EmbeddedRdpView rdpView)
         {
-            var resolutionMenu = new MenuItem { Header = vm.Localize("SessionResolution") };
-
-            AppendActiveModeHeader(resolutionMenu, rdpView, vm);
-
-            var matchWindowItem = new MenuItem
-            {
-                Header = vm.Localize("RdpResolutionMatchWindow"),
-                Tag = ResolutionChoice.MatchWindow
-            };
-            matchWindowItem.Click += (_, _) => callbacks.OnResolutionChanged(
-                session.PrimaryPane,
-                ResolutionChoice.MatchWindow);
-            resolutionMenu.Items.Add(matchWindowItem);
-
-            foreach (var preset in ResolutionPresetCatalog.GetPresets(vm.CurrentSettings))
-            {
-                var choice = ResolutionChoice.Fixed(preset.Width, preset.Height);
-                var item = new MenuItem
-                {
-                    Header = preset.DisplayText,
-                    Tag = choice,
-                    ToolTip = rdpView.WouldScaleResolution(preset.Width, preset.Height)
-                        ? vm.Localize("RdpResolutionLargerThanWindowTooltip")
-                        : null
-                };
-                item.Click += (_, _) => callbacks.OnResolutionChanged(session.PrimaryPane, choice);
-                resolutionMenu.Items.Add(item);
-            }
-
-            resolutionMenu.Items.Add(new Separator());
-
-            var customItem = new MenuItem
-            {
-                Header = vm.Localize("RdpResolutionCustom"),
-                Tag = ResolutionChoice.Custom
-            };
-            customItem.Click += (_, _) => callbacks.OnResolutionChanged(
-                session.PrimaryPane,
-                ResolutionChoice.Custom);
-            resolutionMenu.Items.Add(customItem);
-
-            resolutionMenu.Items.Add(new Separator());
-
-            var saveDefaultItem = new MenuItem
-            {
-                Header = vm.Localize("RdpResolutionSaveDefaultForServer"),
-                Tag = ResolutionChoice.SaveAsDefaultForServer
-            };
-            saveDefaultItem.Click += (_, _) => callbacks.OnResolutionChanged(
-                session.PrimaryPane,
-                ResolutionChoice.SaveAsDefaultForServer);
-            resolutionMenu.Items.Add(saveDefaultItem);
-
-            menu.Items.Add(resolutionMenu);
+            AppendResolutionMenu(menu, session, vm, callbacks, rdpView);
         }
 
         menu.Items.Add(new Separator());
@@ -240,6 +170,110 @@ public sealed class SessionTabContextMenuFactory
                 vm.ServerList.SaveAdHocAsProfileCommand.Execute(session.AdHocProfileSnapshot);
             menu.Items.Add(saveAsProfileItem);
         }
+    }
+
+    // ── Resolution menu (RDP only) ───────────────────────────────────
+
+    /// <summary>
+    /// Builds the RDP Resolution sub-menu. "Match Window" is a nested
+    /// sub-menu where the user picks how the dynamic surface should be
+    /// shaped (Stretch / 16:9 / 4:3 / 21:9) — these aspect ratio choices
+    /// only have a visible effect in the dynamic Match Window mode, so they
+    /// no longer live in their own top-level menu. Fixed presets, Custom and
+    /// Save-as-default keep their original semantics. Checkmarks reflect the
+    /// currently active mode + aspect so the user can see state at a glance.
+    /// </summary>
+    private static void AppendResolutionMenu(
+        ContextMenu menu,
+        SessionTabViewModel session,
+        MainViewModel vm,
+        ISessionTabContextCallbacks callbacks,
+        EmbeddedRdpView rdpView)
+    {
+        var resolutionMenu = new MenuItem { Header = vm.Localize("SessionResolution") };
+
+        AppendActiveModeHeader(resolutionMenu, rdpView, vm);
+
+        var state = rdpView.GetEffectiveResolutionState();
+        var isMatchWindow = state.Mode != Heimdall.Core.Configuration.RdpResolutionMode.Fixed;
+        var currentAspect = rdpView.GetCurrentAspectRatio();
+
+        // "Match Window ▸ Stretch / 16:9 / 4:3 / 21:9"
+        // Each sub-item sets the aspect and applies MatchWindow in one click;
+        // the parent surfaces a checkmark when we're currently in a dynamic mode.
+        var matchWindowItem = new MenuItem
+        {
+            Header = vm.Localize("RdpResolutionMatchWindow"),
+            IsChecked = isMatchWindow
+        };
+
+        foreach (var (label, tag, ratio) in new[]
+        {
+            (vm.Localize("SessionAspectStretch"), "Stretch", AspectRatio.Stretch),
+            ("16:9", "Ratio16x9", AspectRatio.Ratio16x9),
+            ("4:3", "Ratio4x3", AspectRatio.Ratio4x3),
+            ("21:9", "Ratio21x9", AspectRatio.Ratio21x9)
+        })
+        {
+            var ratioTag = tag;
+            var subItem = new MenuItem
+            {
+                Header = label,
+                IsChecked = isMatchWindow && currentAspect == ratio
+            };
+            subItem.Click += (_, _) =>
+            {
+                rdpView.UpdateAspectRatio(ratioTag);
+                callbacks.OnResolutionChanged(session.PrimaryPane, ResolutionChoice.MatchWindow);
+            };
+            matchWindowItem.Items.Add(subItem);
+        }
+
+        resolutionMenu.Items.Add(matchWindowItem);
+
+        foreach (var preset in ResolutionPresetCatalog.GetPresets(vm.CurrentSettings))
+        {
+            var choice = ResolutionChoice.Fixed(preset.Width, preset.Height);
+            var item = new MenuItem
+            {
+                Header = preset.DisplayText,
+                Tag = choice,
+                IsChecked = !isMatchWindow
+                    && state.Width == preset.Width
+                    && state.Height == preset.Height,
+                ToolTip = rdpView.WouldScaleResolution(preset.Width, preset.Height)
+                    ? vm.Localize("RdpResolutionLargerThanWindowTooltip")
+                    : null
+            };
+            item.Click += (_, _) => callbacks.OnResolutionChanged(session.PrimaryPane, choice);
+            resolutionMenu.Items.Add(item);
+        }
+
+        resolutionMenu.Items.Add(new Separator());
+
+        var customItem = new MenuItem
+        {
+            Header = vm.Localize("RdpResolutionCustom"),
+            Tag = ResolutionChoice.Custom
+        };
+        customItem.Click += (_, _) => callbacks.OnResolutionChanged(
+            session.PrimaryPane,
+            ResolutionChoice.Custom);
+        resolutionMenu.Items.Add(customItem);
+
+        resolutionMenu.Items.Add(new Separator());
+
+        var saveDefaultItem = new MenuItem
+        {
+            Header = vm.Localize("RdpResolutionSaveDefaultForServer"),
+            Tag = ResolutionChoice.SaveAsDefaultForServer
+        };
+        saveDefaultItem.Click += (_, _) => callbacks.OnResolutionChanged(
+            session.PrimaryPane,
+            ResolutionChoice.SaveAsDefaultForServer);
+        resolutionMenu.Items.Add(saveDefaultItem);
+
+        menu.Items.Add(resolutionMenu);
     }
 
     // ── Resolution active-mode header (mirrors toolbar header) ───────
