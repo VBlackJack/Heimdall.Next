@@ -1901,6 +1901,7 @@
                                                     <ComboBoxItem x:Name="Mw_ThemeLincoln" Content="{loc:Translate ThemeLincoln}" Tag="Lincoln" AutomationProperties.Name="{loc:Translate ThemeLincoln}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeMorbius" Content="{loc:Translate ThemeMorbius}" Tag="Morbius" AutomationProperties.Name="{loc:Translate ThemeMorbius}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeVanHelsing" Content="{loc:Translate ThemeVanHelsing}" Tag="VanHelsing" AutomationProperties.Name="{loc:Translate ThemeVanHelsing}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeNosferatu" Content="{loc:Translate ThemeNosferatu}" Tag="Nosferatu" AutomationProperties.Name="{loc:Translate ThemeNosferatu}"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>

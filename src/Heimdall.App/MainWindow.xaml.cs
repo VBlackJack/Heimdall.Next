@@ -2613,7 +2613,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             _closeConfirmed = true;
             try
             {
-                Close();
+                if (IsLoaded)
+                {
+                    Close();
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Window is already closing — safe to ignore.
             }
             catch
             {
