@@ -267,6 +267,29 @@ public partial class ServerListViewModel
         await EditUsernameServersCoreAsync(selectedItems, result, cancellationToken);
     }
 
+    [RelayCommand(CanExecute = nameof(CanBulkEditPassword))]
+    private async Task BulkEditPasswordAsync(
+        IReadOnlyList<ServerItemViewModel>? selection,
+        CancellationToken cancellationToken)
+    {
+        var selectedItems = NormalizeSelection(selection ?? SelectedItems.ToList());
+        if (selectedItems.Count <= 1)
+        {
+            return;
+        }
+
+        var result = await _dialogService.ShowBulkEditPasswordAsync(
+            selectedItems.Count,
+            cancellationToken);
+
+        if (result is null)
+        {
+            return;
+        }
+
+        await EditPasswordServersCoreAsync(selectedItems, result, cancellationToken);
+    }
+
     [RelayCommand]
     private async Task ConnectSelectedAsync(CancellationToken cancellationToken)
     {
@@ -305,6 +328,8 @@ public partial class ServerListViewModel
     private bool CanBulkEditPort() => SelectionCount > 1;
 
     private bool CanBulkEditUsername() => SelectionCount > 1;
+
+    private bool CanBulkEditPassword() => SelectionCount > 1;
 
     public async Task ConnectServersBulkCoreAsync(
         IReadOnlyList<ServerItemViewModel> serversToConnect,
@@ -565,6 +590,79 @@ public partial class ServerListViewModel
                 primarySelectionId,
                 null,
                 "StatusBulkUsernameUpdated",
+                [updatedCount]));
+        }
+    }
+
+    private async Task EditPasswordServersCoreAsync(
+        IReadOnlyList<ServerItemViewModel> sources,
+        string newPlaintextPassword,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        ArgumentException.ThrowIfNullOrEmpty(newPlaintextPassword);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var selectedServers = NormalizeSelection(sources);
+        if (selectedServers.Count == 0)
+        {
+            return;
+        }
+
+        var encryptedPassword = Core.Security.CredentialProtector.Protect(newPlaintextPassword);
+
+        var selectedIds = selectedServers
+            .Select(server => server.Id)
+            .ToArray();
+        var primarySelectionId = SelectedServer is not null
+            && selectedServers.Any(server => string.Equals(server.Id, SelectedServer.Id, StringComparison.Ordinal))
+                ? SelectedServer.Id
+                : selectedServers[^1].Id;
+        var ids = selectedServers
+            .Select(server => server.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var updatedCount = 0;
+
+        await ExecutePersistedBulkMutationAsync(BuildPlanAsync, cancellationToken);
+
+        if (updatedCount > 0)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EditPasswordServersCoreAsync updated password for {updatedCount} item(s) in a single transaction.");
+        }
+
+        Task<BulkMutationPlan?> BuildPlanAsync(List<ServerProfileDto> serverDtos)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var dtoMap = serverDtos
+                .Where(dto => ids.Contains(dto.Id))
+                .ToDictionary(dto => dto.Id, StringComparer.Ordinal);
+
+            if (dtoMap.Count != ids.Count)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"EditPasswordServersCoreAsync aborted because {ids.Count - dtoMap.Count} selected DTO(s) were missing.");
+                return Task.FromResult<BulkMutationPlan?>(null);
+            }
+
+            foreach (var server in selectedServers)
+            {
+                SetEditablePassword(dtoMap[server.Id], encryptedPassword);
+            }
+
+            updatedCount = selectedServers.Count;
+
+            return Task.FromResult<BulkMutationPlan?>(new BulkMutationPlan(
+                Array.Empty<ServerItemViewModel>(),
+                selectedServers
+                    .Select(server => (OldVm: server, NewDto: dtoMap[server.Id]))
+                    .ToArray(),
+                Array.Empty<ServerProfileDto>(),
+                selectedIds,
+                primarySelectionId,
+                null,
+                "StatusBulkPasswordUpdated",
                 [updatedCount]));
         }
     }
@@ -1165,6 +1263,36 @@ public partial class ServerListViewModel
 
             default:
                 dto.RdpUsername = username;
+                break;
+        }
+    }
+
+    private static void SetEditablePassword(ServerProfileDto dto, string encryptedPassword)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrEmpty(encryptedPassword);
+
+        switch (dto.ConnectionType?.ToUpperInvariant())
+        {
+            case "SSH":
+            case "SFTP":
+                dto.SshPasswordEncrypted = encryptedPassword;
+                break;
+
+            case "FTP":
+                dto.FtpPasswordEncrypted = encryptedPassword;
+                break;
+
+            case "TELNET":
+                dto.TelnetPasswordEncrypted = encryptedPassword;
+                break;
+
+            case "VNC":
+                dto.VncPassword = encryptedPassword;
+                break;
+
+            default:
+                dto.RdpPasswordEncrypted = encryptedPassword;
                 break;
         }
     }

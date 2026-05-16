@@ -220,6 +220,8 @@ public sealed class ServerDialogOriginPreservationTests
 
         public Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
 
+        public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+
         public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
             => Task.FromResult<ServerDialogResult?>(new ServerDialogResult(dialogServer, true));
 

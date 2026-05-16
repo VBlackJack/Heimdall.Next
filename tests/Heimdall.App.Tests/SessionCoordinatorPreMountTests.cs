@@ -748,6 +748,13 @@ public sealed class SessionCoordinatorPreMountTests
             return Task.FromResult(initialUsername);
         }
 
+        public Task<string?> ShowBulkEditPasswordAsync(
+            int count,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
         public void ShowError(string title, string message)
         {
         }

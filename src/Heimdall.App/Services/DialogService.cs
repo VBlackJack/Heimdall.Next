@@ -164,6 +164,12 @@ public interface IDialogService
     Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Shows the bulk password edit dialog (with confirmation field) and returns
+    /// the plaintext password, or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Shows a non-blocking error notification.
     /// </summary>
     /// <param name="title">Error title.</param>

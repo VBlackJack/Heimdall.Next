@@ -568,6 +568,9 @@ public sealed class SettingsViewModelTests
         public Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken)
             => Task.FromResult<string?>(null);
 
+        public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken)
+            => Task.FromResult<string?>(null);
+
         public void ShowError(string title, string message)
         {
             ErrorCalls.Add((title, message));

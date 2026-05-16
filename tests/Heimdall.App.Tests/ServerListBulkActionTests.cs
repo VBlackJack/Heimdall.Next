@@ -1637,6 +1637,12 @@ public sealed class ServerListBulkActionTests
 
         public string? NextBulkEditUsernameResult { get; set; }
 
+        public int BulkEditPasswordCallCount { get; private set; }
+
+        public int LastBulkEditPasswordCount { get; private set; }
+
+        public string? NextBulkEditPasswordResult { get; set; }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
         {
             LastConfirmTitle = title;
@@ -1665,6 +1671,13 @@ public sealed class ServerListBulkActionTests
             LastBulkEditUsernameInitialUsername = initialUsername;
             BulkEditUsernameCallCount++;
             return Task.FromResult(NextBulkEditUsernameResult);
+        }
+
+        public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken)
+        {
+            LastBulkEditPasswordCount = count;
+            BulkEditPasswordCallCount++;
+            return Task.FromResult(NextBulkEditPasswordResult);
         }
 
         public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null) => Task.FromResult<ServerDialogResult?>(null);

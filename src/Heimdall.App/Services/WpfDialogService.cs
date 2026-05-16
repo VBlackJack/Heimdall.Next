@@ -144,6 +144,22 @@ public sealed class WpfDialogService(
     }
 
     /// <inheritdoc/>
+    public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var vm = new ServerBulkEditPasswordViewModel(_localizer, count);
+        var dialog = new ServerBulkEditPasswordDialog
+        {
+            DataContext = vm,
+            Owner = GetOwnerWindow()
+        };
+
+        string? result = dialog.ShowDialog() == true ? vm.ResolvedPassword : null;
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
     public async Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new ServerDialogViewModel();
