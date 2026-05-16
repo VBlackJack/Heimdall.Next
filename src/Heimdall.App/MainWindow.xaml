@@ -1894,21 +1894,28 @@
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="{loc:Translate SettingsLabelTheme}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
-                                                    <ComboBoxItem x:Name="Mw_ThemeDraculaPro" Content="{loc:Translate ThemeDraculaPro}" Tag="DraculaPro" AutomationProperties.Name="{loc:Translate ThemeDraculaPro}"/>
+                                                    <!-- Light -->
                                                     <ComboBoxItem x:Name="Mw_ThemeAlucard" Content="{loc:Translate ThemeAlucard}" Tag="Alucard" AutomationProperties.Name="{loc:Translate ThemeAlucard}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeHelsing" Content="{loc:Translate ThemeHelsing}" Tag="Helsing" AutomationProperties.Name="{loc:Translate ThemeHelsing}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeNosferatu" Content="{loc:Translate ThemeNosferatu}" Tag="Nosferatu" AutomationProperties.Name="{loc:Translate ThemeNosferatu}"/>
+                                                    <Separator/>
+                                                    <!-- Mid-light -->
+                                                    <ComboBoxItem x:Name="Mw_ThemeCarmilla" Content="{loc:Translate ThemeCarmilla}" Tag="Carmilla" AutomationProperties.Name="{loc:Translate ThemeCarmilla}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeRenfield" Content="{loc:Translate ThemeRenfield}" Tag="Renfield" AutomationProperties.Name="{loc:Translate ThemeRenfield}"/>
+                                                    <Separator/>
+                                                    <!-- Dark -->
+                                                    <ComboBoxItem x:Name="Mw_ThemeDrakula" Content="{loc:Translate ThemeDrakula}" Tag="Drakula" AutomationProperties.Name="{loc:Translate ThemeDrakula}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeDraculaPro" Content="{loc:Translate ThemeDraculaPro}" Tag="DraculaPro" AutomationProperties.Name="{loc:Translate ThemeDraculaPro}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeBlade" Content="{loc:Translate ThemeBlade}" Tag="Blade" AutomationProperties.Name="{loc:Translate ThemeBlade}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeBuffy" Content="{loc:Translate ThemeBuffy}" Tag="Buffy" AutomationProperties.Name="{loc:Translate ThemeBuffy}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeLincoln" Content="{loc:Translate ThemeLincoln}" Tag="Lincoln" AutomationProperties.Name="{loc:Translate ThemeLincoln}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeMorbius" Content="{loc:Translate ThemeMorbius}" Tag="Morbius" AutomationProperties.Name="{loc:Translate ThemeMorbius}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeVanHelsing" Content="{loc:Translate ThemeVanHelsing}" Tag="VanHelsing" AutomationProperties.Name="{loc:Translate ThemeVanHelsing}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeNosferatu" Content="{loc:Translate ThemeNosferatu}" Tag="Nosferatu" AutomationProperties.Name="{loc:Translate ThemeNosferatu}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeRenfield" Content="{loc:Translate ThemeRenfield}" Tag="Renfield" AutomationProperties.Name="{loc:Translate ThemeRenfield}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeCarmilla" Content="{loc:Translate ThemeCarmilla}" Tag="Carmilla" AutomationProperties.Name="{loc:Translate ThemeCarmilla}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeDrakula" Content="{loc:Translate ThemeDrakula}" Tag="Drakula" AutomationProperties.Name="{loc:Translate ThemeDrakula}"/>
+                                                    <Separator/>
+                                                    <!-- Colored dark -->
                                                     <ComboBoxItem x:Name="Mw_ThemeBathory" Content="{loc:Translate ThemeBathory}" Tag="Bathory" AutomationProperties.Name="{loc:Translate ThemeBathory}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeStriga" Content="{loc:Translate ThemeStriga}" Tag="Striga" AutomationProperties.Name="{loc:Translate ThemeStriga}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeAkasha" Content="{loc:Translate ThemeAkasha}" Tag="Akasha" AutomationProperties.Name="{loc:Translate ThemeAkasha}"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeHelsing" Content="{loc:Translate ThemeHelsing}" Tag="Helsing" AutomationProperties.Name="{loc:Translate ThemeHelsing}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeStriga" Content="{loc:Translate ThemeStriga}" Tag="Striga" AutomationProperties.Name="{loc:Translate ThemeStriga}"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>
