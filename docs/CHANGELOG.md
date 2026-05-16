@@ -12,6 +12,12 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-16 — Bulk password update
+
+- **Bulk edit password** — multi-select servers (Ctrl+Click / Shift+Click) → right-click → Edit → Password applies the same DPAPI+HMAC encrypted password to all selected sessions, regardless of protocol. The dialog uses a double PasswordBox (password + confirmation) to prevent typos. The new password is encrypted once via `CredentialProtector.Protect()` and written to the protocol-specific encrypted field (`RdpPasswordEncrypted`, `SshPasswordEncrypted`, `FtpPasswordEncrypted`, `TelnetPasswordEncrypted`, or `VncPassword`) based on each session's `ConnectionType`. Follows the existing `ExecutePersistedBulkMutationAsync` transaction pattern. Affected files/classes: `ServerListViewModel.Bulk.cs`, `ServerBulkEditPasswordViewModel`, `ServerBulkEditPasswordDialog`, `ContextMenuFactory`, `IDialogService`, `WpfDialogService`, locales (8 new keys EN/FR).
+
+Build green, **5,500 passing + 6 skipped**, locale parity **5,505 keys EN/FR**.
+
 ## 2026-05-12 — RDP improvement series: per-profile settings, multimon validation, Auto parity, autofill observability
 
 Four focused RDP follow-ups closed latent runtime drift, made invalid monitor topology recover without blocking the user, aligned external `.rdp` Auto mode with embedded behavior, and improved credential-autofill diagnostics without changing fail-closed matching.

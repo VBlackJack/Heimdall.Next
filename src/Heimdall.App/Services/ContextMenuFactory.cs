@@ -764,6 +764,14 @@ public sealed class ContextMenuFactory
             vm.ServerList.BulkEditUsernameCommand,
             bulkContext.Items));
 
+        item.Items.Add(CreateMenuItem(
+            string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                vm.Localize("TreeCtxBulkEditPassword"),
+                bulkContext.Items.Count),
+            vm.ServerList.BulkEditPasswordCommand,
+            bulkContext.Items));
+
         return item;
     }
 

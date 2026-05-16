@@ -205,6 +205,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Deferred state machine cleanup**: reconnect releases old tunnel/state only after new connection succeeds or definitively fails
 - **Merge feedback**: status bar message when a busy tool blocks a merge operation
 - Command Palette renders as a WPF `Popup` (own HWND) above RDP/VNC ActiveX surfaces
+- **Bulk operations**: multi-select (Ctrl+Click, Shift+Click) → right-click → bulk connect, duplicate, delete, move to project/group, edit port, edit username, edit password (DPAPI-encrypted, with confirmation dialog)
 - Session transcript logging with ANSI code stripping
 - Connection history log (JSONL with auto-rotation)
 - Screenshot capture to clipboard (Ctrl+Shift+S)
