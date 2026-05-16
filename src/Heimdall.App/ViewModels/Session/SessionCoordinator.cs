@@ -145,6 +145,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
         _embeddedSessionManager.DisconnectRequestedCallback = OnDisconnectRequested;
         _embeddedSessionManager.EditServerRequestedCallback = OnEditServerRequested;
+        // Wire overlay Close button: tear down the whole tab through the shared lifecycle path.
+        _embeddedSessionManager.CloseRequestedCallback = OnCloseRequested;
 
         // Subscribe to ServerList session lifecycle events to materialize session tabs.
         _main.ServerList.SessionStarting += OnSessionStarting;
@@ -487,12 +489,77 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
     }
 
+    /// <summary>
+    /// Public entry point for "Reconnect Session" UI actions (tab context menu,
+    /// keyboard shortcut). Resolves the persisted server id from
+    /// <see cref="SessionTabViewModel.OriginalServerId"/> (falling back to the
+    /// session id) and routes through the same close-then-reconnect path used
+    /// by the disconnect overlay so the old tab is always replaced.
+    /// </summary>
+    public void ReconnectSession(SessionTabViewModel? tab)
+    {
+        if (tab is null)
+        {
+            return;
+        }
+
+        var serverId = !string.IsNullOrEmpty(tab.OriginalServerId)
+            ? tab.OriginalServerId
+            : tab.ServerId;
+
+        if (string.IsNullOrEmpty(serverId))
+        {
+            return;
+        }
+
+        OnReconnectRequested(tab, serverId, tab.ConnectionType);
+    }
+
     private void OnDisconnectRequested(
         SessionTabViewModel tab,
         SessionPaneModel pane,
         DisconnectReason reason)
     {
         _ = SafeFireAndForgetAsync(OnDisconnectRequestedAsync(tab, pane, reason));
+    }
+
+    /// <summary>
+    /// Closes the entire session tab when the user clicks the "Close" button
+    /// on a disconnect overlay. Routes through the shared lifecycle so the
+    /// embedded host is disposed, tunnels are released, and the tab is
+    /// removed from <c>ConnectionViewModel.ActiveSessions</c>.
+    /// </summary>
+    private void OnCloseRequested(SessionTabViewModel tab)
+    {
+        _ = SafeFireAndForgetAsync(OnCloseRequestedAsync(tab));
+    }
+
+    private async Task OnCloseRequestedAsync(SessionTabViewModel tab)
+    {
+        var title = tab.Title;
+        FileLogger.Info($"Overlay close requested: title='{title}'");
+
+        await _main.Connection.CloseSessionAsync(
+            tab, DisconnectReason.UserAction, confirm: false);
+
+        // Defensive guard mirrors OnReconnectRequestedAsync: if the standard
+        // close path failed to remove the tab from the collection for any
+        // reason, force the removal so the user actually sees the tab close.
+        if (_main.Connection.ActiveSessions.Contains(tab))
+        {
+            FileLogger.Warn(
+                $"Overlay close: forcing removal of orphan tab title='{title}' " +
+                $"(CloseSessionAsync did not remove it)");
+            _main.Connection.ActiveSessions.Remove(tab);
+            if (ReferenceEquals(_main.Connection.ActiveSession, tab))
+            {
+                _main.Connection.ActiveSession =
+                    _main.Connection.ActiveSessions.LastOrDefault();
+            }
+
+            _main.Connection.HasActiveSessions =
+                _main.Connection.ActiveSessions.Count > 0;
+        }
     }
 
     private void OnEditServerRequested(string serverId)
@@ -530,11 +597,44 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         try
         {
+            var oldTabCountBefore = _main.Connection.ActiveSessions.Count;
+            var oldTabWasPresent = _main.Connection.ActiveSessions.Contains(tab);
+            FileLogger.Info(
+                $"Reconnect requested: serverId={serverId} connectionType={connectionType} " +
+                $"oldTabPresent={oldTabWasPresent} activeTabs={oldTabCountBefore}");
+
             // Close the old tab (disposes the dead session)
             await _main.Connection.CloseSessionAsync(
                 tab,
                 DisconnectReason.ReconnectInitiated,
                 confirm: false);
+
+            var stillPresentAfterClose = _main.Connection.ActiveSessions.Contains(tab);
+            FileLogger.Info(
+                $"Reconnect: post-close oldTabStillPresent={stillPresentAfterClose} " +
+                $"activeTabs={_main.Connection.ActiveSessions.Count}");
+
+            // Defensive guard: if the standard close path did not remove the
+            // tab (unexpected — see logs for the original failure), force the
+            // removal so the user never sees a stale tab next to the new
+            // connection. Production bug observed 2026-05-16: in some real
+            // sessions the tab persisted after a clean CloseSessionAsync call
+            // even though unit tests reproduced the removal correctly.
+            if (stillPresentAfterClose)
+            {
+                FileLogger.Warn(
+                    $"Reconnect: forcing removal of orphan tab serverId={serverId} " +
+                    $"(CloseSessionAsync did not remove it)");
+                _main.Connection.ActiveSessions.Remove(tab);
+                if (ReferenceEquals(_main.Connection.ActiveSession, tab))
+                {
+                    _main.Connection.ActiveSession =
+                        _main.Connection.ActiveSessions.LastOrDefault();
+                }
+
+                _main.Connection.HasActiveSessions =
+                    _main.Connection.ActiveSessions.Count > 0;
+            }
 
             // Re-connect through the server list's standard connection path
             var servers = await _configManager.LoadServersAsync();

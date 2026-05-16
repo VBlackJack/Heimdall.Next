@@ -62,6 +62,15 @@ public interface IEmbeddedSessionManager
     Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded view's disconnect overlay
+    /// requests the tab itself be closed (not just dismissing the overlay).
+    /// Parameters: (SessionTabViewModel session).
+    /// Wired by <c>SessionCoordinator</c> to delegate to
+    /// <c>ConnectionViewModel.CloseSessionAsync</c>.
+    /// </summary>
+    Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
+
+    /// <summary>
     /// Optional callback invoked when an embedded RDP view requests server profile editing.
     /// Parameters: (string serverId).
     /// Wired by MainViewModel to open the existing server edit flow.

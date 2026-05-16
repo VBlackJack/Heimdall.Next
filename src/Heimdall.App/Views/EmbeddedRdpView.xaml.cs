@@ -177,6 +177,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     /// </summary>
     public event Action<string>? EditServerRequested;
 
+    /// <summary>
+    /// Raised when the user clicks "Close" in the disconnect overlay.
+    /// The subscriber closes the owning session tab through the shared
+    /// <c>ConnectionViewModel.CloseSessionAsync</c> path.
+    /// </summary>
+    public event Action? CloseRequested;
+
     public EmbeddedRdpView()
     {
         InitializeComponent();
@@ -3333,6 +3340,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
     {
         ReconnectOverlay.Visibility = System.Windows.Visibility.Collapsed;
+        Core.Logging.FileLogger.Info("EmbeddedRDP Close requested via overlay");
+        CloseRequested?.Invoke();
     }
 
     private (int Width, int Height) GetDisplayDimensions()
