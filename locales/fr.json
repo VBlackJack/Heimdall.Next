@@ -1804,7 +1804,7 @@
   "ErrorTelnetConnectionFailed": "La connexion Telnet a \u00e9chou\u00e9 : {0}",
 
   "SessionDisconnect": "Deconnecter",
-  "SessionAspectRatio": "Ratio d'aspect",
+  "SessionAspectStretch": "Étirer",
   "SessionFullscreen": "Plein ecran (F11)",
   "SessionCloseSession": "Fermer la session",
   "SessionTitleSuffixForcedEmbedded": "(forc\u00e9 int\u00e9gr\u00e9)",

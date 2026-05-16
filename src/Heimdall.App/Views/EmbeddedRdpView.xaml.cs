@@ -2558,6 +2558,15 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _resizeTimer.Start();
     }
 
+    /// <summary>
+    /// Returns the currently active aspect ratio mode for the embedded RDP
+    /// session, normalised through <see cref="ParseAspectRatio"/>. Used by the
+    /// tab context menu to show a checkmark next to the active sub-item under
+    /// "Match Window".
+    /// </summary>
+    internal AspectRatio GetCurrentAspectRatio()
+        => ParseAspectRatio(_server?.RdpAspectRatio);
+
     private void OnResolutionButtonClick(object sender, RoutedEventArgs e)
     {
         // Update checkmarks to reflect current resolution
