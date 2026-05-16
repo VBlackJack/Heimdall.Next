@@ -1,0 +1,133 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CommonControls.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Carmilla — Warm taupe mid-light variant, the 1872 vampire -->
+    <Color x:Key="PrimaryColor">#C2BCB0</Color>
+    <Color x:Key="SecondaryColor">#B4AEA2</Color>
+    <Color x:Key="SurfaceColor">#A8A296</Color>
+    <Color x:Key="AccentColor">#7B4EAA</Color>
+    <Color x:Key="AccentHoverColor">#9468C0</Color>
+    <Color x:Key="AccentPressedColor">#643C92</Color>
+    <Color x:Key="TextPrimaryColor">#1A1816</Color>
+    <Color x:Key="TextSecondaryColor">#3C3830</Color>
+    <Color x:Key="TextDisabledColor">#746E62</Color>
+    <Color x:Key="SuccessColor">#0C6A0C</Color>
+    <Color x:Key="WarningColor">#B04A14</Color>
+    <Color x:Key="ErrorColor">#A82424</Color>
+    <Color x:Key="InfoColor">#005FA0</Color>
+    <Color x:Key="BorderColor">#746E62</Color>
+    <Color x:Key="HighlightColor">#AEA89C</Color>
+
+    <!-- WCAG-safe text variants for semantic colors on mid-light backgrounds -->
+    <Color x:Key="SuccessTextColor">#065006</Color>
+    <Color x:Key="WarningTextColor">#84360E</Color>
+    <Color x:Key="ErrorTextColor">#841A1A</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SecondaryColor}"/>
+    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#585248"/>
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="TreeViewIndentGuideBrush" Color="{StaticResource BorderColor}" Opacity="0.35"/>
+    <SolidColorBrush x:Key="HighlightBrush" Color="{StaticResource HighlightColor}"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+
+    <!-- Protocol accent color brushes (mid-light warm — strong saturation) -->
+    <SolidColorBrush x:Key="ProtocolRdpBrush" Color="#1A44B8"/>
+    <SolidColorBrush x:Key="ProtocolSshBrush" Color="#0C6A0C"/>
+    <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#885005"/>
+    <SolidColorBrush x:Key="ProtocolVncBrush" Color="#005FA0"/>
+    <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#4A4640"/>
+    <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#1E50C4"/>
+    <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#3C189A"/>
+    <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#7B4EAA"/>
+
+    <!-- Connection type badge colors -->
+    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#1A44B8"/>
+    <SolidColorBrush x:Key="SshBadgeBrush" Color="#0C6A0C"/>
+    <SolidColorBrush x:Key="SftpBadgeBrush" Color="#885005"/>
+    <SolidColorBrush x:Key="VncBadgeBrush" Color="#005FA0"/>
+    <SolidColorBrush x:Key="FtpBadgeBrush" Color="#1E50C4"/>
+    <SolidColorBrush x:Key="CitrixBadgeBrush" Color="#3C189A"/>
+    <SolidColorBrush x:Key="TelnetBadgeBrush" Color="#4A4640"/>
+    <SolidColorBrush x:Key="LocalBadgeBrush" Color="#7B4EAA"/>
+    <Color x:Key="ToolBadgeColor">#0A7064</Color>
+    <SolidColorBrush x:Key="ToolBadgeBrush" Color="#0A7064"/>
+    <!-- Per-category tool icon brushes -->
+    <SolidColorBrush x:Key="ToolNetworkBrush" Color="#1A44B8"/>
+    <SolidColorBrush x:Key="ToolSecurityBrush" Color="#885005"/>
+    <SolidColorBrush x:Key="ToolEncodingBrush" Color="#7B4EAA"/>
+    <SolidColorBrush x:Key="ToolSystemBrush" Color="#0A7064"/>
+    <SolidColorBrush x:Key="ToolExternalBrush" Color="#88103E"/>
+
+    <!-- JWT section colors -->
+    <Color x:Key="JwtHeaderColor">#225A94</Color>
+    <SolidColorBrush x:Key="JwtHeaderBrush" Color="{StaticResource JwtHeaderColor}"/>
+    <Color x:Key="JwtPayloadColor">#246E4A</Color>
+    <SolidColorBrush x:Key="JwtPayloadBrush" Color="{StaticResource JwtPayloadColor}"/>
+    <Color x:Key="JwtSignatureColor">#9E4418</Color>
+    <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
+
+    <!-- WCAG-safe semantic text brushes -->
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}"/>
+    <SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}"/>
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="{StaticResource ErrorTextColor}"/>
+
+    <!-- Badge text (light on dark badge backgrounds) -->
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#F0EDE8"/>
+
+    <!-- Explicit white text for content displayed on accent-colored backgrounds -->
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#F0EDE8"/>
+
+    <!-- Keyboard focus indicator -->
+    <SolidColorBrush x:Key="FocusIndicatorBrush" Color="#005FA0"/>
+
+    <!-- Overlay and feedback brushes -->
+    <SolidColorBrush x:Key="OverlayBackground" Color="#B3C2BCB0"/>
+    <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66C2BCB0"/>
+    <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44A82424"/>
+
+    <!-- File type icon colors -->
+    <SolidColorBrush x:Key="FileScriptBrush" Color="#0C6A0C"/>
+    <SolidColorBrush x:Key="FileConfigBrush" Color="#005FA0"/>
+    <SolidColorBrush x:Key="FileDocumentBrush" Color="#3C3830"/>
+    <SolidColorBrush x:Key="FileArchiveBrush" Color="#B04A14"/>
+    <SolidColorBrush x:Key="FileExecutableBrush" Color="#88103E"/>
+    <SolidColorBrush x:Key="FileImageBrush" Color="#746410"/>
+
+    <!-- Scrollbar colors -->
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#746E62"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#C2BCB0"/>
+
+    <!-- Hacker Simulator: retro-terminal aesthetic (identical across all themes) -->
+    <SolidColorBrush x:Key="HackerSimBackgroundBrush" Color="#0F0F0F"/>
+    <SolidColorBrush x:Key="HackerSimSurfaceBrush" Color="#151515"/>
+    <SolidColorBrush x:Key="HackerSimToolbarBrush" Color="#0F0F0F"/>
+    <SolidColorBrush x:Key="HackerSimBorderBrush" Color="#222222"/>
+    <SolidColorBrush x:Key="HackerSimInputBorderBrush" Color="#333333"/>
+    <SolidColorBrush x:Key="HackerSimTextPrimaryBrush" Color="#D4FFD9"/>
+    <SolidColorBrush x:Key="HackerSimTextSecondaryBrush" Color="#6FAF7C"/>
+    <SolidColorBrush x:Key="HackerSimTextMutedBrush" Color="#555555"/>
+    <SolidColorBrush x:Key="HackerSimButtonForegroundBrush" Color="#777777"/>
+    <SolidColorBrush x:Key="HackerSimButtonBackgroundBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="HackerSimAccentBrush" Color="#00FF41"/>
+    <SolidColorBrush x:Key="HackerSimHighlightBrush" Color="#FFD700"/>
+    <SolidColorBrush x:Key="HackerSimGlowBrush" Color="#1000FF41"/>
+    <SolidColorBrush x:Key="HackerSimGlowStrongBrush" Color="#2200FF41"/>
+    <SolidColorBrush x:Key="HackerSimOverlayBrush" Color="#16FFFFFF"/>
+
+</ResourceDictionary>
