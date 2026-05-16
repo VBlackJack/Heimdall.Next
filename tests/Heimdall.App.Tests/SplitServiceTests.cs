@@ -398,6 +398,7 @@ public sealed class SplitServiceTests : IDisposable
         public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
         public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
         public Action<string>? EditServerRequestedCallback { get; set; }
+        public Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
         public object CreateHostControl(

@@ -137,6 +137,32 @@ public sealed class SessionCoordinatorPreMountTests
     }
 
     [Fact]
+    public async Task ReconnectSession_Ssh_RemovesOldTabBeforeNewConnect()
+    {
+        using var harness = TestHarness.Create();
+        var sshHandler = harness.GetHandler("SSH");
+        var server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        // Establish first session and wait for tab to be present
+        var firstOutcome = await harness.RunPipelineAsync(server, "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        var oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+
+        // Reset the handler so the reconnect attempt can be observed independently
+        harness.ResetHandler("SSH");
+
+        // Trigger reconnect via the same entry point as the tab context menu
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        // The old tab must be removed synchronously (Close is sync via CloseSessionInternal)
+        await WaitUntilAsync(() => !harness.Main.Connection.ActiveSessions.Contains(oldTab));
+
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+    }
+
+    [Fact]
     public async Task CloseSessionCommand_WhileSshConnecting_CancelsPipelineToken()
     {
         using var harness = TestHarness.Create();
@@ -300,6 +326,29 @@ public sealed class SessionCoordinatorPreMountTests
             };
         }
 
+        /// <summary>
+        /// Saves the server to the inventory and refreshes the ServerList VM so
+        /// reconnect lookups via <c>_main.ServerList.Servers.FirstOrDefault</c>
+        /// can find the server by id (the lookup is the same path used by the
+        /// production reconnect flow).
+        /// </summary>
+        public async Task PersistServerAsync(ServerProfileDto server)
+        {
+            var inventory = await Main.ConfigManager.LoadServersAsync();
+            var list = inventory.ToList();
+            list.RemoveAll(s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+            list.Add(server);
+            await Main.ConfigManager.SaveServersAsync(list);
+
+            var settings = await Main.ConfigManager.LoadSettingsAsync();
+            Main.ServerList.LoadServers(list, settings);
+        }
+
+        public void ResetHandler(string protocol)
+        {
+            Handlers[protocol].Reset();
+        }
+
         public Task<BulkConnectOutcome> RunPipelineAsync(
             ServerProfileDto server,
             string sessionId,
@@ -338,11 +387,23 @@ public sealed class SessionCoordinatorPreMountTests
     {
         public string Protocol { get; } = protocol;
 
-        public TaskCompletionSource<CancellationToken> Started { get; } =
+        public TaskCompletionSource<CancellationToken> Started { get; private set; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public TaskCompletionSource<ConnectionResult> Result { get; } =
+        public TaskCompletionSource<ConnectionResult> Result { get; private set; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
+        /// Replaces the started/result task completion sources so the next
+        /// <see cref="ConnectAsync"/> call starts fresh. Used by reconnect
+        /// tests that need to observe a second connection attempt after the
+        /// first has already completed.
+        /// </summary>
+        public void Reset()
+        {
+            Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Result = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
 
         public Task<ConnectionResult> ConnectAsync(
             ServerProfileDto server,
@@ -363,6 +424,7 @@ public sealed class SessionCoordinatorPreMountTests
         public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
         public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }
         public Action<string>? EditServerRequestedCallback { get; set; }
+        public Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
         public int CreateHostControlCalls { get; private set; }
