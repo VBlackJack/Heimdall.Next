@@ -11,6 +11,12 @@
 
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
+title Heimdall.Next - Debug
+
+:: Detect double-click launch (Explorer wraps the call in cmd.exe /c "...").
+:: When set, all exit points hit a final pause so the user can read output.
+set DOUBLE_CLICK=
+echo %CMDCMDLINE% | find /i "/c" >nul && set DOUBLE_CLICK=1
 
 :: ----- argument parsing ----------------------------------------------------
 set CLEAN=
@@ -23,7 +29,8 @@ if /i "%~1"=="pull"  (set PULL=1  & shift & goto :parse_args)
 if "%~1"=="--" (shift & goto :passthrough_loop)
 echo Unknown flag: %~1
 echo Usage: Run.bat [pull] [clean] [-- args-for-app]
-exit /b 2
+set EXIT=2
+goto :end
 :passthrough_loop
 if "%~1"=="" goto :args_done
 set PASSTHROUGH=!PASSTHROUGH! "%~1"
@@ -80,6 +87,17 @@ set EXIT=%ERRORLEVEL%
 if %EXIT% NEQ 0 (
     echo.
     echo Run failed with exit code %EXIT%.
+)
+
+:end
+:: From a terminal, exit silently on success and only pause on failure
+:: (preserves scriptable use). From a double-click, always pause so the
+:: banner, dotnet output and any error are readable before the window
+:: disappears.
+if defined DOUBLE_CLICK (
+    echo.
+    pause
+) else if not "%EXIT%"=="0" (
     pause
 )
 exit /b %EXIT%
