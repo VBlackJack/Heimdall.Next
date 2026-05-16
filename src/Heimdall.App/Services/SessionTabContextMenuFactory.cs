@@ -202,7 +202,15 @@ public sealed class SessionTabContextMenuFactory
         fullscreenItem.Click += (_, _) => callbacks.ToggleFullscreen();
         menu.Items.Add(fullscreenItem);
 
-        // Duplicate tab (reconnect same server in new tab)
+        // Reconnect session: close the current tab and re-open the same server.
+        // Uses the same flow as the disconnect overlay so the existing tab is
+        // always replaced rather than leaving a stale disconnected tab behind.
+        var reconnectItem = new MenuItem { Header = vm.Localize("SessionReconnectTab") };
+        reconnectItem.Click += (_, _) => vm.Session.ReconnectSession(session);
+        menu.Items.Add(reconnectItem);
+
+        // Duplicate session: open a second tab for the same server while
+        // keeping the current one. Distinct from "Reconnect".
         var duplicateItem = new MenuItem { Header = vm.Localize("SessionDuplicateTab") };
         duplicateItem.Click += (_, _) =>
         {

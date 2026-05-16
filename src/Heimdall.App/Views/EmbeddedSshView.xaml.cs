@@ -241,6 +241,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// </summary>
     public event Action? ReconnectRequested;
 
+    /// <summary>
+    /// Raised when the user clicks the Close button on the disconnect overlay.
+    /// The subscriber (EmbeddedSessionManager) closes the owning session tab
+    /// through the shared <c>ConnectionViewModel.CloseSessionAsync</c> path.
+    /// </summary>
+    public event Action? CloseRequested;
+
     public EmbeddedSshView()
     {
         InitializeComponent();
@@ -680,7 +687,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        StopAutoReconnectTimer();
         HideReconnectOverlay();
+        Core.Logging.FileLogger.Info("EmbeddedSSH Close requested via overlay");
+        CloseRequested?.Invoke();
     }
 
     private void OnAutoReconnectCancelClick(object sender, RoutedEventArgs e)

@@ -86,6 +86,15 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
     public Action<string>? EditServerRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded view's disconnect overlay
+    /// requests the tab itself be closed (the user clicked "Close" rather than
+    /// "Reconnect" or "Dismiss"). Parameters: (SessionTabViewModel session).
+    /// Wired by <c>SessionCoordinator</c> to call
+    /// <c>ConnectionViewModel.CloseSessionAsync</c>.
+    /// </summary>
+    public Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
+
+    /// <summary>
     /// Optional callback for cross-tool navigation. Allows tool views to open other tools.
     /// Parameters: (string toolId, string title, ToolContext? context).
     /// Wired by MainViewModel to delegate to <c>OpenToolTabAsync</c>.
@@ -155,6 +164,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                     view.OwningPane ?? sessionTab.PrimaryPane,
                     DisconnectReason.UserAction);
             view.EditServerRequested += serverId => EditServerRequestedCallback?.Invoke(serverId);
+            view.CloseRequested += () => CloseRequestedCallback?.Invoke(sessionTab);
             return view;
         }
 
@@ -748,6 +758,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 tab,
                 !string.IsNullOrEmpty(tab.OriginalServerId) ? tab.OriginalServerId : tab.ServerId,
                 tab.ConnectionType);
+        view.CloseRequested += () => CloseRequestedCallback?.Invoke(tab);
     }
 
     private void WireSplitRequested(EmbeddedSshView view, SessionTabViewModel tab)
