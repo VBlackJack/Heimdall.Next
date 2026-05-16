@@ -397,6 +397,114 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         AboutVersionText.Text = string.Format(LocalizeWindowString("AboutVersion"), infoVersion);
         AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
+
+        // WebView2 version
+        try
+        {
+            AboutWebView2Text.Text = Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString();
+        }
+        catch
+        {
+            AboutWebView2Text.Text = "N/A";
+        }
+
+        // SSH.NET version
+        var sshNetAsm = typeof(Renci.SshNet.SshClient).Assembly;
+        var sshNetVersion = sshNetAsm.GetName().Version;
+        AboutSshNetText.Text = sshNetVersion is not null ? sshNetVersion.ToString() : "N/A";
+
+        // Build date from informational version (format: YYYY.MMDDxx)
+        if (infoVersion.Length >= 8 && int.TryParse(infoVersion[..4], out var year)
+            && int.TryParse(infoVersion[5..7], out var month)
+            && int.TryParse(infoVersion[7..9], out var day))
+        {
+            try
+            {
+                AboutBuildDateText.Text = new DateTime(year, month, day).ToString("yyyy-MM-dd");
+            }
+            catch
+            {
+                AboutBuildDateText.Text = infoVersion;
+            }
+        }
+        else
+        {
+            AboutBuildDateText.Text = infoVersion;
+        }
+
+        // Data section
+        PopulateAboutDataSection();
+    }
+
+    private async void PopulateAboutDataSection()
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        try
+        {
+            var servers = await vm.ConfigManager.LoadServersAsync();
+            var settings = await vm.ConfigManager.LoadSettingsAsync();
+            AboutServersText.Text = servers.Count.ToString();
+            AboutGatewaysText.Text = settings.SshGateways.Count.ToString();
+        }
+        catch
+        {
+            AboutServersText.Text = "?";
+            AboutGatewaysText.Text = "?";
+        }
+
+        var configPath = vm.ConfigManager.ConfigPath;
+        var logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+        AboutConfigPathText.Text = configPath;
+        AboutConfigPathText.ToolTip = configPath;
+        AboutLogPathText.Text = logPath;
+        AboutLogPathText.ToolTip = logPath;
+    }
+
+    private void OnAboutOpenConfigClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            OpenFolderInExplorer(vm.ConfigManager.ConfigPath);
+        }
+    }
+
+    private void OnAboutOpenLogsClick(object sender, RoutedEventArgs e)
+    {
+        var logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+        OpenFolderInExplorer(logPath);
+    }
+
+    private void OnAboutGitHubClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/VBlackJack/Heimdall.Next",
+                UseShellExecute = true
+            });
+        }
+        catch { /* best effort */ }
+    }
+
+    private static void OpenFolderInExplorer(string path)
+    {
+        try
+        {
+            if (System.IO.Directory.Exists(path))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch { /* best effort */ }
     }
 
     private string LocalizeWindowString(string key)
