@@ -41,6 +41,9 @@ public sealed class ThemeService
         ["Morbius"] = new Uri("Themes/MorbiusTheme.xaml", UriKind.Relative),
         ["VanHelsing"] = new Uri("Themes/VanHelsingTheme.xaml", UriKind.Relative),
         ["Nosferatu"] = new Uri("Themes/NosferatuTheme.xaml", UriKind.Relative),
+        ["Renfield"] = new Uri("Themes/RenfieldTheme.xaml", UriKind.Relative),
+        ["Carmilla"] = new Uri("Themes/CarmillaTheme.xaml", UriKind.Relative),
+        ["Drakula"] = new Uri("Themes/DrakulaTheme.xaml", UriKind.Relative),
     };
 
     private readonly IConfigManager _configManager;

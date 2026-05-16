@@ -58,7 +58,7 @@ public class ThemeServiceTests : IDisposable
     {
         var themes = ThemeService.AvailableThemes.ToList();
 
-        Assert.Equal(8, themes.Count);
+        Assert.Equal(11, themes.Count);
         Assert.Contains("DraculaPro", themes);
         Assert.Contains("Alucard", themes);
         Assert.Contains("Blade", themes);
@@ -67,6 +67,9 @@ public class ThemeServiceTests : IDisposable
         Assert.Contains("Morbius", themes);
         Assert.Contains("VanHelsing", themes);
         Assert.Contains("Nosferatu", themes);
+        Assert.Contains("Renfield", themes);
+        Assert.Contains("Carmilla", themes);
+        Assert.Contains("Drakula", themes);
     }
 
     [Fact]

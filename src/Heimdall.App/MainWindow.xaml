@@ -1902,6 +1902,9 @@
                                                     <ComboBoxItem x:Name="Mw_ThemeMorbius" Content="{loc:Translate ThemeMorbius}" Tag="Morbius" AutomationProperties.Name="{loc:Translate ThemeMorbius}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeVanHelsing" Content="{loc:Translate ThemeVanHelsing}" Tag="VanHelsing" AutomationProperties.Name="{loc:Translate ThemeVanHelsing}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeNosferatu" Content="{loc:Translate ThemeNosferatu}" Tag="Nosferatu" AutomationProperties.Name="{loc:Translate ThemeNosferatu}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeRenfield" Content="{loc:Translate ThemeRenfield}" Tag="Renfield" AutomationProperties.Name="{loc:Translate ThemeRenfield}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeCarmilla" Content="{loc:Translate ThemeCarmilla}" Tag="Carmilla" AutomationProperties.Name="{loc:Translate ThemeCarmilla}"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeDrakula" Content="{loc:Translate ThemeDrakula}" Tag="Drakula" AutomationProperties.Name="{loc:Translate ThemeDrakula}"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>
