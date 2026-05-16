@@ -44,6 +44,10 @@ public sealed class ThemeService
         ["Renfield"] = new Uri("Themes/RenfieldTheme.xaml", UriKind.Relative),
         ["Carmilla"] = new Uri("Themes/CarmillaTheme.xaml", UriKind.Relative),
         ["Drakula"] = new Uri("Themes/DrakulaTheme.xaml", UriKind.Relative),
+        ["Bathory"] = new Uri("Themes/BathoryTheme.xaml", UriKind.Relative),
+        ["Striga"] = new Uri("Themes/StrigaTheme.xaml", UriKind.Relative),
+        ["Akasha"] = new Uri("Themes/AkashaTheme.xaml", UriKind.Relative),
+        ["Helsing"] = new Uri("Themes/HelsingTheme.xaml", UriKind.Relative),
     };
 
     private readonly IConfigManager _configManager;
