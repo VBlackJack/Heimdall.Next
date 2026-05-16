@@ -1977,6 +1977,7 @@
   "ThemeLincoln": "Lincoln",
   "ThemeMorbius": "Morbius",
   "ThemeVanHelsing": "Van Helsing",
+  "ThemeNosferatu": "Nosferatu (Light)",
   "SettingsSectionExternalTools": "External tools",
   "SettingsLabelPlinkPath": "PuTTY/Plink path",
   "SettingsLabelPuttyPath": "PuTTY path (for External SSH mode)",

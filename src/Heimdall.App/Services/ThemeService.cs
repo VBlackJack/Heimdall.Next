@@ -40,6 +40,7 @@ public sealed class ThemeService
         ["Lincoln"] = new Uri("Themes/LincolnTheme.xaml", UriKind.Relative),
         ["Morbius"] = new Uri("Themes/MorbiusTheme.xaml", UriKind.Relative),
         ["VanHelsing"] = new Uri("Themes/VanHelsingTheme.xaml", UriKind.Relative),
+        ["Nosferatu"] = new Uri("Themes/NosferatuTheme.xaml", UriKind.Relative),
     };
 
     private readonly IConfigManager _configManager;

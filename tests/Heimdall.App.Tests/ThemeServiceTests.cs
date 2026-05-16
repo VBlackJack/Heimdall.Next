@@ -54,11 +54,11 @@ public class ThemeServiceTests : IDisposable
     }
 
     [Fact]
-    public void AvailableThemes_Contains_All_Seven_Dracula_Variants()
+    public void AvailableThemes_Contains_All_Dracula_Variants()
     {
         var themes = ThemeService.AvailableThemes.ToList();
 
-        Assert.Equal(7, themes.Count);
+        Assert.Equal(8, themes.Count);
         Assert.Contains("DraculaPro", themes);
         Assert.Contains("Alucard", themes);
         Assert.Contains("Blade", themes);
@@ -66,6 +66,7 @@ public class ThemeServiceTests : IDisposable
         Assert.Contains("Lincoln", themes);
         Assert.Contains("Morbius", themes);
         Assert.Contains("VanHelsing", themes);
+        Assert.Contains("Nosferatu", themes);
     }
 
     [Fact]
