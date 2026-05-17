@@ -90,8 +90,8 @@
     <!-- Badge text (dark on bright badge backgrounds) -->
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#15101A"/>
 
-    <!-- Explicit white text for content displayed on accent-colored backgrounds -->
-    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+    <!-- WCAG-safe dark text for content displayed on light pastel accent backgrounds -->
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#241C2C"/>
 
     <!-- Keyboard focus indicator (high-contrast ring for accessibility) -->
     <SolidColorBrush x:Key="FocusIndicatorBrush" Color="#9CEFFF"/>
