@@ -1888,6 +1888,7 @@
   "TooltipHideSidebar": "Hide sidebar (Ctrl+B)",
   "TooltipShowSidebar": "Show sidebar (Ctrl+B)",
   "TooltipAddMenu": "Add session, folder, or gateway (Ctrl+N)",
+  "TooltipSidebarOverflow": "More actions",
 
   "DetailLabelGroup": "Group:",
   "DetailLabelEnvironment": "Environment:",

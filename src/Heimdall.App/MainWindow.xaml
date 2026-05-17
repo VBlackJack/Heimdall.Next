@@ -282,80 +282,71 @@
                             <!-- ============ SESSIONS TAB CONTENT ============ -->
                             <DockPanel x:Name="SidebarSessionsContent"
                                        Visibility="{Binding IsChecked, ElementName=SidebarTabSessions, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <!-- Filter + add/expand/collapse toolbar -->
-                                <Grid DockPanel.Dock="Top" Margin="8,8,8,6">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <Grid Grid.Row="0" MinWidth="120">
-                                        <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{DynamicResource SearchTextBoxStyle}"
-                                                 Tag="{loc:Translate SearchPlaceholder}" Padding="10,6,28,6"
-                                                 AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
-                                        <Button x:Name="Mw_FilterClearBtn"
-                                                Content="&#xE711;"
-                                                FontFamily="Segoe MDL2 Assets"
-                                                FontSize="{StaticResource FontSizeSmallCaption}"
-                                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                Margin="0,0,4,0"
-                                                Padding="4"
-                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                MinHeight="0"
-                                                Click="OnFilterClearClick"
-                                                Visibility="Collapsed"
-                                                AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
-                                    </Grid>
-
-                                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                                <!-- Filter + add/overflow toolbar (single row to free vertical space) -->
+                                <StackPanel DockPanel.Dock="Top" Margin="8,8,8,6">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*" MinWidth="120"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock x:Name="Mw_FilterResultCount"
-                                                   Grid.Column="0"
-                                                   FontSize="{StaticResource FontSizeSmallCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Visibility="Collapsed"/>
-                                        <StackPanel Grid.Column="1"
-                                                    Orientation="Horizontal"
-                                                    HorizontalAlignment="Right">
-                                            <Button x:Name="AddButton"
-                                                    Click="OnAddButtonClick"
-                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                    Padding="6,6" FontSize="{StaticResource FontSizeBody}"
-                                                    Width="32" Height="32"
+
+                                        <Grid Grid.Column="0">
+                                            <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{DynamicResource SearchTextBoxStyle}"
+                                                     Tag="{loc:Translate SearchPlaceholder}" Padding="10,6,28,6"
+                                                     AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
+                                            <Button x:Name="Mw_FilterClearBtn"
+                                                    Content="&#xE711;"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    FontSize="{StaticResource FontSizeSmallCaption}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
                                                     Margin="0,0,4,0"
-                                                    ToolTip="{loc:Translate TooltipAddMenu}"
-                                                    AutomationProperties.Name="{loc:Translate TooltipAddMenu}">
-                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
-                                                <Button.ContextMenu>
-                                                    <ContextMenu x:Name="AddMenu"
-                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                        <MenuItem x:Name="Mw_AddMenuSession" Header="{loc:Translate AddMenuSession}" Command="{Binding ServerList.AddServerCommand}"/>
-                                                        <MenuItem x:Name="Mw_AddMenuTool" Header="{loc:Translate AddMenuTool}" Click="OnAddToolMenuClick"/>
-                                                        <Separator/>
-                                                        <MenuItem x:Name="Mw_AddMenuGateway" Header="{loc:Translate AddMenuGateway}" Command="{Binding Settings.AddGatewayCommand}"/>
-                                                        <MenuItem x:Name="Mw_AddMenuFolder" Header="{loc:Translate AddMenuFolder}" Click="OnAddFolderFromMenu"/>
-                                                    </ContextMenu>
-                                                </Button.ContextMenu>
-                                            </Button>
-                                            <Button x:Name="ImportButton"
-                                                    Click="OnImportButtonClick"
+                                                    Padding="4"
                                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                    Padding="6,6" FontSize="{StaticResource FontSizeBody}"
-                                                    Width="32" Height="32"
-                                                    Margin="0,0,4,0"
-                                                    ToolTip="{loc:Translate A11yImportMenu}"
-                                                    AutomationProperties.Name="{loc:Translate A11yImportMenu}">
-                                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
-                                                <Button.ContextMenu>
-                                                    <ContextMenu x:Name="ImportMenu"
-                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                    MinHeight="0"
+                                                    Click="OnFilterClearClick"
+                                                    Visibility="Collapsed"
+                                                    AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
+                                        </Grid>
+
+                                        <Button Grid.Column="1"
+                                                x:Name="AddButton"
+                                                Click="OnAddButtonClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="6,6" FontSize="{StaticResource FontSizeBody}"
+                                                Width="32" Height="32"
+                                                Margin="6,0,0,0"
+                                                ToolTip="{loc:Translate TooltipAddMenu}"
+                                                AutomationProperties.Name="{loc:Translate TooltipAddMenu}">
+                                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
+                                            <Button.ContextMenu>
+                                                <ContextMenu x:Name="AddMenu"
+                                                             DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                    <MenuItem x:Name="Mw_AddMenuSession" Header="{loc:Translate AddMenuSession}" Command="{Binding ServerList.AddServerCommand}"/>
+                                                    <MenuItem x:Name="Mw_AddMenuTool" Header="{loc:Translate AddMenuTool}" Click="OnAddToolMenuClick"/>
+                                                    <Separator/>
+                                                    <MenuItem x:Name="Mw_AddMenuGateway" Header="{loc:Translate AddMenuGateway}" Command="{Binding Settings.AddGatewayCommand}"/>
+                                                    <MenuItem x:Name="Mw_AddMenuFolder" Header="{loc:Translate AddMenuFolder}" Click="OnAddFolderFromMenu"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
+
+                                        <Button Grid.Column="2"
+                                                x:Name="SidebarOverflowButton"
+                                                Click="OnSidebarOverflowClick"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="6,6" FontSize="{StaticResource FontSizeBody}"
+                                                Width="32" Height="32"
+                                                Margin="2,0,0,0"
+                                                ToolTip="{loc:Translate TooltipSidebarOverflow}"
+                                                AutomationProperties.Name="{loc:Translate TooltipSidebarOverflow}">
+                                            <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
+                                            <Button.ContextMenu>
+                                                <ContextMenu x:Name="SidebarOverflowMenu"
+                                                             DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                    <MenuItem Header="{loc:Translate A11yImportMenu}"
+                                                              AutomationProperties.Name="{loc:Translate A11yImportMenu}">
                                                         <MenuItem Header="{loc:Translate MenuImportRdp}"
                                                                   Click="OnImportRdpClick"
                                                                   AutomationProperties.Name="{loc:Translate A11yImportRdp}"/>
@@ -369,31 +360,27 @@
                                                         <MenuItem Header="{loc:Translate MenuImportKnownHosts}"
                                                                   Command="{Binding ServerList.ImportKnownHostsCommand}"
                                                                   AutomationProperties.Name="{loc:Translate A11yImportKnownHosts}"/>
-                                                    </ContextMenu>
-                                                </Button.ContextMenu>
-                                            </Button>
-                                            <Button x:Name="ExpandAllButton"
-                                                    Content="&#xE70E;"
-                                                    FontFamily="Segoe MDL2 Assets"
-                                                    Click="OnExpandAllClick"
-                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                                    Width="32" Height="32"
-                                                    Margin="0,0,2,0"
-                                                    ToolTip="{loc:Translate TooltipExpandAll}"
-                                                    AutomationProperties.Name="{loc:Translate TooltipExpandAll}"/>
-                                            <Button x:Name="CollapseAllButton"
-                                                    Content="&#xE70D;"
-                                                    FontFamily="Segoe MDL2 Assets"
-                                                    Click="OnCollapseAllClick"
-                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                                    Width="32" Height="32"
-                                                    ToolTip="{loc:Translate TooltipCollapseAll}"
-                                                    AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"/>
-                                        </StackPanel>
+                                                    </MenuItem>
+                                                    <Separator/>
+                                                    <MenuItem Header="{loc:Translate TooltipExpandAll}"
+                                                              Click="OnExpandAllClick"
+                                                              AutomationProperties.Name="{loc:Translate TooltipExpandAll}"/>
+                                                    <MenuItem Header="{loc:Translate TooltipCollapseAll}"
+                                                              Click="OnCollapseAllClick"
+                                                              AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
                                     </Grid>
-                                </Grid>
+
+                                    <!-- Result count hint: collapses to 0 height when filter is inactive (code-behind toggles Visibility) -->
+                                    <TextBlock x:Name="Mw_FilterResultCount"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Margin="2,4,0,0"
+                                               TextTrimming="CharacterEllipsis"
+                                               Visibility="Collapsed"/>
+                                </StackPanel>
 
                                 <Border x:Name="SessionTreeNoGroupDropZone"
                                         DockPanel.Dock="Top"
