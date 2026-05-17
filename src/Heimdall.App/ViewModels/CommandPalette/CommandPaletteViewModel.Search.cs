@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.ViewModels.CommandPalette;
@@ -143,21 +144,64 @@ public sealed partial class CommandPaletteViewModel
             return;
         }
 
-        // Check for tool commands first (e.g., "subnet 192.168.1.0/24", "hash", "tools")
-        var toolItems = TryParseToolCommand(query);
-        if (toolItems.Count > 0)
+        // Explicit tool invocation with argument: "ping 8.8.8.8", "subnet 10.0.0.0/8".
+        // Returns single tool result so the argument-bearing flow stays uncluttered.
+        var explicitTool = TryParseExplicitToolInvocation(query);
+        if (explicitTool is not null)
         {
-            Results = new ObservableCollection<ServerItemViewModel>(toolItems);
+            Results = new ObservableCollection<ServerItemViewModel>([explicitTool]);
             SelectedItem = Results.FirstOrDefault();
             return;
         }
 
-        var matches = _main.ServerList.Servers
-            .Select(s => (Server: s, Score: FuzzyScore(s, query)))
-            .Where(x => x.Score > 0)
+        // Special: "tool" or "tools" lists every registered tool, grouped by category.
+        if (string.Equals(query, "tool", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(query, "tools", StringComparison.OrdinalIgnoreCase))
+        {
+            var allTools = _toolRegistry.All.Select(BuildToolPaletteItem).ToList();
+            Results = new ObservableCollection<ServerItemViewModel>(allTools);
+            SelectedItem = Results.FirstOrDefault();
+            return;
+        }
+
+        // Unified fuzzy ranking across tools (label + aliases), external tools,
+        // and the server inventory. Lets queries like "calculator" or "encoder"
+        // surface tool matches that the prefix-only path used to miss.
+        var scored = new List<(ServerItemViewModel Item, int Score)>();
+
+        foreach (var desc in _toolRegistry.All)
+        {
+            var score = ScoreToolDescriptor(desc, query);
+            if (score > 0)
+            {
+                scored.Add((BuildToolPaletteItem(desc), score));
+            }
+        }
+
+        var extTools = _main.CurrentSettings?.ExternalTools ?? [];
+        foreach (var ext in extTools)
+        {
+            if (string.IsNullOrWhiteSpace(ext.Name)) continue;
+            var score = FuzzyScoreString(ext.Name, query);
+            if (score > 0)
+            {
+                scored.Add((BuildExternalToolItem(ext), score));
+            }
+        }
+
+        foreach (var server in _main.ServerList.Servers)
+        {
+            var score = FuzzyScore(server, query);
+            if (score > 0)
+            {
+                scored.Add((server, score));
+            }
+        }
+
+        var matches = scored
             .OrderByDescending(x => x.Score)
-            .Select(x => x.Server)
-            .Take(15)
+            .Take(20)
+            .Select(x => x.Item)
             .ToList();
 
         // Ad-hoc SSH URL parsing: "ssh user@host" or "user@host:port"
@@ -261,87 +305,81 @@ public sealed partial class CommandPaletteViewModel
     }
 
     /// <summary>
-    /// Checks whether the palette query matches a tool command prefix.
-    /// Returns matching tool palette items, or all tools when the query is
-    /// <c>"tool"</c> / <c>"tools"</c>. Uses the centralized
-    /// <see cref="ToolRegistry"/> instead of a static array.
+    /// Detects an explicit tool invocation of the form <c>"&lt;prefix&gt; &lt;argument&gt;"</c>
+    /// (e.g. <c>"ping 8.8.8.8"</c>, <c>"subnet 10.0.0.0/8"</c>). The matching descriptor
+    /// must declare a <see cref="ToolDescriptor.LabelWithArgKey"/>; otherwise the input
+    /// falls through to the unified fuzzy ranker. Returns <c>null</c> when no descriptor
+    /// matches an explicit argument-bearing invocation.
     /// </summary>
-    private List<ServerItemViewModel> TryParseToolCommand(string query)
+    private ServerItemViewModel? TryParseExplicitToolInvocation(string query)
     {
-        var results = new List<ServerItemViewModel>();
         var lower = query.ToLowerInvariant();
-
-        // Show all tools when user types "tool" or "tools", grouped by category
-        if (lower is "tool" or "tools")
-        {
-            foreach (var descriptor in _toolRegistry.All)
-            {
-                results.Add(new ServerItemViewModel
-                {
-                    Id = $"tool-{descriptor.Id.ToLowerInvariant()}",
-                    DisplayName = _localizer[descriptor.LabelKey],
-                    ConnectionType = descriptor.ToolType,
-                    Group = _localizer[descriptor.CategoryLabelKey]
-                });
-            }
-            return results;
-        }
-
-        // Check if query starts with a known tool prefix
         foreach (var descriptor in _toolRegistry.All)
         {
+            if (descriptor.LabelWithArgKey is null) continue;
+
             foreach (var prefix in descriptor.CommandPrefixes)
             {
-                if (!lower.StartsWith(prefix, StringComparison.Ordinal))
-                    continue;
+                // Require "<prefix> <something>" so plain "ping" still flows through ranking.
+                if (!lower.StartsWith(prefix + " ", StringComparison.Ordinal)) continue;
 
                 var rest = query[prefix.Length..].Trim();
-                string displayName;
+                if (string.IsNullOrEmpty(rest)) continue;
 
-                if (!string.IsNullOrEmpty(rest) && descriptor.LabelWithArgKey is not null)
-                {
-                    displayName = _localizer.Format(descriptor.LabelWithArgKey, rest);
-                }
-                else
-                {
-                    displayName = _localizer[descriptor.LabelKey];
-                }
-
-                results.Add(new ServerItemViewModel
+                return new ServerItemViewModel
                 {
                     Id = $"tool-{descriptor.Id.ToLowerInvariant()}|{rest}",
-                    DisplayName = displayName,
+                    DisplayName = _localizer.Format(descriptor.LabelWithArgKey, rest),
                     ConnectionType = descriptor.ToolType,
                     Group = _localizer["PaletteToolsSectionHeader"]
-                });
-                break;
-            }
-
-            if (results.Count > 0) break;
-        }
-
-        // Always search external tools (even when a built-in tool matched,
-        // so user-defined tools with overlapping names remain discoverable).
-        var extTools = _main.CurrentSettings?.ExternalTools ?? [];
-        foreach (var ext in extTools)
-        {
-            if (string.IsNullOrWhiteSpace(ext.Name)) continue;
-
-            if (FuzzyScoreString(ext.Name, query) > 0
-                || ext.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
-            {
-                results.Add(new ServerItemViewModel
-                {
-                    Id = $"ext-tool-{ext.Name}",
-                    DisplayName = ext.Name,
-                    ConnectionType = "EXTERNAL",
-                    Group = _localizer["PaletteExternalToolsHeader"]
-                });
+                };
             }
         }
-
-        return results;
+        return null;
     }
+
+    /// <summary>
+    /// Scores a tool descriptor against a free-text query. Considers the localized
+    /// label, every alias in <see cref="ToolDescriptor.CommandPrefixes"/>, and the
+    /// localized category (with halved weight). Exact alias matches return a synthetic
+    /// top score so typing a known command (<c>"ping"</c>) keeps its historical ranking.
+    /// </summary>
+    private int ScoreToolDescriptor(ToolDescriptor descriptor, string query)
+    {
+        var best = FuzzyScoreString(_localizer[descriptor.LabelKey], query);
+
+        foreach (var prefix in descriptor.CommandPrefixes)
+        {
+            if (string.Equals(prefix, query, StringComparison.OrdinalIgnoreCase))
+            {
+                return ToolExactAliasScore;
+            }
+            best = Math.Max(best, FuzzyScoreString(prefix, query));
+        }
+
+        best = Math.Max(best, FuzzyScoreString(_localizer[descriptor.CategoryLabelKey], query) / 2);
+        return best;
+    }
+
+    /// <summary>Builds the palette item for a built-in tool (no argument).</summary>
+    private ServerItemViewModel BuildToolPaletteItem(ToolDescriptor descriptor) => new()
+    {
+        Id = $"tool-{descriptor.Id.ToLowerInvariant()}",
+        DisplayName = _localizer[descriptor.LabelKey],
+        ConnectionType = descriptor.ToolType,
+        Group = _localizer[descriptor.CategoryLabelKey]
+    };
+
+    /// <summary>Builds the palette item for a user-configured external tool.</summary>
+    private ServerItemViewModel BuildExternalToolItem(ExternalToolDefinition ext) => new()
+    {
+        Id = $"ext-tool-{ext.Name}",
+        DisplayName = ext.Name,
+        ConnectionType = "EXTERNAL",
+        Group = _localizer["PaletteExternalToolsHeader"]
+    };
+
+    private const int ToolExactAliasScore = 999;
 
     /// <summary>
     /// Returns true when the input looks like a bare IP address or hostname
