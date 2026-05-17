@@ -122,7 +122,7 @@
                 <!-- Parse error -->
                 <TextBlock x:Name="ParseError" Grid.Row="1"
                            FontSize="{StaticResource FontSizeBody}"
-                           Foreground="{DynamicResource ErrorBrush}"
+                           Foreground="{DynamicResource ErrorTextBrush}"
                            TextWrapping="Wrap"
                            Visibility="{Binding ShowParseError, Converter={StaticResource BoolToVisibilityConverter}}"
                            Margin="{StaticResource MarginSubsectionTop}"/>

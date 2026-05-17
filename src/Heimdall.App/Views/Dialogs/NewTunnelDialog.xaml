@@ -67,7 +67,7 @@
                 Visibility="{Binding HasNoGateways, Converter={StaticResource BoolToVisibilityConverter}}">
             <TextBlock Text="{loc:Translate NewTunnelNoGatewaysNotice}"
                        TextWrapping="Wrap"
-                       Foreground="{DynamicResource WarningBrush}"/>
+                       Foreground="{DynamicResource WarningTextBrush}"/>
         </Border>
 
         <Border Grid.Row="2"

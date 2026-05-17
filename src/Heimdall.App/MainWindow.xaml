@@ -1285,7 +1285,7 @@
                                         <TextBlock Grid.Row="5" Grid.Column="1"
                                                    Text="&#xE735;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="{StaticResource FontSizeBody}"
-                                                   Foreground="{DynamicResource WarningBrush}"
+                                                   Foreground="{DynamicResource WarningTextBrush}"
                                                    Margin="0,2,0,2"
                                                    Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"
                                                    AutomationProperties.Name="Favorite"/>
@@ -2531,7 +2531,7 @@
                                                                     AutomationProperties.Name="{loc:Translate SettingsRdpResolutionPresetRemove}"/>
                                                         </Grid>
                                                         <TextBlock Text="{Binding Error}"
-                                                                   Foreground="{DynamicResource ErrorBrush}"
+                                                                   Foreground="{DynamicResource ErrorTextBrush}"
                                                                    FontSize="{StaticResource FontSizeCaption}"
                                                                    Margin="0,4,0,0"
                                                                    Visibility="{Binding Error, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -2689,7 +2689,7 @@
                                         <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
                                                    Margin="20,4,0,0"
                                                    FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource WarningBrush}"
+                                                   Foreground="{DynamicResource WarningTextBrush}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
@@ -2788,7 +2788,7 @@
                                             <TextBlock x:Name="Mw_SettingsCmdLibSyncLblToken" Grid.Row="2" Grid.Column="0" Text="{loc:Translate SettingsCmdLibSyncToken}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                             <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
                                                 <Button x:Name="Mw_SettingsCmdLibSyncTokenClear" DockPanel.Dock="Right" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="OnCmdLibSyncTokenClear" Style="{DynamicResource ToolbarGhostButtonStyle}" FontSize="12" Width="24" Height="24" Margin="4,0,0,0" Visibility="Collapsed" ToolTip="{loc:Translate SettingsCmdLibSyncTokenClear}" AutomationProperties.Name="{loc:Translate SettingsCmdLibSyncTokenClear}"/>
-                                                <TextBlock x:Name="Mw_SettingsCmdLibSyncTokenStatus" DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SuccessBrush}" Margin="8,0,0,0"/>
+                                                <TextBlock x:Name="Mw_SettingsCmdLibSyncTokenStatus" DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SuccessTextBrush}" Margin="8,0,0,0"/>
                                                 <PasswordBox x:Name="Mw_SettingsCmdLibSyncToken" FontSize="{StaticResource FontSizeBody}" PasswordChanged="OnCmdLibSyncTokenChanged"/>
                                             </DockPanel>
                                             <TextBlock x:Name="Mw_SettingsCmdLibSyncLblAuthor" Grid.Row="3" Grid.Column="0" Text="{loc:Translate SettingsCmdLibSyncAuthor}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>

@@ -273,7 +273,7 @@
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" Width="24" Height="24"
                                 VerticalAlignment="Center" Margin="{StaticResource MarginInlineStart}"
-                                Foreground="{DynamicResource WarningBrush}"/>
+                                Foreground="{DynamicResource WarningTextBrush}"/>
                         <!-- Risk badge -->
                         <Border DockPanel.Dock="Left"
                                 CornerRadius="{StaticResource CornerRadiusSm}" Padding="4,1"
@@ -402,7 +402,7 @@
                         <TextBlock Text="{Binding ValidationError}"
                                    Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
                                    FontSize="{StaticResource FontSizeCaption}"
-                                   Foreground="{DynamicResource ErrorBrush}"
+                                   Foreground="{DynamicResource ErrorTextBrush}"
                                    TextWrapping="Wrap" Margin="{StaticResource MarginLabelBottom}"/>
 
                         <TextBox Text="{Binding GeneratedCommand, Mode=OneWay}"
@@ -552,7 +552,7 @@
                     <TextBlock Text="{loc:Translate ToolCmdLibCopied}"
                                Visibility="{Binding IsHistoryCopyFeedbackVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                                FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource SuccessBrush}"
+                               Foreground="{DynamicResource SuccessTextBrush}"
                                VerticalAlignment="Center"
                                Margin="{StaticResource MarginInlineControl}"/>
                 </DockPanel>

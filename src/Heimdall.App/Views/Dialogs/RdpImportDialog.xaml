@@ -59,7 +59,7 @@
                 BorderThickness="1"
                 Visibility="{Binding HasFileIssues, Converter={StaticResource BoolToVisibilityConverter}}">
             <TextBlock Text="{Binding FileIssuesText}"
-                       Foreground="{DynamicResource WarningBrush}"
+                       Foreground="{DynamicResource WarningTextBrush}"
                        TextWrapping="Wrap"/>
         </Border>
 
