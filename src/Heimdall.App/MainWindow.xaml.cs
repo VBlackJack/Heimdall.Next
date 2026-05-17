@@ -931,7 +931,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         // Security
         ["security", "credential", "password", "keepass", "provider", "guard", "s\u00e9curit\u00e9", "mot de passe"],
         // Advanced
-        ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils"],
+        ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils", "health", "monitor", "probe", "reachability", "concurrent", "sant\u00e9", "sondage", "joignabilit\u00e9"],
     ];
 
     private void OnSettingsSearchTextChanged(object sender, TextChangedEventArgs e)

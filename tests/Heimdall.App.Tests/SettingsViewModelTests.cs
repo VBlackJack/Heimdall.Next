@@ -122,6 +122,57 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void SessionHealthMonitorSettings_LoadFromSettings_MirrorsAllFields()
+    {
+        var viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            SessionHealthMonitorEnabled = false,
+            SessionHealthCheckIntervalSeconds = 120,
+            SessionHealthProbeTimeoutMs = 4000,
+            SessionHealthMaxConcurrent = 20
+        });
+
+        Assert.False(viewModel.SessionHealthMonitorEnabled);
+        Assert.Equal(120, viewModel.SessionHealthCheckIntervalSeconds);
+        Assert.Equal(4000, viewModel.SessionHealthProbeTimeoutMs);
+        Assert.Equal(20, viewModel.SessionHealthMaxConcurrent);
+    }
+
+    [Fact]
+    public async Task SessionHealthMonitorSettings_SaveCommand_PersistsAllFieldsToAppSettings()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.SessionHealthMonitorEnabled = false;
+        viewModel.SessionHealthCheckIntervalSeconds = 90;
+        viewModel.SessionHealthProbeTimeoutMs = 3500;
+        viewModel.SessionHealthMaxConcurrent = 25;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        var saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.False(saved.SessionHealthMonitorEnabled);
+        Assert.Equal(90, saved.SessionHealthCheckIntervalSeconds);
+        Assert.Equal(3500, saved.SessionHealthProbeTimeoutMs);
+        Assert.Equal(25, saved.SessionHealthMaxConcurrent);
+    }
+
+    [Fact]
+    public async Task SessionHealthCheckInterval_OutOfRange_BlocksSave()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.SessionHealthCheckIntervalSeconds = 5; // below the documented 15 s floor
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.HasErrors);
+        Assert.Null(config.SavedSettings);
+    }
+
+    [Fact]
     public void CollapseTunnelsPanelByDefault_LoadFromSettings_PreservesFalse()
     {
         var viewModel = CreateViewModel(new FakeConfigManager());

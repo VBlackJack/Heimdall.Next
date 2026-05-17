@@ -2680,6 +2680,47 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Session Health Monitor -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsHealthMonitorTitle" Text="{loc:Translate SettingsSectionSessionHealthMonitor}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsHealthMonitorEnabledCheckBox"
+                                                  IsChecked="{Binding Settings.SessionHealthMonitorEnabled, Mode=TwoWay}"
+                                                  Content="{loc:Translate SettingsLabelSessionHealthMonitorEnabled}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  FontSize="{StaticResource FontSizeBody}"
+                                                  Margin="0,0,0,12"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsHealthIntervalLabel" Text="{loc:Translate SettingsLabelSessionHealthCheckInterval}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.SessionHealthCheckIntervalSeconds}" Width="100"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsHealthTimeoutLabel" Text="{loc:Translate SettingsLabelSessionHealthProbeTimeout}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.SessionHealthProbeTimeoutMs}" Width="100"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,12,8,0">
+                                                <TextBlock x:Name="Mw_SettingsHealthMaxConcurrentLabel" Text="{loc:Translate SettingsLabelSessionHealthMaxConcurrent}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.SessionHealthMaxConcurrent}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- File Sharing -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
