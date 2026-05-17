@@ -361,6 +361,26 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private int _rdpCredentialAutofillTimeoutMs = 90000;
 
+    // --- Session Health Monitor ---
+
+    [ObservableProperty]
+    private bool _sessionHealthMonitorEnabled = true;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(15, 3600, ErrorMessage = "Health check interval must be between 15 and 3600 seconds.")]
+    private int _sessionHealthCheckIntervalSeconds = 60;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(250, 30000, ErrorMessage = "Probe timeout must be between 250 and 30000 ms.")]
+    private int _sessionHealthProbeTimeoutMs = 2000;
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 50, ErrorMessage = "Max concurrent probes must be between 1 and 50.")]
+    private int _sessionHealthMaxConcurrent = 10;
+
     // --- Collections ---
 
     [ObservableProperty]
@@ -542,6 +562,12 @@ public partial class SettingsViewModel : ObservableValidator
         CmdLibGitSyncOnStartup = settings.CmdLibGitSyncOnStartup;
         CmdLibGitSyncAutoPush = settings.CmdLibGitSyncAutoPush;
 
+        // Session Health Monitor
+        SessionHealthMonitorEnabled = settings.SessionHealthMonitorEnabled;
+        SessionHealthCheckIntervalSeconds = settings.SessionHealthCheckIntervalSeconds;
+        SessionHealthProbeTimeoutMs = settings.SessionHealthProbeTimeoutMs;
+        SessionHealthMaxConcurrent = settings.SessionHealthMaxConcurrent;
+
         // RDP defaults
         DefaultResolutionWidth = settings.DefaultResolutionWidth;
         DefaultResolutionHeight = settings.DefaultResolutionHeight;
@@ -684,6 +710,12 @@ public partial class SettingsViewModel : ObservableValidator
         settings.CmdLibGitSyncAuthorEmail = CmdLibGitSyncAuthorEmail;
         settings.CmdLibGitSyncOnStartup = CmdLibGitSyncOnStartup;
         settings.CmdLibGitSyncAutoPush = CmdLibGitSyncAutoPush;
+
+        // Session Health Monitor
+        settings.SessionHealthMonitorEnabled = SessionHealthMonitorEnabled;
+        settings.SessionHealthCheckIntervalSeconds = SessionHealthCheckIntervalSeconds;
+        settings.SessionHealthProbeTimeoutMs = SessionHealthProbeTimeoutMs;
+        settings.SessionHealthMaxConcurrent = SessionHealthMaxConcurrent;
 
         // RDP defaults
         settings.DefaultResolutionWidth = DefaultResolutionWidth;
