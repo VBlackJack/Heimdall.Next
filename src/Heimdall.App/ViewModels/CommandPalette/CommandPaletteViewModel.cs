@@ -23,6 +23,9 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
+using TwinShell.Core.Interfaces;
+using ActionModel = TwinShell.Core.Models.Action;
 
 namespace Heimdall.App.ViewModels.CommandPalette;
 
@@ -56,6 +59,17 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly ExternalToolLaunchService _externalToolLaunchService;
     private readonly IRecentConnectionTracker _recentConnections;
+    private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>
+    /// In-memory snapshot of the TwinShell action library used by the fuzzy
+    /// ranker. Refreshed every time the palette opens so newly-imported or
+    /// Git-synced snippets surface without an app restart.
+    /// </summary>
+    private IReadOnlyList<ActionModel> _cachedSnippets = Array.Empty<ActionModel>();
+
+    /// <summary>Read-only accessor used by the search partial.</summary>
+    internal IReadOnlyList<ActionModel> Snippets => _cachedSnippets;
 
     /// <summary>
     /// When non-null, the palette is in "split mode": selecting a server
@@ -75,7 +89,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         IConfigManager configManager,
         IEmbeddedSessionManager embeddedSessionManager,
         ExternalToolLaunchService externalToolLaunchService,
-        IRecentConnectionTracker recentConnections)
+        IRecentConnectionTracker recentConnections,
+        IServiceProvider serviceProvider)
     {
         _main = main;
         _localizer = localizer;
@@ -84,6 +99,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         _embeddedSessionManager = embeddedSessionManager;
         _externalToolLaunchService = externalToolLaunchService;
         _recentConnections = recentConnections;
+        _serviceProvider = serviceProvider;
     }
 
     // ── Observable state ─────────────────────────────────────────────
@@ -141,6 +157,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         IsOpen = true;
         OnSearchTextChanged(string.Empty);
         SelectedItem = Results.FirstOrDefault();
+        _ = RefreshSnippetCacheAsync();
     }
 
     /// <summary>
@@ -158,6 +175,72 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         IsOpen = true;
         OnSearchTextChanged(string.Empty);
         SelectedItem = Results.FirstOrDefault();
+        _ = RefreshSnippetCacheAsync();
+    }
+
+    /// <summary>
+    /// Loads the latest action snapshot from the TwinShell repository into
+    /// the in-memory cache. Runs as fire-and-forget on every palette open so
+    /// the search ranker always sees fresh data without blocking the popup.
+    /// Failures (database not initialised, scope disposed) are logged and
+    /// leave the previous cache untouched.
+    /// </summary>
+    private async Task RefreshSnippetCacheAsync()
+    {
+        try
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var actionService = scope.ServiceProvider.GetRequiredService<IActionService>();
+            var actions = await actionService.GetAllActionsAsync().ConfigureAwait(false);
+            _cachedSnippets = actions.ToList();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"Palette snippet cache refresh failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Returns the most useful copy-paste payload for the given action:
+    /// Windows template > Linux template > first example > action title.
+    /// </summary>
+    internal static string ResolveSnippetCommand(ActionModel action)
+    {
+        var windowsTemplate = action.WindowsCommandTemplate?.CommandPattern;
+        if (!string.IsNullOrWhiteSpace(windowsTemplate)) return windowsTemplate;
+
+        var linuxTemplate = action.LinuxCommandTemplate?.CommandPattern;
+        if (!string.IsNullOrWhiteSpace(linuxTemplate)) return linuxTemplate;
+
+        var firstExample = action.Examples.FirstOrDefault()?.Command;
+        if (!string.IsNullOrWhiteSpace(firstExample)) return firstExample;
+
+        return action.Title;
+    }
+
+    /// <summary>
+    /// Copies the snippet's command to the clipboard and surfaces a status
+    /// message so the user gets feedback without a modal. Called from every
+    /// dispatch path (Enter, Ctrl+Enter, double-click) when the selected
+    /// item Id starts with <c>"snippet-"</c>.
+    /// </summary>
+    private void HandleSnippetSelection(ServerItemViewModel item)
+    {
+        var publicId = item.Id["snippet-".Length..];
+        var action = _cachedSnippets.FirstOrDefault(
+            a => string.Equals(a.PublicId.ToString("N"), publicId, StringComparison.OrdinalIgnoreCase));
+        if (action is null) return;
+
+        var payload = ResolveSnippetCommand(action);
+        try
+        {
+            System.Windows.Clipboard.SetText(payload);
+            _main.StatusText = _localizer.Format("PaletteSnippetCopied", action.Title);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"Snippet clipboard copy failed: {ex.Message}");
+        }
     }
 
     /// <summary>Closes the palette and clears any split mode state.</summary>
@@ -184,6 +267,13 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         _splitPaletteSession = null;
         _splitPalettePaneId = null;
         IsOpen = false;
+
+        // Snippets are clipboard-only — never split or connect.
+        if (item.Id.StartsWith("snippet-", StringComparison.Ordinal))
+        {
+            HandleSnippetSelection(item);
+            return;
+        }
 
         if (splitSession is not null)
         {
@@ -231,6 +321,13 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         _splitPalettePaneId = null;
         IsOpen = false;
 
+        // Snippets are clipboard-only — never split or connect.
+        if (server.Id.StartsWith("snippet-", StringComparison.Ordinal))
+        {
+            HandleSnippetSelection(server);
+            return;
+        }
+
         // If the palette was opened in split mode, route to split logic
         if (splitSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
@@ -261,6 +358,10 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         {
             LaunchExternalToolFromPalette(server);
         }
+        else if (server.Id.StartsWith("snippet-", StringComparison.Ordinal))
+        {
+            HandleSnippetSelection(server);
+        }
         else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
             await ConnectAdHocAsync(server);
@@ -286,6 +387,10 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         {
             LaunchExternalToolFromPalette(server);
         }
+        else if (server.Id.StartsWith("snippet-", StringComparison.Ordinal))
+        {
+            HandleSnippetSelection(server);
+        }
         else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
             await ConnectAdHocAsync(server);
@@ -306,6 +411,13 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     {
         if (server is null) return;
         IsOpen = false;
+
+        // Snippets are clipboard-only — never split or connect.
+        if (server.Id.StartsWith("snippet-", StringComparison.Ordinal))
+        {
+            HandleSnippetSelection(server);
+            return;
+        }
 
         if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
         {

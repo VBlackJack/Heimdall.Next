@@ -3245,6 +3245,8 @@
   "PaletteToolJson": "Formateur JSON",
   "PaletteToolJsonWith": "Formateur JSON\u00a0: {0}",
   "PaletteToolsSectionHeader": "Outils",
+  "PaletteSnippetsHeader": "Snippets",
+  "PaletteSnippetCopied": "Snippet copié : {0}",
 
   "PaletteToolIpConv": "Convertisseur d\u2019adresses IP",
   "PaletteToolIpConvWith": "Convertisseur IP\u00a0: {0}",

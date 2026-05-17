@@ -17,6 +17,7 @@
 using System.ComponentModel;
 using System.IO;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
 using Heimdall.App.Services.Import;
@@ -302,7 +303,8 @@ public sealed class SessionCoordinatorPreMountTests
                 dispatcher,
                 serverList,
                 connection,
-                settings);
+                settings,
+                new ServiceCollection().BuildServiceProvider());
 
             return new TestHarness(rootPath, main, embeddedSessionManager, handlers);
         }
