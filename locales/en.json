@@ -3248,6 +3248,8 @@
   "PaletteToolsSectionHeader": "Tools",
   "PaletteSnippetsHeader": "Snippets",
   "PaletteSnippetCopied": "Snippet copied: {0}",
+  "PaletteQuickConnectHeader": "Quick Connect",
+  "PaletteServersHeader": "Servers",
 
   "PaletteToolIpConv": "IP Address Converter",
   "PaletteToolIpConvWith": "IP Converter: {0}",
