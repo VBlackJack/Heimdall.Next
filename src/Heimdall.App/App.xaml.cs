@@ -30,6 +30,7 @@ using Heimdall.App.ViewModels.Tools;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
+using Heimdall.Core.SessionHealth;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
@@ -217,6 +218,12 @@ public partial class App : System.Windows.Application
             // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
             _ = Task.Run(() => ScanExternalTools(settings));
 
+            // Boot the background session health monitor. It reads the latest
+            // inventory from disk on every cycle so adds/removes via the server
+            // dialog are picked up automatically; it also re-arms its timer when
+            // the user changes the interval in Settings via SettingsChanged.
+            _serviceProvider.GetRequiredService<SessionHealthMonitor>().Start(settings);
+
             // Close splash before showing main window
             splash.Close();
 
@@ -378,6 +385,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CommandLibrarySettingsService>();
         services.AddSingleton<ExternalToolSettingsService>();
         services.AddSingleton<ExternalToolLaunchService>();
+        services.AddSingleton<IHealthProbe, TcpHealthProbe>();
+        services.AddSingleton<SessionHealthMonitor>();
         services.AddSingleton<NetworkScannerService>();
         services.AddSingleton<ToolsTabPopulationService>();
         services.AddSingleton<ICertificateGeneratorService, CertificateGeneratorService>();

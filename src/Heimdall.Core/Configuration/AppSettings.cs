@@ -231,6 +231,12 @@ public sealed class AppSettings
     public string? X11ServerPath { get; set; }
     public bool X11AutoStart { get; set; } = true;
 
+    // Session health monitor (background reachability probe of the inventory)
+    public bool SessionHealthMonitorEnabled { get; set; } = true;
+    public int SessionHealthCheckIntervalSeconds { get; set; } = 60;
+    public int SessionHealthProbeTimeoutMs { get; set; } = 2000;
+    public int SessionHealthMaxConcurrent { get; set; } = 10;
+
     // Command Library Git Sync
     public bool CmdLibGitSyncEnabled { get; set; }
     public string? CmdLibGitSyncUrl { get; set; }
