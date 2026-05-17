@@ -730,7 +730,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
     }
 
-    private void OnImportButtonClick(object sender, RoutedEventArgs e)
+    private void OnSidebarOverflowClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.ContextMenu != null)
         {

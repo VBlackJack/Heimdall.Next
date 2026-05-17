@@ -1888,6 +1888,7 @@
   "TooltipHideSidebar": "Masquer le panneau (Ctrl+B)",
   "TooltipShowSidebar": "Afficher le panneau (Ctrl+B)",
   "TooltipAddMenu": "Ajouter une session, dossier ou passerelle (Ctrl+N)",
+  "TooltipSidebarOverflow": "Plus d'actions",
 
   "DetailLabelGroup": "Groupe :",
   "DetailLabelEnvironment": "Environnement :",
