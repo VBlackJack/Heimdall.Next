@@ -28,6 +28,7 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Core.SessionHealth;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Microsoft.Win32;
@@ -151,7 +152,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         PuttySessionImporter puttySessionImporter,
         KnownHostsImporter knownHostsImporter,
         IRecentConnectionTracker? recentConnections = null,
-        IProfileImportService? profileImportService = null)
+        IProfileImportService? profileImportService = null,
+        SessionHealthMonitor? healthMonitor = null)
     {
         _configManager = configManager;
         _localizer = localizer;
@@ -164,9 +166,34 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         _puttySessionImporter = puttySessionImporter;
         _knownHostsImporter = knownHostsImporter;
         _recentConnections = recentConnections ?? new RecentConnectionTracker();
+        _healthMonitor = healthMonitor;
 
         InitializeSelectionModel();
         _connectionSm.StateChanged += OnConnectionStateChanged;
+        if (_healthMonitor is not null)
+        {
+            _healthMonitor.StatusChanged += OnServerHealthChanged;
+        }
+    }
+
+    private readonly SessionHealthMonitor? _healthMonitor;
+
+    /// <summary>
+    /// Routes a health probe verdict back to the corresponding
+    /// <see cref="ServerItemViewModel"/>. Always marshals to the UI thread
+    /// because <see cref="SessionHealthMonitor.StatusChanged"/> fires from a
+    /// background timer thread.
+    /// </summary>
+    private void OnServerHealthChanged(string serverId, HealthState state)
+    {
+        _uiDispatcher.InvokeAsync(() =>
+        {
+            var vm = _allServers.FirstOrDefault(s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+            if (vm is not null)
+            {
+                vm.HealthState = state;
+            }
+        });
     }
 
     private readonly IRecentConnectionTracker _recentConnections;
@@ -178,6 +205,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         UnsubscribeFolderEvents(GroupedServers);
         _expandSaveTimer?.Dispose();
         _connectionSm.StateChanged -= OnConnectionStateChanged;
+        if (_healthMonitor is not null)
+        {
+            _healthMonitor.StatusChanged -= OnServerHealthChanged;
+        }
     }
 
     /// <summary>
