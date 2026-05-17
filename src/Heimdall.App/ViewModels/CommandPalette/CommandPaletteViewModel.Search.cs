@@ -17,6 +17,7 @@
 using System.Collections.ObjectModel;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
+using ActionModel = TwinShell.Core.Models.Action;
 
 namespace Heimdall.App.ViewModels.CommandPalette;
 
@@ -195,6 +196,15 @@ public sealed partial class CommandPaletteViewModel
             if (score > 0)
             {
                 scored.Add((server, score));
+            }
+        }
+
+        foreach (var snippet in Snippets)
+        {
+            var score = ScoreSnippet(snippet, query);
+            if (score > 0)
+            {
+                scored.Add((BuildSnippetItem(snippet), score));
             }
         }
 
@@ -429,5 +439,49 @@ public sealed partial class CommandPaletteViewModel
             Group = ""
         };
         return vm;
+    }
+
+    /// <summary>
+    /// Scores a TwinShell action against a free-text query. The Title carries
+    /// the strongest weight, then each Tag (full weight — sysops queries like
+    /// "disk" or "df" usually match a tag), with Description and Category at
+    /// halved weight.
+    /// </summary>
+    private static int ScoreSnippet(ActionModel action, string query)
+    {
+        var best = FuzzyScoreString(action.Title, query);
+
+        foreach (var tag in action.Tags)
+        {
+            if (string.IsNullOrEmpty(tag)) continue;
+            best = Math.Max(best, FuzzyScoreString(tag, query));
+        }
+
+        best = Math.Max(best, FuzzyScoreString(action.Description, query) / 2);
+        best = Math.Max(best, FuzzyScoreString(action.Category, query) / 2);
+        return best;
+    }
+
+    /// <summary>
+    /// Builds the palette item for a snippet. The endpoint slot carries a
+    /// short command preview so the user can confirm what will be copied
+    /// before pressing Enter.
+    /// </summary>
+    private ServerItemViewModel BuildSnippetItem(ActionModel action)
+    {
+        var preview = ResolveSnippetCommand(action);
+        if (preview.Length > 96)
+        {
+            preview = preview[..96] + "…";
+        }
+
+        return new ServerItemViewModel
+        {
+            Id = $"snippet-{action.PublicId:N}",
+            DisplayName = action.Title,
+            Endpoint = preview,
+            ConnectionType = "SNIPPET",
+            Group = _localizer["PaletteSnippetsHeader"]
+        };
     }
 }

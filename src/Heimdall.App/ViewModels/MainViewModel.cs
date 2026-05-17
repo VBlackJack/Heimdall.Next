@@ -312,6 +312,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings,
+        IServiceProvider serviceProvider,
         IRecentConnectionTracker? recentConnections = null)
     {
         _configManager = configManager;
@@ -332,7 +333,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService,
-            recentConnections ?? new RecentConnectionTracker());
+            recentConnections ?? new RecentConnectionTracker(), serviceProvider);
         Tunnels = new TunnelsViewModel(
             this,
             localizer,
