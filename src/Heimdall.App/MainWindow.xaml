@@ -3299,6 +3299,19 @@
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}"
                     PreviewKeyDown="OnPaletteKeyDown"
                     MouseDown="OnPaletteBorderClick">
+                <Border.Resources>
+                    <!-- Groups palette results by their Group property so each
+                         category (Servers, Tools, Snippets, Quick Connect, …)
+                         renders under its own header. The converter normalises
+                         empty groups to a localized fallback. -->
+                    <CollectionViewSource x:Key="PaletteResultsView"
+                                          Source="{Binding CommandPalette.Results}">
+                        <CollectionViewSource.GroupDescriptions>
+                            <PropertyGroupDescription PropertyName="Group"
+                                                      Converter="{StaticResource PaletteGroupHeaderConverter}"/>
+                        </CollectionViewSource.GroupDescriptions>
+                    </CollectionViewSource>
+                </Border.Resources>
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Direction="270"/>
                 </Border.Effect>
@@ -3321,13 +3334,30 @@
                              AutomationProperties.Name="{loc:Translate PaletteSearchPlaceholder}"/>
                     <Border Height="1" Background="{DynamicResource BorderBrush}"/>
                     <ListBox x:Name="PaletteResultsList"
-                             ItemsSource="{Binding CommandPalette.Results}"
+                             ItemsSource="{Binding Source={StaticResource PaletteResultsView}}"
                              SelectedItem="{Binding CommandPalette.SelectedItem}"
                              MaxHeight="450"
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              MouseDoubleClick="OnPaletteItemDoubleClick">
+                        <ListBox.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="14,10,14,4"
+                                                Background="Transparent">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="{StaticResource FontSizeSmallCaption}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Opacity="0.85"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListBox.GroupStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="10,6">
@@ -3414,10 +3444,7 @@
                                                        FontSize="{StaticResource FontSizeCaption}"
                                                        Foreground="{DynamicResource AccentBrush}"
                                                        Visibility="{Binding ProjectName, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                            <TextBlock Text="{Binding Group, StringFormat={}  ·  {0}}"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       Visibility="{Binding Group, Converter={StaticResource NullToVisibilityConverter}}"/>
+<!-- group now rendered as a section header above the row, suffix removed -->
                                         </StackPanel>
                                     </StackPanel>
                                 </DockPanel>

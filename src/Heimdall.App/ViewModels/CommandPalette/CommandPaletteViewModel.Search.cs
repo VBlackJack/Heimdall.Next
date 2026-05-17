@@ -233,7 +233,7 @@ public sealed partial class CommandPaletteViewModel
                 RemoteServer = query,
                 Endpoint = query,
                 ConnectionType = "SSH",
-                Group = ""
+                Group = _localizer["PaletteQuickConnectHeader"]
             };
             var rdp = new ServerItemViewModel
             {
@@ -242,7 +242,7 @@ public sealed partial class CommandPaletteViewModel
                 RemoteServer = query,
                 Endpoint = query,
                 ConnectionType = "RDP",
-                Group = ""
+                Group = _localizer["PaletteQuickConnectHeader"]
             };
 
             var lastProtocol = _recentConnections.GetLastProtocol(query);
@@ -436,7 +436,7 @@ public sealed partial class CommandPaletteViewModel
             DisplayName = $"{user}@{host}:{port}",
             RemoteServer = host,
             ConnectionType = "SSH",
-            Group = ""
+            Group = _localizer["PaletteQuickConnectHeader"]
         };
         return vm;
     }
