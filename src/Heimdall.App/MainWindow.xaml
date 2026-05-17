@@ -525,14 +525,17 @@
                                                     </MultiBinding>
                                                 </Path.Fill>
                                             </Path>
-                                            <!-- Status dot -->
+                                            <!-- Status dot: shows session state when active, otherwise health reachability -->
                                             <Ellipse Grid.Column="1"
                                                      Width="7" Height="7" Margin="2,0,8,0"
-                                                     VerticalAlignment="Center">
+                                                     VerticalAlignment="Center"
+                                                     ToolTip="{Binding HealthTooltipText}"
+                                                     ToolTipService.InitialShowDelay="200">
                                                 <Ellipse.Fill>
                                                     <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
                                                         <Binding Path="ConnectionType"/>
                                                         <Binding Path="ConnectionState"/>
+                                                        <Binding Path="HealthState"/>
                                                         <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
                                                     </MultiBinding>
                                                 </Ellipse.Fill>

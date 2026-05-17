@@ -15,8 +15,10 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.SessionHealth;
 
 namespace Heimdall.App.ViewModels;
 
@@ -82,6 +84,19 @@ public partial class ServerItemViewModel : ObservableObject
 
     [ObservableProperty]
     private string _authSummary = "";
+
+    /// <summary>
+    /// Last known reachability state, fed externally by
+    /// <see cref="SessionHealthMonitor"/>. The sidebar dot reads from this
+    /// when the server is in a non-active connection state.
+    /// </summary>
+    [ObservableProperty]
+    private HealthState _healthState = HealthState.Initial;
+
+    /// <summary>Tooltip text for the sidebar health dot, recomputed on every <see cref="HealthState"/> change.</summary>
+    public string HealthTooltipText => HealthReasonLocalizer.FormatTooltip(HealthState, _localizer);
+
+    partial void OnHealthStateChanged(HealthState value) => OnPropertyChanged(nameof(HealthTooltipText));
 
     /// <summary>
     /// Retained DTO reference for accessing protocol-specific properties

@@ -17,11 +17,25 @@
 using System.Globalization;
 using System.Windows.Media;
 using Heimdall.App.Converters;
+using Heimdall.Core.SessionHealth;
 
 namespace Heimdall.App.Tests;
 
 public sealed class ServerStatusToColorConverterTests
 {
+    private static readonly Brush TaggedBrush = new SolidColorBrush(Colors.Magenta);
+
+    private static ServerStatusToColorConverter MakeConverter(out List<string> resolvedKeys)
+    {
+        var captured = new List<string>();
+        resolvedKeys = captured;
+        return new ServerStatusToColorConverter(key =>
+        {
+            captured.Add(key);
+            return TaggedBrush;
+        });
+    }
+
     [Fact]
     public void ServerStatus_LaunchedExternalClient_UsesWarningBrushKey()
     {
@@ -41,6 +55,86 @@ public sealed class ServerStatusToColorConverterTests
 
         Assert.Equal("WarningBrush", requestedKey);
         Assert.Same(warningBrush, result);
+    }
+
+    [Fact]
+    public void TwoValues_DisconnectedSsh_FallsBackToConnectionTypePalette()
+    {
+        var converter = MakeConverter(out var keys);
+
+        var result = converter.Convert(["SSH", "Disconnected"], typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("SuccessBrush", keys.Single());
+    }
+
+    [Fact]
+    public void ThreeValuesWithInitialHealth_DisconnectedRdp_UsesTextDisabledBrush()
+    {
+        var converter = MakeConverter(out var keys);
+
+        var result = converter.Convert(
+            ["RDP", "Disconnected", HealthState.Initial],
+            typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("TextDisabledBrush", keys.Single());
+    }
+
+    [Fact]
+    public void FourValuesWithHealthUp_DisconnectedSsh_UsesSuccessBrush()
+    {
+        var converter = MakeConverter(out var keys);
+        var up = new HealthState(HealthStatus.Up, DateTime.UtcNow, 12, null);
+
+        var result = converter.Convert(
+            ["SSH", "Disconnected", up, 7],
+            typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("SuccessBrush", keys.Single());
+    }
+
+    [Fact]
+    public void FourValuesWithHealthDown_DisconnectedRdp_UsesErrorBrush()
+    {
+        var converter = MakeConverter(out var keys);
+        var down = new HealthState(HealthStatus.Down, DateTime.UtcNow, null, "timeout");
+
+        var result = converter.Convert(
+            ["RDP", "Disconnected", down, 0],
+            typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("ErrorBrush", keys.Single());
+    }
+
+    [Fact]
+    public void ActiveState_AlwaysWinsOverHealth()
+    {
+        var converter = MakeConverter(out var keys);
+        var down = new HealthState(HealthStatus.Down, DateTime.UtcNow, null, "timeout");
+
+        var result = converter.Convert(
+            ["SSH", "Connected", down, 0],
+            typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("SuccessBrush", keys.Single());
+    }
+
+    [Fact]
+    public void ProbingHealth_DisconnectedSsh_UsesWarningBrush()
+    {
+        var converter = MakeConverter(out var keys);
+        var probing = new HealthState(HealthStatus.Probing, DateTime.UtcNow, null, null);
+
+        var result = converter.Convert(
+            ["SSH", "Disconnected", probing, 0],
+            typeof(Brush), null!, CultureInfo.InvariantCulture);
+
+        Assert.Same(TaggedBrush, result);
+        Assert.Equal("WarningBrush", keys.Single());
     }
 
     [Fact]
