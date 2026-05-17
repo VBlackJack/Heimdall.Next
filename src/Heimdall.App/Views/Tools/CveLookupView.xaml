@@ -151,7 +151,7 @@
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
                                Focusable="False"
-                               Foreground="{DynamicResource SuccessBrush}"
+                               Foreground="{DynamicResource SuccessTextBrush}"
                                Style="{StaticResource ToolEmptyStateIconStyle}" />
                     <TextBlock Style="{StaticResource ToolEmptyStateTextStyle}"
                                Text="{loc:Translate ToolCveNoResults}" />

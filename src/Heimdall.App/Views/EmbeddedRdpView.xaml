@@ -529,7 +529,7 @@
                                FontFamily="Segoe MDL2 Assets"
                                FontSize="32"
                                Text="&#xE783;"
-                               Foreground="{DynamicResource ErrorBrush}"
+                               Foreground="{DynamicResource ErrorTextBrush}"
                                Focusable="False"
                                IsHitTestVisible="False"
                                AutomationProperties.Name=""

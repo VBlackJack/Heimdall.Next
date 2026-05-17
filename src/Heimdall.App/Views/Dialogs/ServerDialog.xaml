@@ -1950,7 +1950,7 @@
                                                            VerticalAlignment="Center"
                                                            FontSize="{StaticResource FontSizeCaption}"
                                                            FontStyle="Italic"
-                                                           Foreground="{DynamicResource WarningBrush}"
+                                                           Foreground="{DynamicResource WarningTextBrush}"
                                                            Text="{loc:Translate RdpRedirectWebcamExternalOnlyBadge}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
@@ -2217,7 +2217,7 @@
                                                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                                                        Visibility="{Binding IsBroken, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                                                             <TextBlock Text="{loc:Translate LabelPostConnectLibraryBroken}"
-                                                                                       Foreground="{DynamicResource ErrorBrush}"
+                                                                                       Foreground="{DynamicResource ErrorTextBrush}"
                                                                                        Visibility="{Binding IsBroken, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                                                         </StackPanel>
                                                                     </Border>

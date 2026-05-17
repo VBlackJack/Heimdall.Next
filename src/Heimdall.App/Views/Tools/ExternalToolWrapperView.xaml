@@ -126,7 +126,7 @@
             <!-- Error display -->
             <TextBlock x:Name="TxtError" TextWrapping="Wrap" Visibility="Collapsed"
                        FontSize="{StaticResource FontSizeBody}" Margin="16"
-                       Foreground="{DynamicResource ErrorBrush}"/>
+                       Foreground="{DynamicResource ErrorTextBrush}"/>
         </Grid>
 
         <!-- Footer -->

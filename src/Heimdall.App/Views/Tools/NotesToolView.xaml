@@ -130,7 +130,7 @@
                     <TextBlock x:Name="TxtUnsaved"
                                Text="{loc:Translate ToolNotesUnsaved}"
                                FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource WarningBrush}"
+                               Foreground="{DynamicResource WarningTextBrush}"
                                VerticalAlignment="Center"
                                Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"
                                Margin="8,0,0,0"
