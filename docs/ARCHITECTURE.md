@@ -34,7 +34,8 @@ Heimdall.slnx (14 projects)
 │                     SplitService, SessionSplitService, EmbeddedSessionManager, ToolRegistry,
 │                     TaskSchedulerService, MacroService, EphemeralFileServer, FileShareService,
 │                     X11ServerManager, WebSocketVncProxy, KeyboardShortcutService,
-│                     ContextMenuFactory, SessionTabContextMenuFactory, ToolsTabPopulationService
+│                     ContextMenuFactory, SessionTabContextMenuFactory, ToolsTabPopulationService,
+│                     SessionHealthMonitor (inventory TCP reachability probes), HealthReasonLocalizer
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
@@ -64,7 +65,7 @@ Heimdall.slnx (14 projects)
 ```
 
 - **Heimdall.Core** has zero internal project dependencies (only NuGet: CommunityToolkit.Mvvm, ProtectedData, DI abstractions)
-- **Heimdall.Ssh** depends on Core + SSH.NET; includes `ServerHealthMonitor` for multiplexed health polling
+- **Heimdall.Ssh** depends on Core + SSH.NET; includes `ServerHealthMonitor` for multiplexed CPU/RAM/disk polling over an active SSH session (see §21). Note: distinct from `Heimdall.App.Services.SessionHealthMonitor` (see §21b), which probes the inventory's reachability over raw TCP **before/without** connecting
 - **Heimdall.Rdp** depends on Core (uses WPF + WinForms for ActiveX hosting; includes Citrix StoreBrowse integration)
 - **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory). `SftpSessionBundle` in ConnectionService bundles SftpClient + SshClient for sudo operations. `FtpBrowser` implements `IRemoteBrowser` for FTP connections
 - **Heimdall.Terminal** depends on Core (uses Win32 APIs for ConPTY + pipe mode + Telnet raw TCP)
@@ -256,6 +257,12 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Architecture**: A `Popup`-based Command Palette (own HWND, renders above ActiveX/WindowsFormsHost surfaces) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix, 5900=VNC, 23=Telnet, 21=FTP). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use. When opened in split mode, the palette forces Embedded connection mode and attaches the new session as the secondary pane of the active tab.
 
+**Unified fuzzy ranker**: `CommandPaletteViewModel.Search.cs` scores tools (localized label + `CommandPrefixes` aliases + category), external tools, servers (`DisplayName`, `RemoteServer`, `Group`, `Username`, `ConnectionType`, `Environment`, `Tags`, `ProjectName`), and TwinShell snippets in a single pass before sorting and taking the top 20. The only early-return paths are (1) explicit argument-bearing tool invocations — `<prefix> <argument>` where `LabelWithArgKey` is defined, e.g. `ping 8.8.8.8` or `subnet 10.0.0.0/8` — and (2) the literal `tool`/`tools` query that lists every registered tool. Everything else mixes results so queries like `calculator`, `formatter`, or `encoder` surface the tool match alongside any servers that also match.
+
+**Snippet indexing**: The palette refreshes a per-open snapshot of the TwinShell action library via a scoped `IActionService` resolved through `IServiceProvider.CreateAsyncScope` — fire-and-forget at every `Open()`/`OpenSplit()` so the cache is always fresh without blocking the popup. Snippets score on Title (full weight), Tags (full weight, important for sysops queries like `disk` or `df`), Description and Category (halved). On selection, `HandleSnippetSelection` resolves the best copy-paste payload (`ResolveSnippetCommand`: Windows template → Linux template → first example → action title), writes it to `System.Windows.Clipboard`, and surfaces a status message — snippets are clipboard-only, intercepted before any split/connect routing so a `snippet-*` Id can never accidentally open a tab or merge a pane.
+
+**Visual section headers**: The flat ListBox consumes a `CollectionViewSource` with `PropertyGroupDescription` on `Group`. `PaletteGroupHeaderConverter` normalizes empty Group values to a localized `Servers` / `Quick Connect` fallback so no untitled section ever renders. Ad-hoc items (`adhoc-ssh-…`, `adhoc-rdp-…`) explicitly take the `PaletteQuickConnectHeader` group so they cluster under their own header instead of falling through to the fallback.
+
 ### 12. Tunnel Panel (Retractable)
 
 **Architecture**: A `GridSplitter`-based side panel bound to `TunnelPanelViewModel`. The panel observes `TunnelManager.ActiveTunnels` (an `ObservableCollection<TunnelSession>`) and displays real-time status. Tunnel teardown sends a cancel request to the specific `TunnelSession` without affecting other tunnels or the parent SSH connection. Expansion state is resolved per active tab/session, not as a single global flag: manual per-tab override wins, then nullable per-profile persistence (`ServerProfileDto.TunnelsPanelExpanded`), then the application default (`AppSettings.CollapseTunnelsPanelByDefault`). Saved profiles persist their panel preference in the server profile DTO, while ad-hoc tabs keep the override local to the tab. Session tab headers also show an aggregate tunnel badge when any split-pane leaf in the tab has active tunnel state.
@@ -407,6 +414,18 @@ ISplitContent (marker interface)
 **Problem**: Sysadmins want at-a-glance health data (CPU, RAM, disk) for connected servers without opening a separate monitoring tool.
 
 **Solution**: `ServerHealthMonitor` in `Heimdall.Ssh` reuses the existing `SshClient` from an active shell session to run lightweight monitoring commands (`top -bn1`, `free -m`, `df -h /`) on multiplexed SSH channels at a configurable interval (default 15 seconds). Commands execute through SSH.NET's APM surface (`BeginExecute`/`EndExecute`) wrapped with `Task.Factory.FromAsync`, and the three probes run concurrently with `Task.WhenAll`. Results are parsed via compiled regex into a `ServerHealthData` record and surfaced in the UI.
+
+### 21b. Session Reachability Monitor (Inventory-wide TCP Probes)
+
+**Problem**: §21 only sees CPU/RAM/disk **after** the user has connected. The user also wants an at-a-glance view of which servers in the inventory are reachable on the network **before** opening a session — green/red dots in the sidebar rather than discovering at click-time that a host is down.
+
+**Solution**: `Heimdall.Core.SessionHealth` defines the data model (`HealthStatus` enum, immutable `HealthState` record, `IHealthProbe` test seam, `TcpHealthProbe` default implementation) and `Heimdall.App.Services.SessionHealthMonitor` orchestrates it. A `System.Threading.Timer` fires every `SessionHealthCheckIntervalSeconds` (default 60), loads the latest inventory from `IConfigManager.LoadServersAsync` (so adds/removes via the server dialog are picked up automatically without a separate refresh hook), and dispatches throttled parallel TCP probes through a `SemaphoreSlim` (default 10 concurrent). The protocol → port resolver maps RDP→`RemotePort`, SSH/SFTP→`SshPort`, VNC→`VncPort`, FTP→`FtpPort`, Telnet→`TelnetPort`; Citrix and Local Shell are intentionally not probed. Gateway-fronted servers (`SshGatewayId != null`) short-circuit to `Unknown` without consuming a probe slot — direct probes would always fail because the gateway is the only reachable hop. State for servers removed from the inventory between cycles is evicted on the next cycle.
+
+**Settings integration**: `IConfigManager.SettingsChanged` is subscribed in the constructor; toggling `SessionHealthMonitorEnabled` or changing any of the four `SessionHealth*` settings re-arms the Timer without restart. Disabling clears the in-memory state dictionary.
+
+**UI integration**: `ServerListViewModel` subscribes to `StatusChanged` and marshals every verdict back to the matching `ServerItemViewModel.HealthState` via `IUiDispatcher.InvokeAsync` (the Timer thread never touches WPF bindings). `ServerStatusToColorConverter` was extended from 2/3 to 3/4 binding values, accepting an optional `HealthState`; when the session is in a non-active connection state, the sidebar dot color reflects the health verdict. The conversion remains back-compatible: 2- and 3-value calls fall through to the legacy connection-type palette so any caller outside the sidebar keeps working unchanged.
+
+**Disambiguation**: this service is **separate** from `Heimdall.Ssh.ServerHealthMonitor` (§21), which polls resource usage on a single already-connected SSH session. The two names are similar but mean different things: *Server*Health = "how is this connected box doing?", *Session*Health = "would a session to this box succeed right now?".
 
 ### 22. Macro Recorder (Keystroke Capture with Delays)
 

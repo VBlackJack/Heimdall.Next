@@ -33,9 +33,17 @@ Use this checklist for every new tool and during significant UX refactors.
 
 ## Sidebar And Search
 
-- Session sidebar search stays full-width on the first toolbar row, with action buttons on the second row.
+- Session sidebar search and inline actions stay on a single row: search takes the remaining width (`MinWidth=120`), the primary action (Add) stays inline as 1-click, and secondary actions (Import submenu, Expand all, Collapse all) collapse into the kebab `⋮` overflow menu.
+- The filter result count is a hint `TextBlock` that collapses to 0 height when no filter is active; the toolbar row only grows when there is something to show.
 - Icon-only sidebar actions keep localized tooltips and `AutomationProperties.Name`.
 - Long session names preserve the leading identifier; tooltips expose the full `DisplayName`.
+- The status dot on each row reflects either the active session state or, when disconnected, the reachability verdict from `SessionHealthMonitor` (green=Up, red=Down, orange=Probing, gray=Unknown).
+
+## Contrast And Color
+
+- Buttons, glyphs, and indicators painted on `AccentBrush` use `TextOnAccentBrush` (per-theme dark on light-accent variants, white on dark-accent variants). Direct `#FFFFFF` `Foreground` over an accent fill is a regression — the contrast collapses to ~2:1 on the 7 light-pastel-accent Dracula variants (DraculaPro, Drakula, Blade, Buffy, Bathory, Lincoln, VanHelsing, Morbius).
+- Semantic status text (Success / Warning / Error / Info) uses `SuccessTextBrush` / `WarningTextBrush` / `ErrorTextBrush` for `Foreground`. The plain `*Brush` keys remain reserved for borders, badge fills, and icon backgrounds — they are too saturated for text on the 5 light themes (Alucard, Carmilla, Helsing, Nosferatu, Renfield).
+- Theme-aware brush converters follow the dual `IValueConverter` + `IMultiValueConverter` pattern with a `ThemeRevision` trigger so a runtime theme swap re-evaluates colors without a rebind.
 
 ## Localization
 
