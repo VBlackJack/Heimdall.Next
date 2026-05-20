@@ -20,7 +20,10 @@ jobs:
       - name: Restore
         env:
           THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
-        run: dotnet restore Heimdall.slnx
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ..\.offline-nuget | Out-Null
+          dotnet restore Heimdall.slnx
 
       - name: Check code formatting
         run: dotnet format Heimdall.slnx --no-restore --verify-no-changes --verbosity diagnostic
