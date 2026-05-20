@@ -17,7 +17,6 @@
 using System.ComponentModel;
 using System.IO;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
 using Heimdall.App.Services.Import;
@@ -35,6 +34,7 @@ using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Heimdall.Terminal;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Tests;
 
