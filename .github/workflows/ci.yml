@@ -62,6 +62,8 @@ jobs:
 
       - name: Check for vulnerable dependencies
         shell: pwsh
+        env:
+          THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
         # Informational only — emits a workflow warning instead of failing the
         # build, since vulnerability databases occasionally include false
         # positives or advisories without an upgrade path. Maintainers should
