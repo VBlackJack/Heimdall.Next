@@ -18,15 +18,21 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore Heimdall.slnx --source https://api.nuget.org/v3/index.json
+        env:
+          THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
+        run: dotnet restore Heimdall.slnx
 
       - name: Check code formatting
         run: dotnet format Heimdall.slnx --no-restore --verify-no-changes --verbosity diagnostic
 
       - name: Build
+        env:
+          THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
         run: dotnet build Heimdall.slnx --no-restore -c Release
 
       - name: Test with coverage
+        env:
+          THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
         run: >
           dotnet test Heimdall.slnx --no-build -c Release
           --filter "Category!=CIUnstable"
@@ -43,6 +49,8 @@ jobs:
       - name: Test CIUnstable (informational, non-blocking)
         if: always()
         continue-on-error: true
+        env:
+          THEMEFORGE_PACKAGES_TOKEN: ${{ secrets.THEMEFORGE_PACKAGES_TOKEN }}
         run: >
           dotnet test Heimdall.slnx --no-build -c Release
           --filter "Category=CIUnstable"
