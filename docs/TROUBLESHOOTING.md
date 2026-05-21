@@ -479,16 +479,17 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 
 **Symptom**: After switching themes at runtime, some controls appear with incorrect colors, missing borders, or unstyled backgrounds.
 
-**Root Cause**: WPF `ResourceDictionary` merge order matters. If a custom control style uses `BasedOn="{StaticResource ...}"` referencing a key from `CommonControls.xaml`, and the theme dictionary is swapped AFTER the control is already loaded, the `StaticResource` reference is not re-evaluated (only `DynamicResource` responds to runtime changes). Converters that resolve brushes via `TryFindResource` at convert time snapshot the result and do not re-run on theme swap unless their binding inputs change.
+**Root Cause**: WPF `ResourceDictionary` merge order matters. ThemeForge injects the active palette dictionary at runtime, then Heimdall's bridge dictionary maps app brush keys onto ThemeForge color slots. A shared `SolidColorBrush` resource does not live-update a `DynamicResource` assigned to its `Color`; it must be recreated after the palette swap. Converters that resolve brushes via `TryFindResource` at convert time also snapshot the result and do not re-run on theme swap unless their binding inputs change.
 
 **Solution**:
-1. Ensure all theme-dependent styles in `CommonControls.xaml` use `DynamicResource` for color brushes
-2. `BasedOn` must always use `StaticResource` (WPF limitation), but the referenced style itself should use `DynamicResource` for its brush properties
-3. For converters that resolve brushes via `TryFindResource`, bind them through a `MultiBinding` that adds `DataContext.ThemeRevision` (ElementName=`MainWindowRoot`) as a trailing trigger value so WPF re-runs the converter after each swap
-4. For UI built in code-behind, use `element.SetResourceReference(DP, "BrushKey")` instead of assigning a concrete `Brush` from `FindResource`
-5. If a specific control still renders incorrectly after theme switch, force a visual tree refresh by toggling its `Visibility`
+1. Keep the ThemeForge palette injected by `ThemeForge.Theme.ThemeService`; do not statically merge a ThemeForge palette in `App.xaml`
+2. Keep `HeimdallThemeBridge.xaml` merged after the active palette, and let `HeimdallThemeService.RefreshHeimdallBridge` re-merge it after each `ApplyTheme`
+3. Ensure all theme-dependent styles in `CommonControls.xaml` and `DialogCommonStyles.xaml` use `DynamicResource` for brush properties
+4. `BasedOn` must always use `StaticResource` (WPF limitation), but the referenced style itself should use `DynamicResource` for its brush properties
+5. For converters that resolve brushes via `TryFindResource`, bind them through a `MultiBinding` that adds `DataContext.ThemeRevision` (ElementName=`MainWindowRoot`) as a trailing trigger value so WPF re-runs the converter after each swap
+6. For UI built in code-behind, use `element.SetResourceReference(DP, "BrushKey")` instead of assigning a concrete `Brush` from `FindResource`
 
-**Files**: `Themes/CommonControls.xaml`, `Themes/DraculaProTheme.xaml` (and the other 6 Dracula variants: `AlucardTheme`, `BladeTheme`, `BuffyTheme`, `LincolnTheme`, `MorbiusTheme`, `VanHelsingTheme`), `Services/ThemeService.cs`, `Theming/WindowThemeHelper.cs`. The project uses exclusively the 7 Dracula variants — no Dark/Light fallback themes.
+**Files**: `Services/HeimdallThemeService.cs`, `Themes/HeimdallThemeBridge.xaml`, `Themes/CommonControls.xaml`, `Themes/DialogCommonStyles.xaml`, `Themes/IconGeometries.xaml`, `Theming/WindowThemeHelper.cs`, NuGet package `ThemeForge.Theme`. The old `Services/ThemeService.cs` and legacy `*Theme.xaml` palettes were removed.
 
 ---
 
