@@ -253,7 +253,7 @@ public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustServi
                     + "verify the source of this entry.");
             }
 
-            return candidate;
+            return KnownHostsParser.CanonicalizeKeyType(candidate);
         }
 
         return string.IsNullOrWhiteSpace(fallback) ? "unknown" : fallback;

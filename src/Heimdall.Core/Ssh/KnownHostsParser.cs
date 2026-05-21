@@ -58,13 +58,32 @@ public static class KnownHostsParser
     };
 
     /// <summary>
-    /// Returns whether the supplied SSH host key algorithm name is in the
-    /// importer's allow-list. Used by trust services to flag entries with
-    /// unrecognized algorithms.
+    /// Canonicalizes an SSH host key algorithm name to its underlying key type.
+    /// The RFC 8332 RSA SHA-2 signature algorithm names (<c>rsa-sha2-256</c>,
+    /// <c>rsa-sha2-512</c>) are negotiated over an <c>ssh-rsa</c> key and are
+    /// mapped to it. A null value yields an empty string; any other value is
+    /// returned unchanged.
+    /// </summary>
+    public static string CanonicalizeKeyType(string? algorithm)
+    {
+        return algorithm switch
+        {
+            "rsa-sha2-256" or "rsa-sha2-512" => "ssh-rsa",
+            null => string.Empty,
+            _ => algorithm,
+        };
+    }
+
+    /// <summary>
+    /// Returns whether the supplied SSH host key algorithm name is recognized.
+    /// RFC 8332 RSA SHA-2 signature algorithm names are accepted as their
+    /// underlying <c>ssh-rsa</c> key type. Used by trust services to flag
+    /// entries with unrecognized algorithms.
     /// </summary>
     public static bool IsSupportedKeyType(string? algorithm)
     {
-        return !string.IsNullOrWhiteSpace(algorithm) && SupportedKeyTypes.Contains(algorithm);
+        return !string.IsNullOrWhiteSpace(algorithm)
+            && SupportedKeyTypes.Contains(CanonicalizeKeyType(algorithm));
     }
 
     public static KnownHostsParseResult Parse(string content)
