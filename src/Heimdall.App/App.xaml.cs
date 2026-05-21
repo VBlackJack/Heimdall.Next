@@ -208,8 +208,10 @@ public partial class App : System.Windows.Application
             // Subscribe to runtime settings changes for logging and theme updates
             configManager.SettingsChanged += OnSettingsChanged;
 
-            // Apply the saved theme before showing any window
-            _serviceProvider.GetRequiredService<HeimdallThemeService>().ApplyTheme(settings.DefaultTheme);
+            // Apply the saved theme and accent before showing any window.
+            var themeService = _serviceProvider.GetRequiredService<HeimdallThemeService>();
+            themeService.ApplyTheme(settings.DefaultTheme);
+            themeService.ApplyAccentTint(settings.AccentTint);
 
             // Check for legacy Heimdall installation and offer migration on first run
             await TryMigrateLegacyAsync(configManager, localization);
@@ -692,7 +694,11 @@ public partial class App : System.Windows.Application
         var themeService = _serviceProvider?.GetService<HeimdallThemeService>();
         if (themeService is not null)
         {
-            Dispatcher.InvokeAsync(() => themeService.ApplyTheme(newSettings.DefaultTheme));
+            Dispatcher.InvokeAsync(() =>
+            {
+                themeService.ApplyTheme(newSettings.DefaultTheme);
+                themeService.ApplyAccentTint(newSettings.AccentTint);
+            });
         }
     }
 
