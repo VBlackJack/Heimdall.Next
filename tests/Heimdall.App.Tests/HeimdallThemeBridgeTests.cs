@@ -100,7 +100,7 @@ public sealed class HeimdallThemeBridgeTests
     ];
 
     [Fact]
-    public void HeimdallThemeBridge_DeclaresExpectedBrushesAndPrimaryColorOnce()
+    public void HeimdallThemeBridge_DeclaresExpectedBrushesWithoutDuplicates()
     {
         XDocument document = XDocument.Load(GetBridgePath());
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
@@ -130,8 +130,7 @@ public sealed class HeimdallThemeBridgeTests
         Assert.Equal(
             ExpectedBrushKeys.OrderBy(key => key, StringComparer.Ordinal),
             brushKeys.OrderBy(key => key, StringComparer.Ordinal));
-        string colorKey = Assert.Single(colorKeys);
-        Assert.Equal("PrimaryColor", colorKey);
+        Assert.Empty(colorKeys);
     }
 
     private static string GetBridgePath()

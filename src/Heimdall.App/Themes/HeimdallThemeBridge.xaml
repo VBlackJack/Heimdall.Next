@@ -17,9 +17,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Colour key consumed directly from C# legacy surfaces -->
-    <Color x:Key="PrimaryColor">#282A36</Color>
-
     <!-- Generic themed brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource BackgroundColor}" />
