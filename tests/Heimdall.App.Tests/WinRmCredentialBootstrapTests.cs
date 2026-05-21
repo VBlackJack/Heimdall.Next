@@ -101,6 +101,31 @@ public sealed class WinRmCredentialBootstrapTests
         Assert.EndsWith(".ps1", scriptPath, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Delete_RemovesExistingFile()
+    {
+        string scriptPath = Path.Combine(
+            Path.GetTempPath(),
+            $"heimdall_winrm_delete_{Guid.NewGuid():N}.ps1");
+        File.WriteAllText(scriptPath, "bootstrap");
+        WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap();
+
+        bootstrap.Delete(scriptPath);
+
+        Assert.False(File.Exists(scriptPath));
+    }
+
+    [Fact]
+    public void Delete_WhenFileIsMissing_DoesNotThrow()
+    {
+        string scriptPath = Path.Combine(
+            Path.GetTempPath(),
+            $"heimdall_winrm_missing_{Guid.NewGuid():N}.ps1");
+        WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap();
+
+        bootstrap.Delete(scriptPath);
+    }
+
     private static ServerProfileDto CreateCredentialServer()
         => new ServerProfileDto
         {

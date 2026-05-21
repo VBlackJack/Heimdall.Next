@@ -73,6 +73,25 @@ internal sealed class WinRmCredentialBootstrap
         }
     }
 
+    public void Delete(string scriptPath)
+    {
+        if (string.IsNullOrWhiteSpace(scriptPath) || !File.Exists(scriptPath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(scriptPath);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
     internal static string CreateDefaultScriptPath()
         => Path.Combine(Path.GetTempPath(), $"heimdall_winrm_{Guid.NewGuid():N}.ps1");
 

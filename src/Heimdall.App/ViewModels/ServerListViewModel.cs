@@ -759,6 +759,11 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                         serverDto, settings, cancellationToken);
                     break;
 
+                case "WINRM":
+                    result = await _connectionService.ConnectWinRmAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
                 case "CITRIX":
                     result = await _connectionService.ConnectCitrixAsync(
                         serverDto, settings, cancellationToken);

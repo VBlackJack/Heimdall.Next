@@ -47,4 +47,5 @@ public interface IConnectionService : IDisposable
     Task<ConnectionResult> ConnectFtpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectCitrixAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectLocalShellAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectWinRmAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
 }
