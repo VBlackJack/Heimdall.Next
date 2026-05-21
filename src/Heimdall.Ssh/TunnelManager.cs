@@ -41,6 +41,12 @@ public sealed partial class TunnelManager : IDisposable
     public event Action<int, string?>? TunnelClosed;
 
     /// <summary>
+    /// Raised when a local-forwarded port reports a failure - typically the
+    /// gateway being unable to reach the forward's remote target.
+    /// </summary>
+    public event Action<TunnelForwardedPortFailure>? ForwardedPortFailed;
+
+    /// <summary>
     /// Increments the reference count for a tunnel on the specified local port.
     /// Call this when a new session begins using an existing tunnel.
     /// </summary>

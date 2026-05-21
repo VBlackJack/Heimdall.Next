@@ -75,7 +75,7 @@ public sealed partial class TunnelManager
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private static void WireFinalForwardedPorts(
+    private void WireFinalForwardedPorts(
         TunnelBuildContext context,
         string remoteHost,
         int remotePort,
@@ -92,7 +92,17 @@ public sealed partial class TunnelManager
         if (!isChained)
         {
             context.FinalPort.Exception += (_, args) =>
-                Core.Logging.FileLogger.Error($"SSH forwarded port {localPort} exception: {args.Exception.Message}");
+            {
+                Core.Logging.FileLogger.Error(
+                    $"SSH forwarded port {localPort} -> {remoteHost}:{remotePort} "
+                    + $"exception: {args.Exception.Message}");
+                ForwardedPortFailed?.Invoke(new TunnelForwardedPortFailure(
+                    localPort,
+                    remoteHost,
+                    remotePort,
+                    args.Exception.Message,
+                    DateTimeOffset.UtcNow));
+            };
         }
 
         finalClient.AddForwardedPort(context.FinalPort);
