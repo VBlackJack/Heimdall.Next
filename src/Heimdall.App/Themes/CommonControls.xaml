@@ -308,7 +308,7 @@
         <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="16,8"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
@@ -379,7 +379,7 @@
         <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ValidationErrorTemplate}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -399,7 +399,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
@@ -453,7 +453,7 @@
                             <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
@@ -474,7 +474,7 @@
         <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -493,7 +493,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="PasswordBorder" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Setter TargetName="PasswordBorder" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="PasswordBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
@@ -787,7 +787,7 @@
         <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>

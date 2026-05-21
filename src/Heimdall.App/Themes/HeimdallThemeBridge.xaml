@@ -29,6 +29,7 @@
     <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="TextDisabledBrush" Color="{DynamicResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="InputBorderBrush" Color="{DynamicResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="HighlightBrush" Color="{DynamicResource SurfaceAltColor}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
