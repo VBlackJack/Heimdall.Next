@@ -80,12 +80,12 @@
                 Margin="0,12,0,0"
                 Padding="12"
                 CornerRadius="6"
-                Background="{DynamicResource CardBackgroundBrush}"
+                Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1">
             <ListView ItemsSource="{Binding ActionsView}"
                       SelectedItem="{Binding SelectedAction}"
-                      Background="{DynamicResource CardBackgroundBrush}"
+                      Background="{DynamicResource CardBrush}"
                       BorderThickness="0"
                       Foreground="{DynamicResource TextPrimaryBrush}">
                 <ListView.ItemTemplate>
@@ -119,7 +119,7 @@
                 Margin="0,12,0,0"
                 Padding="12"
                 CornerRadius="6"
-                Background="{DynamicResource CardBackgroundBrush}"
+                Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1">
             <StackPanel>

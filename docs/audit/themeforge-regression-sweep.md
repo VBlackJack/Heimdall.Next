@@ -149,3 +149,11 @@ Static resource audit generated after the ThemeForge migration. This report is a
 ## Section 4 - StaticResource On Theme Brushes
 
 None.
+
+## Triage Outcome
+
+- Section 1/2 `Diff*Brush` entries (`TextDiffView`): false positive. `TextDiffView.xaml.cs` creates these six resources at runtime in `BuildDerivedBrushes()`, derived from `ErrorBrush` and `SuccessBrush`; no defect.
+- `CardBackgroundBrush` entries: real defect. Seven references across three dialogs pointed at an undefined key; they were renamed to the existing `CardBrush` resource.
+- Section 3 hardcoded literals: benign. `Transparent` values are intentional pass-through backgrounds, `ProjectDialog` hex literals are fixed project-colour-picker swatches, and the Hacker Simulator `#00FF41` literal is its intentional retro-terminal accent.
+- Section 4: clean. No `StaticResource` usage targets a theme brush.
+- Verdict: the ThemeForge migration introduced no resource regressions.
