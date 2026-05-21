@@ -15,8 +15,11 @@
  */
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -135,7 +138,7 @@ public partial class SessionPaneControl : UserControl
 
         var hasContent = _model.HostControl is not null;
         var hasFailureDetails = _model.HasFailureDetails;
-        var hostHandlesFailureOverlay = _model.HostControl is EmbeddedRdpView;
+        var hostHandlesFailureOverlay = _model.HostControl is EmbeddedRdpView or EmbeddedSshView;
         var status = _model.Status ?? "";
 
         // Loading: pane exists but host control not yet assigned (connection in progress)
@@ -159,38 +162,34 @@ public partial class SessionPaneControl : UserControl
 
     private void OnReconnectClick(object sender, RoutedEventArgs e)
     {
-        if (_model is null) return;
-
-        var vm = FindMainViewModel();
-        if (vm is null) return;
-
-        // Find which session owns this pane
-        foreach (var session in vm.Connection.ActiveSessions)
+        if (!TryFindOwningSession(out var vm, out var session) || _model is null)
         {
-            if (SplitTreeHelper.FindPane(session.RootContent, _model.PaneId) is not null)
-            {
-                _ = vm.ReconnectPaneAsync(session, _model.PaneId);
-                return;
-            }
+            return;
         }
+
+        if (!session.IsSplit)
+        {
+            vm.Session.ReconnectSession(session);
+            return;
+        }
+
+        _ = vm.ReconnectPaneAsync(session, _model.PaneId);
     }
 
     private void OnClosePaneClick(object sender, RoutedEventArgs e)
     {
-        if (_model is null) return;
-
-        var vm = FindMainViewModel();
-        if (vm is null) return;
-
-        // Find which session owns this pane
-        foreach (var session in vm.Connection.ActiveSessions)
+        if (!TryFindOwningSession(out var vm, out var session) || _model is null)
         {
-            if (SplitTreeHelper.FindPane(session.RootContent, _model.PaneId) is not null)
-            {
-                vm.ClosePane(session, _model.PaneId);
-                return;
-            }
+            return;
         }
+
+        if (!session.IsSplit)
+        {
+            _ = vm.Connection.CloseSessionAsync(session, DisconnectReason.UserAction, confirm: false);
+            return;
+        }
+
+        vm.ClosePane(session, _model.PaneId);
     }
 
     private void ApplyLocalization()
@@ -207,9 +206,33 @@ public partial class SessionPaneControl : UserControl
         return vm?.GetLocalizer()[key] ?? key;
     }
 
-    private ViewModels.MainViewModel? FindMainViewModel()
+    private bool TryFindOwningSession(
+        [NotNullWhen(true)] out MainViewModel? vm,
+        [NotNullWhen(true)] out SessionTabViewModel? session)
     {
-        return Application.Current.MainWindow?.DataContext as ViewModels.MainViewModel;
+        vm = FindMainViewModel();
+        session = null;
+        if (vm is null || _model is null)
+        {
+            return false;
+        }
+
+        // Find which session owns this pane.
+        foreach (var candidate in vm.Connection.ActiveSessions)
+        {
+            if (SplitTreeHelper.FindPane(candidate.RootContent, _model.PaneId) is not null)
+            {
+                session = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private MainViewModel? FindMainViewModel()
+    {
+        return Application.Current.MainWindow?.DataContext as MainViewModel;
     }
 
     private static bool IsApplicationShuttingDown()
