@@ -54,6 +54,8 @@ public partial class App : System.Windows.Application
 
     public IServiceProvider? Services => _serviceProvider;
 
+    public bool IsShuttingDown { get; private set; }
+
     // WPF's startup hook is event-like. Keeping async void here lets the splash
     // stay visible while awaited initialization completes on the dispatcher.
     protected override async void OnStartup(StartupEventArgs e)
@@ -233,6 +235,22 @@ public partial class App : System.Windows.Application
             _mainViewModel = mainWindow.DataContext as MainViewModel;
             MainWindow = mainWindow;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
+            mainWindow.Closing += (_, args) =>
+            {
+                IsShuttingDown = true;
+
+                // MainWindow.OnClosing can cancel the first close to show the
+                // unsaved-settings prompt. The Closing event is raised before
+                // the override finishes, so reset the flag after all handlers
+                // have had a chance to set Cancel.
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (args.Cancel)
+                    {
+                        IsShuttingDown = false;
+                    }
+                });
+            };
             mainWindow.Show();
         }
         catch (Exception ex)

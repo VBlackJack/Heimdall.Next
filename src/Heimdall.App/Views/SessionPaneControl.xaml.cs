@@ -63,7 +63,10 @@ public partial class SessionPaneControl : UserControl
         // Release the hosted UIElement so it can be reparented in a new
         // SessionPaneControl (e.g. after a swap). Without this, the old
         // control retains the WebView2/ActiveX child, blocking reparenting.
-        HostPresenter.Content = null;
+        if (!IsApplicationShuttingDown())
+        {
+            HostPresenter.Content = null;
+        }
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -73,7 +76,10 @@ public partial class SessionPaneControl : UserControl
         // Release any previously hosted UIElement before binding to the
         // next pane model so WebView2/ActiveX controls do not remain
         // parented to the old presenter.
-        HostPresenter.Content = null;
+        if (!IsApplicationShuttingDown())
+        {
+            HostPresenter.Content = null;
+        }
 
         // Unsubscribe from previous model
         if (_model is not null)
@@ -204,5 +210,10 @@ public partial class SessionPaneControl : UserControl
     private ViewModels.MainViewModel? FindMainViewModel()
     {
         return Application.Current.MainWindow?.DataContext as ViewModels.MainViewModel;
+    }
+
+    private static bool IsApplicationShuttingDown()
+    {
+        return (Application.Current as Heimdall.App.App)?.IsShuttingDown == true;
     }
 }
