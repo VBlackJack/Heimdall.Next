@@ -1,0 +1,112 @@
+<!--
+  Copyright 2026 Julien Bombled
+  Author: Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Colour key consumed directly from C# legacy surfaces -->
+    <Color x:Key="PrimaryColor">#282A36</Color>
+
+    <!-- Generic themed brushes -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush x:Key="CardBrush" Color="{DynamicResource SurfaceAltColor}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="HighlightBrush" Color="{DynamicResource SurfaceAltColor}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}" />
+    <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource InfoColor}" />
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningTextBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="{DynamicResource ErrorColor}" />
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush x:Key="FocusIndicatorBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush x:Key="TreeViewIndentGuideBrush" Color="{DynamicResource BorderColor}" Opacity="0.35" />
+    <SolidColorBrush x:Key="DragDropOverlayBackground" Color="{DynamicResource BackgroundColor}" Opacity="0.40" />
+    <SolidColorBrush x:Key="OverlayBackground" Color="#B3000000" />
+
+    <!-- Protocol accent brushes -->
+    <SolidColorBrush x:Key="ProtocolRdpBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="ProtocolSshBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="ProtocolSftpBrush" Color="{DynamicResource OrangeColor}" />
+    <SolidColorBrush x:Key="ProtocolVncBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="{DynamicResource CommentColor}" />
+    <SolidColorBrush x:Key="ProtocolFtpBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="{DynamicResource PurpleColor}" />
+    <SolidColorBrush x:Key="ProtocolLocalBrush" Color="{DynamicResource AccentColor}" />
+
+    <!-- Connection badge brushes -->
+    <SolidColorBrush x:Key="RdpBadgeBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="SshBadgeBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="SftpBadgeBrush" Color="{DynamicResource OrangeColor}" />
+    <SolidColorBrush x:Key="VncBadgeBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="FtpBadgeBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="CitrixBadgeBrush" Color="{DynamicResource PurpleColor}" />
+    <SolidColorBrush x:Key="TelnetBadgeBrush" Color="{DynamicResource CommentColor}" />
+    <SolidColorBrush x:Key="LocalBadgeBrush" Color="{DynamicResource AccentColor}" />
+
+    <!-- Tool category brushes -->
+    <SolidColorBrush x:Key="ToolBadgeBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="ToolNetworkBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="ToolSecurityBrush" Color="{DynamicResource OrangeColor}" />
+    <SolidColorBrush x:Key="ToolEncodingBrush" Color="{DynamicResource PurpleColor}" />
+    <SolidColorBrush x:Key="ToolSystemBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="ToolExternalBrush" Color="{DynamicResource PinkColor}" />
+
+    <!-- JWT viewer brushes -->
+    <SolidColorBrush x:Key="JwtHeaderBrush" Color="{DynamicResource BlueColor}" />
+    <SolidColorBrush x:Key="JwtPayloadBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="JwtSignatureBrush" Color="{DynamicResource OrangeColor}" />
+
+    <!-- File type icon brushes -->
+    <SolidColorBrush x:Key="FileScriptBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="FileConfigBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="FileDocumentBrush" Color="{DynamicResource CommentColor}" />
+    <SolidColorBrush x:Key="FileArchiveBrush" Color="{DynamicResource OrangeColor}" />
+    <SolidColorBrush x:Key="FileExecutableBrush" Color="{DynamicResource PinkColor}" />
+    <SolidColorBrush x:Key="FileImageBrush" Color="{DynamicResource YellowColor}" />
+
+    <!-- Broadcast feedback brush -->
+    <SolidColorBrush x:Key="BroadcastActiveBrush" Color="{DynamicResource RedColor}" Opacity="0.27" />
+
+    <!-- Hacker Simulator fixed retro-terminal brushes -->
+    <SolidColorBrush x:Key="HackerSimBackgroundBrush" Color="#0F0F0F" />
+    <SolidColorBrush x:Key="HackerSimSurfaceBrush" Color="#151515" />
+    <SolidColorBrush x:Key="HackerSimToolbarBrush" Color="#0F0F0F" />
+    <SolidColorBrush x:Key="HackerSimBorderBrush" Color="#222222" />
+    <SolidColorBrush x:Key="HackerSimInputBorderBrush" Color="#333333" />
+    <SolidColorBrush x:Key="HackerSimTextPrimaryBrush" Color="#D4FFD9" />
+    <SolidColorBrush x:Key="HackerSimTextSecondaryBrush" Color="#6FAF7C" />
+    <SolidColorBrush x:Key="HackerSimTextMutedBrush" Color="#555555" />
+    <SolidColorBrush x:Key="HackerSimButtonForegroundBrush" Color="#777777" />
+    <SolidColorBrush x:Key="HackerSimButtonBackgroundBrush" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="HackerSimAccentBrush" Color="#00FF41" />
+    <SolidColorBrush x:Key="HackerSimHighlightBrush" Color="#FFD700" />
+    <SolidColorBrush x:Key="HackerSimGlowBrush" Color="#1000FF41" />
+    <SolidColorBrush x:Key="HackerSimGlowStrongBrush" Color="#2200FF41" />
+    <SolidColorBrush x:Key="HackerSimOverlayBrush" Color="#16FFFFFF" />
+</ResourceDictionary>
