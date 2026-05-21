@@ -1873,6 +1873,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsLanguageLabel" Text="{loc:Translate SettingsLabelLanguage}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
@@ -1881,7 +1882,7 @@
                                                     <ComboBoxItem Content="fr"/>
                                                 </ComboBox>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <StackPanel Grid.Column="1" Margin="8,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="{loc:Translate SettingsLabelTheme}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
                                                     <!-- Root -->
@@ -1907,6 +1908,21 @@
                                                     <!-- Alt -->
                                                     <ComboBoxItem x:Name="Mw_ThemeWormwood" Content="{loc:Translate ThemeWormwood}" Tag="Wormwood" AutomationProperties.Name="{loc:Translate ThemeWormwood}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeSconce" Content="{loc:Translate ThemeSconce}" Tag="Sconce" AutomationProperties.Name="{loc:Translate ThemeSconce}"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsAccentLabel" Text="{loc:Translate SettingsLabelAccent}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                                <ComboBox SelectedValue="{Binding Settings.AccentTint}" SelectedValuePath="Tag">
+                                                    <ComboBoxItem x:Name="Mw_AccentDefault" Content="{loc:Translate AccentDefault}" Tag="Default" AutomationProperties.Name="{loc:Translate AccentDefault}"/>
+                                                    <Separator/>
+                                                    <ComboBoxItem x:Name="Mw_AccentBlue" Content="{loc:Translate AccentBlue}" Tag="Blue" AutomationProperties.Name="{loc:Translate AccentBlue}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentCyan" Content="{loc:Translate AccentCyan}" Tag="Cyan" AutomationProperties.Name="{loc:Translate AccentCyan}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentGreen" Content="{loc:Translate AccentGreen}" Tag="Green" AutomationProperties.Name="{loc:Translate AccentGreen}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentOrange" Content="{loc:Translate AccentOrange}" Tag="Orange" AutomationProperties.Name="{loc:Translate AccentOrange}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentPink" Content="{loc:Translate AccentPink}" Tag="Pink" AutomationProperties.Name="{loc:Translate AccentPink}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentPurple" Content="{loc:Translate AccentPurple}" Tag="Purple" AutomationProperties.Name="{loc:Translate AccentPurple}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentRed" Content="{loc:Translate AccentRed}" Tag="Red" AutomationProperties.Name="{loc:Translate AccentRed}"/>
+                                                    <ComboBoxItem x:Name="Mw_AccentYellow" Content="{loc:Translate AccentYellow}" Tag="Yellow" AutomationProperties.Name="{loc:Translate AccentYellow}"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>

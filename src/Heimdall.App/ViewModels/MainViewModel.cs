@@ -360,9 +360,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
             OpenToolTabAsync(toolId, title, ctx);
 
         // Instant theme preview when the user changes the Settings combo.
-        // Actual persistence triggers a second ApplyTheme via IConfigManager.SettingsChanged,
+        // Actual persistence triggers a second apply via IConfigManager.SettingsChanged,
         // which is a no-op because HeimdallThemeService is idempotent.
         Settings.ThemeChanged += OnSettingsThemePreview;
+        Settings.AccentTintChanged += OnSettingsAccentTintPreview;
 
         // Track the theme revision counter so MultiBinding triggers fire on swap.
         // Initial sync covers the startup apply that happened before this subscription.
@@ -551,6 +552,15 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     }
 
     /// <summary>
+    /// Forwards the instant-preview accent change from the Settings combo to
+    /// the centralized <see cref="HeimdallThemeService"/>.
+    /// </summary>
+    private void OnSettingsAccentTintPreview(string accentTint)
+    {
+        _themeService.ApplyAccentTint(accentTint);
+    }
+
+    /// <summary>
     /// Mirrors <see cref="HeimdallThemeService.ThemeRevision"/> into <see cref="ThemeRevision"/>
     /// so XAML <c>MultiBinding</c>s re-run their brush-resolving converters after a swap.
     /// </summary>
@@ -580,6 +590,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
         Settings.ThemeChanged -= OnSettingsThemePreview;
+        Settings.AccentTintChanged -= OnSettingsAccentTintPreview;
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;
