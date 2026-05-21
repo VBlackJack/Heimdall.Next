@@ -60,6 +60,7 @@ public partial class SettingsViewModel : ObservableValidator
     private readonly IProfileImportService? _profileImportService;
 
     private string _originalTheme = "";
+    private string _originalAccentTint = "Default";
 
     // Working buffers (mutated by CRUD, flushed to disk on Save)
     private List<SshGatewayDto> _pendingGateways = new();
@@ -75,6 +76,9 @@ public partial class SettingsViewModel : ObservableValidator
 
     [ObservableProperty]
     private string _defaultTheme = "Drakul";
+
+    [ObservableProperty]
+    private string _accentTint = "Default";
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -423,6 +427,8 @@ public partial class SettingsViewModel : ObservableValidator
     /// </summary>
     public event Action<string>? ThemeChanged;
 
+    public event Action<string>? AccentTintChanged;
+
     public SettingsViewModel(
         IConfigManager configManager,
         LocalizationManager localizer,
@@ -519,7 +525,9 @@ public partial class SettingsViewModel : ObservableValidator
         // General
         DefaultLocale = settings.DefaultLocale;
         DefaultTheme = settings.DefaultTheme;
+        AccentTint = settings.AccentTint;
         _originalTheme = settings.DefaultTheme;
+        _originalAccentTint = settings.AccentTint;
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         PreventSleepDuringSession = settings.PreventSleepDuringSession;
         CollapseTunnelsPanelByDefault = settings.CollapseTunnelsPanelByDefault;
@@ -670,6 +678,7 @@ public partial class SettingsViewModel : ObservableValidator
         // General
         settings.DefaultLocale = DefaultLocale;
         settings.DefaultTheme = DefaultTheme;
+        settings.AccentTint = AccentTint;
         settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
         settings.PreventSleepDuringSession = PreventSleepDuringSession;
         settings.CollapseTunnelsPanelByDefault = CollapseTunnelsPanelByDefault;
@@ -809,6 +818,7 @@ public partial class SettingsViewModel : ObservableValidator
         }
 
         _originalTheme = DefaultTheme;
+        _originalAccentTint = AccentTint;
 
         if (!string.Equals(_localizer.CurrentLocale, DefaultLocale, StringComparison.OrdinalIgnoreCase))
         {
@@ -1422,9 +1432,15 @@ public partial class SettingsViewModel : ObservableValidator
         ThemeChanged?.Invoke(value);
     }
 
+    partial void OnAccentTintChanged(string value)
+    {
+        AccentTintChanged?.Invoke(value);
+    }
+
     public async Task DiscardChangesAsync()
     {
         DefaultTheme = _originalTheme;
+        AccentTint = _originalAccentTint;
         var settings = await _configManager.LoadSettingsAsync();
         LoadFromSettings(settings);
     }
