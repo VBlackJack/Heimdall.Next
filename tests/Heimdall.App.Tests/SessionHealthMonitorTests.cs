@@ -258,6 +258,30 @@ public class SessionHealthMonitorTests
         Assert.Empty(fixture.Monitor.States);
     }
 
+    [Fact]
+    public async Task StopDuringInFlightCycle_DoesNotDisposeProbeThrottle()
+    {
+        var probe = new BlockingHealthProbe();
+        await using var fixture = new MonitorFixture(probe, new ServerProfileDto
+        {
+            Id = "srv-slow",
+            RemoteServer = "slow.example.com",
+            ConnectionType = "SSH",
+            SshPort = 22
+        });
+
+        var cycleTask = fixture.Monitor.RunCycleAsync(CancellationToken.None);
+        await probe.WaitUntilEnteredAsync();
+
+        fixture.Monitor.Stop();
+        probe.Complete();
+
+        await cycleTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var state = fixture.Monitor.GetState("srv-slow");
+        Assert.Equal(HealthStatus.Up, state.Status);
+    }
+
     // ── Test doubles ─────────────────────────────────────────────────
 
     private sealed class FakeHealthProbe : IHealthProbe
@@ -311,6 +335,23 @@ public class SessionHealthMonitorTests
         public Task<bool> MergeHostKeyAsync(string hostPortKey, string fingerprint) => Task.FromResult(false);
         public Task<int> MergeTrustedHostKeysAsync(IEnumerable<KeyValuePair<string, string>> entries) => Task.FromResult(0);
         public Task MergeSettingAsync(Action<AppSettings> mutate) => Task.CompletedTask;
+    }
+
+    private sealed class BlockingHealthProbe : IHealthProbe
+    {
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _complete = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<HealthState> ProbeAsync(string host, int port, int timeoutMs, CancellationToken ct)
+        {
+            _entered.SetResult();
+            await _complete.Task.WaitAsync(ct).ConfigureAwait(false);
+            return new HealthState(HealthStatus.Up, DateTime.UtcNow, 1, null);
+        }
+
+        public Task WaitUntilEnteredAsync() => _entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        public void Complete() => _complete.SetResult();
     }
 
     private sealed class MonitorFixture : IAsyncDisposable
