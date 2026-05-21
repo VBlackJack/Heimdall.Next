@@ -33,6 +33,7 @@ public sealed class AppSettings
     public bool AdminMode { get; set; } = true;
     public string DefaultLocale { get; set; } = "en";
     public string DefaultTheme { get; set; } = "Drakul";
+    public string AccentTint { get; set; } = "Default";
 
     // Tools (legacy Plink paths, kept for import compatibility)
     public string PlinkPath { get; set; } = @"C:\Program Files\PuTTY\plink.exe";

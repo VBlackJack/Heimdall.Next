@@ -19,6 +19,8 @@ using Heimdall.App.Theming;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
 using ThemeForgeChangedEventArgs = ThemeForge.Theme.ThemeChangedEventArgs;
+using ThemeForgeAccentTint = ThemeForge.Theme.AccentTint;
+using ThemeForgeAccentTints = ThemeForge.Theme.AccentTints;
 using ThemeForgeIThemeService = ThemeForge.Theme.IThemeService;
 using ThemeForgeNames = ThemeForge.Theme.ThemeNames;
 using ThemeForgeThemeService = ThemeForge.Theme.ThemeService;
@@ -27,12 +29,15 @@ namespace Heimdall.App.Services;
 
 internal readonly record struct ThemeResolution(string ThemeId, bool ShouldPersist);
 
+internal readonly record struct AccentTintResolution(string AccentTintId, bool ShouldPersist);
+
 /// <summary>
 /// Heimdall compatibility wrapper around the ThemeForge theme engine.
 /// </summary>
 public sealed class HeimdallThemeService
 {
     private const string DefaultTheme = ThemeForgeNames.Drakul;
+    private const string DefaultAccentTint = nameof(ThemeForgeAccentTint.Default);
     private const string BridgeDictionaryPath = "Themes/HeimdallThemeBridge.xaml";
 
     private static readonly Dictionary<string, string> ThemeForgeIds =
@@ -41,10 +46,17 @@ public sealed class HeimdallThemeService
             themeName => themeName,
             StringComparer.OrdinalIgnoreCase);
 
+    private static readonly Dictionary<string, ThemeForgeAccentTint> AccentTintIds =
+        ThemeForgeAccentTints.All.ToDictionary(
+            accentTint => accentTint.ToString(),
+            accentTint => accentTint,
+            StringComparer.OrdinalIgnoreCase);
+
     private readonly IConfigManager _configManager;
     private readonly object _themeServiceLock = new();
     private ThemeForgeIThemeService? _themeService;
     private string _currentTheme = DefaultTheme;
+    private string _currentAccentTint = DefaultAccentTint;
 
     public HeimdallThemeService(IConfigManager configManager)
     {
@@ -75,6 +87,17 @@ public sealed class HeimdallThemeService
     /// Enumerates the ThemeForge theme ids recognized by Heimdall.
     /// </summary>
     public static IReadOnlyCollection<string> AvailableThemes => ThemeForgeNames.All;
+
+    /// <summary>
+    /// Enumerates the ThemeForge accent tint ids recognized by Heimdall.
+    /// </summary>
+    public static IReadOnlyCollection<string> AvailableAccentTints { get; } =
+        ThemeForgeAccentTints.All
+            .Select(accentTint => accentTint.ToString())
+            .ToArray();
+
+    /// <summary>Canonical ThemeForge accent tint currently applied to the application.</summary>
+    public string CurrentAccentTint => _themeService?.CurrentAccentTint.ToString() ?? _currentAccentTint;
 
     /// <summary>
     /// Resolves a persisted setting to a ThemeForge id and delegates the swap.
@@ -109,6 +132,35 @@ public sealed class HeimdallThemeService
         }
     }
 
+    /// <summary>
+    /// Resolves a persisted accent tint setting and delegates it to ThemeForge.
+    /// </summary>
+    public void ApplyAccentTint(string? accentName)
+    {
+        ThemeForgeIThemeService? themeService = GetThemeService();
+        if (themeService is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(themeService.CurrentTheme))
+        {
+            FileLogger.Warn(
+                "[HeimdallThemeService] Ignored accent tint before a theme was applied.");
+            return;
+        }
+
+        AccentTintResolution resolution = ResolveAccentTint(accentName);
+        if (resolution.ShouldPersist)
+        {
+            PersistAccentTint(resolution.AccentTintId);
+        }
+
+        ThemeForgeAccentTint accentTint = AccentTintIds[resolution.AccentTintId];
+        themeService.ApplyAccentTint(accentTint);
+        _currentAccentTint = resolution.AccentTintId;
+    }
+
     internal static ThemeResolution ResolveThemeId(string? persisted)
     {
         if (string.IsNullOrWhiteSpace(persisted))
@@ -124,6 +176,24 @@ public sealed class HeimdallThemeService
 
         bool shouldPersist = !string.Equals(persisted, canonical, StringComparison.Ordinal);
         return new ThemeResolution(canonical, shouldPersist);
+    }
+
+    internal static AccentTintResolution ResolveAccentTint(string? persisted)
+    {
+        if (string.IsNullOrWhiteSpace(persisted))
+        {
+            return new AccentTintResolution(DefaultAccentTint, ShouldPersist: true);
+        }
+
+        string trimmed = persisted.Trim();
+        if (!AccentTintIds.TryGetValue(trimmed, out ThemeForgeAccentTint accentTint))
+        {
+            return new AccentTintResolution(DefaultAccentTint, ShouldPersist: true);
+        }
+
+        string canonical = accentTint.ToString();
+        bool shouldPersist = !string.Equals(persisted, canonical, StringComparison.Ordinal);
+        return new AccentTintResolution(canonical, shouldPersist);
     }
 
     private ThemeForgeIThemeService? GetThemeService()
@@ -195,9 +265,28 @@ public sealed class HeimdallThemeService
         });
     }
 
+    private void PersistAccentTint(string accentTintId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _configManager.MergeSettingAsync(settings => settings.AccentTint = accentTintId);
+                FileLogger.Info(
+                    $"[HeimdallThemeService] Persisted ThemeForge accent tint '{accentTintId}'");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Warn(
+                    $"[HeimdallThemeService] Failed to persist accent tint: {ex.Message}");
+            }
+        });
+    }
+
     private void OnThemeForgeThemeChanged(object? sender, ThemeForgeChangedEventArgs args)
     {
         _currentTheme = args.CurrentTheme;
+        _currentAccentTint = _themeService?.CurrentAccentTint.ToString() ?? _currentAccentTint;
         ThemeChanged?.Invoke(args.CurrentTheme);
     }
 }
