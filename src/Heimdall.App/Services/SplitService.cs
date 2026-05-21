@@ -489,8 +489,10 @@ public sealed class SplitService : ISplitService
         var pane = SplitTreeHelper.FindPane(session.RootContent, paneId);
         if (pane is null) return;
 
-        // Guard: if HostControl is already null, a reconnect is in progress
-        if (pane.HostControl is null)
+        // Guard: if HostControl is already null with no failure diagnostic, a
+        // reconnect is already in progress. Failed panes created without a
+        // host still need to be reconnectable from their generic overlay.
+        if (pane.HostControl is null && !pane.HasFailureDetails)
         {
             Core.Logging.FileLogger.Info(
                 $"ReconnectPane skipped: pane '{paneId}' already reconnecting (HostControl is null).");
@@ -512,6 +514,7 @@ public sealed class SplitService : ISplitService
         // Dispose current host control through the shared teardown order before
         // replacing it with the reconnect placeholder state.
         await _sessionManager.DisconnectSessionAsync(pane, DisconnectReason.ReconnectInitiated);
+        pane.FailureDetails = null;
         pane.HostControl = null;
         pane.Status = _localizer["SplitSecondaryConnecting"];
 
