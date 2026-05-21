@@ -67,6 +67,7 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter, IMultiValu
             {
                 "RDP" => "RdpBadgeBrush",
                 "SSH" => "SshBadgeBrush",
+                "WINRM" => "WinRmBadgeBrush",
                 "SFTP" => "SftpBadgeBrush",
                 "FTP" => "FtpBadgeBrush",
                 "VNC" => "VncBadgeBrush",

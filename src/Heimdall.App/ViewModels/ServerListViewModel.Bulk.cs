@@ -1225,6 +1225,10 @@ public partial class ServerListViewModel
                 dto.RemotePort = port;
                 break;
 
+            case "WINRM":
+                dto.WinRmPort = port;
+                break;
+
             case "VNC":
                 dto.VncPort = port;
                 dto.RemotePort = port;
@@ -1257,6 +1261,11 @@ public partial class ServerListViewModel
                 dto.FtpUsername = username;
                 break;
 
+            case "WINRM":
+                dto.WinRmUsername = username;
+                dto.WinRmIdentityMode = Core.Configuration.WinRmIdentityMode.Credential;
+                break;
+
             case "TELNET":
                 dto.TelnetUsername = username;
                 break;
@@ -1281,6 +1290,11 @@ public partial class ServerListViewModel
 
             case "FTP":
                 dto.FtpPasswordEncrypted = encryptedPassword;
+                break;
+
+            case "WINRM":
+                dto.WinRmPasswordEncrypted = encryptedPassword;
+                dto.WinRmIdentityMode = Core.Configuration.WinRmIdentityMode.Credential;
                 break;
 
             case "TELNET":

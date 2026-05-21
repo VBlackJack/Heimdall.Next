@@ -862,6 +862,16 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                 username => { if (string.IsNullOrEmpty(dto.RdpUsername)) dto.RdpUsername = username; });
         }
 
+        if (connType is "WINRM"
+            && dto.WinRmIdentityMode == Core.Configuration.WinRmIdentityMode.Credential
+            && string.IsNullOrEmpty(dto.WinRmPasswordEncrypted))
+        {
+            return new CredentialTarget(
+                dto.WinRmPort, dto.WinRmUsername,
+                encrypted => dto.WinRmPasswordEncrypted = encrypted,
+                username => { if (string.IsNullOrEmpty(dto.WinRmUsername)) dto.WinRmUsername = username; });
+        }
+
         if (connType is "FTP" && string.IsNullOrEmpty(dto.FtpPasswordEncrypted))
         {
             return new CredentialTarget(

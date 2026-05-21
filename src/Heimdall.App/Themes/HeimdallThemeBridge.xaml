@@ -50,6 +50,7 @@
     <!-- Protocol accent brushes -->
     <SolidColorBrush x:Key="ProtocolRdpBrush" Color="{DynamicResource BlueColor}" />
     <SolidColorBrush x:Key="ProtocolSshBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="ProtocolWinRmBrush" Color="{DynamicResource PurpleColor}" />
     <SolidColorBrush x:Key="ProtocolSftpBrush" Color="{DynamicResource OrangeColor}" />
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="{DynamicResource CyanColor}" />
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="{DynamicResource CommentColor}" />
@@ -60,6 +61,7 @@
     <!-- Connection badge brushes -->
     <SolidColorBrush x:Key="RdpBadgeBrush" Color="{DynamicResource BlueColor}" />
     <SolidColorBrush x:Key="SshBadgeBrush" Color="{DynamicResource GreenColor}" />
+    <SolidColorBrush x:Key="WinRmBadgeBrush" Color="{DynamicResource PurpleColor}" />
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="{DynamicResource OrangeColor}" />
     <SolidColorBrush x:Key="VncBadgeBrush" Color="{DynamicResource CyanColor}" />
     <SolidColorBrush x:Key="FtpBadgeBrush" Color="{DynamicResource BlueColor}" />

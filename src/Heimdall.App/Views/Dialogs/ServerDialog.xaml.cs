@@ -212,6 +212,8 @@ public partial class ServerDialog : Window
         var vncPwBox = FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox;
         var ftpPwBox = FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox;
         var telnetPwBox = FindName("TelnetPasswordBox") as System.Windows.Controls.PasswordBox;
+        System.Windows.Controls.PasswordBox? winRmPwBox =
+            FindName("WinRmPasswordBox") as System.Windows.Controls.PasswordBox;
 
         if (sshPwBox is not null) vm.SshPassword = sshPwBox.Password;
         if (sshKeyPassphraseBox is not null)
@@ -223,6 +225,7 @@ public partial class ServerDialog : Window
         if (vncPwBox is not null) vm.VncPassword = vncPwBox.Password;
         if (ftpPwBox is not null) vm.FtpPassword = ftpPwBox.Password;
         if (telnetPwBox is not null) vm.TelnetPassword = telnetPwBox.Password;
+        if (winRmPwBox is not null) vm.WinRmPassword = winRmPwBox.Password;
 
         vm.ValidateCommand.Execute(null);
 
@@ -237,6 +240,7 @@ public partial class ServerDialog : Window
             vncPwBox?.Clear();
             ftpPwBox?.Clear();
             telnetPwBox?.Clear();
+            winRmPwBox?.Clear();
         }
         else
         {
@@ -342,6 +346,7 @@ public partial class ServerDialog : Window
         (FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("TelnetPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("WinRmPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
     }
 
     private void OnBrowseSshKeyClick(object sender, RoutedEventArgs e)
@@ -440,6 +445,8 @@ public partial class ServerDialog : Window
         DlgSrv_ProtoRdpDesc.Text = _localizer["ServerDialogProtocolRdpDesc"];
         DlgSrv_ProtoSshName.Text = _localizer["ServerDialogProtocolSshName"];
         DlgSrv_ProtoSshDesc.Text = _localizer["ServerDialogProtocolSshDesc"];
+        DlgSrv_ProtoWinRmName.Text = _localizer["ServerDialogProtocolWinRmName"];
+        DlgSrv_ProtoWinRmDesc.Text = _localizer["ServerDialogProtocolWinRmDesc"];
         DlgSrv_ProtoSftpName.Text = _localizer["ServerDialogProtocolSftpName"];
         DlgSrv_ProtoSftpDesc.Text = _localizer["ServerDialogProtocolSftpDesc"];
         DlgSrv_ProtoVncName.Text = _localizer["ServerDialogProtocolVncName"];
@@ -514,6 +521,16 @@ public partial class ServerDialog : Window
         DlgSrv_BasicRdpCredentialsDesc.Text = _localizer["ServerDialogRdpCredentialsDesc"];
         DlgSrv_BasicRdpUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
         DlgSrv_BasicRdpPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+        DlgSrv_BasicWinRmCredentialsTitle.Text = _localizer["ServerDialogWinRmCredentials"];
+        DlgSrv_BasicWinRmCredentialsDesc.Text = _localizer["ServerDialogWinRmCredentialsDesc"];
+        DlgSrv_WinRmIdentityLabel.Text = _localizer["ServerDialogWinRmIdentityMode"];
+        DlgSrv_WinRmIdentityCurrent.Content = _localizer["ServerDialogWinRmIdentityCurrentUser"];
+        DlgSrv_WinRmIdentityCredential.Content = _localizer["ServerDialogWinRmIdentityCredential"];
+        DlgSrv_WinRmSslCb.Content = _localizer["ServerDialogWinRmUseSsl"];
+        DlgSrv_BasicWinRmUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_BasicWinRmPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_WinRmIdentityCombo, DlgSrv_WinRmIdentityLabel);
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_WinRmUsernameBox, DlgSrv_BasicWinRmUsernameLabel);
         System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_SshKeyPathBox, DlgSrv_BasicSshKeyLabel);
         DlgSrv_BasicBrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
         // SSH auth hints are bound to computed ViewModel properties.
@@ -705,6 +722,7 @@ public partial class ServerDialog : Window
         // Accessibility: protocol card automation names
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Rdp, _localizer["ServerDialogProtocolRdpName"]);
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Ssh, _localizer["ServerDialogProtocolSshName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_WinRm, _localizer["ServerDialogProtocolWinRmName"]);
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Sftp, _localizer["ServerDialogProtocolSftpName"]);
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Vnc, _localizer["ServerDialogProtocolVncName"]);
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Telnet, _localizer["ServerDialogProtocolTelnetName"]);
@@ -716,6 +734,7 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(SshPasswordBox, _localizer["ServerDialogLabelPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(SshKeyPassphraseBox, _localizer["ServerDialogLabelKeyPassphrase"]);
+        System.Windows.Automation.AutomationProperties.SetName(WinRmPasswordBox, _localizer["ServerDialogLabelPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(FtpPasswordBox, _localizer["ServerDialogFtpPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(VncPasswordBox, _localizer["ServerDialogVncPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(TelnetPasswordBox, _localizer["ServerDialogLabelPassword"]);

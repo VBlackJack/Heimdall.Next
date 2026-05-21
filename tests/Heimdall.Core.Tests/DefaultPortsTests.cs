@@ -67,4 +67,16 @@ public class DefaultPortsTests
     {
         Assert.Equal(22, DefaultPorts.Sftp);
     }
+
+    [Fact]
+    public void WinRmHttp_Is5985()
+    {
+        Assert.Equal(5985, DefaultPorts.WinRmHttp);
+    }
+
+    [Fact]
+    public void WinRmHttps_Is5986()
+    {
+        Assert.Equal(5986, DefaultPorts.WinRmHttps);
+    }
 }

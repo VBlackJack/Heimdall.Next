@@ -49,6 +49,15 @@ public sealed class ServerProfileDto
     public string? ProjectId { get; set; }
     public string ConnectionType { get; set; } = "RDP";
 
+    // WinRM settings
+    public int WinRmPort { get; set; } = DefaultPorts.WinRmHttp;
+    public string? WinRmUsername { get; set; }
+    public string? WinRmPasswordEncrypted { get; set; }
+    public bool WinRmUseSsl { get; set; }
+
+    [JsonConverter(typeof(JsonStringEnumConverter<WinRmIdentityMode>))]
+    public WinRmIdentityMode WinRmIdentityMode { get; set; } = WinRmIdentityMode.CurrentUser;
+
     // SSH settings
     public string? SshUsername { get; set; }
     public int SshPort { get; set; } = DefaultPorts.Ssh;

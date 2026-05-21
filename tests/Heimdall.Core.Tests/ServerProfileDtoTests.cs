@@ -64,6 +64,18 @@ public class ServerProfileDtoTests
     }
 
     [Fact]
+    public void DefaultValues_WinRmDefaults_MatchExpected()
+    {
+        ServerProfileDto dto = new ServerProfileDto();
+
+        Assert.Equal(5985, dto.WinRmPort);
+        Assert.False(dto.WinRmUseSsl);
+        Assert.Equal(WinRmIdentityMode.CurrentUser, dto.WinRmIdentityMode);
+        Assert.Null(dto.WinRmUsername);
+        Assert.Null(dto.WinRmPasswordEncrypted);
+    }
+
+    [Fact]
     public void DefaultValues_LocalShellElevated_IsFalse()
     {
         var dto = new ServerProfileDto();
@@ -147,6 +159,11 @@ public class ServerProfileDtoTests
             SshGatewayId = "gw-01",
             RdpUsername = @"CORP\admin",
             ConnectionType = "RDP",
+            WinRmPort = 5986,
+            WinRmUsername = @"CORP\operator",
+            WinRmPasswordEncrypted = "encrypted-winrm-password",
+            WinRmUseSsl = true,
+            WinRmIdentityMode = WinRmIdentityMode.Credential,
             SshUsername = "deploy",
             SshPort = 2222,
             SshMode = "Embedded",
@@ -182,6 +199,11 @@ public class ServerProfileDtoTests
         Assert.Equal(original.SshGatewayId, deserialized.SshGatewayId);
         Assert.Equal(original.RdpUsername, deserialized.RdpUsername);
         Assert.Equal(original.ConnectionType, deserialized.ConnectionType);
+        Assert.Equal(original.WinRmPort, deserialized.WinRmPort);
+        Assert.Equal(original.WinRmUsername, deserialized.WinRmUsername);
+        Assert.Equal(original.WinRmPasswordEncrypted, deserialized.WinRmPasswordEncrypted);
+        Assert.Equal(original.WinRmUseSsl, deserialized.WinRmUseSsl);
+        Assert.Equal(original.WinRmIdentityMode, deserialized.WinRmIdentityMode);
         Assert.Equal(original.SshUsername, deserialized.SshUsername);
         Assert.Equal(original.SshPort, deserialized.SshPort);
         Assert.Equal(original.SshMode, deserialized.SshMode);
@@ -316,6 +338,21 @@ public class ServerProfileDtoTests
         Assert.NotNull(deserialized);
         Assert.Equal(0, deserialized.RdpResizeEnableDelayMs);
     }
+
+    [Fact]
+    public void JsonSerialization_WinRmIdentityMode_UsesStringEnum()
+    {
+        ServerProfileDto dto = new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            WinRmIdentityMode = WinRmIdentityMode.Credential
+        };
+
+        string json = JsonSerializer.Serialize(dto);
+
+        Assert.Contains("\"WinRmIdentityMode\":\"Credential\"", json);
+    }
+
     [Fact]
     public void JsonSerialization_UsesBackCompatibleFixedResolutionNames()
     {

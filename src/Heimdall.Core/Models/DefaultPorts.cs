@@ -44,6 +44,8 @@ public static class DefaultPorts
     public const int Rdp = 3389;
     public const int RdpTunnel = 33890;
     public const int PostgreSql = 5432;
+    public const int WinRmHttp = 5985;
+    public const int WinRmHttps = 5986;
     public const int Vnc = 5900;
     public const int VncAlt = 5901;
     public const int Redis = 6379;
