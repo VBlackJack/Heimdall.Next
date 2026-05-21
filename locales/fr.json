@@ -1810,6 +1810,9 @@
   "ErrorFtpConnectionFailed": "La connexion FTP a \u00e9chou\u00e9 : {0}",
   "WarnFtpCleartext": "La session FTP vers {0}:{1} utilise un canal en clair. Le nom d'utilisateur et le mot de passe sont transmis sans chiffrement. Pr\u00e9f\u00e9rez SFTP lorsque c'est possible.",
   "ErrorTelnetConnectionFailed": "La connexion Telnet a \u00e9chou\u00e9 : {0}",
+  "ErrorWinRmInvalidConfiguration": "La configuration WinRM est invalide : {0}",
+  "ErrorWinRmCredentialUnavailable": "L'identifiant WinRM stock\u00e9 est indisponible.",
+  "ErrorWinRmLaunchFailed": "\u00c9chec du lancement du terminal WinRM : {0}",
 
   "SessionDisconnect": "Deconnecter",
   "SessionAspectStretch": "Étirer",

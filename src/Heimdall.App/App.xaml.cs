@@ -388,6 +388,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IProtocolHandler, FtpHandler>();
         services.AddSingleton<IProtocolHandler, CitrixHandler>();
         services.AddSingleton<IProtocolHandler, LocalShellHandler>();
+        services.AddSingleton<IProtocolHandler, WinRmHandler>();
         services.AddSingleton<IEmbeddedSessionManager, EmbeddedSessionManager>();
         services.AddSingleton<EmbeddedSessionManager>(sp =>
             (EmbeddedSessionManager)sp.GetRequiredService<IEmbeddedSessionManager>());

@@ -400,6 +400,18 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 endpoint: telnetResult.Endpoint);
         }
 
+        if (string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase)
+            && session is TerminalSessionResult winRmResult)
+        {
+            return CreateTerminalSshView(
+                sessionTab,
+                winRmResult.Session,
+                displayName,
+                0,
+                settings,
+                endpoint: winRmResult.Endpoint);
+        }
+
         return new DisposablePlaceholderView(displayName, connectionType, session);
     }
 

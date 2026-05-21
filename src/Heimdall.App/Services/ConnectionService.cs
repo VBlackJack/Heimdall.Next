@@ -171,6 +171,12 @@ public sealed class ConnectionService : IConnectionService
         CancellationToken ct = default)
         => DispatchAsync("LOCAL", server, settings, ct);
 
+    public Task<ConnectionResult> ConnectWinRmAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("WINRM", server, settings, ct);
+
     private async Task<ConnectionResult> DispatchAsync(
         string protocol,
         ServerProfileDto server,

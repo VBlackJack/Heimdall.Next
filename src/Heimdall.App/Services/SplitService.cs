@@ -771,10 +771,7 @@ public sealed class SplitService : ISplitService
             "VNC" => await _connectionService.ConnectVncAsync(serverDto, settings, ct),
             "FTP" => await _connectionService.ConnectFtpAsync(serverDto, settings, ct),
             "CITRIX" => await _connectionService.ConnectCitrixAsync(serverDto, settings, ct),
-            "WINRM" => new ConnectionResult(
-                false,
-                _localizer.Format("ErrorUnsupportedConnectionType", "WINRM"),
-                null),
+            "WINRM" => await _connectionService.ConnectWinRmAsync(serverDto, settings, ct),
             _ => await _connectionService.ConnectRdpAsync(serverDto, settings, ct),
         };
     }
