@@ -274,16 +274,28 @@ public sealed class KnownHostsParserTests
         Assert.True(KnownHostsParser.IsSupportedKeyType("ssh-ed25519"));
         Assert.True(KnownHostsParser.IsSupportedKeyType("ecdsa-sha2-nistp256"));
         Assert.True(KnownHostsParser.IsSupportedKeyType("ssh-rsa"));
+        Assert.True(KnownHostsParser.IsSupportedKeyType("rsa-sha2-256"));
+        Assert.True(KnownHostsParser.IsSupportedKeyType("rsa-sha2-512"));
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    [InlineData("rsa-sha2-512")] // not in OpenSSH host-key allow-list
+    [InlineData("bogus-algo")]
     [InlineData("MyBadAlgo-2000")]
     public void IsSupportedKeyType_RejectsUnknownOrEmpty(string? algorithm)
     {
         Assert.False(KnownHostsParser.IsSupportedKeyType(algorithm));
+    }
+
+    [Theory]
+    [InlineData("rsa-sha2-256", "ssh-rsa")]
+    [InlineData("rsa-sha2-512", "ssh-rsa")]
+    [InlineData("ssh-ed25519", "ssh-ed25519")]
+    [InlineData(null, "")]
+    public void CanonicalizeKeyType_MapsSignatureAlgorithmsToKeyTypes(string? algorithm, string expected)
+    {
+        Assert.Equal(expected, KnownHostsParser.CanonicalizeKeyType(algorithm));
     }
 }
