@@ -6,9 +6,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Default theme: DraculaPro -->
-                <ResourceDictionary Source="Themes/DraculaProTheme.xaml"/>
-                <!-- Vector icon geometries -->
+                <ResourceDictionary Source="Themes/HeimdallThemeBridge.xaml"/>
+                <ResourceDictionary Source="Themes/CommonControls.xaml"/>
                 <ResourceDictionary Source="Themes/IconGeometries.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 

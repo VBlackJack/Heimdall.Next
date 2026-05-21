@@ -63,7 +63,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private readonly TreeInteractionState _treeState = new();
     private readonly TabInteractionState _tabState = new();
-    private readonly Services.ThemeService _themeService;
+    private readonly Services.HeimdallThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
     private readonly SessionTabContextMenuFactory _sessionTabContextMenuFactory;
     private readonly SessionSplitService _splitService;
@@ -126,7 +126,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     public MainWindow(
         MainViewModel viewModel,
-        Services.ThemeService themeService,
+        Services.HeimdallThemeService themeService,
         ContextMenuFactory contextMenuFactory,
         SessionTabContextMenuFactory sessionTabContextMenuFactory,
         SessionSplitService splitService,
