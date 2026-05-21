@@ -41,7 +41,6 @@ public sealed class SessionHealthMonitor : IDisposable
     private readonly ConcurrentDictionary<string, HealthState> _states = new(StringComparer.Ordinal);
     private readonly object _lifecycleGate = new();
 
-    private SemaphoreSlim? _throttle;
     private System.Threading.Timer? _timer;
     private CancellationTokenSource? _cycleCts;
     private AppSettings? _currentSettings;
@@ -92,9 +91,7 @@ public sealed class SessionHealthMonitor : IDisposable
             }
 
             var intervalSeconds = Math.Max(15, settings.SessionHealthCheckIntervalSeconds);
-            var maxConcurrent = Math.Max(1, settings.SessionHealthMaxConcurrent);
 
-            _throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             _cycleCts = new CancellationTokenSource();
             if (armTimer)
             {
@@ -117,12 +114,20 @@ public sealed class SessionHealthMonitor : IDisposable
         _timer?.Dispose();
         _timer = null;
 
-        _cycleCts?.Cancel();
-        _cycleCts?.Dispose();
+        // Cancel the in-flight cycle, but defer disposing the source: a running
+        // cycle still holds this token and must observe cancellation (not an
+        // ObjectDisposedException) before the source is reclaimed.
+        var cts = _cycleCts;
         _cycleCts = null;
+        if (cts is not null)
+        {
+            try { cts.Cancel(); }
+            catch (ObjectDisposedException) { /* Already disposed. */ }
 
-        _throttle?.Dispose();
-        _throttle = null;
+            _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(
+                _ => cts.Dispose(),
+                TaskScheduler.Default);
+        }
     }
 
     public void Dispose()
@@ -164,12 +169,16 @@ public sealed class SessionHealthMonitor : IDisposable
     internal async Task RunCycleAsync(CancellationToken ct)
     {
         var settings = _currentSettings;
-        var throttle = _throttle;
-        if (settings is null || throttle is null) return;
+        if (settings is null) return;
 
+        var maxConcurrent = Math.Max(1, settings.SessionHealthMaxConcurrent);
         var profiles = await _configManager.LoadServersAsync().ConfigureAwait(false);
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
 
+        // The throttle is scoped to this cycle: created and disposed here, so a
+        // concurrent Stop()/Start() can never dispose a semaphore an in-flight
+        // probe still holds.
+        using var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
         var tasks = new List<Task>(profiles.Count);
         foreach (var dto in profiles)
         {
