@@ -34,6 +34,7 @@ public sealed class HeimdallThemeBridgeTests
         "TextTertiaryBrush",
         "TextDisabledBrush",
         "BorderBrush",
+        "InputBorderBrush",
         "HighlightBrush",
         "SuccessBrush",
         "WarningBrush",
@@ -126,7 +127,7 @@ public sealed class HeimdallThemeBridgeTests
             .ToList();
 
         Assert.Empty(duplicateKeys);
-        Assert.Equal(74, brushKeys.Count);
+        Assert.Equal(75, brushKeys.Count);
         Assert.Equal(
             ExpectedBrushKeys.OrderBy(key => key, StringComparer.Ordinal),
             brushKeys.OrderBy(key => key, StringComparer.Ordinal));
