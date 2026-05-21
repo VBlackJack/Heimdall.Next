@@ -1,0 +1,138 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.App.Services.WinRm;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Models;
+
+namespace Heimdall.App.Tests;
+
+public sealed class WinRmPowerShellLaunchBuilderTests
+{
+    [Fact]
+    public void Build_CurrentUser_ProducesEnterPSSessionCommand()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(
+            executableName => executableName == "pwsh.exe" ? @"C:\Program Files\PowerShell\7\pwsh.exe" : null);
+        ServerProfileDto server = CreateServer();
+
+        WinRmPowerShellLaunchSpec spec = builder.Build(server);
+
+        Assert.Equal(@"C:\Program Files\PowerShell\7\pwsh.exe", spec.Executable);
+        Assert.Contains("-NoLogo -NoExit -NoProfile -Command", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("Enter-PSSession", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("-ComputerName 'server01.contoso.local'", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("-Port 5986", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("-UseSSL", spec.Arguments, StringComparison.Ordinal);
+        Assert.DoesNotContain("-Credential", spec.Arguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_WhenPwshMissing_FallsBackToWindowsPowerShellName()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+
+        WinRmPowerShellLaunchSpec spec = builder.Build(CreateServer());
+
+        Assert.Equal("powershell.exe", spec.Executable);
+    }
+
+    [Fact]
+    public void Build_CredentialMode_UsesBootstrapFileArgument()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+        ServerProfileDto server = CreateServer();
+        server.WinRmIdentityMode = WinRmIdentityMode.Credential;
+        server.WinRmUsername = @"CONTOSO\operator";
+        server.WinRmPasswordEncrypted = "encrypted";
+
+        WinRmPowerShellLaunchSpec spec = builder.Build(server, @"C:\Temp\heimdall winrm.ps1");
+
+        Assert.Equal("powershell.exe", spec.Executable);
+        Assert.Contains("-ExecutionPolicy Bypass -File", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("\"C:\\\\Temp\\\\heimdall winrm.ps1\"", spec.Arguments, StringComparison.Ordinal);
+        Assert.DoesNotContain("CONTOSO", spec.Arguments, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("encrypted", spec.Arguments, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_CredentialModeWithoutBootstrapPath_Throws()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+        ServerProfileDto server = CreateServer();
+        server.WinRmIdentityMode = WinRmIdentityMode.Credential;
+
+        Assert.Throws<ArgumentException>(() => builder.Build(server));
+    }
+
+    [Fact]
+    public void BuildEnterPSSessionCommand_WithCredentialExpression_AppendsCredential()
+    {
+        ServerProfileDto server = CreateServer();
+        server.WinRmUseSsl = false;
+        server.WinRmPort = 5985;
+
+        string command = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
+            server,
+            "$credential");
+
+        Assert.Equal(
+            "Enter-PSSession -ComputerName 'server01.contoso.local' -Port 5985 -Credential $credential",
+            command);
+    }
+
+    [Fact]
+    public void QuotePowerShellLiteral_DoublesSingleQuotes()
+    {
+        string literal = WinRmPowerShellLaunchBuilder.QuotePowerShellLiteral("srv'01");
+
+        Assert.Equal("'srv''01'", literal);
+    }
+
+    [Fact]
+    public void Build_WithMissingPort_UsesSslAwareDefault()
+    {
+        ServerProfileDto server = CreateServer();
+        server.WinRmPort = 0;
+        server.WinRmUseSsl = true;
+
+        string command = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
+            server,
+            credentialExpression: null);
+
+        Assert.Contains("-Port 5986", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_WithInvalidHost_Throws()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+        ServerProfileDto server = CreateServer();
+        server.RemoteServer = "bad host; Remove-Item";
+
+        Assert.Throws<ArgumentException>(() => builder.Build(server));
+    }
+
+    private static ServerProfileDto CreateServer()
+        => new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            RemoteServer = "server01.contoso.local",
+            WinRmPort = DefaultPorts.WinRmHttps,
+            WinRmUseSsl = true,
+            WinRmIdentityMode = WinRmIdentityMode.CurrentUser
+        };
+}
