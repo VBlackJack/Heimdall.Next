@@ -43,6 +43,7 @@ public sealed class TunnelService : ITunnelService
     private readonly IPlinkHostKeyProbe _plinkHostKeyProbe;
 
     private AppSettings? _currentSettings;
+    private readonly RecentForwardedPortFailureTracker _forwardedPortFailures = new();
 
     public TunnelService(
         TunnelManager tunnelManager,
@@ -78,6 +79,10 @@ public sealed class TunnelService : ITunnelService
         _localizer = localizer;
         _hostKeyVerifier = hostKeyVerifier;
         _plinkHostKeyProbe = plinkHostKeyProbe;
+
+        // TunnelService and TunnelManager are both DI singletons living for the
+        // application lifetime, so this subscription needs no explicit teardown.
+        _tunnelManager.ForwardedPortFailed += _forwardedPortFailures.Record;
     }
 
     public void UpdateSettings(AppSettings settings)
@@ -85,6 +90,10 @@ public sealed class TunnelService : ITunnelService
         ArgumentNullException.ThrowIfNull(settings);
         _currentSettings = settings;
     }
+
+    /// <inheritdoc />
+    public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort)
+        => _forwardedPortFailures.GetRecent(localPort);
 
     /// <summary>
     /// Checks whether the server requires a tunnel and establishes it if needed.
@@ -121,6 +130,10 @@ public sealed class TunnelService : ITunnelService
         }
 
         var localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+
+        // A fresh tunnel is live on this port; drop any stale failure recorded
+        // for it so it cannot mislabel a later, unrelated disconnect.
+        _forwardedPortFailures.Clear(localPort);
         return (true, true, "127.0.0.1", localPort, null);
     }
 

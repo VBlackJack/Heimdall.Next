@@ -39,4 +39,11 @@ public interface ITunnelService
     /// Updates the cached settings used for tunnel keepalive and Plink tuning.
     /// </summary>
     void UpdateSettings(AppSettings settings);
+
+    /// <summary>
+    /// Returns the most recent local-forwarded-port failure observed on the
+    /// given tunnel local port while it is still recent enough to plausibly
+    /// explain a session drop on that port; otherwise <c>null</c>.
+    /// </summary>
+    Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort);
 }

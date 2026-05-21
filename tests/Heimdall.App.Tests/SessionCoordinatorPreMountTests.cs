@@ -539,6 +539,8 @@ public sealed class SessionCoordinatorPreMountTests
         public void UpdateSettings(AppSettings settings)
         {
         }
+
+        public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
     }
 
     private sealed class FakeRdpImportService : IRdpImportService

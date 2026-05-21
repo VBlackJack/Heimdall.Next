@@ -123,6 +123,8 @@ public sealed class RdpHandlerTests
         public void UpdateSettings(AppSettings settings)
         {
         }
+
+        public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
     }
 
     private sealed class TrackingRdpExternalClientLauncher : IRdpExternalClientLauncher
