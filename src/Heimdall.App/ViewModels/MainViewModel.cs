@@ -49,7 +49,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
-    private readonly ThemeService _themeService;
+    private readonly HeimdallThemeService _themeService;
     private readonly ISessionSnapshotService _sessionSnapshotService;
     private readonly IUiDispatcher _uiDispatcher;
 
@@ -299,7 +299,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         IHostKeyVerifier hostKeyVerifier,
         IDialogService dialogService,
         IEmbeddedSessionManager embeddedSessionManager,
-        ThemeService themeService,
+        HeimdallThemeService themeService,
         ISessionSnapshotService sessionSnapshotService,
         IPostConnectSequenceRunner postConnectSequenceRunner,
         IPostConnectStepResolver postConnectStepResolver,
@@ -361,7 +361,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
 
         // Instant theme preview when the user changes the Settings combo.
         // Actual persistence triggers a second ApplyTheme via IConfigManager.SettingsChanged,
-        // which is a no-op because ThemeService is idempotent.
+        // which is a no-op because HeimdallThemeService is idempotent.
         Settings.ThemeChanged += OnSettingsThemePreview;
 
         // Track the theme revision counter so MultiBinding triggers fire on swap.
@@ -542,7 +542,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
 
     /// <summary>
     /// Forwards the instant-preview theme change from the Settings combo to
-    /// the centralized <see cref="ThemeService"/>. The service performs the
+    /// the centralized <see cref="HeimdallThemeService"/>. The service performs the
     /// actual dictionary swap, DWM title bar update, and event broadcast.
     /// </summary>
     private void OnSettingsThemePreview(string themeName)
@@ -551,7 +551,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     }
 
     /// <summary>
-    /// Mirrors <see cref="ThemeService.ThemeRevision"/> into <see cref="ThemeRevision"/>
+    /// Mirrors <see cref="HeimdallThemeService.ThemeRevision"/> into <see cref="ThemeRevision"/>
     /// so XAML <c>MultiBinding</c>s re-run their brush-resolving converters after a swap.
     /// </summary>
     private void OnThemeServiceThemeChanged(string themeName)

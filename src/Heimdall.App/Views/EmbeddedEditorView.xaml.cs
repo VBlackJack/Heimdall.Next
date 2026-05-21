@@ -34,7 +34,7 @@ namespace Heimdall.App.Views;
 public partial class EmbeddedEditorView : UserControl
 {
     private readonly EmbeddedEditorViewModel _viewModel;
-    private ThemeService? _themeService;
+    private HeimdallThemeService? _themeService;
     private bool _suppressTextChangeNotifications;
 
     /// <summary>Raised when the user saves the file.</summary>
@@ -83,7 +83,7 @@ public partial class EmbeddedEditorView : UserControl
     {
         if (_themeService is null)
         {
-            _themeService = (Application.Current as App)?.Services?.GetService<ThemeService>();
+            _themeService = (Application.Current as App)?.Services?.GetService<HeimdallThemeService>();
             if (_themeService is not null)
             {
                 _themeService.ThemeChanged += OnThemeServiceThemeChanged;

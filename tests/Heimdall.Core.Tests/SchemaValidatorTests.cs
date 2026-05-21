@@ -41,7 +41,7 @@ public class SchemaValidatorTests
             DefaultResolutionWidth = 2560,
             DefaultResolutionHeight = 1440,
             DefaultLocale = "fr",
-            DefaultTheme = "Alucard",
+            DefaultTheme = "Drakul",
             TunnelEstablishmentDelayMs = 5000,
             TunnelRetryDelayMs = 3000,
             ProcessKillTimeoutMs = 4000,

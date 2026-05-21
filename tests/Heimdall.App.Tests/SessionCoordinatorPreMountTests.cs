@@ -291,7 +291,7 @@ public sealed class SessionCoordinatorPreMountTests
                 Heimdall.Core.Ssh.RejectingHostKeyVerifier.Instance,
                 dialogService,
                 embeddedSessionManager,
-                new ThemeService(configManager),
+                new HeimdallThemeService(configManager),
                 new FakeSessionSnapshotService(rootPath),
                 new FakePostConnectSequenceRunner(),
                 new FakePostConnectStepResolver(),

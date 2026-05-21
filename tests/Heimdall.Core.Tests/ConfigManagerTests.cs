@@ -173,7 +173,7 @@ public class ConfigManagerTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal("en", settings.DefaultLocale);
-        Assert.Equal("DraculaPro", settings.DefaultTheme);
+        Assert.Equal("Drakul", settings.DefaultTheme);
         Assert.Equal(1920, settings.DefaultResolutionWidth);
         Assert.Equal(1080, settings.DefaultResolutionHeight);
     }

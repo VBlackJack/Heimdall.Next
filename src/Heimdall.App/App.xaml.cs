@@ -209,7 +209,7 @@ public partial class App : System.Windows.Application
             configManager.SettingsChanged += OnSettingsChanged;
 
             // Apply the saved theme before showing any window
-            _serviceProvider.GetRequiredService<ThemeService>().ApplyTheme(settings.DefaultTheme);
+            _serviceProvider.GetRequiredService<HeimdallThemeService>().ApplyTheme(settings.DefaultTheme);
 
             // Check for legacy Heimdall installation and offer migration on first run
             await TryMigrateLegacyAsync(configManager, localization);
@@ -354,7 +354,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<X11ServerManager>();
         services.AddSingleton<ExternalToolProviderService>();
         services.AddSingleton<ToolRegistry>();
-        services.AddSingleton<ThemeService>();
+        services.AddSingleton<HeimdallThemeService>();
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<ConnectionService>(sp =>
             (ConnectionService)sp.GetRequiredService<IConnectionService>());
@@ -688,8 +688,8 @@ public partial class App : System.Windows.Application
         _notesStoragePath = ResolveNotesStoragePath(newSettings, AppDomain.CurrentDomain.BaseDirectory);
 
         // Delegate theme swap to the centralized service on the UI thread.
-        // Idempotent: ThemeService skips the swap when the theme is unchanged.
-        var themeService = _serviceProvider?.GetService<ThemeService>();
+        // Idempotent: HeimdallThemeService skips the swap when the theme is unchanged.
+        var themeService = _serviceProvider?.GetService<HeimdallThemeService>();
         if (themeService is not null)
         {
             Dispatcher.InvokeAsync(() => themeService.ApplyTheme(newSettings.DefaultTheme));
