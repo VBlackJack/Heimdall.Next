@@ -87,7 +87,9 @@ public interface IMsTscAxEvents
     [DispId(4)]
     void OnDisconnected(int discReason);
 
-    [DispId(8)]
+    // Canonical IMsTscAxEvents sequence: OnConnecting=1, OnConnected=2,
+    // OnLoginComplete=3, OnDisconnected=4. DISPID 8 is OnRequestGoFullScreen.
+    [DispId(3)]
     void OnLoginComplete();
 
     [DispId(10)]
