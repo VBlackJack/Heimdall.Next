@@ -33,6 +33,7 @@ internal readonly record struct ThemeResolution(string ThemeId, bool ShouldPersi
 public sealed class HeimdallThemeService
 {
     private const string DefaultTheme = ThemeForgeNames.Drakul;
+    private const string BridgeDictionaryPath = "Themes/HeimdallThemeBridge.xaml";
 
     private static readonly Dictionary<string, string> ThemeForgeIds =
         ThemeForgeNames.All.ToDictionary(
@@ -100,6 +101,8 @@ public sealed class HeimdallThemeService
             return;
         }
 
+        RefreshHeimdallBridge(app);
+
         foreach (Window window in app.Windows)
         {
             WindowThemeHelper.ApplyCurrentTheme(window);
@@ -148,6 +151,30 @@ public sealed class HeimdallThemeService
             _themeService = service;
             return _themeService;
         }
+    }
+
+    private static void RefreshHeimdallBridge(Application app)
+    {
+        IList<ResourceDictionary> merged = app.Resources.MergedDictionaries;
+
+        for (int i = 0; i < merged.Count; i++)
+        {
+            Uri? source = merged[i].Source;
+            if (source is null || !IsHeimdallBridgeSource(source))
+            {
+                continue;
+            }
+
+            merged.RemoveAt(i);
+            merged.Insert(i, new ResourceDictionary { Source = source });
+            return;
+        }
+    }
+
+    private static bool IsHeimdallBridgeSource(Uri source)
+    {
+        string original = source.OriginalString.Replace('\\', '/');
+        return original.EndsWith(BridgeDictionaryPath, StringComparison.OrdinalIgnoreCase);
     }
 
     private void PersistTheme(string themeId)
