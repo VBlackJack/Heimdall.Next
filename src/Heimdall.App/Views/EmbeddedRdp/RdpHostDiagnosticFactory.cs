@@ -46,4 +46,23 @@ internal static class RdpHostDiagnosticFactory
             errorCode,
             null);
     }
+
+    /// <summary>
+    /// Builds a diagnostic for a tunneled session dropped because the SSH
+    /// gateway could not reach the forward's target. The target endpoint is
+    /// carried in <see cref="SessionDiagnostic.Detail"/> and formatted into the
+    /// localized message.
+    /// </summary>
+    internal static SessionDiagnostic FromTunnelForwardedPortFailure(
+        Heimdall.Ssh.TunnelForwardedPortFailure failure,
+        int disconnectReason)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+
+        return new SessionDiagnostic(
+            SessionFailureStage.RdpTunnel,
+            "RdpDisconnectGatewayTargetUnreachable",
+            disconnectReason,
+            $"{failure.RemoteHost}:{failure.RemotePort}");
+    }
 }

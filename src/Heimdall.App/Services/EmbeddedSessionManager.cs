@@ -43,6 +43,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
     private readonly HostKeyStore _hostKeyStore;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ToolRegistry _toolRegistry;
+    private readonly ITunnelService _tunnelService;
 
     /// <summary>
     /// Optional callback invoked when a terminal view broadcasts input.
@@ -106,13 +107,15 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         IDialogService dialogService,
         HostKeyStore hostKeyStore,
         ConnectionStateMachine connectionSm,
-        ToolRegistry toolRegistry)
+        ToolRegistry toolRegistry,
+        ITunnelService tunnelService)
     {
         _localizer = localizer;
         _dialogService = dialogService;
         _hostKeyStore = hostKeyStore;
         _connectionSm = connectionSm;
         _toolRegistry = toolRegistry;
+        _tunnelService = tunnelService;
     }
 
     public object CreateHostControl(
@@ -151,7 +154,8 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 rdp.TunnelPort,
                 resizeDelay,
                 _connectionSm,
-                multimonFallbackStatusKey);
+                multimonFallbackStatusKey,
+                _tunnelService.GetRecentForwardedPortFailure);
             WireSplitRequested(view, sessionTab);
             view.ReconnectRequested += () =>
                 ReconnectRequestedCallback?.Invoke(

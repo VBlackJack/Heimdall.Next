@@ -16,8 +16,10 @@
 
 using System.IO;
 using System.Text.Json;
+using Heimdall.App.Views;
 using Heimdall.App.Views.EmbeddedRdp;
 using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
 
@@ -47,6 +49,74 @@ public sealed class RdpHostDiagnosticFactoryTests
         Assert.Equal("RdpStatusFatalErrorDetail", diagnostic.MessageKey);
         Assert.Equal(260, diagnostic.Code);
         Assert.Null(diagnostic.Detail);
+    }
+
+    [Fact]
+    public void FromTunnelForwardedPortFailure_UsesGatewayTargetDiagnostic()
+    {
+        var failure = new TunnelForwardedPortFailure(
+            54000,
+            "host.example",
+            3389,
+            "Session operation has timed out",
+            DateTimeOffset.Parse("2026-05-21T12:00:00Z", null, System.Globalization.DateTimeStyles.AssumeUniversal));
+
+        var diagnostic = RdpHostDiagnosticFactory.FromTunnelForwardedPortFailure(failure, 2308);
+
+        Assert.Equal(SessionFailureStage.RdpTunnel, diagnostic.Stage);
+        Assert.Equal("RdpDisconnectGatewayTargetUnreachable", diagnostic.MessageKey);
+        Assert.Equal(2308, diagnostic.Code);
+        Assert.Equal("host.example:3389", diagnostic.Detail);
+    }
+
+    [Theory]
+    [InlineData(2308)]
+    [InlineData(516)]
+    [InlineData(264)]
+    [InlineData(772)]
+    public void IsTunnelAttributableDisconnect_ReturnsTrue_ForSocketLevelCodes(int reason)
+    {
+        Assert.True(EmbeddedRdpView.IsTunnelAttributableDisconnect(reason));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(260)]
+    [InlineData(2055)]
+    public void IsTunnelAttributableDisconnect_ReturnsFalse_ForOtherCodes(int reason)
+    {
+        Assert.False(EmbeddedRdpView.IsTunnelAttributableDisconnect(reason));
+    }
+
+    [Fact]
+    public void ResolveDiagnosticFormatArgument_UsesDetailBeforeCode()
+    {
+        var diagnostic = new SessionDiagnostic(
+            SessionFailureStage.RdpTunnel,
+            "RdpDisconnectGatewayTargetUnreachable",
+            2308,
+            "host.example:3389");
+
+        var argument = EmbeddedRdpView.ResolveDiagnosticFormatArgument(diagnostic);
+
+        Assert.Equal("host.example:3389", argument);
+    }
+
+    [Fact]
+    public void ResolveDiagnosticFormatArgument_FallsBackToCode()
+    {
+        var diagnostic = new SessionDiagnostic(
+            SessionFailureStage.RdpActiveXDisconnect,
+            "RdpStatusFatalErrorDetail",
+            260,
+            null);
+
+        var argument = EmbeddedRdpView.ResolveDiagnosticFormatArgument(diagnostic);
+
+        Assert.Equal(260, argument);
     }
 
     [Fact]

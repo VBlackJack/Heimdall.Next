@@ -2617,6 +2617,7 @@
   "RdpDisconnectBadCredentials": "Les identifiants n'ont pas \u00e9t\u00e9 accept\u00e9s. V\u00e9rifiez votre nom d'utilisateur, mot de passe et domaine (NetBIOS DOMAIN\\utilisateur ou UPN utilisateur@domaine.com), puis r\u00e9essayez.",
   "RdpDisconnectLicensingError": "Une erreur de licence s'est produite sur l'ordinateur distant. Contactez votre administrateur; le serveur de licences Bureau \u00e0 distance est peut-\u00eatre inaccessible ou n'a plus de CAL disponible.",
   "RdpDisconnectSocketClosed": "La connexion r\u00e9seau a \u00e9t\u00e9 perdue. V\u00e9rifiez votre connexion r\u00e9seau ou VPN et r\u00e9essayez.",
+  "RdpDisconnectGatewayTargetUnreachable": "La passerelle SSH n'a pas pu joindre {0}. L'h\u00f4te cible ou son port RDP est injoignable depuis la passerelle.",
   "RdpDisconnectCertificateWarning": "Le certificat de l'ordinateur distant n'a pas pu \u00eatre v\u00e9rifi\u00e9. Le certificat est peut-\u00eatre auto-sign\u00e9, expir\u00e9 ou non approuv\u00e9; demandez \u00e0 votre administrateur d'installer l'autorit\u00e9 de certification dans le magasin de confiance local, ou importez-la manuellement.",
   "RdpDisconnectUserNotFound": "Le compte utilisateur n'a pas \u00e9t\u00e9 trouv\u00e9 sur l'ordinateur distant.",
   "RdpDisconnectEncryptionError": "Une erreur de chiffrement de donn\u00e9es a mis fin \u00e0 la session. R\u00e9essayez; si le probl\u00e8me persiste, les param\u00e8tres de chiffrement de l'h\u00f4te distant doivent \u00eatre ajust\u00e9s par votre administrateur.",

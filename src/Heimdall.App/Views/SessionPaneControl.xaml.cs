@@ -129,6 +129,7 @@ public partial class SessionPaneControl : UserControl
 
         var hasContent = _model.HostControl is not null;
         var hasFailureDetails = _model.HasFailureDetails;
+        var hostHandlesFailureOverlay = _model.HostControl is EmbeddedRdpView;
         var status = _model.Status ?? "";
 
         // Loading: pane exists but host control not yet assigned (connection in progress)
@@ -138,11 +139,12 @@ public partial class SessionPaneControl : UserControl
 
         // Disconnected: show either a failed connection without hosted content,
         // or an established pane whose host later reports disconnection/error.
-        DisconnectedOverlay.Visibility = hasFailureDetails
-            || (hasContent
-                && (string.Equals(status, nameof(ConnectionState.Disconnected), StringComparison.OrdinalIgnoreCase)
-                || string.Equals(status, nameof(ConnectionState.Error), StringComparison.OrdinalIgnoreCase))
-                )
+        DisconnectedOverlay.Visibility = !hostHandlesFailureOverlay
+            && (hasFailureDetails
+                || (hasContent
+                    && (string.Equals(status, nameof(ConnectionState.Disconnected), StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(status, nameof(ConnectionState.Error), StringComparison.OrdinalIgnoreCase))
+                    ))
             ? Visibility.Visible
             : Visibility.Collapsed;
     }
