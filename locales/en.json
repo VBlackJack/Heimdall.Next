@@ -2620,6 +2620,7 @@
   "RdpDisconnectBadCredentials": "The credentials were not accepted. Verify your username, password, and domain (NetBIOS DOMAIN\\user or UPN user@domain.com), then try reconnecting.",
   "RdpDisconnectLicensingError": "A licensing error occurred on the remote computer. Contact your administrator; the Remote Desktop Services license server may be unreachable or out of CALs.",
   "RdpDisconnectSocketClosed": "The network connection was lost. Check your network connection or VPN and try reconnecting.",
+  "RdpDisconnectGatewayTargetUnreachable": "The gateway could not reach {0}. The target host or its RDP port is unreachable from the SSH gateway.",
   "RdpDisconnectCertificateWarning": "The remote computer's certificate could not be verified. The certificate may be self-signed, expired, or untrusted; ask your administrator to install the certificate's CA in the local trusted store, or import it manually.",
   "RdpDisconnectUserNotFound": "The user account was not found on the remote computer.",
   "RdpDisconnectEncryptionError": "A data encryption error ended the session. Try reconnecting; if it persists, the encryption settings on the remote host may need to be adjusted by your administrator.",

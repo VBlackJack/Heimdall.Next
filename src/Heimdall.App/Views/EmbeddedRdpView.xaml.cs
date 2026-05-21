@@ -119,6 +119,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private Core.Localization.LocalizationManager? _localizer;
     private int? _tunnelPort;
+    private Func<int, Heimdall.Ssh.TunnelForwardedPortFailure?>? _tunnelFailureLookup;
     private string? _connectStatusOverrideKey;
     private RdpAutofillState _autofillState;
 
@@ -358,7 +359,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         int? tunnelPort = null,
         int resizeEnableDelayMs = 10000,
         ConnectionStateMachine? connectionStateMachine = null,
-        string? connectStatusOverrideKey = null)
+        string? connectStatusOverrideKey = null,
+        Func<int, Heimdall.Ssh.TunnelForwardedPortFailure?>? tunnelFailureLookup = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -380,6 +382,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
         _localizer = localizer;
         _tunnelPort = tunnelPort;
+        _tunnelFailureLookup = tunnelFailureLookup;
         _initialResizeEnableDelay = TimeSpan.FromMilliseconds(resizeEnableDelayMs);
         _connectionStateMachine = connectionStateMachine;
         _connectStatusOverrideKey = connectStatusOverrideKey;
@@ -1658,7 +1661,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
                 return;
             }
 
-            SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(reason));
+            SetPaneDiagnostic(
+                TryBuildTunnelFailureDiagnostic(reason)
+                ?? RdpHostDiagnosticFactory.FromDisconnect(reason));
             UpdateSessionStatus(RdpSessionStatus.Disconnected);
             UpdateHealthDot(wasUserInitiated);
             ShowReconnectOverlay();
@@ -2529,6 +2534,36 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
     }
 
+    /// <summary>
+    /// Builds an enriched diagnostic when a tunneled session dropped with a
+    /// socket/network-level code and the SSH tunnel recorded a matching
+    /// forwarded-port failure; otherwise returns null so the caller falls back
+    /// to the generic disconnect diagnostic.
+    /// </summary>
+    private SessionDiagnostic? TryBuildTunnelFailureDiagnostic(int reason)
+    {
+        if (_tunnelPort is not int tunnelPort
+            || _tunnelFailureLookup is null
+            || !IsTunnelAttributableDisconnect(reason))
+        {
+            return null;
+        }
+
+        var failure = _tunnelFailureLookup(tunnelPort);
+        return failure is null
+            ? null
+            : RdpHostDiagnosticFactory.FromTunnelForwardedPortFailure(failure, reason);
+    }
+
+    /// <summary>
+    /// Disconnect codes consistent with the SSH tunnel's forwarded channel
+    /// failing: a socket/network-level drop (SocketClosed 2308,
+    /// SocketConnectFailed 516, ConnectionTimeout 264, NetworkError 772) that a
+    /// gateway-to-target reachability failure can plausibly explain.
+    /// </summary>
+    internal static bool IsTunnelAttributableDisconnect(int reason)
+        => reason is 2308 or 516 or 264 or 772;
+
     private void ClearPaneDiagnostic()
     {
         var pane = _ownerPane ?? _sessionTab?.PrimaryPane;
@@ -2946,15 +2981,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         if (hasDiagnosticMessage)
         {
             var template = L(diagnostic!.MessageKey);
+            var formatArgument = ResolveDiagnosticFormatArgument(diagnostic);
+
             if (template.Contains("{0}", StringComparison.Ordinal)
-                && diagnostic.Code is int fatalCode)
+                && formatArgument is not null)
             {
                 try
                 {
                     primary = string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         template,
-                        fatalCode);
+                        formatArgument);
                 }
                 catch (FormatException ex)
                 {
@@ -3030,6 +3067,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
         ApplyReconnectOverlayPrimaryAction(primaryAction);
+
+        // WindowsFormsHost is backed by a child HWND and otherwise paints over
+        // WPF overlays due to airspace rules. Once the RDP session is gone, hide
+        // the native host so the reconnect diagnostics are actually visible.
+        FormsHost.Visibility = System.Windows.Visibility.Collapsed;
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
@@ -3057,6 +3099,20 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             _ = target.Focus();
             _ = Keyboard.Focus(target);
         }));
+    }
+
+    internal static object? ResolveDiagnosticFormatArgument(SessionDiagnostic diagnostic)
+    {
+        ArgumentNullException.ThrowIfNull(diagnostic);
+
+        if (!string.IsNullOrEmpty(diagnostic.Detail))
+        {
+            return diagnostic.Detail;
+        }
+
+        return diagnostic.Code is int diagnosticCode
+            ? diagnosticCode
+            : null;
     }
 
     private void ApplyReconnectOverlayPrimaryAction(RdpOverlayPrimaryAction primaryAction)
