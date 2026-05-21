@@ -365,8 +365,26 @@ public partial class MainWindow
             return;
         }
 
-        _ = System.Net.Dns.GetHostEntryAsync(server.RemoteServer)
-            .ContinueWith(_ => { }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
+        _ = WarmDnsAsync(server.RemoteServer);
+    }
+
+    /// <summary>
+    /// Best-effort DNS cache pre-warm so a later connect resolves faster. Hosts
+    /// reachable only through a gateway will not resolve here; that is expected
+    /// and handled (logged at Debug) rather than left as an unobserved task
+    /// exception.
+    /// </summary>
+    private static async System.Threading.Tasks.Task WarmDnsAsync(string host)
+    {
+        try
+        {
+            _ = await System.Net.Dns.GetHostEntryAsync(host).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Debug(
+                $"WarmDns: '{host}' did not resolve ({ex.GetType().Name}).");
+        }
     }
 
     private void ClearDropHighlight()
