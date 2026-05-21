@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,491 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 5,511 automated tests (5,505 passing + 6 known skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~5,491 i18n keys per locale (EN/FR), 59 built-in sysops tools with contextual help, cross-tool navigation, and 5,578 automated tests (5,578 passing, 0 skipped in the current CI baseline). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -39,7 +39,7 @@ Heimdall.slnx (14 projects)
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
-    ├── Heimdall.App.Tests     SplitService, SessionDiagnostic, NotesStorage, ThemeService, Migration, EphemeralFileServer, tool coherence
+    ├── Heimdall.App.Tests     SplitService, SessionDiagnostic, NotesStorage, theming wrapper/bridge, Migration, EphemeralFileServer, tool coherence
     ├── Heimdall.Rdp.Tests     RDP credential autofill and broker-selection tests
     └── Heimdall.App.UiTests   Desktop UIAutomation smoke and accessibility coverage
 ```
@@ -583,7 +583,7 @@ Historic formats (`MobaXterm`, `RDCMan`, `mRemoteNG`) keep their dedicated parse
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 
-The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across all **7 Dracula theme variants** (DraculaPro, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing). Theme swapping is owned by the centralized `ThemeService` (singleton DI) — see `docs/TROUBLESHOOTING.md` ("Theme Switching — Stale Colors After Swap") for the reactivity patterns.
+The application uses a centralized Design System defined in `CommonControls.xaml`, backed by the `ThemeForge.Theme` NuGet package and the `HeimdallThemeBridge.xaml` app brush bridge. The 16 ThemeForge palettes provide canonical color slots; the bridge re-expresses Heimdall's 74 app brush keys on those slots. Theme swapping is owned by `HeimdallThemeService` (singleton DI) — see `docs/TROUBLESHOOTING.md` ("Theme Switching — Stale Colors After Swap") for the reactivity patterns.
 
 **Typography tokens (10)** — `sys:Double` resources for consistent font sizing:
 - `FontSizeSmallCaption` (11), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeBodyLarge` (14), `FontSizeSubtitle` (15), `FontSizeLarge` (17), `FontSizeTitle` (20), `FontSizeDisplay` (22), `FontSizeHeadline` (24), `FontSizeHero` (64)
@@ -605,8 +605,8 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 
 **Icon size tokens (6)**: `IconSizeSmall` (12), `IconSizeMedium` (16), `IconSizeLarge` (20), `IconSizeXLarge` (36), `IconSizeEmptyState` (32), `IconSizeHero` (48)
 
-**Tool category brushes** — 4 distinct colors per tool category (defined once per Dracula variant):
-- `ToolNetworkBrush` (blue), `ToolSecurityBrush` (amber), `ToolEncodingBrush` (purple), `ToolSystemBrush` (teal)
+**Tool category brushes** — 5 distinct colors per tool category (defined in the bridge on ThemeForge slots):
+- `ToolNetworkBrush` (blue), `ToolSecurityBrush` (orange), `ToolEncodingBrush` (purple), `ToolSystemBrush` (cyan), `ToolExternalBrush` (pink)
 - Each tool has a per-tool glyph (Segoe MDL2 Assets) + category color in tree view and palette
 
 **Micro-animations** — Subtle transitions for panels toggling visibility:
@@ -624,8 +624,8 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 - `ToolLoadingBarStyle` (indeterminate, 4px) and `ToolDeterminateProgressBarStyle` (determinate, 20px) — all tool ProgressBars use shared styles
 - Tool header pattern: Row 0 = title + help button only; input controls in a dedicated input strip (Row 2)
 
-**Protocol icons** — Unique Segoe MDL2 glyphs per protocol type in TreeView:
-- RDP (`E7F4`), SSH (`E756`), SFTP (`E8B7`), Local (`E770`), Citrix (`E753`), VNC (`E7F4`), Telnet (`E968`), FTP (`E896`)
+**Protocol icons** — Unique `Geo.Protocol.*` vector geometries per protocol type in TreeView:
+- RDP, SSH, SFTP, Local Shell, Citrix, VNC, Telnet, FTP
 
 **19 themed control styles** with complete state coverage (hover, pressed, focused, disabled):
 - Window, PrimaryButton, SecondaryButton, ToolbarGhostButton, TextBox, PasswordBox, ComboBox, TabControl, TabItem, TreeView, ContextMenu, MenuItem, CheckBox, RadioButton, ToolTip, ListBox, Expander, ProgressBar, Slider, DataGrid
@@ -775,7 +775,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 5,511 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 5,505 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 5,578 tests across the five test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Ssh.Tests`): 5,578 passing and 0 skipped. Partial per-project TRX files can report smaller counts and be mistaken for a regression - always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 
@@ -843,7 +843,7 @@ When opening a tool from a server context menu, all available server metadata is
 - **Help system**: "?" button on all 49 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
 - **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
-- **Protocol colors**: Theme-aware brushes defined once per Dracula variant (DraculaPro, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing) — resolved through `DynamicResource` everywhere and re-evaluated on theme swap via `ThemeService.ThemeRevision` triggers for converter-based bindings
+- **Protocol colors**: Theme-aware brushes are defined in `HeimdallThemeBridge.xaml` on ThemeForge slots — resolved through `DynamicResource` where possible and re-evaluated on theme swap via `HeimdallThemeService.ThemeRevision` triggers for converter-based bindings
 - **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
 
 ### Notes Tool (Obsidian-style)
@@ -886,22 +886,24 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 
 `NetworkCartographyViewModel.Initialize()` remains synchronous because it implements the `IToolView` contract. Async KB stats loading is captured in an internal `_initialLoadTask` instead of being left as untracked fire-and-forget work. `WaitForInitialLoadAsync()` exposes that task for callers and tests, and destructive operations such as `ClearKbAsync` await it as their first step. This prevents stale initialization data from overwriting a freshly cleared KB and is the reference pattern for future tool ViewModels that need to serialize asynchronous initialization behind a synchronous `Initialize()` surface.
 
-### Theme System (`ThemeService`)
+### Theme System (`HeimdallThemeService` + ThemeForge)
 
-**Problem**: Runtime theme swapping across 7 Dracula variants must keep every surface in sync — including converters that resolve brushes at convert time (server icons, status dots), UI built in code-behind (sidebar tool browser), the AvalonEdit file editor, and the DWM title-bar chrome. Duplicated swap logic in multiple places caused drift (one code path knew only Dark/Light, another knew all variants).
+**Problem**: Runtime theme swapping across 16 ThemeForge palettes must keep every Heimdall surface in sync — including app-specific brushes, converters that resolve brushes at convert time (server icons, status dots), the AvalonEdit file editor, and the DWM title-bar chrome.
 
-**Solution**: `Services/ThemeService.cs` is the single owner of the theme dictionary swap.
+**Solution**: `Services/HeimdallThemeService.cs` is Heimdall's compatibility wrapper around `ThemeForge.Theme.ThemeService`.
 
-- **Singleton DI**: registered once in `App.xaml.cs`, injected into `MainWindow`, `MainViewModel`, and `EmbeddedEditorView`
-- **`ApplyTheme(string? themeName)`**: idempotent swap. Replaces the existing theme `ResourceDictionary` in `Application.Resources.MergedDictionaries` by searching for a `Source.OriginalString` containing `Theme.xaml`. Legacy values `"Dark"` / `"Light"` from pre-Dracula settings are silently migrated to `DraculaPro` and persisted via `ConfigManager.MergeSettingAsync`. Unknown names fall back to `DraculaPro`. After a successful swap the service updates the DWM dark-mode flag on every open `Window` via `WindowThemeHelper.ApplyCurrentTheme`.
-- **`ThemeRevision` counter**: monotonic `int`, bumped *before* `ThemeChanged` fires. XAML `MultiBinding`s that depend on brush-resolving converters add `DataContext.ThemeRevision` (`ElementName=MainWindowRoot`) as a trailing trigger value to force WPF to re-run the converter on each swap. `ElementName` (not `RelativeSource AncestorType=Window`) is required so the binding resolves from inside the Command Palette `Popup`, whose content has its own visual root.
-- **`event Action<string> ThemeChanged`**: consumed by downstream views that rebuild brush caches (`EmbeddedEditorView.ApplyTheme` re-reads AvalonEdit chrome colors from the active dictionary) and by `MainWindow.OnThemeServiceThemeChanged` as a safety-net for any residual code-behind UI not expressible via `DynamicResource`.
+- **Package source**: Heimdall consumes `ThemeForge.Theme` from the private GitHub Packages NuGet feed. ThemeForge owns the 16 palette dictionaries and injects the active palette into `Application.Resources.MergedDictionaries`.
+- **Singleton DI**: registered once in `App.xaml.cs`, injected into `MainWindow`, `MainViewModel`, and `EmbeddedEditorView`.
+- **`ApplyTheme(string? themeName)`**: resolves the persisted value to a ThemeForge id. Unknown values fall back to `Drakul` and are persisted via `ConfigManager.MergeSettingAsync`. The swap itself is delegated to ThemeForge, then Heimdall reapplies the DWM title-bar mode on every open `Window` via `WindowThemeHelper.ApplyCurrentTheme`.
+- **Bridge refresh**: `Themes/HeimdallThemeBridge.xaml` maps 74 Heimdall brush keys onto ThemeForge color slots. `RefreshHeimdallBridge` re-merges this dictionary after each ThemeForge swap because a shared `SolidColorBrush` resource does not live-update its `DynamicResource` `Color`.
+- **`ThemeRevision` counter**: exposed through the wrapper from ThemeForge. XAML `MultiBinding`s that depend on brush-resolving converters add `DataContext.ThemeRevision` (`ElementName=MainWindowRoot`) as a trailing trigger value to force WPF to re-run the converter on each swap. `ElementName` (not `RelativeSource AncestorType=Window`) is required so the binding resolves from inside the Command Palette `Popup`, whose content has its own visual root.
+- **`event Action<string> ThemeChanged`**: translated from ThemeForge's event shape and consumed by downstream views that rebuild brush caches (`EmbeddedEditorView.ApplyTheme` re-reads AvalonEdit chrome colors from the active dictionary) and by `MainViewModel` to mirror the revision into XAML bindings.
 
-**Brush-resolving converters** (4 in total): `ConnectionTypeToColorConverter`, `ConnectionTypeToBrushConverter`, `ConnectionStateToBrushConverter`, `ServerStatusToColorConverter`. Each implements both `IValueConverter` (for legacy single-value bindings and direct code-behind use in `FloatingSessionWindow`) and `IMultiValueConverter` (accepts the `ThemeRevision` trigger, delegates to a shared `ResolveBrush` helper).
+**Brush-resolving converters**: `ConnectionTypeToColorConverter`, `ConnectionTypeToBrushConverter`, `ConnectionStateToBrushConverter`, `ServerStatusToColorConverter`, `TunnelBadgeStateToBrushConverter`, and `ResourceKeyToBrushConverter` resolve theme brushes via `TryFindResource`. Multi-value bindings pass the `ThemeRevision` trigger where live re-evaluation is required.
 
-**Generic resource-key converters**: `ResourceKeyToBrushConverter` (dual `IValue`/`IMulti`, used by the sidebar tool browser to resolve category brushes from VM properties) and `ResourceKeyToGeometryConverter` (simple `IValue`, resolves `Geo.Tool.*` geometries — immutable across themes, no trigger needed).
+**Generic resource-key converters**: `ResourceKeyToBrushConverter` (dual `IValue`/`IMulti`, used by the sidebar tool browser and tool views to resolve category/status brushes from VM properties) and `ResourceKeyToGeometryConverter` (simple `IValue`, resolves `Geo.Tool.*` geometries — immutable across themes, no trigger needed).
 
-**Code-built UI reactivity**: instead of caching `Brush` instances from `FindResource`, builders like `MainWindow.PopulateToolsTab` / `RefreshToolsTabSections` / `CreateToolsTabCard` use `element.SetResourceReference(<DP>, "BrushKey")`. Hover-state toggles (e.g. `cardBorder` active/default) call `SetResourceReference` with a conditional key inside the handler rather than flipping pre-cached brushes. Residual `FindResource("<Name>Brush")` call sites remain in transient contexts (drag highlights, context menus rebuilt per interaction) or one-shot views (onboarding overlay, ext-tool placeholder list).
+**Code-built UI reactivity**: instead of caching `Brush` instances from `FindResource`, builders like `ToolsTabPopulationService` use `element.SetResourceReference(<DP>, "BrushKey")`. Residual direct `FindResource("<Name>Brush")` call sites are one-shot surfaces, local derived resources, or views that rebuild explicitly on `ThemeChanged`.
 
 ### Sidebar (Servers / Tools Tabs)
 
