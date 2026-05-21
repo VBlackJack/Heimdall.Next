@@ -55,7 +55,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         InitializeComponent();
 
         // Set WebView2 background from theme to avoid flash of wrong color
-        if (TryFindResource("PrimaryColor") is System.Windows.Media.Color themeColor)
+        if (TryFindResource("BackgroundColor") is System.Windows.Media.Color themeColor)
         {
             VncWebView.DefaultBackgroundColor =
                 System.Drawing.Color.FromArgb(themeColor.A, themeColor.R, themeColor.G, themeColor.B);
