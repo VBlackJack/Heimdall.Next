@@ -45,6 +45,7 @@ public sealed class ConnectionTypeToGeometryConverter : IValueConverter
             {
                 "RDP" => "Geo.Protocol.Rdp",
                 "SSH" => "Geo.Protocol.Ssh",
+                "WINRM" => "Geo.Protocol.WinRm",
                 "SFTP" => "Geo.Protocol.Sftp",
                 "VNC" => "Geo.Protocol.Vnc",
                 "TELNET" => "Geo.Protocol.Telnet",

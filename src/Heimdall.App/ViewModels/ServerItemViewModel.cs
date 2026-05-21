@@ -112,6 +112,7 @@ public partial class ServerItemViewModel : ObservableObject
         : ConnectionType?.ToUpperInvariant() switch
         {
             "SSH" or "SFTP" => _sourceDto.SshPort,
+            "WINRM" => _sourceDto.WinRmPort,
             "FTP" => _sourceDto.FtpPort,
             "VNC" => _sourceDto.VncPort,
             "TELNET" => _sourceDto.TelnetPort,
@@ -143,6 +144,7 @@ public partial class ServerItemViewModel : ObservableObject
     {
         "RDP" => "RDP",
         "SSH" => "SSH",
+        "WINRM" => "WINRM",
         "SFTP" => "SFTP",
         "FTP" => "FTP",
         "VNC" => "VNC",
@@ -320,6 +322,15 @@ public partial class ServerItemViewModel : ObservableObject
                     return !string.IsNullOrWhiteSpace(dto.RdpPasswordEncrypted)
                         ? "Password"
                         : "Prompt";
+                }
+
+            case "WINRM":
+                {
+                    return dto.WinRmIdentityMode == Core.Configuration.WinRmIdentityMode.CurrentUser
+                        ? "Current user"
+                        : !string.IsNullOrWhiteSpace(dto.WinRmPasswordEncrypted)
+                            ? "Password"
+                            : "Prompt";
                 }
 
             case "FTP":

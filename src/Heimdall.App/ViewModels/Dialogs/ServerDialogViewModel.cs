@@ -236,6 +236,27 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _connectionType = "RDP";
 
+    // --- WinRM settings ---
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 65535, ErrorMessage = "WinRM port must be between 1 and 65535.")]
+    private int _winRmPort = DefaultPorts.WinRmHttp;
+
+    [ObservableProperty]
+    private string _winRmUsername = "";
+
+    [ObservableProperty]
+    private string _winRmPassword = "";
+
+    [ObservableProperty]
+    private bool _winRmUseSsl;
+
+    [ObservableProperty]
+    private WinRmIdentityMode _winRmIdentityMode = WinRmIdentityMode.CurrentUser;
+
+    public string? ExistingWinRmPasswordEncrypted { get; set; }
+
     // --- SSH settings ---
 
     [ObservableProperty]
@@ -343,6 +364,29 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         OnPropertyChanged(nameof(SshAuthHint));
         ResetTestChip();
+    }
+
+    partial void OnWinRmIdentityModeChanged(WinRmIdentityMode value)
+    {
+        _ = value;
+        OnPropertyChanged(nameof(IsWinRmCredentialIdentity));
+    }
+
+    partial void OnWinRmUseSslChanged(bool value)
+    {
+        if (!_isInitializing)
+        {
+            if (value && WinRmPort == DefaultPorts.WinRmHttp)
+            {
+                WinRmPort = DefaultPorts.WinRmHttps;
+            }
+            else if (!value && WinRmPort == DefaultPorts.WinRmHttps)
+            {
+                WinRmPort = DefaultPorts.WinRmHttp;
+            }
+        }
+
+        RaisePortDerivedStateChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanTestSshConnection))]
@@ -1057,15 +1101,22 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool IsTelnetConnection => string.Equals(ConnectionType, "Telnet", StringComparison.OrdinalIgnoreCase);
 
+    public bool IsWinRmConnection => string.Equals(ConnectionType, "WINRM", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsWinRmCredentialIdentity => WinRmIdentityMode == WinRmIdentityMode.Credential;
+
     public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
 
     public bool RequiresNetworkEndpoint =>
         !string.Equals(ConnectionType, "Local", StringComparison.OrdinalIgnoreCase)
         && !string.Equals(ConnectionType, "Citrix", StringComparison.OrdinalIgnoreCase);
 
-    public bool UsesGateway => !DirectConnection && !string.IsNullOrWhiteSpace(SelectedGatewayId);
+    public bool UsesGateway =>
+        !IsWinRmConnection
+        && !DirectConnection
+        && !string.IsNullOrWhiteSpace(SelectedGatewayId);
 
-    public bool CanSelectGateway => !DirectConnection;
+    public bool CanSelectGateway => !IsWinRmConnection && !DirectConnection;
 
     public string GatewayComboHelpText => CanSelectGateway
         ? ""
@@ -1076,6 +1127,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     public int EndpointPort
     {
         get => IsRdpConnection ? RemotePort
+            : IsWinRmConnection ? WinRmPort
             : IsVncConnection ? VncPort
             : IsFtpConnection ? FtpPort
             : IsTelnetConnection ? RemotePort
@@ -1085,6 +1137,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             if (IsRdpConnection || IsTelnetConnection)
             {
                 RemotePort = value;
+            }
+            else if (IsWinRmConnection)
+            {
+                WinRmPort = value;
             }
             else if (IsVncConnection)
             {
@@ -1102,6 +1158,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     }
 
     public string EndpointPortLabel => IsRdpConnection ? L("ServerDialogPortLabelRdp")
+        : IsWinRmConnection ? L("ServerDialogPortLabelWinRm")
         : IsVncConnection ? L("ServerDialogPortLabelVnc")
         : IsFtpConnection ? L("ServerDialogPortLabelFtp")
         : IsTelnetConnection ? L("ServerDialogPortLabelTelnet")
@@ -1109,6 +1166,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public string EndpointPortHelpText => IsRdpConnection
         ? L("ServerDialogPortHelpRdp")
+        : IsWinRmConnection ? L("ServerDialogPortHelpWinRm")
         : IsVncConnection ? L("ServerDialogPortHelpVnc")
         : IsFtpConnection ? L("ServerDialogPortHelpFtp")
         : IsTelnetConnection ? L("ServerDialogPortHelpTelnet")
@@ -1224,6 +1282,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             ClearErrors(nameof(RemotePort));
         }
         if (!IsSshFamilyConnection) ClearErrors(nameof(SshPort));
+        if (!IsWinRmConnection) ClearErrors(nameof(WinRmPort));
         if (!IsFtpConnection) ClearErrors(nameof(FtpPort));
         if (!IsVncConnection) ClearErrors(nameof(VncPort));
         if (!IsRdpConnection)
@@ -1535,6 +1594,13 @@ public partial class ServerDialogViewModel : ObservableValidator
             LocalPort = LocalPort,
             Group = string.IsNullOrWhiteSpace(Group) ? null : Group,
             ConnectionType = ConnectionType,
+            WinRmPort = WinRmPort,
+            WinRmUsername = string.IsNullOrWhiteSpace(WinRmUsername) ? null : WinRmUsername,
+            WinRmPasswordEncrypted = string.IsNullOrEmpty(WinRmPassword)
+                ? ExistingWinRmPasswordEncrypted
+                : Heimdall.Core.Security.CredentialProtector.Protect(WinRmPassword),
+            WinRmUseSsl = WinRmUseSsl,
+            WinRmIdentityMode = WinRmIdentityMode,
             SshUsername = string.IsNullOrWhiteSpace(SshUsername) ? null : SshUsername,
             SshPort = SshPort,
             SshKeyPath = sshKeyPath,
@@ -1620,8 +1686,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpPerformanceFlags = ComposePerformanceFlags(),
             RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
-            SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
-            UseDirectConnection = DirectConnection,
+            SshGatewayId = IsWinRmConnection || string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
+            UseDirectConnection = IsWinRmConnection || DirectConnection,
             ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
             Tags = string.IsNullOrWhiteSpace(Tags) ? null : Tags,
             Environment = Environment == "None" ? null : Environment,
@@ -1664,6 +1730,13 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort;
         vm.Group = dto.Group ?? "";
         vm.ConnectionType = connectionType;
+        vm.WinRmPort = dto.WinRmPort > 0
+            ? dto.WinRmPort
+            : dto.WinRmUseSsl ? DefaultPorts.WinRmHttps : DefaultPorts.WinRmHttp;
+        vm.WinRmUsername = dto.WinRmUsername ?? "";
+        vm.ExistingWinRmPasswordEncrypted = dto.WinRmPasswordEncrypted;
+        vm.WinRmUseSsl = dto.WinRmUseSsl;
+        vm.WinRmIdentityMode = dto.WinRmIdentityMode;
         vm.SshUsername = dto.SshUsername ?? "";
         vm.SshPort = dto.SshPort;
         vm.SshKeyPath = dto.SshKeyPath ?? "";
@@ -1850,6 +1923,17 @@ public partial class ServerDialogViewModel : ObservableValidator
         RaiseTestCommandCanExecuteChanged();
     }
 
+    partial void OnWinRmPortChanged(int value)
+    {
+        if (EndpointPortError is not null)
+        {
+            ValidateProperty(value, nameof(WinRmPort));
+            EndpointPortError = IsWinRmConnection ? GetLocalizedFieldError(nameof(WinRmPort)) : null;
+            RefreshValidationSummary();
+        }
+        RaisePortDerivedStateChanged();
+    }
+
     partial void OnVncPortChanged(int value)
     {
         if (EndpointPortError is not null)
@@ -1918,6 +2002,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
             return DefaultPorts.Rdp;
+        if (string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase))
+            return DefaultPorts.WinRmHttp;
         if (string.Equals(connectionType, "VNC", StringComparison.OrdinalIgnoreCase))
             return DefaultPorts.Vnc;
         if (string.Equals(connectionType, "FTP", StringComparison.OrdinalIgnoreCase))
@@ -1954,6 +2040,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsFtpConnection));
         OnPropertyChanged(nameof(IsCitrixConnection));
         OnPropertyChanged(nameof(IsTelnetConnection));
+        OnPropertyChanged(nameof(IsWinRmConnection));
+        OnPropertyChanged(nameof(IsWinRmCredentialIdentity));
         OnPropertyChanged(nameof(IsLocalConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
@@ -1991,6 +2079,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["Port must be between 1 and 65535."] = "ValidationPortRange",
         ["Local tunnel port must be between 1 and 65535."] = "ValidationLocalPortRange",
         ["SSH port must be between 1 and 65535."] = "ValidationSshPortRange",
+        ["WinRM port must be between 1 and 65535."] = "ValidationWinRmPortRange",
         ["Audio mode must be 0 (disabled), 1 (local), or 2 (remote)."] = "ValidationAudioMode",
         ["Color depth must be between 8 and 32."] = "ValidationColorDepth",
         ["RDP fixed width must be between 200 and 7680."] = "ValidationRdpFixedWidthRange",
@@ -2019,6 +2108,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string? GetEndpointPortError()
     {
         if (IsRdpConnection || IsTelnetConnection) return GetLocalizedFieldError(nameof(RemotePort));
+        if (IsWinRmConnection) return GetLocalizedFieldError(nameof(WinRmPort));
         if (IsFtpConnection) return GetLocalizedFieldError(nameof(FtpPort));
         if (IsVncConnection) return GetLocalizedFieldError(nameof(VncPort));
         if (IsSshFamilyConnection) return GetLocalizedFieldError(nameof(SshPort));

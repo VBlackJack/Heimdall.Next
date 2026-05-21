@@ -184,6 +184,9 @@
                     <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="WINRM">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
                 </Style.Triggers>
             </Style>
 
@@ -367,6 +370,26 @@
                                            FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <TextBlock x:Name="DlgSrv_ProtoSshDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- WinRM -->
+                        <Button x:Name="ProtocolCard_WinRm" Command="{Binding SelectProtocolCommand}" CommandParameter="WINRM"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolWinRmName}"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.WinRm}"
+                                      Fill="{DynamicResource ProtocolWinRmBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoWinRmName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoWinRmDesc" HorizontalAlignment="Center"
                                            TextAlignment="Center" TextWrapping="Wrap"
                                            FontSize="{StaticResource FontSizeCaption}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
@@ -780,6 +803,75 @@
                                            AutomationProperties.LiveSetting="Polite"/>
                             </StackPanel>
                         </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- WinRM credentials -->
+                <Border>
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ConnectionType}" Value="WINRM">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock x:Name="DlgSrv_BasicWinRmCredentialsTitle"
+                                   Text="{loc:Translate ServerDialogWinRmCredentials}"
+                                   Style="{StaticResource DialogSectionTitleStyle}"/>
+                        <TextBlock x:Name="DlgSrv_BasicWinRmCredentialsDesc"
+                                   Text="{loc:Translate ServerDialogWinRmCredentialsDesc}"
+                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                        <TextBlock x:Name="DlgSrv_WinRmIdentityLabel"
+                                   Text="{loc:Translate ServerDialogWinRmIdentityMode}"
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,14,0,4"/>
+                        <ComboBox x:Name="DlgSrv_WinRmIdentityCombo"
+                                  TabIndex="10"
+                                  AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_WinRmIdentityLabel}"
+                                  SelectedValue="{Binding WinRmIdentityMode}"
+                                  SelectedValuePath="Tag"
+                                  Style="{StaticResource DialogFormComboBoxStyle}">
+                            <ComboBoxItem x:Name="DlgSrv_WinRmIdentityCurrent"
+                                          Content="{loc:Translate ServerDialogWinRmIdentityCurrentUser}"
+                                          Tag="{x:Static config:WinRmIdentityMode.CurrentUser}"/>
+                            <ComboBoxItem x:Name="DlgSrv_WinRmIdentityCredential"
+                                          Content="{loc:Translate ServerDialogWinRmIdentityCredential}"
+                                          Tag="{x:Static config:WinRmIdentityMode.Credential}"/>
+                        </ComboBox>
+                        <CheckBox x:Name="DlgSrv_WinRmSslCb"
+                                  TabIndex="11"
+                                  Content="{loc:Translate ServerDialogWinRmUseSsl}"
+                                  AutomationProperties.Name="{loc:Translate ServerDialogWinRmUseSsl}"
+                                  IsChecked="{Binding WinRmUseSsl}"
+                                  Style="{StaticResource DialogFormCheckBoxStyle}"
+                                  Margin="0,12,0,0"/>
+                        <TextBlock Text="{loc:Translate ServerDialogWinRmUseSslHint}"
+                                   Style="{StaticResource DialogHintTextStyle}"
+                                   Margin="0,6,0,0"
+                                   TextWrapping="Wrap"/>
+                        <StackPanel Visibility="{Binding IsWinRmCredentialIdentity, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock x:Name="DlgSrv_BasicWinRmUsernameLabel"
+                                       Text="{loc:Translate ServerDialogLabelUsername}"
+                                       Style="{StaticResource LabelStyle}"
+                                       Margin="0,14,0,4"/>
+                            <TextBox x:Name="DlgSrv_WinRmUsernameBox"
+                                     TabIndex="12"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicWinRmUsernameLabel}"
+                                     Text="{Binding WinRmUsername, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
+                            <TextBlock x:Name="DlgSrv_BasicWinRmPasswordLabel"
+                                       Text="{loc:Translate ServerDialogLabelPassword}"
+                                       Style="{StaticResource LabelStyle}"
+                                       Margin="0,12,0,4"/>
+                            <PasswordBox x:Name="WinRmPasswordBox"
+                                         TabIndex="13"
+                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicWinRmPasswordLabel}"
+                                         Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -1257,6 +1349,9 @@
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="WINRM">
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </Style.Triggers>

@@ -74,6 +74,7 @@ public sealed class ConnectionTypeToColorConverter : IValueConverter, IMultiValu
             {
                 "RDP" => "ProtocolRdpBrush",
                 "SSH" => "ProtocolSshBrush",
+                "WINRM" => "ProtocolWinRmBrush",
                 "SFTP" => "ProtocolSftpBrush",
                 "VNC" => "ProtocolVncBrush",
                 "TELNET" => "ProtocolTelnetBrush",

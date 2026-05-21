@@ -141,6 +141,38 @@ public sealed class ServerDialogLocaleTests
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
 
+    [Theory]
+    [InlineData("en", "ServerDialogProtocolWinRmName")]
+    [InlineData("en", "ServerDialogProtocolWinRmDesc")]
+    [InlineData("en", "ServerDialogWinRmCredentials")]
+    [InlineData("en", "ServerDialogWinRmIdentityMode")]
+    [InlineData("en", "ServerDialogWinRmIdentityCurrentUser")]
+    [InlineData("en", "ServerDialogWinRmIdentityCredential")]
+    [InlineData("en", "ServerDialogWinRmUseSsl")]
+    [InlineData("en", "ServerDialogWinRmUseSslHint")]
+    [InlineData("en", "ServerDialogPortLabelWinRm")]
+    [InlineData("en", "ServerDialogPortHelpWinRm")]
+    [InlineData("en", "ValidationWinRmPortRange")]
+    [InlineData("fr", "ServerDialogProtocolWinRmName")]
+    [InlineData("fr", "ServerDialogProtocolWinRmDesc")]
+    [InlineData("fr", "ServerDialogWinRmCredentials")]
+    [InlineData("fr", "ServerDialogWinRmIdentityMode")]
+    [InlineData("fr", "ServerDialogWinRmIdentityCurrentUser")]
+    [InlineData("fr", "ServerDialogWinRmIdentityCredential")]
+    [InlineData("fr", "ServerDialogWinRmUseSsl")]
+    [InlineData("fr", "ServerDialogWinRmUseSslHint")]
+    [InlineData("fr", "ServerDialogPortLabelWinRm")]
+    [InlineData("fr", "ServerDialogPortHelpWinRm")]
+    [InlineData("fr", "ValidationWinRmPortRange")]
+    public async Task WinRmServerDialogKeys_ExistInBothLocales(string locale, string key)
+    {
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
+
+        string text = localizer[key];
+
+        Assert.False(string.IsNullOrWhiteSpace(text));
+    }
+
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {
         var manager = new LocalizationManager();
