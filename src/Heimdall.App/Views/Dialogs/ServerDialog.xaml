@@ -1169,7 +1169,7 @@
                                         </TextBlock>
                                         <TabControl Margin="0,16,0,0">
                                             <TabControl.Style>
-                                                <Style TargetType="TabControl" BasedOn="{StaticResource ThemedTabControlStyle}">
+                                                <Style TargetType="TabControl" BasedOn="{StaticResource SegmentedTabControlStyle}">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
                                                             <Setter Property="IsEnabled" Value="False"/>
@@ -1179,7 +1179,7 @@
                                             </TabControl.Style>
                                             <TabItem Header="{loc:Translate ServerDialogRdpSubTabDisplayAudio}"
                                                      AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabDisplayAudio}"
-                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                     Style="{DynamicResource SegmentedTabItemStyle}">
                                                 <StackPanel>
                                                     <Grid Margin="0,16,0,0">
                                                         <Grid.ColumnDefinitions>
@@ -1476,7 +1476,7 @@
                                             </TabItem>
                                             <TabItem Header="{loc:Translate ServerDialogRdpSubTabDevices}"
                                                      AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabDevices}"
-                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                     Style="{DynamicResource SegmentedTabItemStyle}">
                                                 <StackPanel Margin="0,12,0,0">
                                                     <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                                     <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectDrives}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
@@ -1523,7 +1523,7 @@
                                             </TabItem>
                                             <TabItem Header="{loc:Translate ServerDialogRdpSubTabPerformance}"
                                                      AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabPerformance}"
-                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                     Style="{DynamicResource SegmentedTabItemStyle}">
                                                 <StackPanel Margin="0,12,0,0">
                                                     <TextBlock Text="{loc:Translate ServerDialogRdpPerfSectionConnection}"
                                                                Style="{StaticResource LabelStyle}"
@@ -1547,7 +1547,7 @@
                                             </TabItem>
                                             <TabItem Header="{loc:Translate ServerDialogRdpSubTabBehavior}"
                                                      AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabBehavior}"
-                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                     Style="{DynamicResource SegmentedTabItemStyle}">
                                                 <StackPanel Margin="0,12,0,0">
                                                     <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
                                                                Style="{StaticResource LabelStyle}"
