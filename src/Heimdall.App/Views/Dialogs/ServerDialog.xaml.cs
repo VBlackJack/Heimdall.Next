@@ -40,7 +40,6 @@ public partial class ServerDialog : Window
         WindowThemeHelper.ApplyCurrentTheme(this);
         LoadAdvancedModePreference();
         ApplyLocalization();
-        RegisterTabFallback();
     }
 
     public ServerDialog(LocalizationManager localizer)
@@ -49,14 +48,12 @@ public partial class ServerDialog : Window
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         ApplyLocalization();
-        RegisterTabFallback();
     }
 
     public ServerDialog()
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
-        RegisterTabFallback();
     }
 
     // ------------------------------------------------------------------
@@ -156,39 +153,6 @@ public partial class ServerDialog : Window
     }
 
     // ------------------------------------------------------------------
-    // Tab fallback
-    // ------------------------------------------------------------------
-
-    private void RegisterTabFallback()
-    {
-        DlgSrv_TabTunneling.IsEnabledChanged += OnTabEnabledChanged;
-        DlgSrv_TabAuthentication.IsEnabledChanged += OnTabEnabledChanged;
-    }
-
-    private void OnTabEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.TabItem tab) return;
-
-        if (e.NewValue is false)
-        {
-            var message = ReferenceEquals(tab, DlgSrv_TabTunneling)
-                ? _localizer?["ServerDialogTunnelingUnavailable"]
-                : _localizer?["ServerDialogTabDisabledHint"];
-            tab.ToolTip = message;
-            System.Windows.Automation.AutomationProperties.SetHelpText(tab, message ?? "");
-            if (tab.IsSelected)
-            {
-                MainTabControl.SelectedItem = DlgSrv_TabConnection;
-            }
-        }
-        else
-        {
-            tab.ToolTip = null;
-            System.Windows.Automation.AutomationProperties.SetHelpText(tab, "");
-        }
-    }
-
-    // ------------------------------------------------------------------
     // Save
     // ------------------------------------------------------------------
 
@@ -270,7 +234,7 @@ public partial class ServerDialog : Window
                 break;
             case nameof(ServerDialogViewModel.LocalPort):
                 vm.IsAdvancedMode = true;
-                MainTabControl.SelectedItem = DlgSrv_TabTunneling;
+                MainTabControl.SelectedItem = DlgSrv_TabNetwork;
                 target = DlgSrv_LocalPortBox;
                 break;
             case nameof(ServerDialogViewModel.RdpAudioMode):
@@ -428,14 +392,11 @@ public partial class ServerDialog : Window
         }
 
         // Tab headers
-        DlgSrv_TabConnection.Header = _localizer["ServerDialogTabConnection"];
-        DlgSrv_TabTunnelingText.Text = _localizer["ServerDialogTabTunneling"];
-        System.Windows.Automation.AutomationProperties.SetName(
-            DlgSrv_TabTunneling, _localizer["ServerDialogTabTunneling"]);
-        DlgSrv_TabAuthentication.Header = _localizer["ServerDialogTabAuthentication"];
+        DlgSrv_TabGeneral.Header = _localizer["ServerDialogTabGeneral"];
         DlgSrv_TabOptionsText.Text = _localizer["ServerDialogTabOptions"];
         System.Windows.Automation.AutomationProperties.SetName(
             DlgSrv_TabOptions, _localizer["ServerDialogTabOptions"]);
+        DlgSrv_TabNetwork.Header = _localizer["ServerDialogTabNetwork"];
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
 
         // Protocol selector (Step 1)
@@ -476,11 +437,6 @@ public partial class ServerDialog : Window
         DlgSrv_GatewayRoutingDesc.Text = _localizer["ServerDialogGatewayRoutingDesc"];
         DlgSrv_DirectConnectCb.Content = _localizer["ServerDialogDirectConnect"];
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_GatewayCmb, _localizer["ServerDialogGatewayRouting"]);
-
-        // Advanced toggle
-        DlgSrv_AdvancedToggle.Content = _localizer["ServerDialogAdvancedSettings"];
-        System.Windows.Automation.AutomationProperties.SetName(
-            DlgSrv_AdvancedToggle, _localizer["ServerDialogAdvancedSettings"]);
 
         // Connection path diagram
         DlgSrv_ConnectionPathTitle.Text = _localizer["ServerDialogConnectionPath"];

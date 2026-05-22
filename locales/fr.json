@@ -2066,10 +2066,12 @@
   "SessionCtxMoveOpen": "D\u00e9placer une session ouverte",
   "SessionCtxNewConn": "Nouvelle connexion",
 
+  "ServerDialogTabGeneral": "Général",
   "ServerDialogTabConnection": "Connexion",
   "ServerDialogTabTunneling": "Tunnel",
   "ServerDialogTabAuthentication": "Authentification",
   "ServerDialogTabOptions": "Options",
+  "ServerDialogTabNetwork": "Réseau",
   "ServerDialogTabInfo": "Info",
   "ServerDialogTabDisabledHint": "Non disponible pour ce type de connexion",
   "ServerDialogTunnelingUnavailable": "Le tunneling n'est pas disponible pour ce type de protocole.",
