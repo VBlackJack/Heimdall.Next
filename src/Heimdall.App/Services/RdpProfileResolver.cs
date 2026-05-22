@@ -76,7 +76,8 @@ internal static class RdpProfileResolver
                 Compression = settings.RdpDefaultCompression,
                 AutoReconnect = settings.RdpDefaultAutoReconnect,
                 PerformanceFlags = server.RdpPerformanceFlags,
-                DisableUdp = server.RdpDisableUdp
+                DisableUdp = server.RdpDisableUdp,
+                GatewayHostname = server.RdpGateway
             };
         }
 
@@ -98,7 +99,8 @@ internal static class RdpProfileResolver
             Compression = server.RdpCompression,
             AutoReconnect = server.RdpAutoReconnect,
             PerformanceFlags = server.RdpPerformanceFlags,
-            DisableUdp = server.RdpDisableUdp
+            DisableUdp = server.RdpDisableUdp,
+            GatewayHostname = server.RdpGateway
         };
     }
 
