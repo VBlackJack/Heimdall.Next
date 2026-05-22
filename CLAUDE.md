@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Heimdall.Next** — .NET 10 + WPF secure Windows connection manager (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell). MobaXterm/mRemoteNG alternative. Ground-up rewrite of Heimdall (PowerShell 5.1 + WPF).
+**Heimdall.Next** — .NET 10 + WPF secure Windows connection manager (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, WinRM, Local Shell). MobaXterm/mRemoteNG alternative. Ground-up rewrite of Heimdall (PowerShell 5.1 + WPF).
 
 **Current build**: managed by `Build.ps1` auto-versioning (Debug; release version updates on next `Build.ps1 -Mode Release`)
 
@@ -32,7 +32,8 @@ src/
     │                          # ResolutionPresetCatalog, ResolutionChoice
     │   ├── EmbeddedRdp/       # LetterboxLayoutCalculator (fixed-resolution centered host rect math)
     │   ├── Handlers/          # Per-protocol handlers (RdpHandler, SshHandler, SftpHandler, VncHandler,
-    │   │                      #   TelnetHandler, FtpHandler, CitrixHandler, LocalShellHandler)
+    │   │                      #   TelnetHandler, FtpHandler, CitrixHandler, WinRmHandler, LocalShellHandler)
+    │   ├── WinRm/             # WinRmHandler support: WinRmPowerShellLaunchBuilder, WinRmCredentialBootstrap, WinRmPreflight, WinRmTransportProbes
     ├── ViewModels/            # MainViewModel, ServerListViewModel, ConnectionViewModel, SettingsViewModel,
     │                          # SidebarToolsViewModels (SidebarToolCategoryViewModel + SidebarToolItemViewModel)
     ├── Converters/            # ConnectionType/State/StatusToBrush (dual IValue/IMultiValueConverter + ThemeRevision),
@@ -50,7 +51,7 @@ tests/
 └── Heimdall.App.UiTests/ # UIAutomation smoke-adjacent desktop tests
 config/                  # Factory defaults (settings.default.json, servers.default.json,
                          #   hacker-simulator.scenarios.default.json, hacker-simulator.playlists.default.json)
-locales/                 # en.json, fr.json (5,397 leaf keys each)
+locales/                 # en.json, fr.json (5,578 leaf keys each)
 ```
 
 ### Dependency Graph
@@ -72,6 +73,7 @@ External: CommunityToolkit.Mvvm, Microsoft.Extensions.DependencyInjection, SSH.N
 | Runtime | .NET 10 (C# 14), WPF (MVVM via CommunityToolkit.Mvvm), DI |
 | SSH/SFTP | SSH.NET 2025.1.0 |
 | Terminal | WebView2 + xterm.js (pipe mode); VNC via noVNC (WebSocket proxy) |
+| WinRM | Local PowerShell host (pwsh/powershell) in ConPTY + Enter-PSSession |
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Crypto | DPAPI + HMAC-SHA256 |
 | Testing | xUnit + Moq + FluentAssertions |
@@ -90,7 +92,7 @@ powershell -File Build.ps1 -Mode Release -Version 2026.033101  # Force version
 powershell -File Build.ps1 -SkipTests
 ```
 
-Test baseline: `dotnet test Heimdall.slnx --no-build` discovers 5,578 tests — 5,578 passing, 0 skipped. Partial per-project TRX files can report smaller counts or hide `NotExecuted`; always run the aggregated command for a correct baseline.
+Test baseline: `dotnet test Heimdall.slnx --no-build` discovers 5,680 tests — 5,680 passing, 0 skipped. Partial per-project TRX files can report smaller counts or hide `NotExecuted`; always run the aggregated command for a correct baseline.
 
 **Gotcha — `Build.ps1 -SkipTests` + `dotnet test --no-build`**: `Build.ps1 -SkipTests` skips the test pass but also skips the build of test assemblies. Pairing it with `dotnet test --no-build` afterwards runs stale test binaries (or fails to find them outright). When iterating on tests after a `-SkipTests` build, run an explicit `dotnet build Heimdall.slnx -c Debug -p:nodeReuse=false` before `dotnet test`.
 
@@ -137,7 +139,7 @@ When extending test coverage, two non-negotiable rules apply:
 
 - New XAML: `{loc:Translate Key}` markup extension (live-updates on locale change via `LocalizationSource` singleton)
 - Legacy `ApplyLocalization()` coexists; new views use `{loc:Translate}`, migration is incremental
-- 5,489 leaf keys per locale (EN/FR), CI enforces key parity
+- 5,578 leaf keys per locale (EN/FR), CI enforces key parity
 
 ## Built-in Tools (59 tools)
 
@@ -268,6 +270,13 @@ Wake-on-LAN (UDP magic packet), Open Ports (P/Invoke GetExtendedTcpTable), Netwo
 - `FtpHandler` validates host and port before connect, using `InputValidator.ValidateDomain`, `IPAddress.TryParse`, and `InputValidator.ValidatePortRange`.
 - `ConnectionResult.Warning` carries non-blocking protocol warnings. Credentialed FTP without TLS sets `WarnFtpCleartext`; route it to status text, not a modal.
 - Parser helpers (`NormalizePath`, `ResolvePath`, `ParseListLine`, `ParseUnixDate`) are `internal static` test seams; keep them pure.
+
+### WinRM (PowerShell Remoting)
+- 9th protocol. `WinRmHandler` spawns a local `pwsh.exe`/`powershell.exe` in a ConPTY and runs `Enter-PSSession` — the **local** PowerShell host owns the REPL (PSReadLine, completion, ANSI). Heimdall does not host a runspace; it only ferries bytes. Reuses the Local Shell terminal view (`CreateTerminalSshView`).
+- Credential mode: password injected via a self-deleting, ACL-restricted `.ps1` bootstrap (`SecureFileWriter.WriteAndProtect` + DPAPI blob); current-user mode uses an inline `-Command`, no file. Auth is always `-Authentication Negotiate` (Kerberos, NTLM fallback).
+- `WinRmPreflight` (TCP probe + `SslStream` TLS handshake) runs before any bootstrap, for both identity modes; failures raise a typed `WinRmPreflightException` mapped to localized `ErrorWinRmPreflight*` messages — status text, never a modal.
+- Components: `WinRmPowerShellLaunchBuilder`, `WinRmCredentialBootstrap`, `WinRmPreflight`, `WinRmTransportProbes` live in `Heimdall.App/Services/WinRm/`; the handler is in `Services/Handlers/`. `WinRmIdentityMode` enum serializes as string via `[JsonConverter(typeof(JsonStringEnumConverter<WinRmIdentityMode>))]`.
+- Connecting to `localhost` / the own machine while off-domain fails with `0x8009030e` (NTLM loopback) — not a Heimdall bug; green WinRM runtime validation needs a real remote target or a domain-joined host.
 
 ### Credential Autofill
 - `EnumWindows` + `EnumThreadWindows` (CredUI from embedded ActiveX are thread-owned, not top-level)
