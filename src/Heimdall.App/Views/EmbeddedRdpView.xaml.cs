@@ -1720,6 +1720,38 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Core.Logging.FileLogger.Info($"EmbeddedRDP OnAutoReconnecting: reason={disconnectReason} attempt={attemptCount}");
         if (_disposed) return;
 
+        SessionDiagnostic? gatewayDiagnostic = TryBuildTunnelFailureDiagnostic(disconnectReason);
+        if (gatewayDiagnostic is not null)
+        {
+            if (_rdpHost is not null)
+            {
+                _rdpHost.CancelAutoReconnect = true;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP auto-reconnect cancelled for gateway-attributable disconnect: reason={disconnectReason} attempt={attemptCount}");
+            TryTransitionConnectionState(ConnectionState.Disconnected);
+
+            Dispatcher.Invoke(() =>
+            {
+                CancelAutofill();
+                _autofillRetryContext = null;
+                UpdateAutofillState(RdpAutofillState.None);
+                StopAntiIdleTimer();
+                StopStabilizationCountdown();
+                StopReconnectElapsedTracking();
+                ReleaseSleepPrevention();
+                TransitionPhase(RdpConnectionPhase.None);
+                HideRedirectionIndicators();
+                _allowResolutionUpdates = false;
+                SetPaneDiagnostic(gatewayDiagnostic);
+                UpdateSessionStatus(RdpSessionStatus.Disconnected);
+                UpdateHealthDot(false);
+                ShowReconnectOverlay();
+            });
+            return;
+        }
+
         var attemptTimestampUtc = DateTime.UtcNow;
         Dispatcher.Invoke(() =>
         {

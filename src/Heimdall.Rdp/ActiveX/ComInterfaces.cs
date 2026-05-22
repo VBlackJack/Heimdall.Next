@@ -127,8 +127,9 @@ public class MsTscAxEventSink : IMsTscAxEvents
 
     public void OnAutoReconnecting(int disconnectReason, int attemptCount, out bool continueReconnect)
     {
-        continueReconnect = !_host.CancelAutoReconnect;
+        // Raise first so a listener can synchronously cancel the current retry.
         _host.RaiseAutoReconnecting(disconnectReason, attemptCount);
+        continueReconnect = !_host.CancelAutoReconnect;
     }
 
     public void OnAutoReconnected() => _host.RaiseAutoReconnected();
