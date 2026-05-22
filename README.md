@@ -14,11 +14,11 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5557%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-5680%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
-**The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
+**The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, WinRM, and local terminals.**
 
 Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with enterprise-grade encryption and modern UX.
 
@@ -26,7 +26,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ## Why Heimdall.Next?
 
-- **8 protocols, one interface** --- RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local shell sessions in a single tabbed window
+- **9 protocols, one interface** --- RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, WinRM, and local shell sessions in a single tabbed window
 - **Zero-trust credential storage** --- DPAPI encryption + HMAC-SHA256 integrity, PBKDF2 PIN protection, Windows ACL enforcement
 - **External vault integration** --- KeePassXC, Bitwarden CLI, 1Password CLI, or any command-line password manager
 - **Pageant-native** --- Direct IPC with PuTTY Pageant via shared memory (no agent forwarding hacks)
@@ -110,6 +110,15 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - StoreBrowse integration for published applications and desktops
 - SSO (Kerberos) authentication support
 - Embedded session tabs with the same UX as RDP
+
+### WinRM (PowerShell Remoting)
+- Remote PowerShell sessions over native WinRM / PS-Remoting — no SSH required
+- Embedded interactive terminal: a local `pwsh.exe` (PowerShell 7+, auto-detected) or `powershell.exe` (5.1 fallback) is hosted in a ConPTY and runs `Enter-PSSession`, reusing the Local Shell terminal view
+- HTTP (5985) and HTTPS (5986) transports with a `Use SSL` toggle and a dynamic default port; full TLS certificate validation by default
+- Two identity modes: an explicit stored credential (DPAPI-encrypted) or the current Windows identity (Kerberos SSO, no stored secret)
+- `Negotiate` authentication (Kerberos with NTLM fallback)
+- Credential mode injects the password via a self-deleting, ACL-restricted bootstrap script — no plaintext on disk or in PowerShell history
+- Transport pre-flight check (TCP reachability + TLS handshake) surfaces clear, localized errors before the session launches
 
 ### Local Shell
 - Embedded PowerShell, cmd, bash, or custom shell via ConPTY
@@ -211,10 +220,10 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Screenshot capture to clipboard (Ctrl+Shift+S)
 
 ### User Interface
-- Runtime theme switching across **7 Dracula variants** (DraculaPro default, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing) via a centralized `ThemeService` (singleton DI) exposing `ApplyTheme()` and a `ThemeChanged` event consumed by converters and code-built panels
-- 1,870+ lines of WPF control styles shared across all variants, reactive to runtime theme swaps (`DynamicResource` everywhere; `MultiBinding` + `ThemeRevision` trigger for brush-resolving converters; `SetResourceReference` in code-behind panels)
+- Runtime theme switching across **16 ThemeForge themes** (Drakul default, plus Dracula, Striga, Cinder, Bracken, Tarn, Mortis, Slate, Voivode, Carmilla, Whitby, Vesper, Wormwood, Sconce, Parchment, Folio — grouped Root / Dark / Light / Alt), plus a **9-tone accent selector** (Default, Blue, Cyan, Green, Orange, Pink, Purple, Red, Yellow). Powered by the private `ThemeForge.Theme` NuGet package through the `HeimdallThemeService` wrapper; a `HeimdallThemeBridge` ResourceDictionary re-expresses Heimdall's app brushes on ThemeForge color slots and is re-merged on every theme swap so converters and code-built panels recolor live
+- 1,870+ lines of WPF control styles shared across all themes, reactive to runtime theme swaps (`DynamicResource` everywhere; `MultiBinding` + `ThemeRevision` trigger for brush-resolving converters; `SetResourceReference` in code-behind panels)
 - Design System with 45 tokens: typography (10 sizes, min 11px), spacing (8 tokens incl. asymmetric), button padding (4 roles), input padding, corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
-- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio, scrollbar thumb 4.2:1+ across every Dracula variant
+- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio, scrollbar thumb 4.2:1+ across every ThemeForge theme
 - FocusIndicatorBrush for keyboard navigation accessibility on all button styles
 - Unified two-tier icon system: vector geometries (`Geo.*`) for domain icons + Segoe MDL2 for UI chrome
 - Localized tooltips on all icon-only buttons; AutomationProperties.Name on all interactive controls via i18n
@@ -222,7 +231,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default — Dracula also applied to Notes Milkdown editor
 - Configurable terminal font family and size
 - Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced); the RDP sub-tab now exposes the previously hidden `RdpResolutionPresets` array as an editable multi-line list and the `RdpDialogAdvancedDefault` flag as a checkbox
-- Server Dialog: progressive disclosure with a smart Advanced reset (an existing profile re-opens in Simple view when no advanced field is customized, even if the global default is "Advanced"), animated transition, protocol-aware tabs, clickable protocol chip in Step 2 to return to the protocol selector, and a four-chip mini-toc (Display / Audio / Devices / Performance) at the top of the RDP Options tab. Display section adds a `Common resolutions` ComboBox to pre-fill Width/Height in Fixed mode and a dedicated `Enable multi-monitor` toggle
+- Server Dialog: a two-step flow — protocol card selection, then a **four-tab editor** (General / Options / Network / Info) with a persistent protocol badge in the header, per-tab error badges, per-protocol tab visibility, and validation focus that jumps to the first invalid field across tabs. The window is freely resizable with native mouse-wheel scrolling. The RDP Options tab keeps a four-chip mini-toc (Display / Audio / Devices / Performance); its Display section offers a `Common resolutions` ComboBox to pre-fill Width/Height in Fixed mode and a dedicated `Enable multi-monitor` toggle
 - TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
@@ -233,7 +242,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,485 i18n keys)
+- Bilingual interface: English and French (~5,578 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -394,7 +403,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (4,490 passing tests across 5 projects) |
+| Testing | xUnit (5,680 passing tests across 5 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
