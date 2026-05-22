@@ -2143,6 +2143,8 @@
   "ServerDialogResolutionProfileDesc": "Choose how this server sizes the embedded Remote Desktop session.",
   "ServerDialogResolutionModeLabel": "Resolution mode",
   "ServerDialogRdpSecuritySection": "Security",
+  "ServerDialogRdpPerfSectionConnection": "Connection",
+  "ServerDialogRdpPerfSectionExperience": "Visual experience",
   "ServerDialogRdpDisplaySection": "Display",
   "ServerDialogRdpAudioSection": "Audio",
   "ServerDialogRdpResolutionPresetLabel": "Common resolutions",
