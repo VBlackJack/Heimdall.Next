@@ -31,13 +31,16 @@ internal sealed class WinRmHandler : IProtocolHandler
 {
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
+    private readonly WinRmPreflight _preflight;
 
     public WinRmHandler(
         ConnectionStateMachine connectionSm,
-        LocalizationManager localizer)
+        LocalizationManager localizer,
+        WinRmPreflight? preflight = null)
     {
         _connectionSm = connectionSm;
         _localizer = localizer;
+        _preflight = preflight ?? new WinRmPreflight();
     }
 
     public string Protocol => "WINRM";
@@ -61,6 +64,7 @@ internal sealed class WinRmHandler : IProtocolHandler
         try
         {
             ct.ThrowIfCancellationRequested();
+            await _preflight.EnsureReachableAsync(server, ct).ConfigureAwait(false);
 
             if (server.WinRmIdentityMode == WinRmIdentityMode.Credential)
             {
@@ -94,6 +98,14 @@ internal sealed class WinRmHandler : IProtocolHandler
             DeleteBootstrap(bootstrap, bootstrapScriptPath);
             session?.Dispose();
             throw;
+        }
+        catch (WinRmPreflightException ex)
+        {
+            string message = _localizer.Format(ex.LocalizationKey, ex.LocalizationArguments);
+            Core.Logging.FileLogger.Warn(
+                $"WinRM preflight failed for host '{server.RemoteServer}' protocol=WINRM");
+            _connectionSm.SetError(server.Id, message);
+            return new ConnectionResult(false, message, null);
         }
         catch (ArgumentOutOfRangeException ex)
         {
