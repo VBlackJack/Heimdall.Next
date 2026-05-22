@@ -1,0 +1,30 @@
+# Line-ending policy. Text files are stored with LF in the repository and
+# checked out with the platform-native ending. Stops cross-OS CRLF/LF drift.
+* text=auto
+
+# Git hook shims must stay LF on every OS (POSIX sh shebang).
+.githooks/** text eol=lf
+
+# Scripts whose line endings are semantically significant.
+*.sh   text eol=lf
+*.bash text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary assets: never treat as text, never normalize, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.snk   binary
+*.pfx   binary
+*.dll   binary
+*.exe   binary
+*.pdb   binary
+*.nupkg binary
+*.zip   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
