@@ -27,48 +27,69 @@ public sealed class FocusVisualStyleSmokeTests
     [Fact]
     public void FocusVisualStyle_IsDefinedAndAppliedToCoreInteractiveStyles()
     {
-        var commonControls = LoadXaml("src", "Heimdall.App", "Themes", "CommonControls.xaml");
+        XDocument commonControls = LoadXaml("src", "Heimdall.App", "Themes", "CommonControls.xaml");
         Assert.NotNull(FindStyle(commonControls, "AppFocusVisualStyle"));
+        Assert.NotNull(FindStyle(commonControls, "CheckBoxFocusVisualStyle"));
 
-        foreach (var styleKey in new[]
+        foreach (string styleKey in new[]
         {
             "PrimaryButtonStyle",
             "SecondaryButtonStyle",
             "ToolbarGhostButtonStyle",
-            "ThemedRadioButtonStyle",
             "ComboBoxToggleButtonStyle"
         })
         {
-            AssertStyleHasFocusVisualSetter(commonControls, styleKey);
+            AssertStyleHasFocusVisualSetter(
+                commonControls,
+                styleKey,
+                "{StaticResource AppFocusVisualStyle}");
         }
 
-        var serverDialog = LoadXaml("src", "Heimdall.App", "Views", "Dialogs", "ServerDialog.xaml");
-        AssertStyleHasFocusVisualSetter(serverDialog, "ProtocolCardButtonStyle");
+        foreach (string styleKey in new[]
+        {
+            "ThemedCheckBoxStyle",
+            "ThemedRadioButtonStyle"
+        })
+        {
+            AssertStyleHasFocusVisualSetter(
+                commonControls,
+                styleKey,
+                "{StaticResource CheckBoxFocusVisualStyle}");
+        }
+
+        XDocument serverDialog = LoadXaml("src", "Heimdall.App", "Views", "Dialogs", "ServerDialog.xaml");
+        AssertStyleHasFocusVisualSetter(
+            serverDialog,
+            "ProtocolCardButtonStyle",
+            "{StaticResource AppFocusVisualStyle}");
     }
 
     private static XDocument LoadXaml(params string[] relativeSegments)
     {
-        var pathSegments = new[]
+        string[] pathSegments = new[]
         {
             Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."))
         }.Concat(relativeSegments).ToArray();
-        var path = Path.Combine(pathSegments);
+        string path = Path.Combine(pathSegments);
 
         Assert.True(File.Exists(path), $"Missing XAML file: {path}");
         return XDocument.Load(path);
     }
 
-    private static void AssertStyleHasFocusVisualSetter(XDocument document, string styleKey)
+    private static void AssertStyleHasFocusVisualSetter(
+        XDocument document,
+        string styleKey,
+        string expectedValue)
     {
-        var style = FindStyle(document, styleKey);
+        XElement? style = FindStyle(document, styleKey);
         Assert.NotNull(style);
 
-        var setter = style!.Elements(PresentationNamespace + "Setter")
+        XElement? setter = style!.Elements(PresentationNamespace + "Setter")
             .FirstOrDefault(element =>
                 string.Equals((string?)element.Attribute("Property"), "FocusVisualStyle", StringComparison.Ordinal)
                 && string.Equals(
                     (string?)element.Attribute("Value"),
-                    "{StaticResource AppFocusVisualStyle}",
+                    expectedValue,
                     StringComparison.Ordinal));
 
         Assert.NotNull(setter);

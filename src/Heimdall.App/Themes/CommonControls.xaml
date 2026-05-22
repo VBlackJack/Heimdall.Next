@@ -144,6 +144,21 @@
         </Setter>
     </Style>
 
+    <Style x:Key="CheckBoxFocusVisualStyle">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               StrokeThickness="2"
+                               Stroke="{DynamicResource AccentBrush}"
+                               SnapsToDevicePixels="True"
+                               RadiusX="4"
+                               RadiusY="4"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ========================================================= -->
     <!-- Window                                                    -->
     <!-- ========================================================= -->
@@ -1324,7 +1339,7 @@
     <!-- CheckBox / RadioButton                                    -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedCheckBoxStyle" TargetType="{x:Type CheckBox}">
-        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource CheckBoxFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
@@ -1396,7 +1411,7 @@
     <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource ThemedCheckBoxStyle}"/>
 
     <Style x:Key="ThemedRadioButtonStyle" TargetType="{x:Type RadioButton}">
-        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisualStyle}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource CheckBoxFocusVisualStyle}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
