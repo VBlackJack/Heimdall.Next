@@ -48,7 +48,7 @@ internal static class WinRmTransportProbes
         SslClientAuthenticationOptions options = new SslClientAuthenticationOptions
         {
             TargetHost = host,
-            CertificateRevocationCheckMode = X509RevocationMode.Online
+            CertificateRevocationCheckMode = X509RevocationMode.NoCheck
         };
 
         using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
