@@ -218,47 +218,44 @@ public partial class ServerDialog : Window
 
         System.Windows.UIElement? target = null;
 
-        // Temporarily suppress advanced-mode persistence during focus management
+        // Temporarily suppress dialog-state persistence during focus management.
         vm.PropertyChanged -= OnViewModelPropertyChanged;
 
         switch (vm.FirstInvalidField)
         {
             case nameof(ServerDialogViewModel.DisplayName):
+                MainTabControl.SelectedItem = DlgSrv_TabGeneral;
                 target = DlgSrv_DisplayNameBox;
                 break;
             case nameof(ServerDialogViewModel.RemoteServer):
+                MainTabControl.SelectedItem = DlgSrv_TabGeneral;
                 target = DlgSrv_RemoteServerBox;
                 break;
             case "EndpointPort":
+                MainTabControl.SelectedItem = DlgSrv_TabGeneral;
                 target = DlgSrv_EndpointPortBox;
                 break;
             case nameof(ServerDialogViewModel.LocalPort):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabNetwork;
                 target = DlgSrv_LocalPortBox;
                 break;
             case nameof(ServerDialogViewModel.RdpAudioMode):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpAudioModeCombo;
                 break;
             case nameof(ServerDialogViewModel.RdpColorDepth):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpColorDepthCombo;
                 break;
             case nameof(ServerDialogViewModel.RdpFixedWidth):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpFixedWidthBox;
                 break;
             case nameof(ServerDialogViewModel.RdpFixedHeight):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpFixedHeightBox;
                 break;
             case nameof(ServerDialogViewModel.RdpResizeEnableDelayMs):
-                vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabOptions;
                 target = DlgSrv_RdpResizeDelayBox;
                 break;
@@ -392,11 +389,11 @@ public partial class ServerDialog : Window
         }
 
         // Tab headers
-        DlgSrv_TabGeneral.Header = _localizer["ServerDialogTabGeneral"];
+        DlgSrv_TabGeneralText.Text = _localizer["ServerDialogTabGeneral"];
         DlgSrv_TabOptionsText.Text = _localizer["ServerDialogTabOptions"];
         System.Windows.Automation.AutomationProperties.SetName(
             DlgSrv_TabOptions, _localizer["ServerDialogTabOptions"]);
-        DlgSrv_TabNetwork.Header = _localizer["ServerDialogTabNetwork"];
+        DlgSrv_TabNetworkText.Text = _localizer["ServerDialogTabNetwork"];
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
 
         // Protocol selector (Step 1)

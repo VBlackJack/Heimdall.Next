@@ -540,6 +540,21 @@
                     <TabItem x:Name="DlgSrv_TabGeneral"
                              AutomationProperties.Name="{loc:Translate ServerDialogTabGeneral}"
                              Style="{DynamicResource ThemedTabItemStyle}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="DlgSrv_TabGeneralText"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasGeneralTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding GeneralTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="{StaticResource SpacingSm}">
                                 <!-- Connection basics: Name, Type, Host, Port -->
@@ -2123,8 +2138,31 @@
                     <!-- Tab: Network                                 -->
                     <!-- ============================================ -->
                     <TabItem x:Name="DlgSrv_TabNetwork"
-                             AutomationProperties.Name="{loc:Translate ServerDialogTabNetwork}"
-                             Style="{DynamicResource ThemedTabItemStyle}">
+                             AutomationProperties.Name="{loc:Translate ServerDialogTabNetwork}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="DlgSrv_TabNetworkText"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasNetworkTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding NetworkTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <TabItem.Style>
+                            <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TabItem.Style>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="{StaticResource SpacingSm}">
                                 <!-- Gateway section (hidden for Local, Citrix, VNC, FTP) -->
@@ -2239,215 +2277,229 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource DialogSectionCardStyle}">
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_TunnelingDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_TunnelingHint"
-                                                   Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
-                                    </StackPanel>
-                                </Border>
+                                <StackPanel Style="{StaticResource GatewaySectionStyle}">
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TunnelingDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TunnelingHint"
+                                                       Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="False">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_DirectConnTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_DirectConnDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                    </StackPanel>
-                                </Border>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_DirectConnTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_DirectConnDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_LocalTunnelPortTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_LocalTunnelPortDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                        <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
-                                                  TabIndex="20"
-                                                  AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                                  IsChecked="{Binding UseAutomaticTunnelPort}"
-                                                  Style="{StaticResource DialogFormCheckBoxStyle}"
-                                                  Margin="0,14,0,0"/>
-                                        <TextBlock Text="{Binding LocalTunnelPortDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
-                                        <Grid Margin="0,12,0,0" Style="{StaticResource ManualTunnelPortStyle}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                            <TextBox x:Name="DlgSrv_LocalPortBox" Grid.Column="1"
-                                                     TabIndex="21"
-                                                     AutomationProperties.Name="{loc:Translate A11yLocalTunnelPort}"
-                                                     Width="140"
-                                                     HorizontalAlignment="Left"
-                                                     Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
-                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                        </Grid>
-                                        <!-- Inline validation: Local tunnel port -->
-                                        <TextBlock Text="{Binding LocalPortError}"
-                                                   Style="{StaticResource FieldValidationErrorStyle}"
-                                                   Visibility="{Binding LocalPortError, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                    </StackPanel>
-                                </Border>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_LocalTunnelPortTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_LocalTunnelPortDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
+                                                      TabIndex="20"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                      IsChecked="{Binding UseAutomaticTunnelPort}"
+                                                      Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                      Margin="0,14,0,0"/>
+                                            <TextBlock Text="{Binding LocalTunnelPortDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
+                                            <Grid Margin="0,12,0,0" Style="{StaticResource ManualTunnelPortStyle}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <TextBox x:Name="DlgSrv_LocalPortBox" Grid.Column="1"
+                                                         TabIndex="21"
+                                                         AutomationProperties.Name="{loc:Translate A11yLocalTunnelPort}"
+                                                         Width="140"
+                                                         HorizontalAlignment="Left"
+                                                         Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <!-- Inline validation: Local tunnel port -->
+                                            <TextBlock Text="{Binding LocalPortError}"
+                                                       Style="{StaticResource FieldValidationErrorStyle}"
+                                                       Visibility="{Binding LocalPortError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_SocksSectionTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_SocksDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"
-                                                   TextWrapping="Wrap"/>
-                                        <Grid Margin="0,14,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="DlgSrv_SocksPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                            <TextBox x:Name="DlgSrv_SocksPortBox" Grid.Column="1"
-                                                     TabIndex="22"
-                                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_SocksPortLabel}"
-                                                     Width="140"
-                                                     HorizontalAlignment="Left"
-                                                     Text="{Binding SocksProxyPort, UpdateSourceTrigger=PropertyChanged}"
-                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                        </Grid>
-                                        <TextBlock Text="{Binding SocksProxyDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_SocksSectionTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SocksDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"
+                                                       TextWrapping="Wrap"/>
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_SocksPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <TextBox x:Name="DlgSrv_SocksPortBox" Grid.Column="1"
+                                                         TabIndex="22"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_SocksPortLabel}"
+                                                         Width="140"
+                                                         HorizontalAlignment="Left"
+                                                         Text="{Binding SocksProxyPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding SocksProxyDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_RemoteFwdSectionTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_RemoteFwdDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"
-                                                   TextWrapping="Wrap"/>
-                                        <Grid Margin="0,14,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="DlgSrv_RemoteBindPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                            <TextBox x:Name="DlgSrv_RemoteBindPortBox" Grid.Column="1"
-                                                     TabIndex="23"
-                                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteBindPortLabel}"
-                                                     Width="140"
-                                                     HorizontalAlignment="Left"
-                                                     MaxLength="5"
-                                                     Text="{Binding RemoteBindPort, UpdateSourceTrigger=PropertyChanged}"
-                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                        </Grid>
-                                        <Grid Margin="0,12,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="DlgSrv_RemoteLocalPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                            <TextBox x:Name="DlgSrv_RemoteLocalPortBox" Grid.Column="1"
-                                                     TabIndex="24"
-                                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteLocalPortLabel}"
-                                                     Width="140"
-                                                     HorizontalAlignment="Left"
-                                                     MaxLength="5"
-                                                     Text="{Binding RemoteLocalPort, UpdateSourceTrigger=PropertyChanged}"
-                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
-                                        </Grid>
-                                        <TextBlock x:Name="DlgSrv_RemoteLocalPortHint" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
-                                        <TextBlock Text="{Binding RemoteForwardDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_RemoteFwdSectionTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_RemoteFwdDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"
+                                                       TextWrapping="Wrap"/>
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_RemoteBindPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <TextBox x:Name="DlgSrv_RemoteBindPortBox" Grid.Column="1"
+                                                         TabIndex="23"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteBindPortLabel}"
+                                                         Width="140"
+                                                         HorizontalAlignment="Left"
+                                                         MaxLength="5"
+                                                         Text="{Binding RemoteBindPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <Grid Margin="0,12,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_RemoteLocalPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <TextBox x:Name="DlgSrv_RemoteLocalPortBox" Grid.Column="1"
+                                                         TabIndex="24"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteLocalPortLabel}"
+                                                         Width="140"
+                                                         HorizontalAlignment="Left"
+                                                         MaxLength="5"
+                                                         Text="{Binding RemoteLocalPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <TextBlock x:Name="DlgSrv_RemoteLocalPortHint" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding RemoteForwardDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_TunnelMappingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                        <Grid Margin="0,14,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="150"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <TextBlock x:Name="DlgSrv_ChainLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource DialogHintTextStyle}" Margin="0,0,0,0"/>
-                                            <TextBlock x:Name="DlgSrv_LocalEndpointLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
-                                            <TextBlock x:Name="DlgSrv_RemoteDestLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TunnelMappingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_ChainLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource DialogHintTextStyle}" Margin="0,0,0,0"/>
+                                                <TextBlock x:Name="DlgSrv_LocalEndpointLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock x:Name="DlgSrv_RemoteDestLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
 
                                 <!-- Gateway auth info -->
-                                <Border Style="{StaticResource DialogSectionCardStyle}">
-                                    <StackPanel>
-                                        <TextBlock x:Name="DlgSrv_GatewayAuthTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
-                                        <TextBlock x:Name="DlgSrv_GatewayAuthDesc"
-                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                        <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
-                                        <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
-                                        <Button x:Name="DlgSrv_EditGatewayBtn"
-                                                Click="OnEditGatewayClick"
-                                                AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                                Style="{DynamicResource SecondaryButtonStyle}"
-                                                Margin="0,14,0,0"
-                                                HorizontalAlignment="Left"/>
-                                    </StackPanel>
-                                </Border>
+                                <StackPanel Style="{StaticResource GatewaySectionStyle}">
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_GatewayAuthTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_GatewayAuthDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
+                                            <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
+                                            <Button x:Name="DlgSrv_EditGatewayBtn"
+                                                    Click="OnEditGatewayClick"
+                                                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    Margin="0,14,0,0"
+                                                    HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
 
                                 <!-- RD Gateway server -->
                                 <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
                                     <TextBlock Style="{StaticResource LabelStyle}"
                                                Text="{loc:Translate RdpGatewayLabel}"
                                                Margin="0,16,0,4"/>

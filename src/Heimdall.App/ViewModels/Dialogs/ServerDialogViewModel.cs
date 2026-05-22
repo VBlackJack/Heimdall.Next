@@ -974,7 +974,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(RdpFixedWidthError),
         nameof(RdpFixedHeightError),
         nameof(RdpResizeEnableDelayMsError),
-        nameof(TunnelingTabErrorCount),
+        nameof(GeneralTabErrorCount),
+        nameof(NetworkTabErrorCount),
         nameof(OptionsTabErrorCount),
         nameof(FirstInvalidField),
         nameof(AvailableGateways),
@@ -1035,7 +1036,10 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     // Tab error counts for badge display
     [ObservableProperty]
-    private int _tunnelingTabErrorCount;
+    private int _generalTabErrorCount;
+
+    [ObservableProperty]
+    private int _networkTabErrorCount;
 
     [ObservableProperty]
     private int _optionsTabErrorCount;
@@ -1044,11 +1048,15 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _firstInvalidField;
 
-    public bool HasTunnelingTabErrors => TunnelingTabErrorCount > 0;
+    public bool HasGeneralTabErrors => GeneralTabErrorCount > 0;
+
+    public bool HasNetworkTabErrors => NetworkTabErrorCount > 0;
 
     public bool HasOptionsTabErrors => OptionsTabErrorCount > 0;
 
-    partial void OnTunnelingTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasTunnelingTabErrors));
+    partial void OnGeneralTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasGeneralTabErrors));
+
+    partial void OnNetworkTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasNetworkTabErrors));
 
     partial void OnOptionsTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasOptionsTabErrors));
 
@@ -1250,7 +1258,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         RdpFixedWidthError = null;
         RdpFixedHeightError = null;
         RdpResizeEnableDelayMsError = null;
-        TunnelingTabErrorCount = 0;
+        GeneralTabErrorCount = 0;
+        NetworkTabErrorCount = 0;
         OptionsTabErrorCount = 0;
         FirstInvalidField = null;
         ValidationError = null;
@@ -1261,7 +1270,10 @@ public partial class ServerDialogViewModel : ObservableValidator
         ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
             ?? LocalPortError ?? AudioModeError ?? ColorDepthError
             ?? RdpFixedWidthError ?? RdpFixedHeightError ?? RdpResizeEnableDelayMsError;
-        TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
+        GeneralTabErrorCount = (DisplayNameError is not null ? 1 : 0)
+            + (RemoteServerError is not null ? 1 : 0)
+            + (EndpointPortError is not null ? 1 : 0);
+        NetworkTabErrorCount = LocalPortError is not null ? 1 : 0;
         OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0)
             + (ColorDepthError is not null ? 1 : 0)
             + (RdpFixedWidthError is not null ? 1 : 0)
@@ -1326,7 +1338,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             : null;
 
         // Tab error counts
-        TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
+        GeneralTabErrorCount = (DisplayNameError is not null ? 1 : 0)
+            + (RemoteServerError is not null ? 1 : 0)
+            + (EndpointPortError is not null ? 1 : 0);
+        NetworkTabErrorCount = LocalPortError is not null ? 1 : 0;
         OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0)
             + (ColorDepthError is not null ? 1 : 0)
             + (RdpFixedWidthError is not null ? 1 : 0)
