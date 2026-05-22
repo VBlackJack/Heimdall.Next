@@ -260,6 +260,7 @@ public partial class ServerItemViewModel : ObservableObject
         var port = type switch
         {
             "SSH" or "SFTP" => dto.SshPort,
+            "WINRM" => dto.WinRmPort,
             "FTP" => dto.FtpPort,
             "VNC" => dto.VncPort,
             "TELNET" => dto.TelnetPort,

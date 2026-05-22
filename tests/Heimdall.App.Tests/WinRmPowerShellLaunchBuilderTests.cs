@@ -36,6 +36,7 @@ public sealed class WinRmPowerShellLaunchBuilderTests
         Assert.Contains("Enter-PSSession", spec.Arguments, StringComparison.Ordinal);
         Assert.Contains("-ComputerName 'server01.contoso.local'", spec.Arguments, StringComparison.Ordinal);
         Assert.Contains("-Port 5986", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("-Authentication Negotiate", spec.Arguments, StringComparison.Ordinal);
         Assert.Contains("-UseSSL", spec.Arguments, StringComparison.Ordinal);
         Assert.DoesNotContain("-Credential", spec.Arguments, StringComparison.Ordinal);
     }
@@ -63,7 +64,7 @@ public sealed class WinRmPowerShellLaunchBuilderTests
 
         Assert.Equal("powershell.exe", spec.Executable);
         Assert.Contains("-ExecutionPolicy Bypass -File", spec.Arguments, StringComparison.Ordinal);
-        Assert.Contains("\"C:\\\\Temp\\\\heimdall winrm.ps1\"", spec.Arguments, StringComparison.Ordinal);
+        Assert.Contains("\"C:\\Temp\\heimdall winrm.ps1\"", spec.Arguments, StringComparison.Ordinal);
         Assert.DoesNotContain("CONTOSO", spec.Arguments, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("encrypted", spec.Arguments, StringComparison.OrdinalIgnoreCase);
     }
@@ -90,8 +91,34 @@ public sealed class WinRmPowerShellLaunchBuilderTests
             "$credential");
 
         Assert.Equal(
-            "Enter-PSSession -ComputerName 'server01.contoso.local' -Port 5985 -Credential $credential",
+            "Enter-PSSession -ComputerName 'server01.contoso.local' -Port 5985 -Authentication Negotiate -Credential $credential",
             command);
+    }
+
+    [Fact]
+    public void QuoteCommandLineArgument_WithPath_DoesNotDoubleBackslashes()
+    {
+        string quoted = WinRmPowerShellLaunchBuilder.QuoteCommandLineArgument(
+            @"C:\Temp\heimdall_winrm_x.ps1");
+
+        Assert.Equal(@"""C:\Temp\heimdall_winrm_x.ps1""", quoted);
+    }
+
+    [Fact]
+    public void QuoteCommandLineArgument_WithQuote_EscapesQuote()
+    {
+        string quoted = WinRmPowerShellLaunchBuilder.QuoteCommandLineArgument(
+            "C:\\Temp\\heimdall \"winrm\".ps1");
+
+        Assert.Equal("\"C:\\Temp\\heimdall \\\"winrm\\\".ps1\"", quoted);
+    }
+
+    [Fact]
+    public void QuoteCommandLineArgument_WithTrailingBackslash_DoublesTrailingBackslash()
+    {
+        string quoted = WinRmPowerShellLaunchBuilder.QuoteCommandLineArgument(@"C:\Temp\");
+
+        Assert.Equal(@"""C:\Temp\\""", quoted);
     }
 
     [Fact]
@@ -114,6 +141,7 @@ public sealed class WinRmPowerShellLaunchBuilderTests
             credentialExpression: null);
 
         Assert.Contains("-Port 5986", command, StringComparison.Ordinal);
+        Assert.Contains("-Authentication Negotiate", command, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -16,6 +16,7 @@
 
 using System.Globalization;
 using System.Net;
+using System.Text;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
@@ -80,7 +81,9 @@ internal sealed class WinRmPowerShellLaunchBuilder
             "-ComputerName",
             QuotePowerShellLiteral(server.RemoteServer),
             "-Port",
-            ResolvePort(server).ToString(CultureInfo.InvariantCulture)
+            ResolvePort(server).ToString(CultureInfo.InvariantCulture),
+            "-Authentication",
+            "Negotiate"
         ];
 
         if (server.WinRmUseSsl)
@@ -106,10 +109,38 @@ internal sealed class WinRmPowerShellLaunchBuilder
     internal static string QuoteCommandLineArgument(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        return "\"" + value
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("\"", "\\\"", StringComparison.Ordinal)
-            + "\"";
+        StringBuilder builder = new StringBuilder();
+        builder.Append('"');
+        int index = 0;
+        while (index < value.Length)
+        {
+            int backslashes = 0;
+            while (index < value.Length && value[index] == '\\')
+            {
+                backslashes++;
+                index++;
+            }
+
+            if (index == value.Length)
+            {
+                builder.Append('\\', backslashes * 2);
+            }
+            else if (value[index] == '"')
+            {
+                builder.Append('\\', backslashes * 2 + 1);
+                builder.Append('"');
+                index++;
+            }
+            else
+            {
+                builder.Append('\\', backslashes);
+                builder.Append(value[index]);
+                index++;
+            }
+        }
+
+        builder.Append('"');
+        return builder.ToString();
     }
 
     internal static int ResolvePort(ServerProfileDto server)

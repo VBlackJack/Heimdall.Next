@@ -47,8 +47,15 @@ public sealed class WinRmCredentialBootstrapTests
         Assert.Contains("System.Security.Cryptography.ProtectedData", writtenContent, StringComparison.Ordinal);
         Assert.Contains("[System.Security.Cryptography.ProtectedData]::Unprotect", writtenContent, StringComparison.Ordinal);
         Assert.Contains("[System.Management.Automation.PSCredential]::new('CONTOSO\\operator'", writtenContent, StringComparison.Ordinal);
-        Assert.Contains("Enter-PSSession -ComputerName 'server01.contoso.local' -Port 5986 -UseSSL -Credential $credential", writtenContent, StringComparison.Ordinal);
+        Assert.Contains("Enter-PSSession -ComputerName 'server01.contoso.local' -Port 5986 -Authentication Negotiate -UseSSL -Credential $credential", writtenContent, StringComparison.Ordinal);
         Assert.Contains("Remove-Item -LiteralPath $scriptPath -Force", writtenContent, StringComparison.Ordinal);
+        Assert.True(
+            writtenContent.IndexOf("Remove-Item -LiteralPath $scriptPath", StringComparison.Ordinal)
+            < writtenContent.IndexOf("Enter-PSSession", StringComparison.Ordinal));
+        Assert.DoesNotContain("ConvertTo-SecureString", writtenContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("$plainPassword", writtenContent, StringComparison.Ordinal);
+        Assert.Contains("New-Object System.Security.SecureString", writtenContent, StringComparison.Ordinal);
+        Assert.Contains("AppendChar", writtenContent, StringComparison.Ordinal);
         Assert.DoesNotContain("p@ss'word!", writtenContent, StringComparison.Ordinal);
         Assert.DoesNotContain("stored-password", writtenContent, StringComparison.Ordinal);
     }
@@ -63,6 +70,7 @@ public sealed class WinRmCredentialBootstrapTests
         Assert.Contains("$blob = 'blob''value'", script, StringComparison.Ordinal);
         Assert.Contains("[System.Management.Automation.PSCredential]::new('CONTOSO\\operator'", script, StringComparison.Ordinal);
         Assert.Contains("-ComputerName 'server01.contoso.local'", script, StringComparison.Ordinal);
+        Assert.Contains("-Authentication Negotiate", script, StringComparison.Ordinal);
     }
 
     [Fact]
