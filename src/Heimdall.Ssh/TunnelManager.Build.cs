@@ -89,21 +89,18 @@ public sealed partial class TunnelManager
             ?? throw new InvalidOperationException("Final SSH client must be connected before wiring forwarded ports.");
 
         context.FinalPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
-        if (!isChained)
+        context.FinalPort.Exception += (_, args) =>
         {
-            context.FinalPort.Exception += (_, args) =>
-            {
-                Core.Logging.FileLogger.Error(
-                    $"SSH forwarded port {localPort} -> {remoteHost}:{remotePort} "
-                    + $"exception: {args.Exception.Message}");
-                ForwardedPortFailed?.Invoke(new TunnelForwardedPortFailure(
-                    localPort,
-                    remoteHost,
-                    remotePort,
-                    args.Exception.Message,
-                    DateTimeOffset.UtcNow));
-            };
-        }
+            Core.Logging.FileLogger.Error(
+                $"SSH forwarded port {localPort} -> {remoteHost}:{remotePort} "
+                + $"exception: {args.Exception.Message}");
+            ForwardedPortFailed?.Invoke(new TunnelForwardedPortFailure(
+                localPort,
+                remoteHost,
+                remotePort,
+                args.Exception.Message,
+                DateTimeOffset.UtcNow));
+        };
 
         finalClient.AddForwardedPort(context.FinalPort);
         StartForwardedPortWithRetry(context.FinalPort, $"local port {localPort}");
