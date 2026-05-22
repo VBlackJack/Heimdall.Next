@@ -15,7 +15,6 @@
  */
 
 using System.IO;
-using System.Text;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Security;
 
@@ -106,36 +105,34 @@ internal sealed class WinRmCredentialBootstrap
             server,
             "$credential");
 
-        StringBuilder builder = new StringBuilder();
-        builder.AppendLine("$ErrorActionPreference = 'Stop'");
-        builder.AppendLine("$scriptPath = $PSCommandPath");
-        builder.AppendLine("try {");
-        builder.AppendLine("    Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue");
-        builder.AppendLine("    Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction SilentlyContinue");
-        builder.Append("    $blob = ").AppendLine(blobLiteral);
-        builder.AppendLine("    $encryptedBytes = [Convert]::FromBase64String($blob)");
-        builder.AppendLine("    $plainBytes = [System.Security.Cryptography.ProtectedData]::Unprotect($encryptedBytes, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)");
-        builder.AppendLine("    try {");
-        builder.AppendLine("        $plainPassword = [System.Text.Encoding]::UTF8.GetString($plainBytes)");
-        builder.AppendLine("        $securePassword = ConvertTo-SecureString -String $plainPassword -AsPlainText -Force");
-        builder.Append("        $credential = [System.Management.Automation.PSCredential]::new(")
-            .Append(usernameLiteral)
-            .AppendLine(", $securePassword)");
-        builder.Append("        ").AppendLine(enterCommand);
-        builder.AppendLine("    }");
-        builder.AppendLine("    finally {");
-        builder.AppendLine("        if ($plainBytes -ne $null) { [Array]::Clear($plainBytes, 0, $plainBytes.Length) }");
-        builder.AppendLine("        if ($encryptedBytes -ne $null) { [Array]::Clear($encryptedBytes, 0, $encryptedBytes.Length) }");
-        builder.AppendLine("        $plainPassword = $null");
-        builder.AppendLine("        $securePassword = $null");
-        builder.AppendLine("        $credential = $null");
-        builder.AppendLine("    }");
-        builder.AppendLine("}");
-        builder.AppendLine("finally {");
-        builder.AppendLine("    if ($scriptPath) { Remove-Item -LiteralPath $scriptPath -Force -ErrorAction SilentlyContinue }");
-        builder.AppendLine("}");
+        string[] lines =
+        [
+            "$ErrorActionPreference = 'Stop'",
+            "$scriptPath = $PSCommandPath",
+            "Remove-Item -LiteralPath $scriptPath -Force -ErrorAction SilentlyContinue",
+            "Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue",
+            "Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction SilentlyContinue",
+            "$blob = " + blobLiteral,
+            "try {",
+            "    $encryptedBytes = [Convert]::FromBase64String($blob)",
+            "    $plainBytes = [System.Security.Cryptography.ProtectedData]::Unprotect($encryptedBytes, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)",
+            "    $plainChars = [System.Text.Encoding]::UTF8.GetChars($plainBytes)",
+            "    $securePassword = New-Object System.Security.SecureString",
+            "    foreach ($ch in $plainChars) { $securePassword.AppendChar($ch) }",
+            "    $securePassword.MakeReadOnly()",
+            "    $credential = [System.Management.Automation.PSCredential]::new(" + usernameLiteral + ", $securePassword)",
+            "    " + enterCommand,
+            "}",
+            "finally {",
+            "    if ($encryptedBytes -ne $null) { [Array]::Clear($encryptedBytes, 0, $encryptedBytes.Length) }",
+            "    if ($plainBytes -ne $null) { [Array]::Clear($plainBytes, 0, $plainBytes.Length) }",
+            "    if ($plainChars -ne $null) { [Array]::Clear($plainChars, 0, $plainChars.Length) }",
+            "    $securePassword = $null",
+            "    $credential = $null",
+            "}"
+        ];
 
-        return builder.ToString();
+        return string.Join("\r\n", lines) + "\r\n";
     }
 
     private static void ValidateCredentialProfile(ServerProfileDto server)

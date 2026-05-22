@@ -15,6 +15,7 @@
  */
 
 using Heimdall.App.ViewModels;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Tests;
@@ -67,5 +68,22 @@ public sealed class ServerItemViewModelOriginTests
         };
 
         Assert.Equal(ProfileOriginDisplay.GetBadgeCode(origin), vm.OriginBadgeCode);
+    }
+
+    [Fact]
+    public void FromDto_WithWinRmProfile_FormatsEndpointWithWinRmPort()
+    {
+        ServerProfileDto dto = new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            RemoteServer = "server01.contoso.local",
+            RemotePort = 3389,
+            WinRmPort = 5986
+        };
+
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto);
+
+        Assert.Equal("server01.contoso.local:5986", vm.Endpoint);
+        Assert.Equal(5986, vm.EffectivePort);
     }
 }
