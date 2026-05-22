@@ -87,9 +87,10 @@ public static class RdpFileGenerator
         }}");
         sb.AppendLine($"audiocapturemode:i:{BoolToInt(r.AudioCapture)}");
 
-        // NLA
-        sb.AppendLine($"authentication level:i:{(r.Nla ? 2 : 0)}");
-        sb.AppendLine($"enablecredsspsupport:i:{BoolToInt(r.Nla)}");
+        // NLA - shared resolver keeps this in parity with the embedded ActiveX host
+        RdpAuthenticationSettings auth = RdpAuthenticationResolver.Resolve(r.Nla);
+        sb.AppendLine($"authentication level:i:{auth.AuthenticationLevel}");
+        sb.AppendLine($"enablecredsspsupport:i:{BoolToInt(auth.EnableCredSspSupport)}");
 
         // Performance
         sb.AppendLine($"bitmapcachepersistenable:i:{BoolToInt(r.BitmapCaching)}");
