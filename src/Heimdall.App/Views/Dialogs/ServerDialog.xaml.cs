@@ -137,22 +137,6 @@ public partial class ServerDialog : Window
     }
 
     // ------------------------------------------------------------------
-    // Options tab mini-toc (scroll-to-section anchors)
-    // ------------------------------------------------------------------
-
-    private void OnOptionsTocChipClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.Button button
-            || button.Tag is not string anchorName)
-        {
-            return;
-        }
-
-        var target = FindName(anchorName) as System.Windows.FrameworkElement;
-        target?.BringIntoView();
-    }
-
-    // ------------------------------------------------------------------
     // Save
     // ------------------------------------------------------------------
 
@@ -557,7 +541,6 @@ public partial class ServerDialog : Window
         DlgSrv_AudioCaptureCb.Content = _localizer["ServerDialogAudioCapture"];
 
         // Device redirection
-        DlgSrv_DeviceRedirExpander.Header = _localizer["ServerDialogDeviceRedirection"];
         DlgSrv_RedirClipboardCb.Content = _localizer["ServerDialogRedirectClipboard"];
         DlgSrv_RedirDrivesCb.Content = _localizer["ServerDialogRedirectDrives"];
         DlgSrv_RedirPrintersCb.Content = _localizer["ServerDialogRedirectPrinters"];
@@ -567,7 +550,6 @@ public partial class ServerDialog : Window
         DlgSrv_RedirUsbCb.Content = _localizer["ServerDialogRedirectUsb"];
 
         // Advanced RDP behavior
-        DlgSrv_AdvancedRdpExpander.Header = _localizer["ServerDialogAdvancedRdp"];
         DlgSrv_GlobalDefaultsCb.Content = _localizer["ServerDialogGlobalDefaults"];
         DlgSrv_AntiIdleCb.Content = _localizer["ServerDialogAntiIdle"];
         DlgSrv_BitmapCacheCb.Content = _localizer["ServerDialogBitmapCaching"];
@@ -577,7 +559,6 @@ public partial class ServerDialog : Window
         DlgSrv_RdpFullScreenCb.Content = _localizer["RdpFullScreen"];
 
         // RDP Experience
-        DlgSrv_RdpExperienceExpander.Header = _localizer["RdpPerformanceTitle"];
         DlgSrv_PerfDisableWallpaperCb.Content = _localizer["RdpPerfDisableWallpaper"];
         DlgSrv_PerfDisableThemesCb.Content = _localizer["RdpPerfDisableThemes"];
         DlgSrv_PerfDisableAnimationsCb.Content = _localizer["RdpPerfDisableAnimations"];
