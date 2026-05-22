@@ -11,8 +11,7 @@
         mc:Ignorable="d"
         Title="{Binding DialogTitle}"
         Width="650"
-        SizeToContent="Height"
-        MaxHeight="750"
+        Height="750"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
@@ -273,8 +272,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="{StaticResource SpacingSm}">
+        <Grid Grid.Row="0" Margin="{StaticResource SpacingSm}">
 
                 <!-- ================================================================ -->
                 <!-- STEP 1: PROTOCOL SELECTOR (add mode only, before selection)      -->
@@ -483,11 +481,15 @@
                 <!-- STEP 2: FORM FIELDS (visible after protocol selection / edit)     -->
                 <!-- ================================================================ -->
 
-                <StackPanel x:Name="FormFieldsPanel"
-                            Visibility="{Binding ShowFormFields, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid x:Name="FormFieldsPanel"
+                      Visibility="{Binding ShowFormFields, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
                 <!-- Protocol badge (clickable in add mode → returns to protocol selector) -->
-                <DockPanel Margin="0,0,0,12" LastChildFill="False">
+                <DockPanel Grid.Row="0" Margin="0,0,0,12" LastChildFill="False">
                     <TextBlock x:Name="DlgSrv_ProtocolBadgeLabel"
                                DockPanel.Dock="Left"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -531,6 +533,7 @@
                 </DockPanel>
 
                 <TabControl x:Name="MainTabControl"
+                            Grid.Row="1"
                             AutomationProperties.Name="{loc:Translate A11yServerDialogTabs}"
                             Style="{DynamicResource ThemedTabControlStyle}">
 
@@ -2594,10 +2597,9 @@
                     </TabItem>
                 </TabControl>
 
-                </StackPanel> <!-- end FormFieldsPanel -->
+                </Grid> <!-- end FormFieldsPanel -->
 
-            </StackPanel>
-        </ScrollViewer>
+        </Grid>
 
         <StackPanel Grid.Row="1"
                     Margin="0,8,0,0">
