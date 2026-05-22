@@ -1137,70 +1137,6 @@
                         </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="{StaticResource SpacingSm}">
-                                <WrapPanel x:Name="DlgSrv_RdpOptionsToc"
-                                           Margin="0,0,0,12">
-                                    <WrapPanel.Style>
-                                        <Style TargetType="WrapPanel">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </WrapPanel.Style>
-                                    <Button Content="{loc:Translate ServerDialogOptionsTocDisplay}"
-                                            Tag="DlgSrv_RdpOptionsTitle"
-                                            Click="OnOptionsTocChipClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="10,4"
-                                            FontSize="{StaticResource FontSizeCaption}"
-                                            Margin="0,0,6,6"
-                                            MinHeight="0"/>
-                                    <Button Content="{loc:Translate ServerDialogOptionsTocAudio}"
-                                            Tag="DlgSrv_AudioModeLabel"
-                                            Click="OnOptionsTocChipClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="10,4"
-                                            FontSize="{StaticResource FontSizeCaption}"
-                                            Margin="0,0,6,6"
-                                            MinHeight="0"/>
-                                    <Button Content="{loc:Translate ServerDialogOptionsTocDevices}"
-                                            Tag="DlgSrv_DeviceRedirExpander"
-                                            Click="OnOptionsTocChipClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="10,4"
-                                            FontSize="{StaticResource FontSizeCaption}"
-                                            Margin="0,0,6,6"
-                                            MinHeight="0"/>
-                                    <Button Content="{loc:Translate ServerDialogOptionsTocPerformance}"
-                                            Tag="DlgSrv_AdvancedRdpExpander"
-                                            Click="OnOptionsTocChipClick"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="10,4"
-                                            FontSize="{StaticResource FontSizeCaption}"
-                                            Margin="0,0,6,6"
-                                            MinHeight="0"/>
-                                </WrapPanel>
-
-                                <TextBlock Text="{loc:Translate ServerDialogRdpUsingGlobalDefaultsBanner}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource DialogHintTextStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Setter Property="Margin" Value="0,0,0,8"/>
-                                            <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding ConnectionType}" Value="RDP"/>
-                                                        <Condition Binding="{Binding RdpUseGlobalDefaults}" Value="True"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
                                 <!-- RDP options -->
                                 <Border>
                                     <Border.Style>
@@ -1217,16 +1153,34 @@
                                         <TextBlock x:Name="DlgSrv_RdpOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
                                         <TextBlock x:Name="DlgSrv_RdpOptionsDesc"
                                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
-                                        <StackPanel>
-                                            <StackPanel.Style>
-                                                <Style TargetType="StackPanel">
+                                        <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,16,0,0"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogRdpUsingGlobalDefaultsBanner}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource DialogHintTextStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Margin" Value="0,4,0,8"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TabControl Margin="0,16,0,0">
+                                            <TabControl.Style>
+                                                <Style TargetType="TabControl" BasedOn="{StaticResource ThemedTabControlStyle}">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
                                                             <Setter Property="IsEnabled" Value="False"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </StackPanel.Style>
+                                            </TabControl.Style>
+                                            <TabItem Header="{loc:Translate ServerDialogRdpSubTabDisplayAudio}"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabDisplayAudio}"
+                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                <StackPanel>
                                             <Grid Margin="0,16,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -1508,14 +1462,9 @@
                                                 </StackPanel>
                                             </Border>
                                             <StackPanel Margin="0,14,0,0">
-                                                <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
-                                                           Style="{StaticResource LabelStyle}"
-                                                           Margin="0,0,0,4"/>
-                                                <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-
                                                 <TextBlock Text="{loc:Translate ServerDialogRdpDisplaySection}"
                                                            Style="{StaticResource LabelStyle}"
-                                                           Margin="0,12,0,4"/>
+                                                           Margin="0,0,0,4"/>
                                                 <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
 
                                                 <TextBlock Text="{loc:Translate ServerDialogRdpAudioSection}"
@@ -1523,26 +1472,12 @@
                                                            Margin="0,12,0,4"/>
                                                 <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                             </StackPanel>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- RDP device redirection -->
-                                <Expander x:Name="DlgSrv_DeviceRedirExpander" IsExpanded="True">
-                                    <Expander.Style>
-                                        <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
-                                                    <Setter Property="IsEnabled" Value="False"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Expander.Style>
-                                    <StackPanel Margin="0,12,0,0">
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="{loc:Translate ServerDialogRdpSubTabDevices}"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabDevices}"
+                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                <StackPanel Margin="0,12,0,0">
                                         <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                         <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectDrives}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
@@ -1584,91 +1519,16 @@
                                             </TextBlock>
                                         </StackPanel>
                                         <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    </StackPanel>
-                                </Expander>
-
-                                <!-- RDP advanced behavior -->
-                                <Expander x:Name="DlgSrv_AdvancedRdpExpander" IsExpanded="False">
-                                    <Expander.Style>
-                                        <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Expander.Style>
-                                    <StackPanel Margin="0,12,0,0">
-                                        <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                        <StackPanel>
-                                            <StackPanel.Style>
-                                                <Style TargetType="StackPanel">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="{loc:Translate ServerDialogRdpSubTabPerformance}"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabPerformance}"
+                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                <StackPanel Margin="0,12,0,0">
                                             <CheckBox x:Name="DlgSrv_AntiIdleCb" TabIndex="76" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpBitmapCaching}" ToolTip="{loc:Translate RdpBitmapCachingHint}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpCompression}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAutoReconnect}" ToolTip="{loc:Translate RdpAutoReconnectHint}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RdpAdminModeCb"
-                                                      TabIndex="88"
-                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                                      IsChecked="{Binding RdpAdminMode}"
-                                                      ToolTip="{loc:Translate RdpAdminModeHint}"
-                                                      Margin="0,12,0,0">
-                                                <CheckBox.Style>
-                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding RdpMode}" Value="External">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </CheckBox.Style>
-                                            </CheckBox>
-                                            <CheckBox x:Name="DlgSrv_RdpFullScreenCb"
-                                                      TabIndex="89"
-                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
-                                                      IsChecked="{Binding RdpFullScreen}"
-                                                      ToolTip="{loc:Translate RdpFullScreenHint}"
-                                                      Margin="0,6,0,0">
-                                                <CheckBox.Style>
-                                                    <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding RdpMode}" Value="External">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </CheckBox.Style>
-                                            </CheckBox>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Expander>
-
-                                <!-- RDP experience/performance -->
-                                <Expander x:Name="DlgSrv_RdpExperienceExpander" IsExpanded="False">
-                                    <Expander.Style>
-                                        <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding RdpUseGlobalDefaults}" Value="True">
-                                                    <Setter Property="IsEnabled" Value="False"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Expander.Style>
-                                    <StackPanel Margin="0,12,0,0">
                                         <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpPerfDisableWallpaper}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                         <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpPerfDisableThemes}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpPerfDisableAnimations}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
@@ -1677,8 +1537,55 @@
                                         <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpPerfEnableFontSmoothing}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpPerfEnableComposition}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDisableUdp}" ToolTip="{loc:Translate RdpDisableUdpHint}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,12,0,0"/>
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="{loc:Translate ServerDialogRdpSubTabBehavior}"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabBehavior}"
+                                                     Style="{DynamicResource ThemedTabItemStyle}">
+                                                <StackPanel Margin="0,12,0,0">
+                                                    <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
+                                                               Style="{StaticResource LabelStyle}"
+                                                               Margin="0,0,0,4"/>
+                                                    <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                    <CheckBox x:Name="DlgSrv_RdpAdminModeCb"
+                                                              TabIndex="88"
+                                                              AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                              IsChecked="{Binding RdpAdminMode}"
+                                                              ToolTip="{loc:Translate RdpAdminModeHint}"
+                                                              Margin="0,12,0,0">
+                                                        <CheckBox.Style>
+                                                            <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding RdpMode}" Value="External">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </CheckBox.Style>
+                                                    </CheckBox>
+                                                    <CheckBox x:Name="DlgSrv_RdpFullScreenCb"
+                                                              TabIndex="89"
+                                                              AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
+                                                              IsChecked="{Binding RdpFullScreen}"
+                                                              ToolTip="{loc:Translate RdpFullScreenHint}"
+                                                              Margin="0,6,0,0">
+                                                        <CheckBox.Style>
+                                                            <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding RdpMode}" Value="External">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </CheckBox.Style>
+                                                    </CheckBox>
+                                                </StackPanel>
+                                            </TabItem>
+                                        </TabControl>
                                     </StackPanel>
-                                </Expander>
+                                </Border>
 
                                 <!-- SSH options -->
                                 <Border>
