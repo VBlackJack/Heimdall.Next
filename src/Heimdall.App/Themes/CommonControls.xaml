@@ -362,13 +362,7 @@
     <!-- Validation Error Template                                -->
     <!-- ========================================================= -->
     <ControlTemplate x:Key="ValidationErrorTemplate">
-        <StackPanel>
-            <AdornedElementPlaceholder x:Name="AdornedElement"/>
-            <TextBlock Text="{Binding ElementName=AdornedElement, Path=AdornedElement.(Validation.Errors)/ErrorContent}"
-                       Foreground="{DynamicResource ErrorTextBrush}"
-                       FontSize="{StaticResource FontSizeCaption}"
-                       Margin="4,2,0,0"/>
-        </StackPanel>
+        <AdornedElementPlaceholder/>
     </ControlTemplate>
 
     <!-- ========================================================= -->
