@@ -251,8 +251,61 @@ public partial class ServerDialog : Window
         {
             // Deferred focus: let layout complete after tab/panel changes
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
-                new Action(() => target.Focus()));
+                new Action(() =>
+                {
+                    SelectEnclosingTabItems(target);
+                    target.Focus();
+                }));
         }
+    }
+
+    private static void SelectEnclosingTabItems(System.Windows.DependencyObject target)
+    {
+        System.Windows.DependencyObject? current = target;
+
+        while (current is not null)
+        {
+            if (current is System.Windows.Controls.TabItem tabItem)
+            {
+                System.Windows.Controls.TabControl? tabControl = FindParentTabControl(tabItem);
+                if (tabControl is not null)
+                {
+                    tabControl.SelectedItem = tabItem;
+                }
+            }
+
+            current = GetParentObject(current);
+        }
+    }
+
+    private static System.Windows.Controls.TabControl? FindParentTabControl(
+        System.Windows.DependencyObject target)
+    {
+        System.Windows.DependencyObject? current = GetParentObject(target);
+
+        while (current is not null)
+        {
+            if (current is System.Windows.Controls.TabControl tabControl)
+            {
+                return tabControl;
+            }
+
+            current = GetParentObject(current);
+        }
+
+        return null;
+    }
+
+    private static System.Windows.DependencyObject? GetParentObject(System.Windows.DependencyObject target)
+    {
+        System.Windows.DependencyObject? visualParent = null;
+
+        if (target is System.Windows.Media.Visual || target is System.Windows.Media.Media3D.Visual3D)
+        {
+            visualParent = System.Windows.Media.VisualTreeHelper.GetParent(target);
+        }
+
+        return visualParent ?? System.Windows.LogicalTreeHelper.GetParent(target);
     }
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)

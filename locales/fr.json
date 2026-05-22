@@ -2143,6 +2143,8 @@
   "ServerDialogResolutionProfileDesc": "Choisissez comment ce serveur dimensionne la session Bureau \u00e0 distance embarqu\u00e9e.",
   "ServerDialogResolutionModeLabel": "Mode de r\u00e9solution",
   "ServerDialogRdpSecuritySection": "S\u00e9curit\u00e9",
+  "ServerDialogRdpPerfSectionConnection": "Connexion",
+  "ServerDialogRdpPerfSectionExperience": "Exp\u00e9rience visuelle",
   "ServerDialogRdpDisplaySection": "Affichage",
   "ServerDialogRdpAudioSection": "Audio",
   "ServerDialogRdpResolutionPresetLabel": "R\u00e9solutions courantes",
