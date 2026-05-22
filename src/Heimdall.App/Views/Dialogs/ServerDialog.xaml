@@ -2126,6 +2126,21 @@
                                                     </CheckBox.Style>
                                                 </CheckBox>
                                             </StackPanel>
+                                            <!-- RD Gateway server -->
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource LabelStyle}"
+                                                           Text="{loc:Translate RdpGatewayLabel}"
+                                                           Margin="0,16,0,4"/>
+                                                <TextBox x:Name="DlgSrv_RdpGatewayBox"
+                                                         TabIndex="90"
+                                                         Style="{StaticResource WatermarkTextBoxStyle}"
+                                                         Tag="{loc:Translate RdpGatewayWatermark}"
+                                                         AutomationProperties.Name="{loc:Translate RdpGatewayLabel}"
+                                                         Text="{Binding RdpGateway, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Style="{StaticResource DialogHintTextStyle}"
+                                                           Text="{loc:Translate RdpGatewayHint}"
+                                                           Margin="0,4,0,0"/>
+                                            </StackPanel>
                                         </StackPanel>
                                     </Expander>
 

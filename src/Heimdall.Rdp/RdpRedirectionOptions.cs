@@ -79,4 +79,11 @@ public sealed class RdpRedirectionOptions
 
     /// <summary>Disable UDP transport, forcing TCP-only RDP connections.</summary>
     public bool DisableUdp { get; set; }
+
+    /// <summary>
+    /// Microsoft RD Gateway hostname. Consumed by the embedded ActiveX host
+    /// (RdpActiveXHost). Null or empty means a direct connection. The external
+    /// .rdp generator uses RdpFileOptions.GatewayHostname instead.
+    /// </summary>
+    public string? GatewayHostname { get; set; }
 }
