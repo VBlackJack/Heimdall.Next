@@ -270,6 +270,20 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveAsync_InvalidAnnotatedSettingShowsValidationSummaryAndDoesNotPersist()
+    {
+        var config = new FakeConfigManager();
+        var viewModel = CreateViewModel(config);
+        viewModel.SshAutoReconnectAttempts = 0;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Null(config.SavedSettings);
+        Assert.True(viewModel.HasValidationErrors);
+        Assert.Equal("ValidationSettingsSshAutoReconnectAttempts", viewModel.ValidationSummary);
+    }
+
+    [Fact]
     public void CollapseTunnelsPanelByDefault_RaisesPropertyChanged()
     {
         var viewModel = CreateViewModel(new FakeConfigManager());
@@ -279,6 +293,48 @@ public sealed class SettingsViewModelTests
         viewModel.CollapseTunnelsPanelByDefault = false;
 
         Assert.Contains(nameof(SettingsViewModel.CollapseTunnelsPanelByDefault), changes);
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsCommand_RestoresFactoryDefaultsAfterConfirmation()
+    {
+        var dialog = new FakeDialogService { ConfirmResult = true };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog);
+        viewModel.DefaultTheme = "Buffy";
+        viewModel.MaxEmbeddedSessions = 7;
+        viewModel.TerminalFontSize = 22;
+
+        await viewModel.ResetToDefaultsCommand.ExecuteAsync(null);
+
+        var expected = await LoadExpectedFactoryDefaultsAsync();
+        Assert.Equal(expected.DefaultTheme, viewModel.DefaultTheme);
+        Assert.Equal(expected.MaxEmbeddedSessions, viewModel.MaxEmbeddedSessions);
+        Assert.Equal(expected.TerminalFontSize, viewModel.TerminalFontSize);
+        Assert.True(viewModel.IsDirty);
+        var confirm = Assert.Single(dialog.ConfirmCalls);
+        Assert.Equal("SettingsResetDefaultsConfirmTitle", confirm.Title);
+        Assert.Equal("SettingsResetDefaultsConfirmBody", confirm.Message);
+        Assert.Equal("warning", confirm.Severity);
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsCommand_CancelledConfirmationDoesNotModifyState()
+    {
+        var dialog = new FakeDialogService { ConfirmResult = false };
+        var viewModel = CreateViewModel(new FakeConfigManager(), dialog);
+        viewModel.DefaultTheme = "Buffy";
+        viewModel.MaxEmbeddedSessions = 7;
+        viewModel.TerminalFontSize = 22;
+
+        await viewModel.ResetToDefaultsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Buffy", viewModel.DefaultTheme);
+        Assert.Equal(7, viewModel.MaxEmbeddedSessions);
+        Assert.Equal(22, viewModel.TerminalFontSize);
+        var confirm = Assert.Single(dialog.ConfirmCalls);
+        Assert.Equal("SettingsResetDefaultsConfirmTitle", confirm.Title);
+        Assert.Equal("SettingsResetDefaultsConfirmBody", confirm.Message);
+        Assert.Equal("warning", confirm.Severity);
     }
 
     [Fact]
