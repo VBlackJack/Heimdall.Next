@@ -112,7 +112,7 @@ internal sealed class SshHandler : IProtocolHandler
 
         if (string.Equals(sshMode, "External", StringComparison.OrdinalIgnoreCase))
         {
-            return ConnectSshExternal(server, settings, targetHost, targetPort);
+            return ConnectSshExternal(server, settings, targetHost, targetPort, usesTunnel);
         }
 
         var sshParams = new SshConnectionParams
@@ -282,63 +282,65 @@ internal sealed class SshHandler : IProtocolHandler
         ServerProfileDto server,
         AppSettings settings,
         string targetHost,
-        int targetPort)
+        int targetPort,
+        bool usesTunnel)
     {
-        var puttyPath = ConnectionHelpers.ResolvePuttyPath(settings.PuttyPath, settings.PlinkPath);
-        if (string.IsNullOrWhiteSpace(puttyPath) || !File.Exists(puttyPath))
-        {
-            var msg = _localizer[SshLocalizationKeys.ErrorPuttyNotConfigured];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreateGenericFailure(SshLocalizationKeys.ErrorPuttyNotConfigured, msg));
-        }
-
-        if (!string.IsNullOrEmpty(server.SshUsername) &&
-            !InputValidator.Validate(server.SshUsername, "SshUser"))
-        {
-            var msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
-        }
-
-        if (!IsValidSshHost(targetHost))
-        {
-            var msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
-        }
-
-        if (!InputValidator.ValidatePortRange(targetPort))
-        {
-            const string msg = "Invalid SSH target port.";
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
-        }
-
-        if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
-        {
-            _connectionSm.SetError(server.Id, keyPathError);
-            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
-        }
-
-        var target = !string.IsNullOrEmpty(server.SshUsername)
-            ? $"{server.SshUsername}@{targetHost}"
-            : targetHost;
-
+        bool releaseTunnel = usesTunnel;
         try
         {
-            var psi = BuildPuttyStartInfo(
+            string? puttyPath = ConnectionHelpers.ResolvePuttyPath(settings.PuttyPath, settings.PlinkPath);
+            if (string.IsNullOrWhiteSpace(puttyPath) || !File.Exists(puttyPath))
+            {
+                string msg = _localizer[SshLocalizationKeys.ErrorPuttyNotConfigured];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
+                    msg,
+                    null,
+                    SshSessionDiagnosticFactory.CreateGenericFailure(SshLocalizationKeys.ErrorPuttyNotConfigured, msg));
+            }
+
+            if (!string.IsNullOrEmpty(server.SshUsername) &&
+                !InputValidator.Validate(server.SshUsername, "SshUser"))
+            {
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
+                    msg,
+                    null,
+                    SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
+            }
+
+            if (!IsValidSshHost(targetHost))
+            {
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
+                    msg,
+                    null,
+                    SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
+            }
+
+            if (!InputValidator.ValidatePortRange(targetPort))
+            {
+                const string msg = "Invalid SSH target port.";
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
+            }
+
+            if (!TryValidateKeyPath(server.SshKeyPath, out string keyPathError))
+            {
+                _connectionSm.SetError(server.Id, keyPathError);
+                return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
+            }
+
+            string target = !string.IsNullOrEmpty(server.SshUsername)
+                ? $"{server.SshUsername}@{targetHost}"
+                : targetHost;
+
+            System.Diagnostics.ProcessStartInfo psi = BuildPuttyStartInfo(
                 puttyPath,
                 server.SshKeyPath,
                 server.SshCompression,
@@ -346,14 +348,43 @@ internal sealed class SshHandler : IProtocolHandler
                 server.SshX11Forwarding,
                 targetPort,
                 target);
-            var arguments = string.Join(' ', psi.ArgumentList);
+            string arguments = string.Join(' ', psi.ArgumentList);
             Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} {arguments}");
 
-            using var process = System.Diagnostics.Process.Start(psi);
+            System.Diagnostics.Process? process = System.Diagnostics.Process.Start(psi);
 
             Core.Logging.FileLogger.Info(
                 $"Launched putty.exe PID={process?.Id ?? 0} for {server.DisplayName} ({targetHost}:{targetPort})");
             _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+            if (process is not null)
+            {
+                System.Diagnostics.Process startedProcess = process;
+                startedProcess.Exited += (_, _) =>
+                {
+                    try
+                    {
+                        ReleaseTunnelIfNeeded(usesTunnel, targetPort);
+                    }
+                    catch (Exception ex)
+                    {
+                        Core.Logging.FileLogger.Warn(
+                            $"Tunnel release on putty.exe exit failed: {ex.Message}");
+                    }
+
+                    try
+                    {
+                        startedProcess.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Core.Logging.FileLogger.Warn(
+                            $"putty.exe Process.Dispose failed: {ex.Message}");
+                    }
+                };
+                releaseTunnel = false;
+                startedProcess.EnableRaisingEvents = true;
+            }
+
             return new ConnectionResult(true, null, null);
         }
         catch (Exception ex)
@@ -365,6 +396,10 @@ internal sealed class SshHandler : IProtocolHandler
                 ex.Message,
                 null,
                 SshSessionDiagnosticFactory.CreateGenericFailure(SshLocalizationKeys.ErrorConnectionFailed, ex.Message));
+        }
+        finally
+        {
+            ReleaseTunnelIfNeeded(releaseTunnel, targetPort);
         }
     }
 
