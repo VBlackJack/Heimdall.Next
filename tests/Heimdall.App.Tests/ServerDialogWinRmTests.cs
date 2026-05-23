@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+using System.IO;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Tests;
@@ -30,6 +32,7 @@ public sealed class ServerDialogWinRmTests
         vm.SelectProtocolCommand.Execute("WINRM");
 
         Assert.Equal("WINRM", vm.ConnectionType);
+        Assert.Equal("WinRM", vm.ConnectionTypeDisplayName);
         Assert.Equal(DefaultPorts.WinRmHttp, vm.WinRmPort);
         Assert.Equal(DefaultPorts.WinRmHttp, vm.EndpointPort);
     }
@@ -64,6 +67,68 @@ public sealed class ServerDialogWinRmTests
 
         vm.WinRmUseSsl = false;
         Assert.Equal(12345, vm.WinRmPort);
+    }
+
+    [Fact]
+    public void WinRmUseSsl_WithGateway_IsDisabledAndCleared()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel { ConnectionType = "WINRM" };
+        vm.WinRmUseSsl = true;
+
+        vm.SelectedGatewayId = "gateway-01";
+
+        Assert.True(vm.UsesGateway);
+        Assert.False(vm.CanUseWinRmSsl);
+        Assert.False(vm.WinRmUseSsl);
+        Assert.Equal(DefaultPorts.WinRmHttp, vm.WinRmPort);
+        Assert.Equal(DefaultPorts.WinRmHttp, vm.EndpointPort);
+    }
+
+    [Fact]
+    public void WinRmUseSsl_CannotBeEnabledWhileGatewayIsSelected()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel
+        {
+            ConnectionType = "WINRM",
+            SelectedGatewayId = "gateway-01"
+        };
+
+        vm.WinRmUseSsl = true;
+
+        Assert.False(vm.CanUseWinRmSsl);
+        Assert.False(vm.WinRmUseSsl);
+        Assert.Equal(DefaultPorts.WinRmHttp, vm.WinRmPort);
+    }
+
+    [Fact]
+    public void FromDto_WinRmGatewayWithSsl_ClearsUnsupportedSsl()
+    {
+        ServerDialogViewModel vm = ServerDialogViewModel.FromDto(new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            WinRmPort = DefaultPorts.WinRmHttps,
+            WinRmUseSsl = true,
+            SshGatewayId = "gateway-01"
+        });
+
+        Assert.True(vm.UsesGateway);
+        Assert.False(vm.CanUseWinRmSsl);
+        Assert.False(vm.WinRmUseSsl);
+        Assert.Equal(DefaultPorts.WinRmHttps, vm.WinRmPort);
+    }
+
+    [Fact]
+    public async Task WinRmDisplayText_UsesFriendlyProtocolAndSessionNames()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel
+        {
+            ConnectionType = "WINRM",
+            Localizer = await CreateLocalizerAsync("en")
+        };
+
+        Assert.Equal("WinRM", vm.ConnectionTypeDisplayName);
+        Assert.Equal("WinRM session", vm.SessionKindLabel);
+        Assert.Equal("WinRM session", vm.GatewayToServerLabel);
     }
 
     [Fact]
@@ -137,5 +202,12 @@ public sealed class ServerDialogWinRmTests
         });
 
         Assert.Equal(DefaultPorts.WinRmHttps, vm.WinRmPort);
+    }
+
+    private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
+    {
+        LocalizationManager manager = new LocalizationManager();
+        await manager.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), locale);
+        return manager;
     }
 }
