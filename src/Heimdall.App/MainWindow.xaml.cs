@@ -2649,6 +2649,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
+        if (Application.Current is Heimdall.App.App app)
+        {
+            app.IsShuttingDown = true;
+        }
+
         StopFullscreenChrome();
         DisposeLowLevelKeyboardHook();
         if (_threadPreprocessMessageHooked)
