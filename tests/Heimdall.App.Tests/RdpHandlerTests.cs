@@ -73,6 +73,73 @@ public sealed class RdpHandlerTests
         Assert.Equal("Embedded", server.RdpMode);
     }
 
+    [Fact]
+    public async Task ConnectAsync_ForceExternalPostTunnelLaunchFailureReleasesTunnelReference()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = true,
+            TargetHost = "127.0.0.1",
+            TargetPort = 53389
+        };
+        TrackingRdpExternalClientLauncher launcher = new TrackingRdpExternalClientLauncher();
+        RdpHandler handler = CreateHandler(tunnelService, launcher);
+        ServerProfileDto server = CreateServer("Embedded");
+        AppSettings settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.False(result.Success);
+        Assert.Equal(1, launcher.LaunchCalls);
+        Assert.Equal(1, tunnelService.ReleaseCount);
+        Assert.Equal(53389, tunnelService.ReleasedLocalPort);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_ForceExternalSuccessReleasesTunnelReferenceOnProcessExit()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = true,
+            TargetHost = "127.0.0.1",
+            TargetPort = 53389
+        };
+        FakeLaunchedRdpClientProcess process = new FakeLaunchedRdpClientProcess(4242);
+        TrackingRdpExternalClientLauncher launcher = new TrackingRdpExternalClientLauncher
+        {
+            ProcessToReturn = process
+        };
+        RdpHandler handler = CreateHandler(tunnelService, launcher);
+        ServerProfileDto server = CreateServer("Embedded");
+        AppSettings settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.True(result.Success);
+        Assert.Equal(0, tunnelService.ReleaseCount);
+
+        process.RaiseExited();
+
+        Assert.Equal(1, tunnelService.ReleaseCount);
+        Assert.Equal(53389, tunnelService.ReleasedLocalPort);
+    }
+
     [Theory]
     [InlineData("External", RdpModeOverride.UseProfile, "External")]
     [InlineData("Embedded", RdpModeOverride.ForceExternal, "External")]
@@ -90,12 +157,21 @@ public sealed class RdpHandlerTests
         Assert.Equal(profileMode, server.RdpMode);
     }
 
-    private static RdpHandler CreateHandler(IRdpExternalClientLauncher launcher) =>
-        new(
-            new PassThroughTunnelService(),
+    private static RdpHandler CreateHandler(IRdpExternalClientLauncher launcher)
+    {
+        return CreateHandler(new PassThroughTunnelService(), launcher);
+    }
+
+    private static RdpHandler CreateHandler(
+        ITunnelService tunnelService,
+        IRdpExternalClientLauncher launcher)
+    {
+        return new RdpHandler(
+            tunnelService,
             new ConnectionStateMachine(),
             new LocalizationManager(),
             launcher);
+    }
 
     private static ServerProfileDto CreateServer(string rdpMode) =>
         new()
@@ -127,6 +203,38 @@ public sealed class RdpHandlerTests
         public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
     }
 
+    private sealed class FakeTunnelService : ITunnelService
+    {
+        public bool UsesTunnel { get; init; }
+        public string TargetHost { get; init; } = "";
+        public int TargetPort { get; init; }
+        public int ReleaseCount { get; private set; }
+        public int ReleasedLocalPort { get; private set; }
+
+        public Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)> SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+        {
+            string host = UsesTunnel ? TargetHost : server.RemoteServer;
+            int port = UsesTunnel ? TargetPort : remotePort;
+            return Task.FromResult((true, UsesTunnel, host, port, (string?)null));
+        }
+
+        public void UpdateSettings(AppSettings settings)
+        {
+        }
+
+        public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
+
+        public void ReleaseTunnelReference(int localPort)
+        {
+            ReleaseCount++;
+            ReleasedLocalPort = localPort;
+        }
+    }
+
     private sealed class TrackingRdpExternalClientLauncher : IRdpExternalClientLauncher
     {
         public int LaunchCalls { get; private set; }
@@ -145,6 +253,8 @@ public sealed class RdpHandlerTests
 
     private sealed class FakeLaunchedRdpClientProcess(int id) : ILaunchedRdpClientProcess
     {
+        private EventHandler? exited;
+
         public int Id { get; } = id;
 
         public int ExitCode => 0;
@@ -153,8 +263,14 @@ public sealed class RdpHandlerTests
 
         public event EventHandler Exited
         {
-            add { }
-            remove { }
+            add => exited += value;
+            remove => exited -= value;
+        }
+
+        public void RaiseExited()
+        {
+            EventHandler? handler = exited;
+            handler?.Invoke(this, EventArgs.Empty);
         }
 
         public void Dispose()
