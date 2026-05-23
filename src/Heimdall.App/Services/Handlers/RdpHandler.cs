@@ -90,10 +90,11 @@ internal sealed class RdpHandler : IProtocolHandler
         }
 
         string? rdpPassword = null;
+        bool releaseTunnel = usesTunnel;
         try
         {
-            var rdpHost = targetHost;
-            var rdpPort = targetPort;
+            string rdpHost = targetHost;
+            int rdpPort = targetPort;
 
             if (!string.IsNullOrEmpty(server.RdpUsername) &&
                 !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
@@ -265,6 +266,16 @@ internal sealed class RdpHandler : IProtocolHandler
 
                 try
                 {
+                    ReleaseTunnelIfNeeded(usesTunnel, targetPort);
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"Tunnel release on mstsc.exe exit failed: {ex.Message}");
+                }
+
+                try
+                {
                     mstscProcess.Dispose();
                 }
                 catch (Exception ex)
@@ -272,6 +283,7 @@ internal sealed class RdpHandler : IProtocolHandler
                     Core.Logging.FileLogger.Warn($"mstsc.exe Process.Dispose failed: {ex.Message}");
                 }
             };
+            releaseTunnel = false;
             mstscProcess.EnableRaisingEvents = true;
             _connectionSm.TryTransition(server.Id, ConnectionState.LaunchedExternalClient);
 
@@ -337,7 +349,18 @@ internal sealed class RdpHandler : IProtocolHandler
         finally
         {
             rdpPassword = null;
+            ReleaseTunnelIfNeeded(releaseTunnel, targetPort);
         }
+    }
+
+    private void ReleaseTunnelIfNeeded(bool usesTunnel, int tunnelLocalPort)
+    {
+        if (!usesTunnel || tunnelLocalPort <= 0)
+        {
+            return;
+        }
+
+        _tunnelService.ReleaseTunnelReference(tunnelLocalPort);
     }
 
     /// <summary>
