@@ -138,8 +138,9 @@ internal sealed class WinRmCredentialBootstrap
             "$ErrorActionPreference = 'Stop'",
             "$scriptPath = $PSCommandPath",
             "Remove-Item -LiteralPath $scriptPath -Force -ErrorAction SilentlyContinue",
-            "Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue",
-            "Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction SilentlyContinue",
+            // ProtectedData lives in System.Security on .NET Framework / PS 5.1 and in System.Security.Cryptography.ProtectedData on .NET / PS 7; load whichever the host has, ignore the other.
+            "try { Add-Type -AssemblyName System.Security -ErrorAction Stop } catch { }",
+            "try { Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction Stop } catch { }",
             "$blob = " + blobLiteral,
             "try {",
             "    $encryptedBytes = [Convert]::FromBase64String($blob)",
