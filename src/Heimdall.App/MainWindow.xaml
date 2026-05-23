@@ -1835,6 +1835,37 @@
                             <Button x:Name="Mw_SettingsResetBtn" Content="{loc:Translate SettingsBtnResetDefaults}" Command="{Binding Settings.ResetToDefaultsCommand}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
                                     AutomationProperties.Name="{loc:Translate AccessSettingsReset}"/>
+                            <Border x:Name="Mw_SettingsValidationBanner"
+                                    MaxWidth="520"
+                                    MinHeight="32"
+                                    Margin="0,0,16,4"
+                                    Padding="10,6"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource ErrorBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource CornerRadiusMd}"
+                                    Visibility="{Binding Settings.HasValidationErrors, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    AutomationProperties.Name="{Binding Settings.ValidationSummary}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#xE783;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="{StaticResource FontSizeCaption}"
+                                               Foreground="{DynamicResource ErrorTextBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Settings.ValidationSummary}"
+                                               Foreground="{DynamicResource ErrorTextBrush}"
+                                               FontSize="{StaticResource FontSizeCaption}"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
                             <Button x:Name="Mw_SettingsExportBtn" Content="{loc:Translate SettingsBtnExportServers}" Command="{Binding Settings.ExportConfigCommand}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
                                     ToolTip="{loc:Translate TooltipExport}"

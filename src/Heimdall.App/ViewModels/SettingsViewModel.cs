@@ -832,6 +832,13 @@ public partial class SettingsViewModel : ObservableValidator
     [RelayCommand]
     private async Task ResetToDefaultsAsync(CancellationToken cancellationToken)
     {
+        bool confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["SettingsResetDefaultsConfirmTitle"],
+            _localizer["SettingsResetDefaultsConfirmBody"],
+            "warning");
+
+        if (!confirmed) return;
+
         var defaults = await LoadFactoryDefaultsAsync(cancellationToken);
         LoadFromSettings(defaults);
         IsDirty = true;
@@ -1501,10 +1508,29 @@ public partial class SettingsViewModel : ObservableValidator
         ["Terminal font size must be between 8 and 72."] = "ValidationSettingsFontSize",
         ["Anti-idle interval must be between 0 and 3600 seconds."] = "ValidationSettingsAntiIdle",
         ["SSH TMOUT reset interval must be between 0 and 3600 seconds."] = "ValidationSettingsTmoutReset",
+        ["SSH auto-reconnect attempts must be between 1 and 10."] = "ValidationSettingsSshAutoReconnectAttempts",
         ["Tunnel establishment delay must be between 0 and 30000 ms."] = "ValidationSettingsTunnelDelay",
         ["Embedded RDP timeout must be between 1000 and 120000 ms."] = "ValidationSettingsRdpTimeout",
         ["External tool timeout must be between 5000 and 600000 ms."] = "ValidationSettingsExtToolTimeout",
+        ["Health check interval must be between 15 and 3600 seconds."] = "ValidationSettingsHealthCheckInterval",
+        ["Probe timeout must be between 250 and 30000 ms."] = "ValidationSettingsHealthProbeTimeout",
+        ["Max concurrent probes must be between 1 and 50."] = "ValidationSettingsHealthMaxConcurrent",
     };
+
+    private static readonly string[] ValidatedSettingPropertyNames =
+    [
+        nameof(MaxEmbeddedSessions),
+        nameof(TerminalFontSize),
+        nameof(AntiIdleInterval),
+        nameof(SshTmoutResetInterval),
+        nameof(SshAutoReconnectAttempts),
+        nameof(TunnelEstablishmentDelayMs),
+        nameof(EmbeddedRdpTimeoutMs),
+        nameof(ExternalToolTimeoutMs),
+        nameof(SessionHealthCheckIntervalSeconds),
+        nameof(SessionHealthProbeTimeoutMs),
+        nameof(SessionHealthMaxConcurrent),
+    ];
 
     private string? GetLocalizedFieldError(string propertyName)
     {
@@ -1524,16 +1550,19 @@ public partial class SettingsViewModel : ObservableValidator
 
     private void RefreshValidationSummary()
     {
-        var firstError = GetLocalizedFieldError(nameof(MaxEmbeddedSessions))
-            ?? GetLocalizedFieldError(nameof(TerminalFontSize))
-            ?? GetLocalizedFieldError(nameof(AntiIdleInterval))
-            ?? GetLocalizedFieldError(nameof(SshTmoutResetInterval))
-            ?? GetLocalizedFieldError(nameof(TunnelEstablishmentDelayMs))
-            ?? GetLocalizedFieldError(nameof(EmbeddedRdpTimeoutMs))
-            ?? GetLocalizedFieldError(nameof(ExternalToolTimeoutMs));
+        foreach (var propertyName in ValidatedSettingPropertyNames)
+        {
+            var error = GetLocalizedFieldError(propertyName);
+            if (error is not null)
+            {
+                ValidationSummary = error;
+                HasValidationErrors = true;
+                return;
+            }
+        }
 
-        ValidationSummary = firstError;
-        HasValidationErrors = firstError is not null;
+        ValidationSummary = null;
+        HasValidationErrors = false;
     }
 
     /// <summary>
