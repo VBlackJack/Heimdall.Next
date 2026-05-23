@@ -520,7 +520,7 @@
                                   Width="14" Height="14"
                                   VerticalAlignment="Center"
                                   Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding ConnectionType}"
+                            <TextBlock Text="{Binding ConnectionTypeDisplayName}"
                                        FontWeight="SemiBold"
                                        FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center"
@@ -633,15 +633,9 @@
                                                     </Style>
                                                 </TextBox.Style>
                                             </TextBox>
-                                            <TextBox x:Name="DlgSrv_EndpointPortBox" Grid.Row="4" Grid.Column="1"
-                                                     TabIndex="3"
-                                                     AutomationProperties.Name="{Binding EndpointPortLabel}"
-                                                     Margin="12,0,0,0"
-                                                     Width="120"
-                                                     HorizontalAlignment="Left"
-                                                     Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}">
-                                                <TextBox.Style>
-                                                    <Style TargetType="TextBox" BasedOn="{StaticResource DialogFormTextBoxStyle}">
+                                            <StackPanel Grid.Row="4" Grid.Column="1" Margin="12,0,0,0">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -651,8 +645,25 @@
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </TextBox.Style>
-                                            </TextBox>
+                                                </StackPanel.Style>
+                                                <TextBox x:Name="DlgSrv_EndpointPortBox"
+                                                         TabIndex="3"
+                                                         AutomationProperties.Name="{Binding EndpointPortLabel}"
+                                                         Width="120"
+                                                         HorizontalAlignment="Left"
+                                                         Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <CheckBox x:Name="DlgSrv_WinRmSslCb"
+                                                          TabIndex="4"
+                                                          Content="{loc:Translate ServerDialogWinRmUseSsl}"
+                                                          AutomationProperties.Name="{loc:Translate ServerDialogWinRmUseSsl}"
+                                                          AutomationProperties.HelpText="{Binding WinRmUseSslHelpText}"
+                                                          IsChecked="{Binding WinRmUseSsl}"
+                                                          IsEnabled="{Binding CanUseWinRmSsl}"
+                                                          Visibility="{Binding IsWinRmConnection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                          Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                          Margin="0,8,0,0"/>
+                                            </StackPanel>
                                             <!-- Inline validation: Server address -->
                                             <TextBlock Grid.Row="5" Grid.Column="0"
                                                        Text="{Binding RemoteServerError}"
@@ -679,6 +690,12 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
+                                        <TextBlock Text="{Binding WinRmUseSslHelpText}"
+                                                   AutomationProperties.Name="{Binding WinRmUseSslHelpText}"
+                                                   Visibility="{Binding IsWinRmConnection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                   Style="{StaticResource DialogHintTextStyle}"
+                                                   Margin="0,4,0,0"
+                                                   TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
 
@@ -686,7 +703,7 @@
                                 <Border Style="{StaticResource DialogSectionCardStyle}">
                                     <StackPanel>
                                         <TextBlock x:Name="DlgSrv_ProjectLabel" Style="{StaticResource LabelStyle}"/>
-                                        <ComboBox x:Name="DlgSrv_ProjectCmb" TabIndex="4"
+                                        <ComboBox x:Name="DlgSrv_ProjectCmb" TabIndex="5"
                                                   AutomationProperties.Name="{loc:Translate ServerDialogLabelProject}"
                                                   ItemsSource="{Binding AvailableProjects}"
                                                   SelectedValue="{Binding SelectedProjectId}"
@@ -803,17 +820,6 @@
                                                           Content="{loc:Translate ServerDialogWinRmIdentityCredential}"
                                                           Tag="{x:Static config:WinRmIdentityMode.Credential}"/>
                                         </ComboBox>
-                                        <CheckBox x:Name="DlgSrv_WinRmSslCb"
-                                                  TabIndex="11"
-                                                  Content="{loc:Translate ServerDialogWinRmUseSsl}"
-                                                  AutomationProperties.Name="{loc:Translate ServerDialogWinRmUseSsl}"
-                                                  IsChecked="{Binding WinRmUseSsl}"
-                                                  Style="{StaticResource DialogFormCheckBoxStyle}"
-                                                  Margin="0,12,0,0"/>
-                                        <TextBlock Text="{loc:Translate ServerDialogWinRmUseSslHint}"
-                                                   Style="{StaticResource DialogHintTextStyle}"
-                                                   Margin="0,6,0,0"
-                                                   TextWrapping="Wrap"/>
                                         <StackPanel Visibility="{Binding IsWinRmCredentialIdentity, Converter={StaticResource BoolToVisibilityConverter}}">
                                             <TextBlock x:Name="DlgSrv_BasicWinRmUsernameLabel"
                                                        Text="{loc:Translate ServerDialogLabelUsername}"
@@ -2084,14 +2090,14 @@
                                     <TextBlock x:Name="DlgSrv_GatewayRoutingDesc"
                                                Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                     <CheckBox x:Name="DlgSrv_DirectConnectCb"
-                                              TabIndex="5"
+                                              TabIndex="6"
                                               AutomationProperties.Name="{loc:Translate A11yUseDirectConnection}"
                                               IsChecked="{Binding DirectConnection}"
                                               Style="{StaticResource DialogFormCheckBoxStyle}"
                                               Margin="0,14,0,0"/>
                                     <Grid Margin="0,12,0,0">
                                         <ComboBox x:Name="DlgSrv_GatewayCmb"
-                                                  TabIndex="6"
+                                                  TabIndex="7"
                                                   AutomationProperties.Name="{loc:Translate ServerFieldGateway}"
                                                   ItemsSource="{Binding AvailableGateways}"
                                                   SelectedValue="{Binding SelectedGatewayId}"

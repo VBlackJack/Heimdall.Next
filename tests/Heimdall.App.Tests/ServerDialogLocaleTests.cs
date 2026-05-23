@@ -30,9 +30,9 @@ public sealed class ServerDialogLocaleTests
         string hostTerm,
         string portTerm)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var description = localizer["ServerDialogConnectionBasicsDesc"];
+        string description = localizer["ServerDialogConnectionBasicsDesc"];
 
         Assert.False(string.IsNullOrWhiteSpace(description));
         Assert.DoesNotContain(obsoletePhrase, description, StringComparison.OrdinalIgnoreCase);
@@ -45,9 +45,9 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr")]
     public async Task ServerDialogResolutionModeAutoTitle_ExistsInBothLocales(string locale)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["ServerDialogResolutionModeAutoTitle"];
+        string text = localizer["ServerDialogResolutionModeAutoTitle"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
@@ -61,9 +61,9 @@ public sealed class ServerDialogLocaleTests
         string fullscreenTerm,
         string windowedTerm)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["ServerDialogResolutionModeAutoDescription"];
+        string text = localizer["ServerDialogResolutionModeAutoDescription"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
         Assert.Contains(hostTerm, text, StringComparison.OrdinalIgnoreCase);
@@ -77,9 +77,9 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr")]
     public async Task ServerDialogResolutionMoreOptions_ExistsInBothLocales(string locale)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["ServerDialogResolutionMoreOptions"];
+        string text = localizer["ServerDialogResolutionMoreOptions"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
@@ -89,9 +89,9 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr")]
     public async Task ServerDialogResolutionModeSwitchToAuto_ExistsInBothLocales(string locale)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["ServerDialogResolutionModeSwitchToAuto"];
+        string text = localizer["ServerDialogResolutionModeSwitchToAuto"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
@@ -103,9 +103,9 @@ public sealed class ServerDialogLocaleTests
         string locale,
         string expectedTerm)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["ServerDialogResolutionModeMultimonUnavailableTooltip"];
+        string text = localizer["ServerDialogResolutionModeMultimonUnavailableTooltip"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
         Assert.Contains(expectedTerm, text, StringComparison.OrdinalIgnoreCase);
@@ -122,9 +122,9 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr", "RdpAutofillDismissTooltip")]
     public async Task RdpAutofillActionKeys_ExistInBothLocales(string locale, string key)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer[key];
+        string text = localizer[key];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
@@ -134,9 +134,9 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr")]
     public async Task RdpSplitDisplayResizeWarning_ExistsInBothLocales(string locale)
     {
-        var localizer = await CreateLocalizerAsync(locale);
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
 
-        var text = localizer["RdpSplitDisplayResizeWarning"];
+        string text = localizer["RdpSplitDisplayResizeWarning"];
 
         Assert.False(string.IsNullOrWhiteSpace(text));
     }
@@ -150,6 +150,8 @@ public sealed class ServerDialogLocaleTests
     [InlineData("en", "ServerDialogWinRmIdentityCredential")]
     [InlineData("en", "ServerDialogWinRmUseSsl")]
     [InlineData("en", "ServerDialogWinRmUseSslHint")]
+    [InlineData("en", "ServerDialogWinRmUseSslGatewayHint")]
+    [InlineData("en", "ServerDialogSessionWinRm")]
     [InlineData("en", "ServerDialogPortLabelWinRm")]
     [InlineData("en", "ServerDialogPortHelpWinRm")]
     [InlineData("en", "ValidationWinRmPortRange")]
@@ -161,6 +163,8 @@ public sealed class ServerDialogLocaleTests
     [InlineData("fr", "ServerDialogWinRmIdentityCredential")]
     [InlineData("fr", "ServerDialogWinRmUseSsl")]
     [InlineData("fr", "ServerDialogWinRmUseSslHint")]
+    [InlineData("fr", "ServerDialogWinRmUseSslGatewayHint")]
+    [InlineData("fr", "ServerDialogSessionWinRm")]
     [InlineData("fr", "ServerDialogPortLabelWinRm")]
     [InlineData("fr", "ServerDialogPortHelpWinRm")]
     [InlineData("fr", "ValidationWinRmPortRange")]
@@ -175,7 +179,7 @@ public sealed class ServerDialogLocaleTests
 
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {
-        var manager = new LocalizationManager();
+        LocalizationManager manager = new LocalizationManager();
         await manager.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), locale);
         return manager;
     }

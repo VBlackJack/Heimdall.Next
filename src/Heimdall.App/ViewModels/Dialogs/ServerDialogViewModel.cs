@@ -76,8 +76,12 @@ public partial class ServerDialogViewModel : ObservableValidator
         set
         {
             _localizer = value;
+            OnPropertyChanged(nameof(ConnectionTypeDisplayName));
             OnPropertyChanged(nameof(SshAuthHint));
             OnPropertyChanged(nameof(SshKeyPassphraseHint));
+            OnPropertyChanged(nameof(SessionKindLabel));
+            OnPropertyChanged(nameof(GatewayToServerLabel));
+            OnPropertyChanged(nameof(WinRmUseSslHelpText));
             OnPropertyChanged(nameof(RdpResizeEnableDelayPlaceholder));
             RefreshAvailableMonitors();
             RefreshAgentChipIfNeeded();
@@ -374,6 +378,12 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnWinRmUseSslChanged(bool value)
     {
+        if (value && IsWinRmConnection && UsesGateway)
+        {
+            WinRmUseSsl = false;
+            return;
+        }
+
         if (!_isInitializing)
         {
             if (value && WinRmPort == DefaultPorts.WinRmHttp)
@@ -387,6 +397,14 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
 
         RaisePortDerivedStateChanged();
+    }
+
+    private void CoerceWinRmSslForGateway()
+    {
+        if (IsWinRmConnection && UsesGateway && WinRmUseSsl)
+        {
+            WinRmUseSsl = false;
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanTestSshConnection))]
@@ -980,6 +998,11 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(FirstInvalidField),
         nameof(AvailableGateways),
         nameof(AvailableProjects),
+        nameof(ConnectionTypeDisplayName),
+        nameof(CanUseWinRmSsl),
+        nameof(WinRmUseSslHelpText),
+        nameof(SessionKindLabel),
+        nameof(GatewayToServerLabel),
         nameof(SelectedPostConnectStep),
         nameof(PostConnectFailureOptions),
         nameof(HasLegacyPostConnectCommand),
@@ -1113,6 +1136,16 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool IsWinRmCredentialIdentity => WinRmIdentityMode == WinRmIdentityMode.Credential;
 
+    public string ConnectionTypeDisplayName => IsWinRmConnection
+        ? _localizer?["ServerDialogProtocolWinRmName"] ?? "WinRM"
+        : ConnectionType;
+
+    public bool CanUseWinRmSsl => IsWinRmConnection && !UsesGateway;
+
+    public string WinRmUseSslHelpText => IsWinRmConnection && UsesGateway
+        ? L("ServerDialogWinRmUseSslGatewayHint")
+        : L("ServerDialogWinRmUseSslHint");
+
     public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
 
     public bool RequiresNetworkEndpoint =>
@@ -1200,6 +1233,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     public string SessionKindLabel => IsRdpConnection ? L("ServerDialogSessionRdp")
         : IsFtpConnection ? L("ServerDialogSessionFtp")
         : IsSftpConnection ? L("ServerDialogSessionSftp")
+        : IsWinRmConnection ? L("ServerDialogSessionWinRm")
         : IsVncConnection ? L("ServerDialogSessionVnc")
         : IsTelnetConnection ? L("ServerDialogSessionTelnet")
         : IsCitrixConnection ? L("ServerDialogSessionCitrix")
@@ -1848,6 +1882,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             }
         }
 
+        CoerceWinRmSslForGateway();
         RaiseDerivedStateChanged();
         TryApplyRdpDialogAdvancedDefault();
         RefreshAgentChipIfNeeded();
@@ -1996,12 +2031,14 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnSelectedGatewayIdChanged(string value)
     {
         if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
+        CoerceWinRmSslForGateway();
         RaiseDerivedStateChanged();
     }
 
     partial void OnDirectConnectionChanged(bool value)
     {
         if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
+        CoerceWinRmSslForGateway();
         RaiseDerivedStateChanged();
     }
 
@@ -2066,6 +2103,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsTelnetConnection));
         OnPropertyChanged(nameof(IsWinRmConnection));
         OnPropertyChanged(nameof(IsWinRmCredentialIdentity));
+        OnPropertyChanged(nameof(ConnectionTypeDisplayName));
+        OnPropertyChanged(nameof(CanUseWinRmSsl));
+        OnPropertyChanged(nameof(WinRmUseSslHelpText));
         OnPropertyChanged(nameof(IsLocalConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
