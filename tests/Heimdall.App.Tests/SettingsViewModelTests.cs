@@ -281,6 +281,36 @@ public sealed class SettingsViewModelTests
         Assert.Null(config.SavedSettings);
         Assert.True(viewModel.HasValidationErrors);
         Assert.Equal("ValidationSettingsSshAutoReconnectAttempts", viewModel.ValidationSummary);
+        Assert.Equal(0, viewModel.GeneralTabErrorCount);
+        Assert.False(viewModel.HasGeneralTabErrors);
+        Assert.Equal(0, viewModel.TerminalTabErrorCount);
+        Assert.False(viewModel.HasTerminalTabErrors);
+        Assert.Equal(1, viewModel.SshTabErrorCount);
+        Assert.True(viewModel.HasSshTabErrors);
+        Assert.Equal(0, viewModel.AdvancedTabErrorCount);
+        Assert.False(viewModel.HasAdvancedTabErrors);
+    }
+
+    [Fact]
+    public async Task SaveAsync_InvalidAdvancedSettingUpdatesOnlyAdvancedTabErrorBadge()
+    {
+        FakeConfigManager config = new FakeConfigManager();
+        SettingsViewModel viewModel = CreateViewModel(config);
+        viewModel.ExternalToolTimeoutMs = 1000;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Null(config.SavedSettings);
+        Assert.True(viewModel.HasValidationErrors);
+        Assert.Equal("ValidationSettingsExtToolTimeout", viewModel.ValidationSummary);
+        Assert.Equal(0, viewModel.GeneralTabErrorCount);
+        Assert.False(viewModel.HasGeneralTabErrors);
+        Assert.Equal(0, viewModel.TerminalTabErrorCount);
+        Assert.False(viewModel.HasTerminalTabErrors);
+        Assert.Equal(0, viewModel.SshTabErrorCount);
+        Assert.False(viewModel.HasSshTabErrors);
+        Assert.Equal(1, viewModel.AdvancedTabErrorCount);
+        Assert.True(viewModel.HasAdvancedTabErrors);
     }
 
     [Fact]

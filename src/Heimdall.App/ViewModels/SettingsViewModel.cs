@@ -1490,7 +1490,11 @@ public partial class SettingsViewModel : ObservableValidator
         if (e.PropertyName is not (nameof(IsDirty) or nameof(IsBusy)
             or nameof(SelectedGateway) or nameof(SelectedProject)
             or nameof(SelectedExternalTool) or nameof(HasValidationErrors)
-            or nameof(ValidationSummary)))
+            or nameof(ValidationSummary)
+            or nameof(GeneralTabErrorCount) or nameof(HasGeneralTabErrors)
+            or nameof(TerminalTabErrorCount) or nameof(HasTerminalTabErrors)
+            or nameof(SshTabErrorCount) or nameof(HasSshTabErrors)
+            or nameof(AdvancedTabErrorCount) or nameof(HasAdvancedTabErrors)))
         {
             IsDirty = true;
         }
@@ -1501,6 +1505,34 @@ public partial class SettingsViewModel : ObservableValidator
 
     [ObservableProperty]
     private string? _validationSummary;
+
+    [ObservableProperty]
+    private int _generalTabErrorCount;
+
+    [ObservableProperty]
+    private int _terminalTabErrorCount;
+
+    [ObservableProperty]
+    private int _sshTabErrorCount;
+
+    [ObservableProperty]
+    private int _advancedTabErrorCount;
+
+    public bool HasGeneralTabErrors => GeneralTabErrorCount > 0;
+
+    public bool HasTerminalTabErrors => TerminalTabErrorCount > 0;
+
+    public bool HasSshTabErrors => SshTabErrorCount > 0;
+
+    public bool HasAdvancedTabErrors => AdvancedTabErrorCount > 0;
+
+    partial void OnGeneralTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasGeneralTabErrors));
+
+    partial void OnTerminalTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasTerminalTabErrors));
+
+    partial void OnSshTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasSshTabErrors));
+
+    partial void OnAdvancedTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasAdvancedTabErrors));
 
     private static readonly Dictionary<string, string> SettingsValidationKeyMap = new(StringComparer.Ordinal)
     {
@@ -1517,13 +1549,25 @@ public partial class SettingsViewModel : ObservableValidator
         ["Max concurrent probes must be between 1 and 50."] = "ValidationSettingsHealthMaxConcurrent",
     };
 
-    private static readonly string[] ValidatedSettingPropertyNames =
+    private static readonly string[] GeneralValidatedSettingPropertyNames =
     [
         nameof(MaxEmbeddedSessions),
+    ];
+
+    private static readonly string[] TerminalValidatedSettingPropertyNames =
+    [
         nameof(TerminalFontSize),
+    ];
+
+    private static readonly string[] SshValidatedSettingPropertyNames =
+    [
         nameof(AntiIdleInterval),
         nameof(SshTmoutResetInterval),
         nameof(SshAutoReconnectAttempts),
+    ];
+
+    private static readonly string[] AdvancedValidatedSettingPropertyNames =
+    [
         nameof(TunnelEstablishmentDelayMs),
         nameof(EmbeddedRdpTimeoutMs),
         nameof(ExternalToolTimeoutMs),
@@ -1550,19 +1594,46 @@ public partial class SettingsViewModel : ObservableValidator
 
     private void RefreshValidationSummary()
     {
-        foreach (var propertyName in ValidatedSettingPropertyNames)
+        GeneralTabErrorCount = CountValidationErrors(GeneralValidatedSettingPropertyNames);
+        TerminalTabErrorCount = CountValidationErrors(TerminalValidatedSettingPropertyNames);
+        SshTabErrorCount = CountValidationErrors(SshValidatedSettingPropertyNames);
+        AdvancedTabErrorCount = CountValidationErrors(AdvancedValidatedSettingPropertyNames);
+
+        string? firstError = GetFirstLocalizedFieldError(GeneralValidatedSettingPropertyNames)
+            ?? GetFirstLocalizedFieldError(TerminalValidatedSettingPropertyNames)
+            ?? GetFirstLocalizedFieldError(SshValidatedSettingPropertyNames)
+            ?? GetFirstLocalizedFieldError(AdvancedValidatedSettingPropertyNames);
+
+        ValidationSummary = firstError;
+        HasValidationErrors = firstError is not null;
+    }
+
+    private int CountValidationErrors(string[] propertyNames)
+    {
+        int count = 0;
+        foreach (string propertyName in propertyNames)
         {
-            var error = GetLocalizedFieldError(propertyName);
-            if (error is not null)
+            if (GetLocalizedFieldError(propertyName) is not null)
             {
-                ValidationSummary = error;
-                HasValidationErrors = true;
-                return;
+                count++;
             }
         }
 
-        ValidationSummary = null;
-        HasValidationErrors = false;
+        return count;
+    }
+
+    private string? GetFirstLocalizedFieldError(string[] propertyNames)
+    {
+        foreach (string propertyName in propertyNames)
+        {
+            string? error = GetLocalizedFieldError(propertyName);
+            if (error is not null)
+            {
+                return error;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

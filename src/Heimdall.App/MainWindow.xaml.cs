@@ -934,6 +934,23 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils", "health", "monitor", "probe", "reachability", "concurrent", "sant\u00e9", "sondage", "joignabilit\u00e9"],
     ];
 
+    private static string GetSettingsTabHeaderText(TabItem tab)
+    {
+        if (tab.Header is string text)
+        {
+            return text;
+        }
+
+        if (tab.Header is StackPanel stackPanel
+            && stackPanel.Children.Count > 0
+            && stackPanel.Children[0] is TextBlock textBlock)
+        {
+            return textBlock.Text ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
     private void OnSettingsSearchTextChanged(object sender, TextChangedEventArgs e)
     {
         var query = Mw_SettingsSearchBox.Text?.Trim() ?? "";
@@ -966,7 +983,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         {
             string[] keywords = SettingsTabKeywords[i];
             // Also match against the tab header text
-            string headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
+            string headerText = GetSettingsTabHeaderText(tabs[i]).ToLowerInvariant();
             // Explicit string types (instead of var) avoid an SDK 10.0.201 overload-resolution
             // quirk that was mis-inferring queryLower as int and routing Contains to the
             // Contains(char, StringComparison) overload.
