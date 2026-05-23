@@ -183,9 +183,6 @@
                     <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
-                    <DataTrigger Binding="{Binding ConnectionType}" Value="WINRM">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
                 </Style.Triggers>
             </Style>
 
