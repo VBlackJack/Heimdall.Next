@@ -112,13 +112,14 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Embedded session tabs with the same UX as RDP
 
 ### WinRM (PowerShell Remoting)
-- Remote PowerShell sessions over native WinRM / PS-Remoting — no SSH required
+- Remote PowerShell sessions over native WinRM / PS-Remoting — direct connections need no SSH
 - Embedded interactive terminal: a local `pwsh.exe` (PowerShell 7+, auto-detected) or `powershell.exe` (5.1 fallback) is hosted in a ConPTY and runs `Enter-PSSession`, reusing the Local Shell terminal view
 - HTTP (5985) and HTTPS (5986) transports with a `Use SSL` toggle and a dynamic default port; full TLS certificate validation by default
 - Two identity modes: an explicit stored credential (DPAPI-encrypted) or the current Windows identity (Kerberos SSO, no stored secret)
 - `Negotiate` authentication (Kerberos with NTLM fallback)
 - Credential mode injects the password via a self-deleting, ACL-restricted bootstrap script — no plaintext on disk or in PowerShell history
 - Transport pre-flight check (TCP reachability + TLS handshake) surfaces clear, localized errors before the session launches
+- Optional SSH gateway routing: a WinRM session can be tunneled through an SSH bastion, like RDP and SSH. Over the tunnel the WinRM transport is HTTP only (NTLM authentication); direct WinRM connections are unaffected.
 
 ### Local Shell
 - Embedded PowerShell, cmd, bash, or custom shell via ConPTY
