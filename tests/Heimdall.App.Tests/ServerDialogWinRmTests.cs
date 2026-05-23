@@ -89,8 +89,6 @@ public sealed class ServerDialogWinRmTests
         Assert.Equal(WinRmIdentityMode.Credential, dto.WinRmIdentityMode);
         Assert.Equal(@"CONTOSO\admin", dto.WinRmUsername);
         Assert.Equal("encrypted-password", dto.WinRmPasswordEncrypted);
-        Assert.Null(dto.SshGatewayId);
-        Assert.True(dto.UseDirectConnection);
 
         ServerDialogViewModel roundTripped = ServerDialogViewModel.FromDto(dto);
 
@@ -99,6 +97,33 @@ public sealed class ServerDialogWinRmTests
         Assert.True(roundTripped.IsWinRmCredentialIdentity);
         Assert.Equal(@"CONTOSO\admin", roundTripped.WinRmUsername);
         Assert.Equal("encrypted-password", roundTripped.ExistingWinRmPasswordEncrypted);
+    }
+
+    [Fact]
+    public void ToDto_FromDto_WinRmWithGateway_PersistsGatewayRouting()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel
+        {
+            DisplayName = "WinRM via gateway",
+            RemoteServer = "server01.contoso.test",
+            ConnectionType = "WINRM",
+            DirectConnection = false,
+            SelectedGatewayId = "gateway-01"
+        };
+
+        Assert.True(vm.CanSelectGateway);
+        Assert.True(vm.UsesGateway);
+
+        ServerProfileDto dto = vm.ToDto();
+        Assert.Equal("gateway-01", dto.SshGatewayId);
+        Assert.False(dto.UseDirectConnection);
+        Assert.Equal(DefaultPorts.WinRmTunnel, dto.LocalPort);
+
+        ServerDialogViewModel roundTripped = ServerDialogViewModel.FromDto(dto);
+        Assert.Equal("gateway-01", roundTripped.SelectedGatewayId);
+        Assert.False(roundTripped.DirectConnection);
+        Assert.True(roundTripped.UsesGateway);
+        Assert.Equal(DefaultPorts.WinRmTunnel, roundTripped.LocalPort);
     }
 
     [Fact]

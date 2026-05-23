@@ -397,7 +397,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         try
         {
-            var preflight = Heimdall.Ssh.AuthPreflightChecker.Check(
+            Heimdall.Ssh.PreflightResult preflight = Heimdall.Ssh.AuthPreflightChecker.Check(
                 BuildTestConnectionParams(),
                 isTunnelMode: true);
             if (!preflight.Success)
@@ -410,7 +410,7 @@ public partial class ServerDialogViewModel : ObservableValidator
                 return;
             }
 
-            var probe = await Heimdall.Ssh.SshConnectionProbe.ProbeAsync(
+            Heimdall.Ssh.SshConnectionProbe.ProbeResult probe = await Heimdall.Ssh.SshConnectionProbe.ProbeAsync(
                     RemoteServer,
                     SshPort,
                     timeoutMs: 5000,
@@ -463,8 +463,8 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         try
         {
-            var tester = new RdpConnectivityTester();
-            var result = await tester.TestAsync(
+            RdpConnectivityTester tester = new RdpConnectivityTester();
+            RdpConnectivityTestResult result = await tester.TestAsync(
                     RemoteServer,
                     RemotePort,
                     TimeSpan.FromSeconds(5),
@@ -512,13 +512,13 @@ public partial class ServerDialogViewModel : ObservableValidator
             _ => SshTestChipState.Failure
         };
 
-        var wrapperKey = result.Outcome == RdpConnectivityTestOutcome.Success
+        string wrapperKey = result.Outcome == RdpConnectivityTestOutcome.Success
             ? "ServerDialogTestChipSuccess"
             : result.Outcome == RdpConnectivityTestOutcome.Cancelled
                 ? "{0}"
                 : "ServerDialogTestChipFailure";
 
-        var detail = FormatRdpTestResult(result);
+        string detail = FormatRdpTestResult(result);
         TestChipText = string.Equals(wrapperKey, "{0}", StringComparison.Ordinal)
             ? detail
             : string.Format(CultureInfo.CurrentCulture, L(wrapperKey), detail);
@@ -585,10 +585,10 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private string ResolvePreflightMessage(Heimdall.Ssh.PreflightResult preflight)
     {
-        var message = preflight.Message ?? L("ErrorSshTestConnectionFailed");
+        string message = preflight.Message ?? L("ErrorSshTestConnectionFailed");
         if (message.StartsWith("Error", StringComparison.Ordinal) && Localizer is not null)
         {
-            var resolved = Localizer[message];
+            string resolved = Localizer[message];
             if (!string.Equals(resolved, message, StringComparison.Ordinal))
             {
                 return resolved;
@@ -622,8 +622,8 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         try
         {
-            var registry = SshAgentRegistry.CreateDefault(_sshAgentPreference);
-            var (state, text) = ProbeAgent(registry);
+            SshAgentRegistry registry = SshAgentRegistry.CreateDefault(_sshAgentPreference);
+            (SshAgentChipState state, string text) = ProbeAgent(registry);
             AgentChipState = state;
             AgentChipText = text;
         }
@@ -649,23 +649,23 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private (SshAgentChipState State, string Text) ProbeAgent(SshAgentRegistry registry)
     {
-        var availableAgents = registry.GetAvailableAgents();
+        IReadOnlyList<ISshAgent> availableAgents = registry.GetAvailableAgents();
         if (availableAgents.Count == 0)
         {
             return (SshAgentChipState.Off, L("ServerDialogAgentChipOff"));
         }
 
-        var counts = availableAgents
+        List<(string Name, int KeyCount)> counts = availableAgents
             .Select(agent => (agent.Name, KeyCount: SafeGetIdentityCount(agent)))
             .ToList();
-        var totalKeys = counts.Sum(agent => agent.KeyCount);
+        int totalKeys = counts.Sum(agent => agent.KeyCount);
         if (totalKeys == 0)
         {
             return (SshAgentChipState.Warn,
                 string.Format(CultureInfo.CurrentCulture, L("ServerDialogAgentChipWarn"), counts[0].Name));
         }
 
-        var displayAgent = counts.FirstOrDefault(agent => agent.KeyCount > 0).Name ?? counts[0].Name;
+        string displayAgent = counts.FirstOrDefault(agent => agent.KeyCount > 0).Name ?? counts[0].Name;
         return (SshAgentChipState.Ok,
             string.Format(CultureInfo.CurrentCulture, L("ServerDialogAgentChipOk"), displayAgent, totalKeys));
     }
@@ -674,7 +674,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         try
         {
-            var task = Task.Run(() => agent.GetIdentities().Count);
+            Task<int> task = Task.Run(() => agent.GetIdentities().Count);
             if (!task.Wait(TimeSpan.FromMilliseconds(AgentIdentityProbeTimeoutMs)))
             {
                 FileLogger.Warn($"SSH agent {agent.Name}: identity lookup timed out.");
@@ -1120,11 +1120,10 @@ public partial class ServerDialogViewModel : ObservableValidator
         && !string.Equals(ConnectionType, "Citrix", StringComparison.OrdinalIgnoreCase);
 
     public bool UsesGateway =>
-        !IsWinRmConnection
-        && !DirectConnection
+        !DirectConnection
         && !string.IsNullOrWhiteSpace(SelectedGatewayId);
 
-    public bool CanSelectGateway => !IsWinRmConnection && !DirectConnection;
+    public bool CanSelectGateway => !DirectConnection;
 
     public string GatewayComboHelpText => CanSelectGateway
         ? ""
@@ -1430,14 +1429,14 @@ public partial class ServerDialogViewModel : ObservableValidator
             return;
         }
 
-        var parts = preset.Split(['x', 'X', '×'], 2);
+        string[] parts = preset.Split(['x', 'X', '×'], 2);
         if (parts.Length != 2)
         {
             return;
         }
 
-        if (int.TryParse(parts[0].Trim(), out var width)
-            && int.TryParse(parts[1].Trim(), out var height)
+        if (int.TryParse(parts[0].Trim(), out int width)
+            && int.TryParse(parts[1].Trim(), out int height)
             && width > 0
             && height > 0)
         {
@@ -1516,19 +1515,19 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private void RefreshAvailableMonitors(IEnumerable<int>? preferredSelection = null)
     {
-        var selectedIndices = preferredSelection is null
+        HashSet<int> selectedIndices = preferredSelection is null
             ? AvailableMonitors
                 .Where(monitor => monitor.IsSelected)
                 .Select(monitor => monitor.Index)
                 .ToHashSet()
             : preferredSelection.ToHashSet();
 
-        var monitors = _monitorEnumerator.GetMonitors()
+        MonitorInfo[] monitors = _monitorEnumerator.GetMonitors()
             .OrderBy(monitor => monitor.Index)
             .ToArray();
 
         AvailableMonitors.Clear();
-        foreach (var monitor in monitors)
+        foreach (MonitorInfo monitor in monitors)
         {
             AvailableMonitors.Add(CreateMonitorChoice(monitor, selectedIndices.Contains(monitor.Index)));
         }
@@ -1539,7 +1538,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private MonitorChoiceViewModel CreateMonitorChoice(MonitorInfo monitor, bool isSelected)
     {
-        var label = string.Format(
+        string label = string.Format(
             CultureInfo.CurrentCulture,
             L("ServerDialogMonitorLabelFormat"),
             monitor.Index + 1,
@@ -1568,7 +1567,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private int ComposePerformanceFlags()
     {
-        var flags = 0;
+        int flags = 0;
 
         if (RdpPerfDisableWallpaper) flags |= PerfDisableWallpaperFlag;
         if (RdpPerfDisableDrag) flags |= PerfDisableDragFlag;
@@ -1597,8 +1596,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// </summary>
     public ServerProfileDto ToDto()
     {
-        var sshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath;
-        var snappedRdpFixedWidth = RdpDisplayHelper.SnapToMultipleOf(RdpFixedWidth, 4);
+        string? sshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath;
+        int snappedRdpFixedWidth = RdpDisplayHelper.SnapToMultipleOf(RdpFixedWidth, 4);
 
         return new ServerProfileDto
         {
@@ -1701,8 +1700,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpPerformanceFlags = ComposePerformanceFlags(),
             RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
-            SshGatewayId = IsWinRmConnection || string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
-            UseDirectConnection = IsWinRmConnection || DirectConnection,
+            SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
+            UseDirectConnection = DirectConnection,
             ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
             Tags = string.IsNullOrWhiteSpace(Tags) ? null : Tags,
             Environment = Environment == "None" ? null : Environment,
@@ -1723,13 +1722,15 @@ public partial class ServerDialogViewModel : ObservableValidator
         PostConnectMigration.Migrate(dto);
         RdpResolutionProfileMigration.Migrate(dto);
 
-        var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
-        var suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+        string connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
+        int suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
             ? DefaultPorts.RdpTunnel
-            : DefaultPorts.SshTunnel;
-        var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
+            : string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase)
+                ? DefaultPorts.WinRmTunnel
+                : DefaultPorts.SshTunnel;
+        int storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
-        var vm = monitorEnumerator is null
+        ServerDialogViewModel vm = monitorEnumerator is null
             ? new ServerDialogViewModel()
             : new ServerDialogViewModel(monitorEnumerator);
         vm._isInitializing = true;
@@ -1863,7 +1864,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             return;
         }
 
-        var snapshot = new ServerDialogAdvancedModePolicy.AdvancedRdpSnapshot(
+        ServerDialogAdvancedModePolicy.AdvancedRdpSnapshot snapshot = new ServerDialogAdvancedModePolicy.AdvancedRdpSnapshot(
             UseGlobalDefaults: RdpUseGlobalDefaults,
             AntiIdle: RdpAntiIdle,
             BitmapCaching: RdpBitmapCaching,
@@ -1872,7 +1873,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             AdminMode: RdpAdminMode,
             FullScreen: RdpFullScreen);
 
-        var resolved = ServerDialogAdvancedModePolicy.ResolveAdvancedDefault(
+        bool resolved = ServerDialogAdvancedModePolicy.ResolveAdvancedDefault(
             _rdpDialogAdvancedDefault.Value,
             IsEditMode,
             snapshot);
@@ -2030,9 +2031,17 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private int GetSuggestedTunnelPort(string connectionType)
     {
-        return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? _defaultRdpTunnelPort
-            : _defaultSshTunnelPort;
+        if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+        {
+            return _defaultRdpTunnelPort;
+        }
+
+        if (string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultPorts.WinRmTunnel;
+        }
+
+        return _defaultSshTunnelPort;
     }
 
     private string GetDestinationHost()
@@ -2132,13 +2141,13 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private string? GetLocalizedFieldError(string propertyName)
     {
-        var error = GetErrors(propertyName)
+        System.ComponentModel.DataAnnotations.ValidationResult? error = GetErrors(propertyName)
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        var message = error?.ErrorMessage;
+        string? message = error?.ErrorMessage;
         if (message is not null && Localizer is not null
-            && ValidationKeyMap.TryGetValue(message, out var key))
+            && ValidationKeyMap.TryGetValue(message, out string? key))
         {
             return Localizer[key];
         }
