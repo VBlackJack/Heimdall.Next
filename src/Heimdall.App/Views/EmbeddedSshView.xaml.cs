@@ -58,6 +58,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private const string MsgClipboardWrite = "clipboard-write:";
     private const string MsgClipboardRead = "clipboard-read:";
 
+    /// <summary>Outbound message: sets the xterm.js convertEol option at runtime.</summary>
+    private const string MsgSetConvertEol = "set-convert-eol:";
+
     /// <summary>
     /// Maps color scheme names to xterm.js theme JSON object literals.
     /// Keys must match the values stored in <see cref="AppSettings.TerminalColorScheme"/>.
@@ -399,6 +402,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _terminalSession.DataReceived += _terminalDataHandler;
         _terminalSession.ProcessExited += _terminalExitHandler;
+
+        // The xterm.js convertEol option is baked at terminal construction time
+        // (GetTerminalHtml). For SSH the view is mounted in a "Connecting" state
+        // before the session exists, so that early value is always false. Push the
+        // correct value now that the real session type is known: pipe-mode (plink)
+        // output mixes bare-LF content (e.g. the SSH pre-auth banner) that xterm
+        // must render as CR+LF.
+        PostTerminalMessage(MsgSetConvertEol
+            + (terminalSession is Heimdall.Terminal.PipeModeSession ? "true" : "false"));
 
         UpdateStatus("Connected");
         StartKeepAliveTimer(keepAliveIntervalSeconds);
