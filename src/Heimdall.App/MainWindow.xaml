@@ -1806,7 +1806,7 @@
             </Grid>
 
             <!-- ============================================================ -->
-            <!-- SETTINGS TAB: Left-navigation sub-tabs                        -->
+            <!-- SETTINGS TAB: top sub-tabs with search                        -->
             <!-- ============================================================ -->
             <Grid Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
@@ -1922,14 +1922,16 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsLanguageLabel" Text="{loc:Translate SettingsLabelLanguage}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <ComboBox SelectedValue="{Binding Settings.DefaultLocale}" SelectedValuePath="Content">
+                                                <ComboBox SelectedValue="{Binding Settings.DefaultLocale}" SelectedValuePath="Content"
+                                                          AutomationProperties.LabeledBy="{x:Reference Mw_SettingsLanguageLabel}">
                                                     <ComboBoxItem Content="en"/>
                                                     <ComboBoxItem Content="fr"/>
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="{loc:Translate SettingsLabelTheme}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
+                                                <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag"
+                                                          AutomationProperties.LabeledBy="{x:Reference Mw_SettingsThemeLabel}">
                                                     <!-- Root -->
                                                     <ComboBoxItem x:Name="Mw_ThemeDracula" Content="{loc:Translate ThemeDracula}" Tag="Dracula" AutomationProperties.Name="{loc:Translate ThemeDracula}"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeDrakul" Content="{loc:Translate ThemeDrakul}" Tag="Drakul" AutomationProperties.Name="{loc:Translate ThemeDrakul}"/>
@@ -1957,7 +1959,8 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsAccentLabel" Text="{loc:Translate SettingsLabelAccent}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <ComboBox SelectedValue="{Binding Settings.AccentTint}" SelectedValuePath="Tag">
+                                                <ComboBox SelectedValue="{Binding Settings.AccentTint}" SelectedValuePath="Tag"
+                                                          AutomationProperties.LabeledBy="{x:Reference Mw_SettingsAccentLabel}">
                                                     <ComboBoxItem x:Name="Mw_AccentDefault" Content="{loc:Translate AccentDefault}" Tag="Default" AutomationProperties.Name="{loc:Translate AccentDefault}"/>
                                                     <Separator/>
                                                     <ComboBoxItem x:Name="Mw_AccentBlue" Content="{loc:Translate AccentBlue}" Tag="Blue" AutomationProperties.Name="{loc:Translate AccentBlue}"/>
@@ -1973,7 +1976,8 @@
                                         </Grid>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsMaxSessionsLabel" Text="{loc:Translate SettingsLabelMaxEmbeddedSessions}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
+                                            <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"
+                                                     AutomationProperties.LabeledBy="{x:Reference Mw_SettingsMaxSessionsLabel}"/>
                                         </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsPreventSleep" Content="{loc:Translate SettingsLabelPreventSleep}" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsCollapseTunnelsPanelByDefault"
@@ -2019,19 +2023,22 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsTerminalFontLabel" Text="{loc:Translate SettingsLabelTerminalFont}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.TerminalFontFamily}" Width="200" HorizontalAlignment="Left"/>
+                                                <TextBox Text="{Binding Settings.TerminalFontFamily}" Width="200" HorizontalAlignment="Left"
+                                                         AutomationProperties.LabeledBy="{x:Reference Mw_SettingsTerminalFontLabel}"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="{loc:Translate SettingsLabelTerminalFontSize}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80"/>
+                                                    <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80"
+                                                             AutomationProperties.LabeledBy="{x:Reference Mw_SettingsTerminalFontSizeLabel}"/>
                                                     <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsTerminalColorSchemeLabel" Text="{loc:Translate SettingsLabelTerminalColorScheme}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox x:Name="Mw_ColorSchemeCombo" SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                            <ComboBox x:Name="Mw_ColorSchemeCombo" SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left"
+                                                      AutomationProperties.LabeledBy="{x:Reference Mw_SettingsTerminalColorSchemeLabel}">
                                                 <ComboBoxItem x:Name="Mw_SchemeDefault" Content="{loc:Translate TerminalSchemeDefault}" Tag="Default"/>
                                                 <ComboBoxItem x:Name="Mw_SchemeDracula" Content="{loc:Translate TerminalSchemeDracula}" Tag="Dracula"/>
                                                 <ComboBoxItem x:Name="Mw_SchemeSolarized" Content="{loc:Translate TerminalSchemeSolarizedDark}" Tag="Solarized Dark"/>
@@ -2041,7 +2048,8 @@
                                         </StackPanel>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsPsPolicyLabel" Text="{loc:Translate SettingsPsExecutionPolicy}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.PowerShellExecutionPolicy}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                            <ComboBox SelectedValue="{Binding Settings.PowerShellExecutionPolicy}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left"
+                                                      AutomationProperties.LabeledBy="{x:Reference Mw_SettingsPsPolicyLabel}">
                                                 <ComboBoxItem x:Name="Mw_PsDefault" Content="{loc:Translate PsPolicyDefault}" Tag="Default"/>
                                                 <ComboBoxItem x:Name="Mw_PsBypass" Content="{loc:Translate PsPolicyBypass}" Tag="Bypass"/>
                                                 <ComboBoxItem x:Name="Mw_PsRemoteSigned" Content="{loc:Translate PsPolicyRemoteSigned}" Tag="RemoteSigned"/>
