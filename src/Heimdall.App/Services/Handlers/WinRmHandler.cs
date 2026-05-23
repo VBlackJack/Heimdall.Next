@@ -29,18 +29,30 @@ namespace Heimdall.App.Services.Handlers;
 /// </summary>
 internal sealed class WinRmHandler : IProtocolHandler
 {
+    private readonly ITunnelService _tunnelService;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly WinRmPreflight _preflight;
+    private readonly Func<ITerminalSession> _terminalSessionFactory;
+    private readonly WinRmPowerShellLaunchBuilder _launchBuilder;
+    private readonly Func<WinRmCredentialBootstrap> _credentialBootstrapFactory;
 
     public WinRmHandler(
+        ITunnelService tunnelService,
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
-        WinRmPreflight? preflight = null)
+        WinRmPreflight? preflight = null,
+        Func<ITerminalSession>? terminalSessionFactory = null,
+        WinRmPowerShellLaunchBuilder? launchBuilder = null,
+        Func<WinRmCredentialBootstrap>? credentialBootstrapFactory = null)
     {
+        _tunnelService = tunnelService ?? throw new ArgumentNullException(nameof(tunnelService));
         _connectionSm = connectionSm;
         _localizer = localizer;
         _preflight = preflight ?? new WinRmPreflight();
+        _terminalSessionFactory = terminalSessionFactory ?? CreateDefaultTerminalSession;
+        _launchBuilder = launchBuilder ?? new WinRmPowerShellLaunchBuilder();
+        _credentialBootstrapFactory = credentialBootstrapFactory ?? (() => new WinRmCredentialBootstrap());
     }
 
     public string Protocol => "WINRM";
@@ -55,31 +67,71 @@ internal sealed class WinRmHandler : IProtocolHandler
         ArgumentNullException.ThrowIfNull(settings);
 
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
-        _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingLocal);
 
         ITerminalSession? session = null;
         WinRmCredentialBootstrap? bootstrap = null;
         string? bootstrapScriptPath = null;
+        bool usesTunnel = false;
+        int tunnelLocalPort = 0;
 
         try
         {
             ct.ThrowIfCancellationRequested();
-            await _preflight.EnsureReachableAsync(server, ct).ConfigureAwait(false);
+            WinRmPowerShellLaunchBuilder.ValidateProfile(server);
+            int remotePort = WinRmPowerShellLaunchBuilder.ResolvePort(server);
+
+            (bool tunnelOk, usesTunnel, string targetHost, int targetPort, string? tunnelError) =
+                await _tunnelService.SetupTunnelIfNeededAsync(server, remotePort, settings, ct)
+                    .ConfigureAwait(false);
+
+            if (!tunnelOk)
+            {
+                string message = tunnelError ?? _localizer["ErrorConnectionFailed"];
+                _connectionSm.SetError(server.Id, message);
+                return new ConnectionResult(
+                    false,
+                    message,
+                    null,
+                    SshSessionDiagnosticFactory.CreateGatewayFailure(tunnelError));
+            }
+
+            if (usesTunnel)
+            {
+                tunnelLocalPort = targetPort;
+            }
+
+            if (usesTunnel && server.WinRmUseSsl)
+            {
+                string message = _localizer["ErrorWinRmSslGatewayUnsupported"];
+                ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
+                _connectionSm.SetError(server.Id, message);
+                return new ConnectionResult(
+                    false,
+                    message,
+                    null,
+                    SshSessionDiagnosticFactory.CreateGatewayFailure(
+                        message,
+                        "ErrorWinRmSslGatewayUnsupported"));
+            }
+
+            if (!usesTunnel)
+            {
+                await _preflight.EnsureReachableAsync(server, ct).ConfigureAwait(false);
+            }
 
             if (server.WinRmIdentityMode == WinRmIdentityMode.Credential)
             {
-                bootstrap = new WinRmCredentialBootstrap();
-                bootstrapScriptPath = bootstrap.Write(server).ScriptPath;
+                bootstrap = _credentialBootstrapFactory();
+                bootstrapScriptPath = bootstrap.Write(server, targetHost, targetPort).ScriptPath;
             }
 
             WinRmPowerShellLaunchSpec spec =
-                new WinRmPowerShellLaunchBuilder().Build(server, bootstrapScriptPath);
+                _launchBuilder.Build(server, targetHost, targetPort, bootstrapScriptPath);
 
-            session = ConPtySession.IsAvailable
-                ? new ConPtySession()
-                : new PipeModeSession();
+            session = _terminalSessionFactory();
 
             Core.Logging.FileLogger.Info($"Launching WinRM session for host '{server.RemoteServer}'");
+            _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingLocal);
 
             await session.StartAsync(spec.Executable, spec.Arguments, workingDirectory: null)
                 .ConfigureAwait(false);
@@ -88,19 +140,25 @@ internal sealed class WinRmHandler : IProtocolHandler
                 $"WinRM terminal started for host '{server.RemoteServer}'");
 
             _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+            string? warning = usesTunnel && server.WinRmIdentityMode == WinRmIdentityMode.CurrentUser
+                ? _localizer["WarnWinRmGatewayKerberos"]
+                : null;
             return new ConnectionResult(
                 true,
                 null,
-                new TerminalSessionResult(session, server.RemoteServer));
+                new TerminalSessionResult(session, server.RemoteServer),
+                Warning: warning);
         }
         catch (OperationCanceledException)
         {
             DeleteBootstrap(bootstrap, bootstrapScriptPath);
             session?.Dispose();
+            ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
             throw;
         }
         catch (WinRmPreflightException ex)
         {
+            ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
             string message = _localizer.Format(ex.LocalizationKey, ex.LocalizationArguments);
             Core.Logging.FileLogger.Warn(
                 $"WinRM preflight failed for host '{server.RemoteServer}' protocol=WINRM");
@@ -114,6 +172,8 @@ internal sealed class WinRmHandler : IProtocolHandler
                 session,
                 bootstrap,
                 bootstrapScriptPath,
+                usesTunnel,
+                tunnelLocalPort,
                 "ErrorWinRmInvalidConfiguration",
                 ex);
         }
@@ -124,6 +184,8 @@ internal sealed class WinRmHandler : IProtocolHandler
                 session,
                 bootstrap,
                 bootstrapScriptPath,
+                usesTunnel,
+                tunnelLocalPort,
                 "ErrorWinRmInvalidConfiguration",
                 ex);
         }
@@ -134,6 +196,8 @@ internal sealed class WinRmHandler : IProtocolHandler
                 session,
                 bootstrap,
                 bootstrapScriptPath,
+                usesTunnel,
+                tunnelLocalPort,
                 "ErrorWinRmCredentialUnavailable",
                 ex,
                 includeExceptionMessage: false);
@@ -145,6 +209,8 @@ internal sealed class WinRmHandler : IProtocolHandler
                 session,
                 bootstrap,
                 bootstrapScriptPath,
+                usesTunnel,
+                tunnelLocalPort,
                 "ErrorWinRmLaunchFailed",
                 ex);
         }
@@ -155,6 +221,8 @@ internal sealed class WinRmHandler : IProtocolHandler
         ITerminalSession? session,
         WinRmCredentialBootstrap? bootstrap,
         string? bootstrapScriptPath,
+        bool usesTunnel,
+        int tunnelLocalPort,
         string localizationKey,
         Exception exception,
         bool includeExceptionMessage = true)
@@ -167,8 +235,26 @@ internal sealed class WinRmHandler : IProtocolHandler
             : _localizer[localizationKey];
 
         Core.Logging.FileLogger.Warn($"WinRM connection failed for host '{server.RemoteServer}'");
+        ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
         _connectionSm.SetError(server.Id, message);
         return new ConnectionResult(false, message, null);
+    }
+
+    private void ReleaseTunnelIfNeeded(bool usesTunnel, int tunnelLocalPort)
+    {
+        if (!usesTunnel || tunnelLocalPort <= 0)
+        {
+            return;
+        }
+
+        _tunnelService.ReleaseTunnelReference(tunnelLocalPort);
+    }
+
+    private static ITerminalSession CreateDefaultTerminalSession()
+    {
+        return ConPtySession.IsAvailable
+            ? new ConPtySession()
+            : new PipeModeSession();
     }
 
     private static void DeleteBootstrap(

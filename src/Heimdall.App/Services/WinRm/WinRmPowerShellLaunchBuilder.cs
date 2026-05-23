@@ -44,7 +44,22 @@ internal sealed class WinRmPowerShellLaunchBuilder
         ServerProfileDto server,
         string? bootstrapScriptPath = null)
     {
+        ArgumentNullException.ThrowIfNull(server);
+        return Build(
+            server,
+            server.RemoteServer,
+            ResolvePort(server),
+            bootstrapScriptPath);
+    }
+
+    public WinRmPowerShellLaunchSpec Build(
+        ServerProfileDto server,
+        string computerName,
+        int port,
+        string? bootstrapScriptPath = null)
+    {
         ValidateWinRmProfile(server);
+        ValidateWinRmEndpoint(computerName, port);
 
         string executable = ResolvePowerShellExecutable();
         if (server.WinRmIdentityMode == WinRmIdentityMode.Credential)
@@ -62,7 +77,11 @@ internal sealed class WinRmPowerShellLaunchBuilder
                 + QuoteCommandLineArgument(bootstrapScriptPath));
         }
 
-        string command = BuildEnterPSSessionCommand(server, credentialExpression: null);
+        string command = BuildEnterPSSessionCommand(
+            server,
+            computerName,
+            port,
+            credentialExpression: null);
         return new WinRmPowerShellLaunchSpec(
             executable,
             "-NoLogo -NoExit -NoProfile -Command "
@@ -73,15 +92,30 @@ internal sealed class WinRmPowerShellLaunchBuilder
         ServerProfileDto server,
         string? credentialExpression)
     {
+        ArgumentNullException.ThrowIfNull(server);
+        return BuildEnterPSSessionCommand(
+            server,
+            server.RemoteServer,
+            ResolvePort(server),
+            credentialExpression);
+    }
+
+    internal static string BuildEnterPSSessionCommand(
+        ServerProfileDto server,
+        string computerName,
+        int port,
+        string? credentialExpression)
+    {
         ValidateWinRmProfile(server);
+        ValidateWinRmEndpoint(computerName, port);
 
         List<string> parts =
         [
             "Enter-PSSession",
             "-ComputerName",
-            QuotePowerShellLiteral(server.RemoteServer),
+            QuotePowerShellLiteral(computerName),
             "-Port",
-            ResolvePort(server).ToString(CultureInfo.InvariantCulture),
+            port.ToString(CultureInfo.InvariantCulture),
             "-Authentication",
             "Negotiate"
         ];
@@ -151,6 +185,11 @@ internal sealed class WinRmPowerShellLaunchBuilder
             : server.WinRmUseSsl ? DefaultPorts.WinRmHttps : DefaultPorts.WinRmHttp;
     }
 
+    internal static void ValidateProfile(ServerProfileDto server)
+    {
+        ValidateWinRmProfile(server);
+    }
+
     private string ResolvePowerShellExecutable()
     {
         string? pwshPath = _findExecutable("pwsh.exe");
@@ -174,6 +213,19 @@ internal sealed class WinRmPowerShellLaunchBuilder
         if (!InputValidator.ValidatePortRange(ResolvePort(server)))
         {
             throw new ArgumentOutOfRangeException(nameof(server), "Invalid WinRM port.");
+        }
+    }
+
+    private static void ValidateWinRmEndpoint(string computerName, int port)
+    {
+        if (!IsValidHost(computerName))
+        {
+            throw new ArgumentException("Invalid WinRM computer name.", nameof(computerName));
+        }
+
+        if (!InputValidator.ValidatePortRange(port))
+        {
+            throw new ArgumentOutOfRangeException(nameof(port), "Invalid WinRM port.");
         }
     }
 

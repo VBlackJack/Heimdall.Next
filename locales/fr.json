@@ -1816,9 +1816,11 @@
   "ErrorWinRmInvalidConfiguration": "La configuration WinRM est invalide : {0}",
   "ErrorWinRmCredentialUnavailable": "L'identifiant WinRM stock\u00e9 est indisponible.",
   "ErrorWinRmLaunchFailed": "\u00c9chec du lancement du terminal WinRM : {0}",
+  "ErrorWinRmSslGatewayUnsupported": "WinRM via une passerelle SSH ne prend pas en charge HTTPS. Utilisez HTTP ou une connexion directe.",
   "ErrorWinRmPreflightDnsFailure": "Impossible de r\u00e9soudre l'h\u00f4te WinRM '{0}'.",
   "ErrorWinRmPreflightUnreachable": "L'h\u00f4te WinRM '{0}' est injoignable sur le port {1} (connexion refus\u00e9e ou d\u00e9lai d\u00e9pass\u00e9).",
   "ErrorWinRmPreflightTlsFailed": "La connexion TLS WinRM vers '{0}' sur le port {1} a \u00e9chou\u00e9 (certificat non approuv\u00e9 ou erreur de n\u00e9gociation).",
+  "WarnWinRmGatewayKerberos": "WinRM via une passerelle : Kerberos indisponible, l'authentification bascule sur NTLM.",
 
   "SessionDisconnect": "Deconnecter",
   "SessionAspectStretch": "Étirer",

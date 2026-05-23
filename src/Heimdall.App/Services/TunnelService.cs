@@ -95,6 +95,12 @@ public sealed class TunnelService : ITunnelService
     public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort)
         => _forwardedPortFailures.GetRecent(localPort);
 
+    /// <inheritdoc />
+    public void ReleaseTunnelReference(int localPort)
+    {
+        _tunnelManager.ReleaseReference(localPort);
+    }
+
     /// <summary>
     /// Checks whether the server requires a tunnel and establishes it if needed.
     /// Returns the resolved host and port to connect to.
@@ -111,7 +117,7 @@ public sealed class TunnelService : ITunnelService
             return (true, false, server.RemoteServer, remotePort, null);
         }
 
-        var tunnelResult = await EstablishTunnelAsync(
+        TunnelResult tunnelResult = await EstablishTunnelAsync(
                 server.Id,
                 server.SshGatewayId,
                 server.RemoteServer,
@@ -129,7 +135,7 @@ public sealed class TunnelService : ITunnelService
             return (false, false, string.Empty, 0, tunnelResult.ErrorMessage);
         }
 
-        var localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        int localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
 
         // A fresh tunnel is live on this port; drop any stale failure recorded
         // for it so it cannot mislabel a later, unrelated disconnect.
@@ -174,8 +180,8 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
 
-        var existingTunnels = _tunnelManager.GetActiveTunnels();
-        var existing = FindReusableTunnel(
+        IReadOnlyList<TunnelInfo> existingTunnels = _tunnelManager.GetActiveTunnels();
+        TunnelInfo? existing = FindReusableTunnel(
             existingTunnels,
             gatewayChainKey,
             remoteHost,
@@ -199,20 +205,20 @@ public sealed class TunnelService : ITunnelService
         localPort = _tunnelManager.AllocatePort(localPort);
         Core.Logging.FileLogger.Info($"Allocated tunnel port: {localPort}");
 
-        var agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+        SshAgentRegistry agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
         if (chain.Any(hop => hop.AgentForwarding)
             && !agentRegistry.HasPlinkCompatibleAgent()
             && agentRegistry.HasAnyNonPlinkAgent())
         {
-            var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
+            string message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(false, null, message, SshFailureCode.PageantKeyUnavailable);
         }
 
-        var preflight = AuthPreflightChecker.Check(chain[0], isTunnelMode: true);
+        PreflightResult preflight = AuthPreflightChecker.Check(chain[0], isTunnelMode: true);
         if (!preflight.Success)
         {
-            var msg = ResolvePreflightMessage(preflight.Message);
+            string msg = ResolvePreflightMessage(preflight.Message);
             _connectionSm.SetError(serverId, msg);
             return new TunnelResult(false, null, msg, preflight.FailureCode);
         }
@@ -220,7 +226,7 @@ public sealed class TunnelService : ITunnelService
         TunnelResult result;
         if (chain.Count == 1)
         {
-            var keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
+            int keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
             result = await _tunnelManager.OpenTunnelAsync(
                     chain[0],
                     remoteHost,
@@ -281,10 +287,10 @@ public sealed class TunnelService : ITunnelService
                 or SshFailureCode.KeyRejected
                 or SshFailureCode.PassphraseRejected)
         {
-            var registry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
+            SshAgentRegistry registry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
             if (!registry.HasPlinkCompatibleAgent() && registry.HasAnyNonPlinkAgent())
             {
-                var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
+                string message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
                 _connectionSm.SetError(serverId, message);
                 return new TunnelResult(false, null, message, result.FailureCode);
             }
@@ -315,16 +321,16 @@ public sealed class TunnelService : ITunnelService
         string gatewayChainKey,
         CancellationToken ct)
     {
-        var plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
+        string? plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
-            var message = _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
+            string message = _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
-        var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
-        var hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
+        string? storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(gatewayParams.Host, gatewayParams.Port)?.Fingerprint;
+        PlinkHostKeyDecision hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
                 gatewayParams.Host,
                 gatewayParams.Port,
                 gatewayParams.Username,
@@ -339,7 +345,7 @@ public sealed class TunnelService : ITunnelService
 
         if (!hostKeyDecision.ShouldProceed)
         {
-            var message = BuildPlinkHostKeyFailureMessage(hostKeyDecision);
+            string message = BuildPlinkHostKeyFailureMessage(hostKeyDecision);
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(
                 false,
@@ -348,13 +354,13 @@ public sealed class TunnelService : ITunnelService
                 hostKeyDecision.FailureCode ?? SshFailureCode.Unknown);
         }
 
-        var fingerprint = hostKeyDecision.Fingerprint;
+        string? fingerprint = hostKeyDecision.Fingerprint;
 
-        var runner = new PlinkTunnelRunner(
+        PlinkTunnelRunner runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
             _currentSettings?.PlinkKillGracePeriodMs ?? 2000,
             _currentSettings?.PlinkStderrReadTimeoutMs ?? 10000);
-        var result = await runner.StartAsync(
+        PlinkTunnelResult result = await runner.StartAsync(
                 plinkPath,
                 gatewayParams.Host,
                 gatewayParams.Port,
@@ -372,7 +378,7 @@ public sealed class TunnelService : ITunnelService
 
         if (!result.Success)
         {
-            var errorMsg = result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed];
+            string errorMsg = result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed];
             Core.Logging.FileLogger.Error(
                 $"Plink tunnel failed for {serverId} via {gatewayParams.Host}:{gatewayParams.Port}: {errorMsg}");
             _connectionSm.SetError(serverId, errorMsg);
@@ -380,7 +386,7 @@ public sealed class TunnelService : ITunnelService
             return new TunnelResult(false, null, errorMsg, result.FailureCode);
         }
 
-        var tunnelInfo = new TunnelInfo(
+        TunnelInfo tunnelInfo = new TunnelInfo(
             gatewayParams.Host,
             localPort,
             remoteHost,
@@ -394,7 +400,7 @@ public sealed class TunnelService : ITunnelService
         if (!_tunnelManager.TryRegisterExternalTunnel(tunnelInfo, runner, () => runner.IsRunning))
         {
             runner.Dispose();
-            var duplicateMessage = _localizer[SshLocalizationKeys.ErrorTunnelPortConcurrent];
+            string duplicateMessage = _localizer[SshLocalizationKeys.ErrorTunnelPortConcurrent];
             _connectionSm.SetError(serverId, duplicateMessage);
             return new TunnelResult(false, null, duplicateMessage, SshFailureCode.PortInUse);
         }
@@ -419,7 +425,7 @@ public sealed class TunnelService : ITunnelService
         ArgumentNullException.ThrowIfNull(gatewayChainKey);
         ArgumentNullException.ThrowIfNull(remoteHost);
 
-        foreach (var tunnel in activeTunnels)
+        foreach (TunnelInfo tunnel in activeTunnels)
         {
             if (!tunnel.IsAlive)
             {
@@ -465,20 +471,20 @@ public sealed class TunnelService : ITunnelService
             return string.Empty;
         }
 
-        using var payload = new MemoryStream();
-        foreach (var gateway in chainDtos)
+        using MemoryStream payload = new MemoryStream();
+        foreach (SshGatewayDto gateway in chainDtos)
         {
             WriteLengthPrefixedString(payload, gateway.Id ?? string.Empty);
         }
 
-        var hash = SHA256.HashData(payload.ToArray());
+        byte[] hash = SHA256.HashData(payload.ToArray());
         return $"v1:sha256:{Convert.ToBase64String(hash)}";
     }
 
     private static void WriteLengthPrefixedString(Stream destination, string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value);
-        var length = bytes.Length;
+        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        int length = bytes.Length;
 
         destination.WriteByte((byte)(length >> 24));
         destination.WriteByte((byte)(length >> 16));
@@ -491,13 +497,13 @@ public sealed class TunnelService : ITunnelService
         string storedFingerprint,
         string presentedFingerprint)
     {
-        var message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
+        string message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
         if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
         {
             message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
         }
 
-        var detail = _localizer.Format(
+        string detail = _localizer.Format(
             SshLocalizationKeys.ErrorHostKeyMismatchDetail,
             storedFingerprint,
             presentedFingerprint);
@@ -537,7 +543,7 @@ public sealed class TunnelService : ITunnelService
 
     private string BuildHostKeyUnavailableMessage()
     {
-        var message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
+        string message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
         return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
             ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
             : message;
@@ -545,7 +551,7 @@ public sealed class TunnelService : ITunnelService
 
     private string BuildCancelledMessage()
     {
-        var message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
+        string message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
         return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
             ? "Connection was cancelled."
             : message;
@@ -558,7 +564,7 @@ public sealed class TunnelService : ITunnelService
             return _localizer[SshLocalizationKeys.ErrorPreflightFailed];
         }
 
-        var localized = _localizer[messageOrKey];
+        string localized = _localizer[messageOrKey];
         return string.Equals(localized, messageOrKey, StringComparison.Ordinal)
             ? messageOrKey
             : localized;

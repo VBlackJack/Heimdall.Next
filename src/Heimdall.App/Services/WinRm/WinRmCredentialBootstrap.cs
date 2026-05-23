@@ -49,6 +49,18 @@ internal sealed class WinRmCredentialBootstrap
 
     public WinRmCredentialBootstrapResult Write(ServerProfileDto server)
     {
+        ArgumentNullException.ThrowIfNull(server);
+        return Write(
+            server,
+            server.RemoteServer,
+            WinRmPowerShellLaunchBuilder.ResolvePort(server));
+    }
+
+    public WinRmCredentialBootstrapResult Write(
+        ServerProfileDto server,
+        string computerName,
+        int port)
+    {
         ValidateCredentialProfile(server);
 
         string? plaintextPassword = _unprotectStoredPassword(server.WinRmPasswordEncrypted);
@@ -60,7 +72,7 @@ internal sealed class WinRmCredentialBootstrap
         try
         {
             string dpapiPasswordBlob = _protectBootstrapPassword(plaintextPassword);
-            string script = BuildScript(server, dpapiPasswordBlob);
+            string script = BuildScript(server, dpapiPasswordBlob, computerName, port);
             string scriptPath = _createScriptPath();
 
             _writeAndProtect(scriptPath, script);
@@ -96,6 +108,20 @@ internal sealed class WinRmCredentialBootstrap
 
     internal static string BuildScript(ServerProfileDto server, string dpapiPasswordBlob)
     {
+        ArgumentNullException.ThrowIfNull(server);
+        return BuildScript(
+            server,
+            dpapiPasswordBlob,
+            server.RemoteServer,
+            WinRmPowerShellLaunchBuilder.ResolvePort(server));
+    }
+
+    internal static string BuildScript(
+        ServerProfileDto server,
+        string dpapiPasswordBlob,
+        string computerName,
+        int port)
+    {
         ValidateCredentialProfile(server);
         ArgumentException.ThrowIfNullOrEmpty(dpapiPasswordBlob);
 
@@ -103,6 +129,8 @@ internal sealed class WinRmCredentialBootstrap
         string blobLiteral = WinRmPowerShellLaunchBuilder.QuotePowerShellLiteral(dpapiPasswordBlob);
         string enterCommand = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
             server,
+            computerName,
+            port,
             "$credential");
 
         string[] lines =

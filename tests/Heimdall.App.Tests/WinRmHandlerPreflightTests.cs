@@ -33,6 +33,7 @@ public sealed class WinRmHandlerPreflightTests
         WinRmPreflight preflight = new WinRmPreflight(
             tcpProbe: DnsFailureProbeAsync);
         WinRmHandler handler = new WinRmHandler(
+            new PassThroughTunnelService(),
             new ConnectionStateMachine(),
             new LocalizationManager(),
             preflight);
@@ -67,4 +68,22 @@ public sealed class WinRmHandlerPreflightTests
             WinRmUseSsl = false,
             WinRmIdentityMode = WinRmIdentityMode.CurrentUser
         };
+
+    private sealed class PassThroughTunnelService : ITunnelService
+    {
+        public Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)> SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+        {
+            return Task.FromResult((true, false, server.RemoteServer, remotePort, (string?)null));
+        }
+
+        public void UpdateSettings(AppSettings settings)
+        {
+        }
+
+        public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
+    }
 }
