@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using Heimdall.App.Services;
@@ -76,6 +77,41 @@ public sealed class SshHandlerConnectTests
         Assert.Equal(0, tunnelService.ReleaseCount);
     }
 
+    [Fact]
+    public async Task ConnectAsync_ExternalModeFailureReleasesTunnelReference()
+    {
+        int freePort = ReserveAndReleaseLoopbackPort();
+        string puttyPath = Path.GetTempFileName();
+        try
+        {
+            FakeTunnelService tunnelService = new FakeTunnelService
+            {
+                UsesTunnel = true,
+                TargetHost = "127.0.0.1",
+                TargetPort = freePort
+            };
+            SshHandler handler = CreateHandler(tunnelService);
+            ServerProfileDto server = CreateExternalGatewayServer();
+            AppSettings settings = new AppSettings
+            {
+                PuttyPath = puttyPath
+            };
+
+            ConnectionResult result = await handler.ConnectAsync(
+                server,
+                settings,
+                CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal(1, tunnelService.ReleaseCount);
+            Assert.Equal(freePort, tunnelService.ReleasedLocalPort);
+        }
+        finally
+        {
+            File.Delete(puttyPath);
+        }
+    }
+
     private static SshHandler CreateHandler(FakeTunnelService tunnelService)
     {
         LocalizationManager localizer = new LocalizationManager();
@@ -102,6 +138,22 @@ public sealed class SshHandlerConnectTests
             SshPort = DefaultPorts.Ssh,
             SshMode = "Embedded",
             SshUsername = "operator",
+            SshGatewayId = "gateway-01",
+            UseDirectConnection = false
+        };
+    }
+
+    private static ServerProfileDto CreateExternalGatewayServer()
+    {
+        return new ServerProfileDto
+        {
+            Id = "ssh-external-gateway-test",
+            DisplayName = "SSH External Gateway Test",
+            ConnectionType = "SSH",
+            RemoteServer = "server01.contoso.local",
+            SshPort = DefaultPorts.Ssh,
+            SshMode = "External",
+            SshUsername = "invalid user",
             SshGatewayId = "gateway-01",
             UseDirectConnection = false
         };
