@@ -253,6 +253,11 @@
                     return;
                 }
 
+                if (message.indexOf('set-convert-eol:') === 0) {
+                    term.options.convertEol = message.substring('set-convert-eol:'.length) === 'true';
+                    return;
+                }
+
                 if (message.indexOf('clipboard-paste:') === 0) {
                     var pasteB64 = message.substring('clipboard-paste:'.length);
                     if (pasteB64) {
