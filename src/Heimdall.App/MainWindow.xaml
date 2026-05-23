@@ -2382,8 +2382,20 @@
 
                     <!-- ═══════ RDP ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabRdp" Header="{loc:Translate SettingsTabRdp}" Style="{StaticResource ThemedTabItemStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TabControl x:Name="Mw_SettingsRdpSubTabControl"
+                                        Grid.Row="0"
+                                        Style="{StaticResource SegmentedTabControlStyle}">
+                                <TabItem x:Name="Mw_SettingsRdpSubTabDisplayAudio"
+                                         Header="{loc:Translate SettingsRdpSubTabDisplayAudio}"
+                                         Style="{StaticResource SegmentedTabItemStyle}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="{loc:Translate SettingsSectionRdpDefaults}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -2444,7 +2456,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpAudioTitle" Text="{loc:Translate SettingsSectionRdpAudio}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <StackPanel>
@@ -2458,18 +2470,16 @@
                                         <CheckBox x:Name="Mw_SettingsRdpAudioCapture" Content="{loc:Translate RdpAudioCapture}" IsChecked="{Binding Settings.RdpDefaultAudioCapture}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0" ToolTip="{loc:Translate RdpAudioCaptureHint}"/>
                                     </StackPanel>
                                 </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
 
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
-                                    <StackPanel>
-                                        <TextBlock x:Name="Mw_SettingsRdpPerformanceTitle" Text="{loc:Translate SettingsSectionRdpPerformance}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="{loc:Translate SettingsLabelRdpBitmapCache}" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpBitmapCachingHint}"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpCompression" Content="{loc:Translate SettingsLabelRdpCompression}" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpCompressionHint}"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpAutoReconnect" Content="{loc:Translate SettingsLabelRdpAutoReconnect}" IsChecked="{Binding Settings.RdpDefaultAutoReconnect}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpAutoReconnectHint}"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpNla" Content="{loc:Translate SettingsLabelRdpNla}" IsChecked="{Binding Settings.RdpDefaultNla}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpDefaultNlaHint}"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                <TabItem x:Name="Mw_SettingsRdpSubTabDevices"
+                                         Header="{loc:Translate SettingsRdpSubTabDevices}"
+                                         Style="{StaticResource SegmentedTabItemStyle}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpDevicesTitle" Text="{loc:Translate SettingsSectionRdpDevices}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="{loc:Translate ServerDialogRedirectClipboard}" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpRedirectClipboardHint}"/>
@@ -2481,6 +2491,34 @@
                                         <CheckBox x:Name="Mw_SettingsRdpUsb" Content="{loc:Translate ServerDialogRedirectUsb}" IsChecked="{Binding Settings.RdpDefaultRedirectUsb}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpRedirectUsbHint}"/>
                                     </StackPanel>
                                 </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem x:Name="Mw_SettingsRdpSubTabPerformance"
+                                         Header="{loc:Translate SettingsRdpSubTabPerformance}"
+                                         Style="{StaticResource SegmentedTabItemStyle}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
+
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpPerformanceTitle" Text="{loc:Translate SettingsSectionRdpPerformance}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="{loc:Translate SettingsLabelRdpBitmapCache}" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" ToolTip="{loc:Translate RdpBitmapCachingHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpCompression" Content="{loc:Translate SettingsLabelRdpCompression}" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpCompressionHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpAutoReconnect" Content="{loc:Translate SettingsLabelRdpAutoReconnect}" IsChecked="{Binding Settings.RdpDefaultAutoReconnect}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpAutoReconnectHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpNla" Content="{loc:Translate SettingsLabelRdpNla}" IsChecked="{Binding Settings.RdpDefaultNla}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" ToolTip="{loc:Translate RdpDefaultNlaHint}"/>
+                                    </StackPanel>
+                                </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem x:Name="Mw_SettingsRdpSubTabBehavior"
+                                         Header="{loc:Translate SettingsRdpSubTabBehavior}"
+                                         Style="{StaticResource SegmentedTabItemStyle}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
 
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
                                     <Expander x:Name="Mw_SettingsRdpAdvancedTimeoutsExpander"
@@ -2548,7 +2586,7 @@
                                     </Expander>
                                 </Border>
 
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock Text="{loc:Translate SettingsSectionRdpDialog}"
                                                    FontSize="{StaticResource FontSizeSubtitle}"
@@ -2639,20 +2677,24 @@
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
 
                                 <Button x:Name="Mw_SettingsResetRdpDefaults"
+                                        Grid.Row="1"
                                         Content="{loc:Translate SettingsResetRdpDefaults}"
                                         Command="{Binding Settings.ResetRdpDefaultsCommand}"
                                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                                         FontSize="{StaticResource FontSizeCaption}"
                                         Foreground="{DynamicResource TextTertiaryBrush}"
                                         HorizontalAlignment="Left"
-                                        Margin="0,0,0,12"
+                                        Margin="16,8,0,12"
                                         Padding="0,4"
                                         ToolTip="{loc:Translate SettingsResetRdpDefaultsTooltip}"
                                         AutomationProperties.Name="{loc:Translate SettingsResetRdpDefaults}"/>
-                            </StackPanel>
-                        </ScrollViewer>
+                        </Grid>
                     </TabItem>
 
                     <!-- ═══════ SECURITY ═══════ -->
