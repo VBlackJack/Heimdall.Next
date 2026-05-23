@@ -87,7 +87,7 @@ internal sealed class SshHandler : IProtocolHandler
             $"ConnectSshAsync: {server.DisplayName} ({server.RemoteServer}:{server.SshPort}) Gateway={server.SshGatewayId ?? "none"}");
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
-        var (tunnelOk, _, targetHost, targetPort, tunnelError) =
+        (bool tunnelOk, bool usesTunnel, string targetHost, int targetPort, string? tunnelError) =
             await _tunnelService.SetupTunnelIfNeededAsync(server, server.SshPort, settings, ct)
                 .ConfigureAwait(false);
 
@@ -138,6 +138,7 @@ internal sealed class SshHandler : IProtocolHandler
         {
             var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
             _connectionSm.SetError(server.Id, message);
+            ReleaseTunnelIfNeeded(usesTunnel, targetPort);
             return new ConnectionResult(
                 false,
                 message,
@@ -156,6 +157,7 @@ internal sealed class SshHandler : IProtocolHandler
                     settings,
                     targetHost,
                     targetPort,
+                    usesTunnel,
                     originalFailure: null,
                     ct)
                 .ConfigureAwait(false);
@@ -179,6 +181,7 @@ internal sealed class SshHandler : IProtocolHandler
         catch (HostKeyRejectedException ex)
         {
             session.Dispose();
+            ReleaseTunnelIfNeeded(usesTunnel, targetPort);
 
             if (ex.IsMismatch && !string.IsNullOrWhiteSpace(ex.StoredFingerprint))
             {
@@ -223,6 +226,7 @@ internal sealed class SshHandler : IProtocolHandler
                 {
                     var message = _localizer[SshLocalizationKeys.ErrorPlinkOpenSshAgentUnsupported];
                     _connectionSm.SetError(server.Id, message);
+                    ReleaseTunnelIfNeeded(usesTunnel, targetPort);
                     return new ConnectionResult(
                         false,
                         message,
@@ -236,11 +240,19 @@ internal sealed class SshHandler : IProtocolHandler
                 Core.Logging.FileLogger.Info(
                     $"SSH.NET auth failed ({failure.Code}), falling back to Plink: {failure.Message}");
                 SetStatusText?.Invoke(_localizer[SshLocalizationKeys.StatusSshRetryingViaPlink]);
-                return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, failure.Code, ct)
+                return await ConnectSshViaPlinkAsync(
+                        server,
+                        settings,
+                        targetHost,
+                        targetPort,
+                        usesTunnel,
+                        failure.Code,
+                        ct)
                     .ConfigureAwait(false);
             }
 
             _connectionSm.SetError(server.Id, failure.Message);
+            ReleaseTunnelIfNeeded(usesTunnel, targetPort);
             return new ConnectionResult(
                 false,
                 failure.Message,
@@ -250,6 +262,16 @@ internal sealed class SshHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new SshSessionResult(session));
+    }
+
+    private void ReleaseTunnelIfNeeded(bool usesTunnel, int tunnelLocalPort)
+    {
+        if (!usesTunnel || tunnelLocalPort <= 0)
+        {
+            return;
+        }
+
+        _tunnelService.ReleaseTunnelReference(tunnelLocalPort);
     }
 
     /// <summary>
@@ -355,159 +377,169 @@ internal sealed class SshHandler : IProtocolHandler
         AppSettings settings,
         string targetHost,
         int targetPort,
+        bool usesTunnel,
         SshFailureCode? originalFailure,
         CancellationToken ct)
     {
-        var plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
-        if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
+        bool releaseTunnel = usesTunnel;
+        try
         {
-            var msg = originalFailure is not null
-                ? _localizer.Format(SshLocalizationKeys.ErrorPlinkNotConfiguredWithReason, originalFailure)
-                : _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                    SshLocalizationKeys.ErrorPlinkNotConfigured,
+            string? plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
+            if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
+            {
+                string msg = originalFailure is not null
+                    ? _localizer.Format(SshLocalizationKeys.ErrorPlinkNotConfiguredWithReason, originalFailure)
+                    : _localizer[SshLocalizationKeys.ErrorPlinkNotConfigured];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
                     msg,
-                    originalFailure));
-        }
+                    null,
+                    SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                        SshLocalizationKeys.ErrorPlinkNotConfigured,
+                        msg,
+                        originalFailure));
+            }
 
-        if (!string.IsNullOrEmpty(server.SshUsername) &&
-            !InputValidator.Validate(server.SshUsername, "SshUser"))
-        {
-            var msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
-        }
+            if (!string.IsNullOrEmpty(server.SshUsername) &&
+                !InputValidator.Validate(server.SshUsername, "SshUser"))
+            {
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidSshUsername];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
+                    msg,
+                    null,
+                    SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
+            }
 
-        if (!IsValidSshHost(targetHost))
-        {
-            var msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(
-                false,
-                msg,
-                null,
-                SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
-        }
+            if (!IsValidSshHost(targetHost))
+            {
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(
+                    false,
+                    msg,
+                    null,
+                    SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidTargetHost, msg));
+            }
 
-        if (!InputValidator.ValidatePortRange(targetPort))
-        {
-            const string msg = "Invalid SSH target port.";
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
-        }
+            if (!InputValidator.ValidatePortRange(targetPort))
+            {
+                const string msg = "Invalid SSH target port.";
+                _connectionSm.SetError(server.Id, msg);
+                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
+            }
 
-        if (!TryValidateKeyPath(server.SshKeyPath, out var keyPathError))
-        {
-            _connectionSm.SetError(server.Id, keyPathError);
-            return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
-        }
+            if (!TryValidateKeyPath(server.SshKeyPath, out string keyPathError))
+            {
+                _connectionSm.SetError(server.Id, keyPathError);
+                return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
+            }
 
-        var target = !string.IsNullOrEmpty(server.SshUsername)
-            ? $"{server.SshUsername}@{targetHost}"
-            : targetHost;
+            string target = !string.IsNullOrEmpty(server.SshUsername)
+                ? $"{server.SshUsername}@{targetHost}"
+                : targetHost;
 
-        var storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
-        var hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
-                targetHost,
-                targetPort,
-                server.SshUsername,
-                plinkPath,
-                settings.HostKeyProbeTimeoutMs,
-                storedFingerprint,
-                _plinkHostKeyProbe,
-                _hostKeyVerifier,
-                _hostKeyTrustService,
-                ct)
-            .ConfigureAwait(false);
-
-        if (!hostKeyDecision.ShouldProceed)
-        {
-            return BuildPlinkHostKeyRejectionResult(
-                server.Id,
-                targetHost,
-                targetPort,
-                hostKeyDecision);
-        }
-
-        var hostKeyArg = hostKeyDecision.Fingerprint;
-
-        var passwordFilePath = CreatePlinkPasswordFile(
-            ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted));
-        if (ShouldPromptForPlinkPassword(passwordFilePath, server.SshKeyPath))
-        {
-            var promptedPassword = await _dialogService.ShowPasswordInputAsync(
-                    _localizer["DialogSshPasswordPromptTitle"],
-                    _localizer.Format("DialogSshPasswordPromptMessage", target),
+            string? storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
+            PlinkHostKeyDecision hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
+                    targetHost,
+                    targetPort,
+                    server.SshUsername,
+                    plinkPath,
+                    settings.HostKeyProbeTimeoutMs,
+                    storedFingerprint,
+                    _plinkHostKeyProbe,
+                    _hostKeyVerifier,
+                    _hostKeyTrustService,
                     ct)
                 .ConfigureAwait(false);
 
-            passwordFilePath = CreatePlinkPasswordFile(promptedPassword);
-            if (passwordFilePath is null)
+            if (!hostKeyDecision.ShouldProceed)
             {
-                var message = BuildCancelledMessage();
-                _connectionSm.SetError(server.Id, message);
+                return BuildPlinkHostKeyRejectionResult(
+                    server.Id,
+                    targetHost,
+                    targetPort,
+                    hostKeyDecision);
+            }
+
+            string? hostKeyArg = hostKeyDecision.Fingerprint;
+
+            string? passwordFilePath = CreatePlinkPasswordFile(
+                ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted));
+            if (ShouldPromptForPlinkPassword(passwordFilePath, server.SshKeyPath))
+            {
+                string? promptedPassword = await _dialogService.ShowPasswordInputAsync(
+                        _localizer["DialogSshPasswordPromptTitle"],
+                        _localizer.Format("DialogSshPasswordPromptMessage", target),
+                        ct)
+                    .ConfigureAwait(false);
+
+                passwordFilePath = CreatePlinkPasswordFile(promptedPassword);
+                if (passwordFilePath is null)
+                {
+                    string message = BuildCancelledMessage();
+                    _connectionSm.SetError(server.Id, message);
+                    return new ConnectionResult(
+                        false,
+                        message,
+                        null,
+                        SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
+                            SshLocalizationKeys.ErrorSshCancelled,
+                            message,
+                            SshFailureCode.Cancelled));
+                }
+            }
+
+            string args = BuildPipeModeArguments(
+                server.SshKeyPath,
+                server.SshCompression,
+                server.SshAgentForwarding,
+                server.SshX11Forwarding,
+                targetPort,
+                target,
+                hostKeyArg,
+                passwordFilePath);
+
+            Heimdall.Terminal.PipeModeSession terminalSession = new Heimdall.Terminal.PipeModeSession();
+            Core.Logging.FileLogger.Info($"SSH via Plink ({terminalSession.GetType().Name}): {plinkPath} {args}");
+
+            if (!string.IsNullOrEmpty(passwordFilePath))
+            {
+                string fileToDelete = passwordFilePath;
+                terminalSession.ProcessExited += _ => DeletePlinkPasswordFile(fileToDelete);
+            }
+
+            try
+            {
+                await terminalSession.StartAsync(plinkPath, args).ConfigureAwait(false);
+                Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminalSession.ProcessId}");
+                passwordFilePath = null;
+            }
+            catch (Exception ex)
+            {
+                terminalSession.Dispose();
+                DeletePlinkPasswordFile(passwordFilePath);
+                Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
+                _connectionSm.SetError(server.Id, ex.Message);
                 return new ConnectionResult(
                     false,
-                    message,
+                    ex.Message,
                     null,
-                    SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(
-                        SshLocalizationKeys.ErrorSshCancelled,
-                        message,
-                        SshFailureCode.Cancelled));
+                    SshSessionDiagnosticFactory.CreatePipeModeFailure(ex.Message));
             }
+
+            _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+            releaseTunnel = false;
+            return new ConnectionResult(true, null, new TerminalSessionResult(
+                terminalSession,
+                BuildDisplayEndpoint(server)));
         }
-
-        var args = BuildPipeModeArguments(
-            server.SshKeyPath,
-            server.SshCompression,
-            server.SshAgentForwarding,
-            server.SshX11Forwarding,
-            targetPort,
-            target,
-            hostKeyArg,
-            passwordFilePath);
-
-        var terminalSession = new Heimdall.Terminal.PipeModeSession();
-        Core.Logging.FileLogger.Info($"SSH via Plink ({terminalSession.GetType().Name}): {plinkPath} {args}");
-
-        if (!string.IsNullOrEmpty(passwordFilePath))
+        finally
         {
-            var fileToDelete = passwordFilePath;
-            terminalSession.ProcessExited += _ => DeletePlinkPasswordFile(fileToDelete);
+            ReleaseTunnelIfNeeded(releaseTunnel, targetPort);
         }
-
-        try
-        {
-            await terminalSession.StartAsync(plinkPath, args).ConfigureAwait(false);
-            Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminalSession.ProcessId}");
-            passwordFilePath = null;
-        }
-        catch (Exception ex)
-        {
-            terminalSession.Dispose();
-            DeletePlinkPasswordFile(passwordFilePath);
-            Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
-            _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(
-                false,
-                ex.Message,
-                null,
-                SshSessionDiagnosticFactory.CreatePipeModeFailure(ex.Message));
-        }
-
-        _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-        return new ConnectionResult(true, null, new TerminalSessionResult(
-            terminalSession,
-            BuildDisplayEndpoint(server)));
     }
 
     private static string BuildDisplayEndpoint(ServerProfileDto server)

@@ -1,0 +1,368 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Net;
+using System.Net.Sockets;
+using Heimdall.App.Services;
+using Heimdall.App.Services.Handlers;
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.PostConnect;
+using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Import;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
+using Heimdall.Core.StateMachine;
+using Heimdall.Ssh;
+
+namespace Heimdall.App.Tests;
+
+public sealed class SshHandlerConnectTests
+{
+    [Fact]
+    public async Task ConnectAsync_TunneledConnectFailureReleasesTunnelReference()
+    {
+        int freePort = ReserveAndReleaseLoopbackPort();
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = true,
+            TargetHost = "127.0.0.1",
+            TargetPort = freePort
+        };
+        SshHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreateGatewayServer();
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(1, tunnelService.ReleaseCount);
+        Assert.Equal(freePort, tunnelService.ReleasedLocalPort);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_DirectConnectFailureDoesNotReleaseTunnelReference()
+    {
+        int freePort = ReserveAndReleaseLoopbackPort();
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = false
+        };
+        SshHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreateDirectServer(freePort);
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, tunnelService.ReleaseCount);
+    }
+
+    private static SshHandler CreateHandler(FakeTunnelService tunnelService)
+    {
+        LocalizationManager localizer = new LocalizationManager();
+        return new SshHandler(
+            tunnelService,
+            new ConnectionStateMachine(),
+            localizer,
+            new HostKeyStore(),
+            new ThrowingHostKeyTrustService(),
+            AutoAcceptHostKeyVerifier.Instance,
+            new X11ServerManager(new InMemoryConfigManager(), localizer),
+            new ThrowingDialogService(),
+            plinkHostKeyProbe: null);
+    }
+
+    private static ServerProfileDto CreateGatewayServer()
+    {
+        return new ServerProfileDto
+        {
+            Id = "ssh-gateway-test",
+            DisplayName = "SSH Gateway Test",
+            ConnectionType = "SSH",
+            RemoteServer = "server01.contoso.local",
+            SshPort = DefaultPorts.Ssh,
+            SshMode = "Embedded",
+            SshUsername = "operator",
+            SshGatewayId = "gateway-01",
+            UseDirectConnection = false
+        };
+    }
+
+    private static ServerProfileDto CreateDirectServer(int port)
+    {
+        return new ServerProfileDto
+        {
+            Id = "ssh-direct-test",
+            DisplayName = "SSH Direct Test",
+            ConnectionType = "SSH",
+            RemoteServer = "127.0.0.1",
+            SshPort = port,
+            SshMode = "Embedded",
+            SshUsername = "operator",
+            UseDirectConnection = true
+        };
+    }
+
+    private static int ReserveAndReleaseLoopbackPort()
+    {
+        TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            IPEndPoint endpoint = (IPEndPoint)listener.LocalEndpoint;
+            return endpoint.Port;
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    private sealed class FakeTunnelService : ITunnelService
+    {
+        public bool UsesTunnel { get; init; }
+        public string TargetHost { get; init; } = "";
+        public int TargetPort { get; init; }
+        public int ReleaseCount { get; private set; }
+        public int ReleasedLocalPort { get; private set; }
+
+        public Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)> SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+        {
+            string host = UsesTunnel ? TargetHost : server.RemoteServer;
+            int port = UsesTunnel ? TargetPort : remotePort;
+            return Task.FromResult((true, UsesTunnel, host, port, (string?)null));
+        }
+
+        public void UpdateSettings(AppSettings settings)
+        {
+        }
+
+        public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
+
+        public void ReleaseTunnelReference(int localPort)
+        {
+            ReleaseCount++;
+            ReleasedLocalPort = localPort;
+        }
+    }
+
+    private sealed class ThrowingHostKeyTrustService : IHostKeyTrustService
+    {
+        public event Action<string, HostKeyEntry>? EntryTrusted { add { } remove { } }
+        public event Action<string>? EntryRemoved { add { } remove { } }
+        public event Action<string, HostKeyEntry, HostKeyEntry>? EntryReplaced { add { } remove { } }
+
+        public HostKeyEntry? GetEntry(string host, int port)
+        {
+            throw new NotImplementedException();
+        }
+
+        public HostKeyEntry? GetEffectiveEntry(string host, int port)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries()
+        {
+            throw new NotImplementedException();
+        }
+
+        public HostKeyVerifyResult Verify(
+            string host,
+            int port,
+            string presentedFingerprint,
+            string algorithm)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Trust(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            HostKeySource source,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TrustForSession(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Import(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            DateTimeOffset importedAt,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(string host, int port)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    private sealed class ThrowingDialogService : IDialogService
+    {
+        public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<string?> ShowPasswordInputAsync(
+            string title,
+            string prompt,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ScheduledTaskDialogResult?> ShowScheduledTaskDialogAsync(ScheduledTaskDialogViewModel? editVm = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ShowPinDialogAsync(PinDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<RdpImportSelection?> ShowRdpImportDialogAsync(RdpImportDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ImportOutcome?> ShowImportOpenSshConfigAsync(OpenSshParseResult parseResult)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ImportOutcome?> ShowImportPuttySessionsAsync(PuttySessionParseResult parseResult)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ShowTrustedHostKeyDetailsAsync(TrustedHostKeyDetailsDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ImportKnownHostsConflictResolution?> ShowImportKnownHostsConflictAsync(
+            ImportKnownHostsConflictDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
+            CommandLibraryPickerDialogViewModel viewModel,
+            AutoPrefillContext? prefillContext = null,
+            string? existingActionId = null,
+            IReadOnlyDictionary<string, string>? existingValues = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<string?> ShowBulkEditUsernameAsync(
+            int count,
+            string? initialUsername,
+            CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ShowError(string title, string message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ShowInfo(string title, string message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ShowWarning(string title, string message)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
