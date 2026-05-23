@@ -929,7 +929,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         // RDP
         ["rdp", "remote desktop", "resolution", "nla", "multi-monitor", "clipboard", "drives", "printers", "audio", "redirect", "color depth", "bitmap", "reconnect", "bureau \u00e0 distance"],
         // Security
-        ["security", "credential", "password", "keepass", "provider", "guard", "s\u00e9curit\u00e9", "mot de passe"],
+        ["security", "credential", "password", "keepass", "provider", "guard", "file sharing", "tftp", "share", "partage", "s\u00e9curit\u00e9", "mot de passe"],
         // Advanced
         ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils", "health", "monitor", "probe", "reachability", "concurrent", "sant\u00e9", "sondage", "joignabilit\u00e9"],
     ];
