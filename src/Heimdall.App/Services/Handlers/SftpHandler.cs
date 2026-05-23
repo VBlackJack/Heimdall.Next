@@ -66,7 +66,7 @@ internal sealed class SftpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
-        var (tunnelOk, _, targetHost, targetPort, tunnelError) =
+        (bool tunnelOk, bool usesTunnel, string targetHost, int targetPort, string? tunnelError) =
             await _tunnelService.SetupTunnelIfNeededAsync(server, server.SshPort, settings, ct)
                 .ConfigureAwait(false);
 
@@ -102,6 +102,7 @@ internal sealed class SftpHandler : IProtocolHandler
         catch (HostKeyRejectedException ex)
         {
             browser.Dispose();
+            ReleaseTunnelIfNeeded(usesTunnel, targetPort);
 
             if (ex.IsMismatch && !string.IsNullOrWhiteSpace(ex.StoredFingerprint))
             {
@@ -132,6 +133,7 @@ internal sealed class SftpHandler : IProtocolHandler
         catch (Exception ex)
         {
             browser.Dispose();
+            ReleaseTunnelIfNeeded(usesTunnel, targetPort);
             var failure = FailureClassifier.Classify(ex, sshParams);
             Core.Logging.FileLogger.Warn($"SFTP connect failed: {failure.Code} - {ex.Message}");
             _connectionSm.SetError(server.Id, failure.Message);
@@ -140,6 +142,16 @@ internal sealed class SftpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new SftpSessionBundle(browser, sshParams));
+    }
+
+    private void ReleaseTunnelIfNeeded(bool usesTunnel, int tunnelLocalPort)
+    {
+        if (!usesTunnel || tunnelLocalPort <= 0)
+        {
+            return;
+        }
+
+        _tunnelService.ReleaseTunnelReference(tunnelLocalPort);
     }
 
     private string BuildHostKeyMismatchMessage(
