@@ -1892,7 +1892,22 @@
                             Background="Transparent" BorderThickness="0">
 
                     <!-- ═══════ GENERAL ═══════ -->
-                    <TabItem x:Name="Mw_SettingsTabGeneral" Header="{loc:Translate SettingsTabGeneral}" Style="{StaticResource ThemedTabItemStyle}">
+                    <TabItem x:Name="Mw_SettingsTabGeneral" Style="{StaticResource ThemedTabItemStyle}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Translate SettingsTabGeneral}"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding Settings.HasGeneralTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding Settings.GeneralTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
@@ -1975,7 +1990,22 @@
                     </TabItem>
 
                     <!-- ═══════ TERMINAL ═══════ -->
-                    <TabItem x:Name="Mw_SettingsTabTerminal" Header="{loc:Translate SettingsTabTerminal}" Style="{StaticResource ThemedTabItemStyle}">
+                    <TabItem x:Name="Mw_SettingsTabTerminal" Style="{StaticResource ThemedTabItemStyle}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Translate SettingsTabTerminal}"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding Settings.HasTerminalTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding Settings.TerminalTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
@@ -2026,7 +2056,22 @@
                     </TabItem>
 
                     <!-- ═══════ SSH & SFTP ═══════ -->
-                    <TabItem x:Name="Mw_SettingsTabSsh" Header="{loc:Translate SettingsTabSshSftp}" Style="{StaticResource ThemedTabItemStyle}">
+                    <TabItem x:Name="Mw_SettingsTabSsh" Style="{StaticResource ThemedTabItemStyle}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Translate SettingsTabSshSftp}"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding Settings.HasSshTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding Settings.SshTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
@@ -2668,7 +2713,22 @@
                     </TabItem>
 
                     <!-- ═══════ ADVANCED ═══════ -->
-                    <TabItem x:Name="Mw_SettingsTabAdvanced" Header="{loc:Translate SettingsTabAdvanced}" Style="{StaticResource ThemedTabItemStyle}">
+                    <TabItem x:Name="Mw_SettingsTabAdvanced" Style="{StaticResource ThemedTabItemStyle}">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Translate SettingsTabAdvanced}"/>
+                                <Border CornerRadius="8"
+                                        Background="{DynamicResource ErrorTextBrush}"
+                                        MinWidth="18" Height="18"
+                                        Padding="5,0" Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding Settings.HasAdvancedTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding Settings.AdvancedTabErrorCount}"
+                                               Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </TabItem.Header>
                         <TabControl x:Name="Mw_SettingsAdvancedSubTabControl"
                                     Style="{StaticResource SegmentedTabControlStyle}">
                             <TabItem x:Name="Mw_SettingsAdvancedSubTabDiagnostics"
