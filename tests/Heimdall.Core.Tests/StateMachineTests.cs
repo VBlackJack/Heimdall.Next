@@ -38,7 +38,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void ValidTransition_Succeeds()
     {
-        var result = _sm.TryTransition("server-1", ConnectionState.Initializing);
+        bool result = _sm.TryTransition("server-1", ConnectionState.Initializing);
 
         Assert.True(result);
         Assert.Equal(ConnectionState.Initializing, _sm.GetState("server-1"));
@@ -47,7 +47,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void InvalidTransition_ReturnsFalse()
     {
-        var result = _sm.TryTransition("server-1", ConnectionState.Connected);
+        bool result = _sm.TryTransition("server-1", ConnectionState.Connected);
 
         Assert.False(result);
         Assert.Equal(ConnectionState.Disconnected, _sm.GetState("server-1"));
@@ -58,11 +58,11 @@ public class ConnectionStateMachineTests
     {
         _sm.TryTransition("server-1", ConnectionState.Initializing);
 
-        var result = _sm.SetError("server-1", "Something failed");
+        bool result = _sm.SetError("server-1", "Something failed");
 
         Assert.True(result);
         Assert.Equal(ConnectionState.Error, _sm.GetState("server-1"));
-        var data = _sm.GetStateData("server-1");
+        ConnectionStateData? data = _sm.GetStateData("server-1");
         Assert.NotNull(data);
         Assert.Equal("Something failed", data.ErrorMessage);
     }
@@ -74,7 +74,7 @@ public class ConnectionStateMachineTests
         // transition to Error first, then try again.
         _sm.SetError("server-1", "first error");
 
-        var result = _sm.SetError("server-1", "second error");
+        bool result = _sm.SetError("server-1", "second error");
 
         Assert.False(result);
     }
@@ -101,7 +101,7 @@ public class ConnectionStateMachineTests
 
         _sm.Reset("server-1");
 
-        var data = _sm.GetStateData("server-1");
+        ConnectionStateData? data = _sm.GetStateData("server-1");
         Assert.NotNull(data);
         Assert.Null(data.ErrorMessage);
         Assert.Null(data.TunnelLocalPort);
@@ -175,7 +175,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void StateChanged_DoesNotFire_OnInvalidTransition()
     {
-        var fired = false;
+        bool fired = false;
         _sm.StateChanged += (_, _, _, _) => { fired = true; };
 
         _sm.TryTransition("server-1", ConnectionState.Connected);
@@ -189,7 +189,7 @@ public class ConnectionStateMachineTests
         _sm.TryTransition("server-1", ConnectionState.Initializing);
         _sm.SetTunnelInfo("server-1", 55000, 1234);
 
-        var data = _sm.GetStateData("server-1");
+        ConnectionStateData? data = _sm.GetStateData("server-1");
         Assert.NotNull(data);
         Assert.Equal(55000, data.TunnelLocalPort);
         Assert.Equal(1234, data.TunnelProcessId);
@@ -203,7 +203,7 @@ public class ConnectionStateMachineTests
         _sm.TryTransition("server-1", ConnectionState.LaunchingRdp);
         _sm.TryTransition("server-1", ConnectionState.Connected);
 
-        var data = _sm.GetStateData("server-1");
+        ConnectionStateData? data = _sm.GetStateData("server-1");
         Assert.NotNull(data);
         Assert.NotNull(data.ConnectedAtUtc);
     }
@@ -218,7 +218,7 @@ public class ConnectionStateMachineTests
         _sm.TryTransition("server-1", ConnectionState.Disconnecting);
         _sm.TryTransition("server-1", ConnectionState.Disconnected);
 
-        var data = _sm.GetStateData("server-1");
+        ConnectionStateData? data = _sm.GetStateData("server-1");
         Assert.NotNull(data);
         Assert.Null(data.ConnectedAtUtc);
     }
@@ -236,7 +236,7 @@ public class ConnectionStateMachineTests
 
         _sm.SetError("error-1", "failed");
 
-        var active = _sm.GetActiveConnections();
+        IReadOnlyDictionary<string, ConnectionStateData> active = _sm.GetActiveConnections();
 
         Assert.Single(active);
         Assert.True(active.ContainsKey("active-1"));
@@ -250,7 +250,7 @@ public class ConnectionStateMachineTests
         _sm.TryTransition("server-3", ConnectionState.Initializing);
         _sm.TryTransition("server-3", ConnectionState.ValidatingConfig);
 
-        var initializing = _sm.GetServersByState(ConnectionState.Initializing).ToList();
+        List<string> initializing = _sm.GetServersByState(ConnectionState.Initializing).ToList();
 
         Assert.Equal(2, initializing.Count);
         Assert.Contains("server-1", initializing);
@@ -262,7 +262,7 @@ public class ConnectionStateMachineTests
     {
         _sm.TryTransition("server-1", ConnectionState.Initializing);
 
-        var snapshot = _sm.GetStateData("server-1");
+        ConnectionStateData? snapshot = _sm.GetStateData("server-1");
         Assert.NotNull(snapshot);
 
         _sm.TryTransition("server-1", ConnectionState.ValidatingConfig);
@@ -295,6 +295,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.LaunchingRdp, true)]
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.LaunchingSsh, true)]
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.LaunchingSftp, true)]
+    [InlineData(ConnectionState.TunnelEstablished, ConnectionState.LaunchingLocal, true)]
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.Error, true)]
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.Disconnecting, true)]
     [InlineData(ConnectionState.TunnelEstablished, ConnectionState.Disconnected, false)]
@@ -346,7 +347,7 @@ public class ConnectionStateMachineTests
         bool expectedAllowsUserAction,
         bool expectedIsProgress)
     {
-        var metadata = ConnectionStateMachine.GetMetadata(state);
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(state);
 
         Assert.Equal(expectedDisplayKey, metadata.DisplayKey);
         Assert.Equal(expectedLogKey, metadata.LogKey);
@@ -374,12 +375,12 @@ public class ConnectionStateMachineTests
     [Fact]
     public void CanTransition_LaunchingRdp_ToLaunchedExternalClient()
     {
-        var sm = new ConnectionStateMachine();
+        ConnectionStateMachine sm = new ConnectionStateMachine();
         Assert.True(sm.TryTransition("server-1", ConnectionState.Initializing));
         Assert.True(sm.TryTransition("server-1", ConnectionState.ValidatingConfig));
         Assert.True(sm.TryTransition("server-1", ConnectionState.LaunchingRdp));
 
-        var transitioned = sm.TryTransition("server-1", ConnectionState.LaunchedExternalClient);
+        bool transitioned = sm.TryTransition("server-1", ConnectionState.LaunchedExternalClient);
 
         Assert.True(transitioned);
         Assert.Equal(ConnectionState.LaunchedExternalClient, sm.GetState("server-1"));
@@ -388,7 +389,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void LaunchedExternalClient_CanTransitionToDisconnected()
     {
-        var sm = ArrangeAtLaunchedExternalClient("server-1");
+        ConnectionStateMachine sm = ArrangeAtLaunchedExternalClient("server-1");
 
         Assert.True(sm.TryTransition("server-1", ConnectionState.Disconnected));
         Assert.Equal(ConnectionState.Disconnected, sm.GetState("server-1"));
@@ -397,7 +398,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void LaunchedExternalClient_CanTransitionToError()
     {
-        var sm = ArrangeAtLaunchedExternalClient("server-1");
+        ConnectionStateMachine sm = ArrangeAtLaunchedExternalClient("server-1");
 
         Assert.True(sm.TryTransition("server-1", ConnectionState.Error));
         Assert.Equal(ConnectionState.Error, sm.GetState("server-1"));
@@ -406,7 +407,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void LaunchedExternalClient_CannotTransitionBackToConnected()
     {
-        var sm = ArrangeAtLaunchedExternalClient("server-1");
+        ConnectionStateMachine sm = ArrangeAtLaunchedExternalClient("server-1");
 
         Assert.False(sm.TryTransition("server-1", ConnectionState.Connected));
         Assert.Equal(ConnectionState.LaunchedExternalClient, sm.GetState("server-1"));
@@ -415,7 +416,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void LaunchedExternalClient_Metadata_UsesDedicatedStatusKey()
     {
-        var metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchedExternalClient);
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchedExternalClient);
 
         Assert.Equal("StatusLaunchedExternalClient", metadata.DisplayKey);
         Assert.Equal("LogLaunchedExternalClient", metadata.LogKey);
@@ -526,7 +527,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void LaunchingLocal_Metadata_IsProgressState()
     {
-        var metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchingLocal);
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchingLocal);
 
         Assert.Equal("StatusLaunchingLocal", metadata.DisplayKey);
         Assert.Equal("LogLocalShellLaunching", metadata.LogKey);
@@ -589,6 +590,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingFtp)]
     [InlineData(ConnectionState.LaunchingTelnet)]
     [InlineData(ConnectionState.LaunchingCitrix)]
+    [InlineData(ConnectionState.LaunchingLocal)]
     public void TunnelEstablished_ToLaunchState_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(ConnectionState.TunnelEstablished, launchState));
@@ -619,8 +621,8 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingCitrix)]
     public void FullTunnelWorkflow_Succeeds_ForAllProtocols(ConnectionState launchState)
     {
-        var sm = new ConnectionStateMachine();
-        var id = $"srv-{launchState}";
+        ConnectionStateMachine sm = new ConnectionStateMachine();
+        string id = $"srv-{launchState}";
 
         Assert.True(sm.TryTransition(id, ConnectionState.Initializing));
         Assert.True(sm.TryTransition(id, ConnectionState.ValidatingConfig));
@@ -643,8 +645,8 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingCitrix)]
     public void FullDirectWorkflow_Succeeds_ForAllProtocols(ConnectionState launchState)
     {
-        var sm = new ConnectionStateMachine();
-        var id = $"srv-{launchState}";
+        ConnectionStateMachine sm = new ConnectionStateMachine();
+        string id = $"srv-{launchState}";
 
         Assert.True(sm.TryTransition(id, ConnectionState.Initializing));
         Assert.True(sm.TryTransition(id, ConnectionState.ValidatingConfig));
@@ -659,7 +661,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void ConcurrentServers_ThreeServersInDifferentStates()
     {
-        var sm = new ConnectionStateMachine();
+        ConnectionStateMachine sm = new ConnectionStateMachine();
 
         // Server 1: Connected
         sm.TryTransition("srv-1", ConnectionState.Initializing);
@@ -681,7 +683,7 @@ public class ConnectionStateMachineTests
         Assert.Equal(ConnectionState.Error, sm.GetState("srv-3"));
 
         // Verify active connections excludes Error and Disconnected
-        var active = sm.GetActiveConnections();
+        IReadOnlyDictionary<string, ConnectionStateData> active = sm.GetActiveConnections();
         Assert.Equal(2, active.Count);
         Assert.True(active.ContainsKey("srv-1"));
         Assert.True(active.ContainsKey("srv-2"));
@@ -693,7 +695,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void ResetAfterError_TransitionsToDisconnected()
     {
-        var sm = new ConnectionStateMachine();
+        ConnectionStateMachine sm = new ConnectionStateMachine();
         sm.TryTransition("srv", ConnectionState.Initializing);
         sm.TryTransition("srv", ConnectionState.ValidatingConfig);
         sm.TryTransition("srv", ConnectionState.LaunchingVnc);
@@ -704,7 +706,7 @@ public class ConnectionStateMachineTests
         sm.Reset("srv");
 
         Assert.Equal(ConnectionState.Disconnected, sm.GetState("srv"));
-        var data = sm.GetStateData("srv");
+        ConnectionStateData? data = sm.GetStateData("srv");
         Assert.NotNull(data);
         Assert.Null(data.ErrorMessage);
     }
@@ -712,7 +714,7 @@ public class ConnectionStateMachineTests
     [Fact]
     public void ResetAfterError_CanReconnect()
     {
-        var sm = new ConnectionStateMachine();
+        ConnectionStateMachine sm = new ConnectionStateMachine();
         sm.TryTransition("srv", ConnectionState.Initializing);
         sm.SetError("srv", "timeout");
         sm.Reset("srv");
@@ -730,7 +732,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingCitrix, "StatusCitrixConnecting", "LogCitrixLaunching")]
     public void LaunchState_Metadata_IsProgressState(ConnectionState state, string displayKey, string logKey)
     {
-        var metadata = ConnectionStateMachine.GetMetadata(state);
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(state);
 
         Assert.Equal(displayKey, metadata.DisplayKey);
         Assert.Equal(logKey, metadata.LogKey);
@@ -764,19 +766,18 @@ public class ConnectionStateMachineTests
         Assert.Equal(expected, ConnectionStateMachine.IsValidTransition(from, to));
     }
 
-    // ── TunnelEstablished cannot transition to LaunchingLocal ────────────
+    // ── WinRM gateway launches through the local terminal state ──────────
 
     [Fact]
-    public void TunnelEstablished_CannotTransitionToLaunchingLocal()
+    public void TunnelEstablished_CanTransitionToLaunchingLocal()
     {
-        // Local shell does not use tunnels
-        Assert.False(ConnectionStateMachine.IsValidTransition(
+        Assert.True(ConnectionStateMachine.IsValidTransition(
             ConnectionState.TunnelEstablished, ConnectionState.LaunchingLocal));
     }
 
     private static ConnectionStateMachine ArrangeAtLaunchedExternalClient(string serverId)
     {
-        var sm = new ConnectionStateMachine();
+        ConnectionStateMachine sm = new ConnectionStateMachine();
         Assert.True(sm.TryTransition(serverId, ConnectionState.Initializing));
         Assert.True(sm.TryTransition(serverId, ConnectionState.ValidatingConfig));
         Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchingRdp));
@@ -798,7 +799,7 @@ public class ApplicationStatusMachineTests
     [Fact]
     public void TransitionToReady_Succeeds()
     {
-        var result = _sm.TryTransition(ApplicationStatus.Ready);
+        bool result = _sm.TryTransition(ApplicationStatus.Ready);
 
         Assert.True(result);
         Assert.Equal(ApplicationStatus.Ready, _sm.CurrentStatus);
@@ -808,7 +809,7 @@ public class ApplicationStatusMachineTests
     public void InvalidTransition_ReturnsFalse()
     {
         // Initializing -> Busy is not valid
-        var result = _sm.TryTransition(ApplicationStatus.Busy);
+        bool result = _sm.TryTransition(ApplicationStatus.Busy);
 
         Assert.False(result);
         Assert.Equal(ApplicationStatus.Initializing, _sm.CurrentStatus);
@@ -817,7 +818,7 @@ public class ApplicationStatusMachineTests
     [Fact]
     public void SameStateTransition_IsNoOp_ReturnsTrue()
     {
-        var result = _sm.TryTransition(ApplicationStatus.Initializing);
+        bool result = _sm.TryTransition(ApplicationStatus.Initializing);
 
         Assert.True(result);
         Assert.Equal(ApplicationStatus.Initializing, _sm.CurrentStatus);
@@ -859,7 +860,7 @@ public class ApplicationStatusMachineTests
     {
         _sm.TryTransition(ApplicationStatus.Ready);
 
-        using var op = _sm.BeginOperation("test operation");
+        using IDisposable op = _sm.BeginOperation("test operation");
 
         Assert.Equal(ApplicationStatus.Busy, _sm.CurrentStatus);
     }
@@ -869,7 +870,7 @@ public class ApplicationStatusMachineTests
     {
         _sm.TryTransition(ApplicationStatus.Ready);
 
-        var op = _sm.BeginOperation("test");
+        IDisposable op = _sm.BeginOperation("test");
         op.Dispose();
 
         Assert.Equal(ApplicationStatus.Ready, _sm.CurrentStatus);
@@ -880,7 +881,7 @@ public class ApplicationStatusMachineTests
     {
         _sm.TryTransition(ApplicationStatus.Ready);
 
-        var op = _sm.BeginOperation("test");
+        IDisposable op = _sm.BeginOperation("test");
         op.Dispose();
         op.Dispose(); // Should not throw or corrupt state
 
@@ -892,8 +893,8 @@ public class ApplicationStatusMachineTests
     {
         _sm.TryTransition(ApplicationStatus.Ready);
 
-        var op1 = _sm.BeginOperation("op1");
-        var op2 = _sm.BeginOperation("op2");
+        IDisposable op1 = _sm.BeginOperation("op1");
+        IDisposable op2 = _sm.BeginOperation("op2");
 
         op1.Dispose();
         Assert.Equal(ApplicationStatus.Busy, _sm.CurrentStatus);
@@ -906,7 +907,7 @@ public class ApplicationStatusMachineTests
     public void BeginOperation_Succeeds_WhenInitializing()
     {
         // Status is Initializing — allowed since startup needs tracked operations
-        using var op = _sm.BeginOperation();
+        using IDisposable op = _sm.BeginOperation();
         Assert.NotNull(op);
     }
 
@@ -952,7 +953,7 @@ public class ApplicationStatusMachineTests
     [Fact]
     public void StatusChanged_DoesNotFire_OnSameState()
     {
-        var fired = false;
+        bool fired = false;
         _sm.StatusChanged += (_, _) => { fired = true; };
 
         _sm.TryTransition(ApplicationStatus.Initializing);
@@ -963,7 +964,7 @@ public class ApplicationStatusMachineTests
     [Fact]
     public void StatusChanged_DoesNotFire_OnInvalidTransition()
     {
-        var fired = false;
+        bool fired = false;
         _sm.StatusChanged += (_, _) => { fired = true; };
 
         _sm.TryTransition(ApplicationStatus.Shutdown); // Invalid from Initializing
@@ -1039,7 +1040,7 @@ public class ApplicationStatusMachineTests
         bool expectedAllowsUserAction,
         bool expectedIsTerminal)
     {
-        var metadata = ApplicationStatusMachine.GetMetadata(status);
+        ApplicationStatusMetadata metadata = ApplicationStatusMachine.GetMetadata(status);
 
         Assert.Equal(expectedDisplayKey, metadata.DisplayKey);
         Assert.Equal(expectedAllowsUserAction, metadata.AllowsUserAction);

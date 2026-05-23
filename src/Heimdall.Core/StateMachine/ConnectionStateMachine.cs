@@ -33,7 +33,7 @@ public sealed class ConnectionStateMachine
         [ConnectionState.Initializing] = [ConnectionState.ValidatingConfig, ConnectionState.Error, ConnectionState.Disconnected],
         [ConnectionState.ValidatingConfig] = [ConnectionState.EstablishingTunnel, ConnectionState.LaunchingRdp, ConnectionState.LaunchingSsh, ConnectionState.LaunchingSftp, ConnectionState.LaunchingFtp, ConnectionState.LaunchingLocal, ConnectionState.LaunchingVnc, ConnectionState.LaunchingTelnet, ConnectionState.LaunchingCitrix, ConnectionState.Error, ConnectionState.Disconnected],
         [ConnectionState.EstablishingTunnel] = [ConnectionState.TunnelEstablished, ConnectionState.Error, ConnectionState.Disconnected],
-        [ConnectionState.TunnelEstablished] = [ConnectionState.LaunchingRdp, ConnectionState.LaunchingSsh, ConnectionState.LaunchingSftp, ConnectionState.LaunchingFtp, ConnectionState.LaunchingVnc, ConnectionState.LaunchingTelnet, ConnectionState.LaunchingCitrix, ConnectionState.Error, ConnectionState.Disconnecting],
+        [ConnectionState.TunnelEstablished] = [ConnectionState.LaunchingRdp, ConnectionState.LaunchingSsh, ConnectionState.LaunchingSftp, ConnectionState.LaunchingFtp, ConnectionState.LaunchingLocal, ConnectionState.LaunchingVnc, ConnectionState.LaunchingTelnet, ConnectionState.LaunchingCitrix, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingRdp] = [ConnectionState.Connected, ConnectionState.LaunchedExternalClient, ConnectionState.Error, ConnectionState.Disconnecting, ConnectionState.Disconnected],
         [ConnectionState.LaunchingSsh] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingSftp] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
@@ -82,7 +82,7 @@ public sealed class ConnectionStateMachine
     {
         lock (_lock)
         {
-            return _connections.TryGetValue(serverId, out var data)
+            return _connections.TryGetValue(serverId, out ConnectionStateData? data)
                 ? data.CurrentState
                 : ConnectionState.Disconnected;
         }
@@ -96,7 +96,7 @@ public sealed class ConnectionStateMachine
     {
         lock (_lock)
         {
-            return _connections.TryGetValue(serverId, out var data)
+            return _connections.TryGetValue(serverId, out ConnectionStateData? data)
                 ? data.Snapshot()
                 : null;
         }
@@ -113,7 +113,7 @@ public sealed class ConnectionStateMachine
 
         lock (_lock)
         {
-            var data = GetOrCreate(serverId);
+            ConnectionStateData data = GetOrCreate(serverId);
             if (!IsValidTransition(data.CurrentState, newState))
             {
                 return false;
@@ -158,7 +158,7 @@ public sealed class ConnectionStateMachine
 
         lock (_lock)
         {
-            var data = GetOrCreate(serverId);
+            ConnectionStateData data = GetOrCreate(serverId);
             if (!IsValidTransition(data.CurrentState, ConnectionState.Error))
             {
                 return false;
@@ -182,7 +182,7 @@ public sealed class ConnectionStateMachine
     {
         lock (_lock)
         {
-            var data = GetOrCreate(serverId);
+            ConnectionStateData data = GetOrCreate(serverId);
             data.TunnelLocalPort = localPort;
             data.TunnelProcessId = processId;
         }
@@ -201,7 +201,7 @@ public sealed class ConnectionStateMachine
 
         lock (_lock)
         {
-            if (!_connections.TryGetValue(serverId, out var data))
+            if (!_connections.TryGetValue(serverId, out ConnectionStateData? data))
             {
                 return;
             }
@@ -211,8 +211,7 @@ public sealed class ConnectionStateMachine
                 return;
             }
 
-            var originalState = data.CurrentState;
-            var pending = new List<(ConnectionState from, ConnectionState to)>();
+            List<(ConnectionState from, ConnectionState to)> pending = new List<(ConnectionState from, ConnectionState to)>();
 
             // From Error, go directly to Disconnected (Error cannot transition to Disconnecting)
             if (data.CurrentState != ConnectionState.Error
@@ -238,9 +237,9 @@ public sealed class ConnectionStateMachine
 
         // Emit events in order; state is already final so concurrent
         // reconnects will see Disconnected and create a new entry.
-        foreach (var (from, to) in transitions)
+        foreach ((ConnectionState from, ConnectionState to) transition in transitions)
         {
-            StateChanged?.Invoke(serverId, from, to, null);
+            StateChanged?.Invoke(serverId, transition.from, transition.to, null);
         }
     }
 
@@ -289,7 +288,7 @@ public sealed class ConnectionStateMachine
     /// </summary>
     public static bool IsValidTransition(ConnectionState from, ConnectionState to)
     {
-        return ValidTransitions.TryGetValue(from, out var targets) && targets.Contains(to);
+        return ValidTransitions.TryGetValue(from, out HashSet<ConnectionState>? targets) && targets.Contains(to);
     }
 
     /// <summary>
@@ -302,7 +301,7 @@ public sealed class ConnectionStateMachine
 
     private ConnectionStateData GetOrCreate(string serverId)
     {
-        if (!_connections.TryGetValue(serverId, out var data))
+        if (!_connections.TryGetValue(serverId, out ConnectionStateData? data))
         {
             data = new ConnectionStateData();
             _connections[serverId] = data;

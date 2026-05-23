@@ -46,4 +46,11 @@ public interface ITunnelService
     /// explain a session drop on that port; otherwise <c>null</c>.
     /// </summary>
     Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort);
+
+    /// <summary>
+    /// Releases one reference to an established tunnel local port.
+    /// </summary>
+    void ReleaseTunnelReference(int localPort)
+    {
+    }
 }

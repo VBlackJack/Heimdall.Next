@@ -1816,9 +1816,11 @@
   "ErrorWinRmInvalidConfiguration": "WinRM configuration is invalid: {0}",
   "ErrorWinRmCredentialUnavailable": "WinRM stored credential is unavailable.",
   "ErrorWinRmLaunchFailed": "Failed to launch WinRM terminal: {0}",
+  "ErrorWinRmSslGatewayUnsupported": "WinRM over an SSH gateway does not support HTTPS. Use HTTP, or connect directly.",
   "ErrorWinRmPreflightDnsFailure": "Cannot resolve WinRM host '{0}'.",
   "ErrorWinRmPreflightUnreachable": "WinRM host '{0}' is unreachable on port {1} (connection refused or timed out).",
   "ErrorWinRmPreflightTlsFailed": "The WinRM TLS connection to '{0}' on port {1} failed (untrusted certificate or handshake error).",
+  "WarnWinRmGatewayKerberos": "WinRM over a gateway: Kerberos is unavailable, authentication falls back to NTLM.",
 
   "SessionDisconnect": "Disconnect",
   "SessionAspectStretch": "Stretch",
