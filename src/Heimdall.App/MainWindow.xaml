@@ -347,6 +347,13 @@
                                                              DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                     <MenuItem Header="{loc:Translate A11yImportMenu}"
                                                               AutomationProperties.Name="{loc:Translate A11yImportMenu}">
+                                                        <MenuItem Header="{loc:Translate SettingsBtnImportServers}"
+                                                                  Command="{Binding Settings.ImportConfigCommand}"
+                                                                  AutomationProperties.Name="{loc:Translate AccessSettingsImport}"/>
+                                                        <MenuItem Header="{loc:Translate BtnImportCitrix}"
+                                                                  Command="{Binding Settings.ImportCitrixAppsCommand}"
+                                                                  AutomationProperties.Name="{loc:Translate AccessSettingsCitrix}"/>
+                                                        <Separator/>
                                                         <MenuItem Header="{loc:Translate MenuImportRdp}"
                                                                   Click="OnImportRdpClick"
                                                                   AutomationProperties.Name="{loc:Translate A11yImportRdp}"/>
@@ -361,6 +368,9 @@
                                                                   Command="{Binding ServerList.ImportKnownHostsCommand}"
                                                                   AutomationProperties.Name="{loc:Translate A11yImportKnownHosts}"/>
                                                     </MenuItem>
+                                                    <MenuItem Header="{loc:Translate SettingsBtnExportServers}"
+                                                              Command="{Binding Settings.ExportConfigCommand}"
+                                                              AutomationProperties.Name="{loc:Translate AccessSettingsExport}"/>
                                                     <Separator/>
                                                     <MenuItem Header="{loc:Translate TooltipExpandAll}"
                                                               Click="OnExpandAllClick"
@@ -1866,18 +1876,6 @@
                                                VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
-                            <Button x:Name="Mw_SettingsExportBtn" Content="{loc:Translate SettingsBtnExportServers}" Command="{Binding Settings.ExportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
-                                    ToolTip="{loc:Translate TooltipExport}"
-                                    AutomationProperties.Name="{loc:Translate AccessSettingsExport}"/>
-                            <Button x:Name="Mw_SettingsImportBtn" Content="{loc:Translate SettingsBtnImportServers}" Command="{Binding Settings.ImportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
-                                    ToolTip="{loc:Translate TooltipImport}"
-                                    AutomationProperties.Name="{loc:Translate AccessSettingsImport}"/>
-                            <Button x:Name="Mw_SettingsCitrixBtn" Content="{loc:Translate BtnImportCitrix}" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="160" Margin="0,0,8,4"
-                                    ToolTip="{loc:Translate TooltipImportCitrix}"
-                                    AutomationProperties.Name="{loc:Translate AccessSettingsCitrix}"/>
                         </WrapPanel>
                     </DockPanel>
                 </Border>
@@ -2616,7 +2614,7 @@
                     <TabItem x:Name="Mw_SettingsTabSecurity" Header="{loc:Translate SettingsTabSecurity}" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="{loc:Translate SettingsSectionCredentialProvider}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="{loc:Translate SettingsLabelCredProviderEnabled}" IsChecked="{Binding Settings.UseExternalCredentialProvider}" Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -2648,14 +2646,36 @@
                                         <CheckBox x:Name="Mw_SettingsCredGuard" Content="{loc:Translate SettingsLabelCredentialGuard}" IsChecked="{Binding Settings.RequireCredentialGuard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,0"/>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- File Sharing -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsFileSharingTitle" Text="{loc:Translate SettingsSectionFileSharing}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsEnableTftpShareCheckBox"
+                                                  IsChecked="{Binding Settings.FileShareEnableTftp, Mode=TwoWay}"
+                                                  Content="{loc:Translate CbxEnableTftpShare}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  FontSize="{StaticResource FontSizeBody}"/>
+                                        <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
+                                                   Margin="20,4,0,0"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource WarningTextBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
 
                     <!-- ═══════ ADVANCED ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabAdvanced" Header="{loc:Translate SettingsTabAdvanced}" Style="{StaticResource ThemedTabItemStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
+                        <TabControl x:Name="Mw_SettingsAdvancedSubTabControl"
+                                    Style="{StaticResource SegmentedTabControlStyle}">
+                            <TabItem x:Name="Mw_SettingsAdvancedSubTabDiagnostics"
+                                     Header="{loc:Translate SettingsAdvancedSubTabDiagnostics}"
+                                     Style="{StaticResource SegmentedTabItemStyle}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <!-- Logging -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
@@ -2690,21 +2710,25 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsTunnelDelayLabel" Text="{loc:Translate SettingsLabelTunnelDelay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100"/>
                                                     <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="{loc:Translate SettingsLabelRdpTimeout}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100"/>
                                                     <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <StackPanel Margin="0,12,0,0">
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,12,0,0">
                                                 <TextBlock x:Name="Mw_SettingsExtToolTimeoutLabel" Text="{loc:Translate SettingsLabelExtToolTimeout}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.ExternalToolTimeoutMs}" Width="100"/>
@@ -2716,7 +2740,7 @@
                                 </Border>
 
                                 <!-- Session Health Monitor -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsHealthMonitorTitle" Text="{loc:Translate SettingsSectionSessionHealthMonitor}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsHealthMonitorEnabledCheckBox"
@@ -2755,23 +2779,15 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
-
-                                <!-- File Sharing -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
-                                    <StackPanel>
-                                        <TextBlock x:Name="Mw_SettingsFileSharingTitle" Text="{loc:Translate SettingsSectionFileSharing}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                        <CheckBox x:Name="Mw_SettingsEnableTftpShareCheckBox"
-                                                  IsChecked="{Binding Settings.FileShareEnableTftp, Mode=TwoWay}"
-                                                  Content="{loc:Translate CbxEnableTftpShare}"
-                                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                                  FontSize="{StaticResource FontSizeBody}"/>
-                                        <TextBlock Text="{loc:Translate LblTftpNoAuthWarning}"
-                                                   Margin="20,4,0,0"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource WarningTextBrush}"
-                                                   TextWrapping="Wrap"/>
                                     </StackPanel>
-                                </Border>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem x:Name="Mw_SettingsAdvancedSubTabTools"
+                                     Header="{loc:Translate SettingsAdvancedSubTabTools}"
+                                     Style="{StaticResource SegmentedTabItemStyle}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
 
                                 <!-- External Editor -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
@@ -2981,8 +2997,10 @@
                                         </Border>
                                     </StackPanel>
                                 </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+                        </TabControl>
                     </TabItem>
 
                 </TabControl>

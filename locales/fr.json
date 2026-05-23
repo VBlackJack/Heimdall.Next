@@ -579,6 +579,8 @@
   "SettingsTabConnections": "Connexions",
   "SettingsTabSecurity": "S\u00e9curit\u00e9",
   "SettingsTabAdvanced": "Avanc\u00e9",
+  "SettingsAdvancedSubTabDiagnostics": "Diagnostics",
+  "SettingsAdvancedSubTabTools": "Outils et int\u00e9grations",
   "SettingsSearchPlaceholder": "Rechercher dans les param\u00e8tres...",
   "SettingsSearchResultCount": "Affichage de {0} sur {1} onglets",
   "A11ySettingsSearch": "Rechercher dans les param\u00e8tres",
