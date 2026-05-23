@@ -1827,6 +1827,7 @@
                                      Style="{DynamicResource SearchTextBoxStyle}"
                                      Tag="{loc:Translate SettingsSearchPlaceholder}" Padding="10,5,28,5"
                                      TextChanged="OnSettingsSearchTextChanged"
+                                     KeyDown="OnSettingsSearchKeyDown"
                                      AutomationProperties.Name="{loc:Translate A11ySettingsSearch}"/>
                             <Button x:Name="Mw_SettingsSearchClear"
                                     Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
