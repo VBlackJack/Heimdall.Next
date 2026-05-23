@@ -917,100 +917,277 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         RdpImportDropOverlay.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    // Settings search: keyword map for each sub-tab (English keywords, always match)
-    private static readonly string[][] SettingsTabKeywords =
-    [
-        // General
-        ["language", "theme", "editor", "appearance", "sessions", "sleep", "dark", "light", "langue", "apparence"],
-        // Terminal
-        ["terminal", "font", "color", "scheme", "powershell", "execution", "policy", "dracula", "monokai", "nord", "solarized", "police", "couleur"],
-        // SSH & SFTP
-        ["ssh", "sftp", "plink", "gateway", "tunnel", "anti-idle", "x11", "agent", "key", "passerelle", "cl\u00e9"],
-        // RDP
-        ["rdp", "remote desktop", "resolution", "nla", "multi-monitor", "clipboard", "drives", "printers", "audio", "redirect", "color depth", "bitmap", "reconnect", "bureau \u00e0 distance"],
-        // Security
-        ["security", "credential", "password", "keepass", "provider", "guard", "file sharing", "tftp", "share", "partage", "s\u00e9curit\u00e9", "mot de passe"],
-        // Advanced
-        ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils", "health", "monitor", "probe", "reachability", "concurrent", "sant\u00e9", "sondage", "joignabilit\u00e9"],
-    ];
+    private sealed record SettingsSearchEntry(FrameworkElement Target, TabItem TopTab, TabItem? SubTab);
 
-    private static string GetSettingsTabHeaderText(TabItem tab)
+    private List<SettingsSearchEntry>? _settingsSearchIndex;
+
+    private List<SettingsSearchEntry> _settingsSearchMatches = [];
+
+    private int _settingsSearchMatchIndex = -1;
+
+    private FrameworkElement? _settingsSearchHighlightElement;
+
+    private Brush? _settingsSearchHighlightOriginalBackground;
+
+    private DispatcherTimer? _settingsSearchHighlightTimer;
+
+    private void OnSettingsSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        if (tab.Header is string text)
+        string query = Mw_SettingsSearchBox.Text?.Trim() ?? string.Empty;
+        bool hasText = !string.IsNullOrEmpty(query);
+        Mw_SettingsSearchClear.Visibility = hasText ? Visibility.Visible : Visibility.Collapsed;
+        _settingsSearchMatchIndex = -1;
+
+        if (!hasText)
         {
-            return text;
+            _settingsSearchMatches = [];
+            Mw_SettingsSearchHint.Visibility = Visibility.Collapsed;
+            return;
         }
 
-        if (tab.Header is StackPanel stackPanel
-            && stackPanel.Children.Count > 0
-            && stackPanel.Children[0] is TextBlock textBlock)
+        _settingsSearchMatches = GetSettingsSearchIndex()
+            .Where((SettingsSearchEntry entry) =>
+                GetSettingsSearchEntryText(entry).IndexOf(query, StringComparison.InvariantCultureIgnoreCase) >= 0)
+            .ToList();
+
+        if (DataContext is MainViewModel vm)
+        {
+            Mw_SettingsSearchHintText.Text = _settingsSearchMatches.Count == 0
+                ? vm.Localize("SettingsSearchNoResults")
+                : string.Format(vm.Localize("SettingsSearchResultCount"), _settingsSearchMatches.Count);
+            Mw_SettingsSearchHint.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void OnSettingsSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || _settingsSearchMatches.Count == 0)
+        {
+            return;
+        }
+
+        _settingsSearchMatchIndex = (_settingsSearchMatchIndex + 1) % _settingsSearchMatches.Count;
+        SettingsSearchEntry entry = _settingsSearchMatches[_settingsSearchMatchIndex];
+        Mw_SettingsSubTabControl.SelectedItem = entry.TopTab;
+        if (entry.SubTab is not null)
+        {
+            entry.SubTab.IsSelected = true;
+        }
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Background,
+            new Action(() =>
+            {
+                entry.TopTab.UpdateLayout();
+                entry.SubTab?.UpdateLayout();
+                entry.Target.UpdateLayout();
+                Rect targetArea = new(
+                    0,
+                    0,
+                    Math.Max(entry.Target.ActualWidth, 1),
+                    Math.Max(entry.Target.ActualHeight, 1) + 72);
+                entry.Target.BringIntoView(targetArea);
+                HighlightSettingsSearchTarget(entry.Target);
+            }));
+
+        e.Handled = true;
+    }
+
+    private List<SettingsSearchEntry> GetSettingsSearchIndex()
+    {
+        if (_settingsSearchIndex is not null)
+        {
+            return _settingsSearchIndex;
+        }
+
+        List<SettingsSearchEntry> entries = [];
+        TabItem[] topTabs =
+        [
+            Mw_SettingsTabGeneral,
+            Mw_SettingsTabTerminal,
+            Mw_SettingsTabSsh,
+            Mw_SettingsTabRdp,
+            Mw_SettingsTabSecurity,
+            Mw_SettingsTabAdvanced,
+        ];
+
+        foreach (TabItem topTab in topTabs)
+        {
+            if (topTab.Content is DependencyObject content)
+            {
+                AddSettingsSearchEntries(content, topTab, null, entries);
+            }
+        }
+
+        _settingsSearchIndex = entries;
+        return _settingsSearchIndex;
+    }
+
+    private static void AddSettingsSearchEntries(
+        DependencyObject node,
+        TabItem topTab,
+        TabItem? subTab,
+        List<SettingsSearchEntry> entries)
+    {
+        if (node is System.Windows.Controls.TabControl tabControl)
+        {
+            foreach (object item in tabControl.Items)
+            {
+                if (item is TabItem tabItem && tabItem.Content is DependencyObject tabContent)
+                {
+                    AddSettingsSearchEntries(tabContent, topTab, tabItem, entries);
+                }
+            }
+
+            return;
+        }
+
+        if (node is TextBlock or System.Windows.Controls.CheckBox)
+        {
+            entries.Add(new SettingsSearchEntry((FrameworkElement)node, topTab, subTab));
+            return;
+        }
+
+        foreach (object child in LogicalTreeHelper.GetChildren(node))
+        {
+            if (child is DependencyObject dependencyObject)
+            {
+                AddSettingsSearchEntries(dependencyObject, topTab, subTab, entries);
+            }
+        }
+    }
+
+    private static string GetSettingsSearchEntryText(SettingsSearchEntry entry)
+    {
+        if (entry.Target is TextBlock textBlock)
         {
             return textBlock.Text ?? string.Empty;
+        }
+
+        if (entry.Target is System.Windows.Controls.CheckBox { Content: string text })
+        {
+            return text;
         }
 
         return string.Empty;
     }
 
-    private void OnSettingsSearchTextChanged(object sender, TextChangedEventArgs e)
+    private void HighlightSettingsSearchTarget(FrameworkElement target)
     {
-        var query = Mw_SettingsSearchBox.Text?.Trim() ?? "";
-        var hasText = !string.IsNullOrEmpty(query);
-        Mw_SettingsSearchClear.Visibility = hasText ? Visibility.Visible : Visibility.Collapsed;
+        ClearSettingsSearchHighlight();
 
-        var tabs = new TabItem[]
+        if (TryFindResource("AccentBrush") is not Brush accentBrush)
         {
-            Mw_SettingsTabGeneral, Mw_SettingsTabTerminal, Mw_SettingsTabSsh,
-            Mw_SettingsTabRdp, Mw_SettingsTabSecurity, Mw_SettingsTabAdvanced,
-        };
-
-        if (!hasText)
-        {
-            // Show all tabs
-            foreach (var tab in tabs)
-            {
-                tab.Visibility = Visibility.Visible;
-            }
-
-            Mw_SettingsSearchHint.Visibility = Visibility.Collapsed;
             return;
         }
 
-        string queryLower = query.ToLowerInvariant();
-        int matchCount = 0;
-        TabItem? firstMatch = null;
+        FrameworkElement highlightElement = GetSettingsSearchHighlightElement(target);
+        Brush highlightBrush = accentBrush.CloneCurrentValue();
+        highlightBrush.Opacity = 0.55;
 
-        for (int i = 0; i < tabs.Length && i < SettingsTabKeywords.Length; i++)
+        _settingsSearchHighlightElement = highlightElement;
+        _settingsSearchHighlightOriginalBackground = GetSettingsSearchBackground(highlightElement);
+        SetSettingsSearchBackground(highlightElement, highlightBrush);
+
+        DispatcherTimer timer = new()
         {
-            string[] keywords = SettingsTabKeywords[i];
-            // Also match against the tab header text
-            string headerText = GetSettingsTabHeaderText(tabs[i]).ToLowerInvariant();
-            // Explicit string types (instead of var) avoid an SDK 10.0.201 overload-resolution
-            // quirk that was mis-inferring queryLower as int and routing Contains to the
-            // Contains(char, StringComparison) overload.
-            bool matches = keywords.Any((string k) => k.Contains(queryLower))
-                           || headerText.Contains(queryLower);
+            Interval = TimeSpan.FromMilliseconds(1500),
+        };
+        timer.Tick += OnSettingsSearchHighlightTimerTick;
+        _settingsSearchHighlightTimer = timer;
+        timer.Start();
+    }
 
-            tabs[i].Visibility = matches ? Visibility.Visible : Visibility.Collapsed;
+    private void OnSettingsSearchHighlightTimerTick(object? sender, EventArgs e)
+    {
+        ClearSettingsSearchHighlight();
+    }
 
-            if (matches)
+    private void ClearSettingsSearchHighlight()
+    {
+        if (_settingsSearchHighlightTimer is not null)
+        {
+            _settingsSearchHighlightTimer.Stop();
+            _settingsSearchHighlightTimer.Tick -= OnSettingsSearchHighlightTimerTick;
+            _settingsSearchHighlightTimer = null;
+        }
+
+        if (_settingsSearchHighlightElement is not null)
+        {
+            SetSettingsSearchBackground(_settingsSearchHighlightElement, _settingsSearchHighlightOriginalBackground);
+            _settingsSearchHighlightElement = null;
+            _settingsSearchHighlightOriginalBackground = null;
+        }
+    }
+
+    private static FrameworkElement GetSettingsSearchHighlightElement(FrameworkElement target)
+    {
+        if (target is System.Windows.Controls.CheckBox)
+        {
+            System.Windows.Controls.Panel? panel = FindAncestor<System.Windows.Controls.Panel>(target);
+            if (panel is not null)
             {
-                matchCount++;
-                firstMatch ??= tabs[i];
+                return panel;
+            }
+
+            Border? border = FindAncestor<Border>(target);
+            if (border is not null)
+            {
+                return border;
             }
         }
 
-        // Auto-select the first matching tab if the current selection is hidden
-        if (Mw_SettingsSubTabControl.SelectedItem is TabItem selected && selected.Visibility == Visibility.Collapsed && firstMatch is not null)
+        return target;
+    }
+
+    private static Brush? GetSettingsSearchBackground(FrameworkElement element)
+    {
+        if (element is TextBlock textBlock)
         {
-            Mw_SettingsSubTabControl.SelectedItem = firstMatch;
+            return textBlock.Background;
         }
 
-        // Show hint text
-        if (DataContext is MainViewModel vm)
+        if (element is System.Windows.Controls.Panel panel)
         {
-            Mw_SettingsSearchHintText.Text = string.Format(
-                vm.Localize("SettingsSearchResultCount"), matchCount, tabs.Length);
-            Mw_SettingsSearchHint.Visibility = Visibility.Visible;
+            return panel.Background;
+        }
+
+        if (element is Border border)
+        {
+            return border.Background;
+        }
+
+        if (element is System.Windows.Controls.Control control)
+        {
+            return control.Background;
+        }
+
+        return null;
+    }
+
+    private static void SetSettingsSearchBackground(FrameworkElement element, Brush? background)
+    {
+        if (element is TextBlock textBlock)
+        {
+            textBlock.Background = background;
+            return;
+        }
+
+        if (element is System.Windows.Controls.Panel panel)
+        {
+            panel.Background = background;
+            return;
+        }
+
+        if (element is Border border)
+        {
+            border.Background = background;
+            return;
+        }
+
+        if (element is System.Windows.Controls.Control control)
+        {
+            control.Background = background;
         }
     }
 
