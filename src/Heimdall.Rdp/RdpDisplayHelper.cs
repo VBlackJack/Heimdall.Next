@@ -26,7 +26,7 @@ public static class RdpDisplayHelper
     public static readonly uint[] DeviceScaleFactors = [100, 140, 180];
 
     /// <summary>
-    /// Snaps a positive dimension down to the nearest multiple.
+    /// Snaps a dimension down to the nearest multiple; returns 0 for non-positive values.
     /// </summary>
     public static int SnapToMultipleOf(int value, int multiple)
     {

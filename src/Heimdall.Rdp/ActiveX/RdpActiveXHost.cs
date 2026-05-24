@@ -50,7 +50,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     private const int NonScriptable5PutUseMultimonSlot = 53;
 
     /// <summary>
-    /// Maximum number of auto-reconnect attempts MsTscAx performs before giving up.
+    /// Default number of auto-reconnect attempts; <see cref="SetResilienceOptions"/>
+    /// can override it within the [1,60] MsTscAx range.
     /// </summary>
     public const int MaxAutoReconnectAttempts = 20;
 
@@ -967,6 +968,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         3847 => "PasswordExpired",
         3848 => "CredSspPolicyError",
         4360 => "ResolutionChangeTimeout",
+        // Unknown codes intentionally fall through to raw-number display; MsTscAx
+        // extended-reason bit-packing is not decoded here.
         _ => null
     };
 

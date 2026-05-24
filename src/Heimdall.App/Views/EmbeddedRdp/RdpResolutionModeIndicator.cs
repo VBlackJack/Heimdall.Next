@@ -38,7 +38,7 @@ internal readonly record struct RdpEffectiveResolutionState(
 /// </summary>
 internal static class RdpResolutionModeIndicator
 {
-    // Segoe MDL2 Assets glyphs, expressed as escape sequences for clarity.
+    // Segoe MDL2 Assets glyphs as raw Private Use Area codepoints.
     private const string GlyphAuto = "";        // Settings — system decides
     private const string GlyphFitWindow = "";   // FullScreen — follows the window
     private const string GlyphSmartSizing = ""; // BackToWindow — smart shrink-fit
