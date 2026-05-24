@@ -398,7 +398,15 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         // Clear plaintext password from managed memory after COM handoff
         _pendingPassword = null;
 
-        ((dynamic)ocx).Connect();
+        try
+        {
+            ((dynamic)ocx).Connect();
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            throw;
+        }
     }
 
     /// <inheritdoc />
