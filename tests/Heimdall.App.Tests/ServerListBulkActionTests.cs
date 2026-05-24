@@ -1744,6 +1744,10 @@ public sealed class ServerListBulkActionTests
         }
 
         public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
+
+        public void ReleaseTunnelReference(int localPort)
+        {
+        }
     }
 
     private sealed class NullRdpImportService : IRdpImportService

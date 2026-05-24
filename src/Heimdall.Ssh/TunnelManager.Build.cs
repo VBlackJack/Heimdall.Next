@@ -365,7 +365,7 @@ public sealed partial class TunnelManager
 
                 port?.Dispose();
             }
-            catch (ObjectDisposedException ex)
+            catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"[TunnelManager] Cleanup {label}: {ex.Message}");
             }
@@ -382,7 +382,7 @@ public sealed partial class TunnelManager
 
                 client?.Dispose();
             }
-            catch (ObjectDisposedException ex)
+            catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"[TunnelManager] Cleanup {label}: {ex.Message}");
             }

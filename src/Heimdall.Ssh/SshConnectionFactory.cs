@@ -229,6 +229,12 @@ public static class SshConnectionFactory
             e.CanTrust = false;
         };
 
+        // Intentional cancellation path: SshClient.Connect() is synchronous
+        // and blocking. The CancellationToken passed to Task.Run can cancel
+        // queueing, but not an in-flight Connect(), so Disconnect() is the only
+        // way to interrupt a stuck probe. The brief Connect/Disconnect overlap
+        // is expected; exceptions are swallowed and cleanup still disposes the
+        // client through using/finally.
         await using var connectReg = cancellationToken.Register(
             () =>
             {
