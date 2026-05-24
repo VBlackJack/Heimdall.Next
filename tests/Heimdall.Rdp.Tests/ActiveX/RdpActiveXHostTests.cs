@@ -41,6 +41,89 @@ public sealed class RdpActiveXHostTests
         Assert.Equal(style, actual);
     }
 
+    [Theory]
+    [InlineData(0, "NoInfo")]
+    [InlineData(3, "AdminDisconnect")]
+    [InlineData(260, "DnsLookupFailed")]
+    [InlineData(2055, "BadCredentials")]
+    [InlineData(2308, "SocketClosed")]
+    [InlineData(3848, "CredSspPolicyError")]
+    [InlineData(4360, "ResolutionChangeTimeout")]
+    public void GetDisconnectReasonKey_KnownCode_ReturnsKey(int reason, string expected)
+    {
+        string? actual = RdpActiveXHost.GetDisconnectReasonKey(reason);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(9999)]
+    [InlineData(-1)]
+    public void GetDisconnectReasonKey_UnknownCode_ReturnsNull(int reason)
+    {
+        string? actual = RdpActiveXHost.GetDisconnectReasonKey(reason);
+
+        Assert.Null(actual);
+    }
+
+    [Theory]
+    [InlineData(2308, "RDP_SOCKET_CLOSED · 2308")]
+    [InlineData(3848, "RDP_CRED_SSP_POLICY_ERROR · 3848")]
+    [InlineData(0, "RDP_NO_INFO · 0")]
+    public void FormatDisconnectCode_KnownCode_ReturnsSymbolicCode(int reason, string expected)
+    {
+        string actual = RdpActiveXHost.FormatDisconnectCode(reason);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void FormatDisconnectCode_UnknownCode_ReturnsUnknownSymbolicCode()
+    {
+        string actual = RdpActiveXHost.FormatDisconnectCode(9999);
+
+        Assert.Equal("RDP_UNKNOWN · 9999", actual);
+    }
+
+    [Theory]
+    [InlineData(260)]
+    [InlineData(264)]
+    [InlineData(516)]
+    [InlineData(772)]
+    [InlineData(2308)]
+    [InlineData(2825)]
+    [InlineData(3080)]
+    [InlineData(4360)]
+    public void GetDisconnectSeverity_TransientCode_ReturnsTransient(int reason)
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.Transient, actual);
+    }
+
+    [Theory]
+    [InlineData(2055)]
+    [InlineData(2567)]
+    [InlineData(3335)]
+    [InlineData(3591)]
+    [InlineData(3847)]
+    public void GetDisconnectSeverity_AuthIssueCode_ReturnsAuthIssue(int reason)
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.AuthIssue, actual);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(9999)]
+    public void GetDisconnectSeverity_TerminalCode_ReturnsTerminalError(int reason)
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
+    }
+
     [Fact]
     public void PostConnectStripTimer_BeginStartsTicksAndStopsAfterMaxDuration()
     {
