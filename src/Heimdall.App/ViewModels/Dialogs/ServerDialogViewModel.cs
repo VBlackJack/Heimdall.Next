@@ -798,6 +798,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _rdpUsername = "";
 
     [ObservableProperty]
+    private string _rdpDomain = "";
+
+    [ObservableProperty]
     private string _rdpPassword = "";
 
     [ObservableProperty]
@@ -1698,6 +1701,7 @@ public partial class ServerDialogViewModel : ObservableValidator
                 ? ExistingTelnetPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(TelnetPassword),
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
+            RdpDomain = string.IsNullOrWhiteSpace(RdpDomain) ? null : RdpDomain,
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(RdpPassword),
@@ -1821,6 +1825,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.TelnetUsername = dto.TelnetUsername ?? "";
         vm.ExistingTelnetPasswordEncrypted = dto.TelnetPasswordEncrypted;
         vm.RdpUsername = dto.RdpUsername ?? "";
+        vm.RdpDomain = dto.RdpDomain ?? "";
         vm.ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted;
         vm.ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted;
         vm.ExistingSshKeyPassphraseEncrypted = dto.SshKeyPassphraseEncrypted;

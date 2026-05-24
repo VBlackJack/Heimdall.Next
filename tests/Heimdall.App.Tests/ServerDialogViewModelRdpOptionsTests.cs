@@ -54,6 +54,51 @@ public sealed class ServerDialogViewModelRdpOptionsTests
         Assert.True(vm2.RdpFullScreen);
     }
 
+    [Fact]
+    public void RdpDomain_round_trips_and_empty_values_map_to_null()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpUsername = "admin",
+            RdpDomain = "CORP"
+        };
+
+        ServerProfileDto dto = vm.ToDto();
+
+        Assert.Equal("CORP", dto.RdpDomain);
+
+        ServerDialogViewModel roundTripped = ServerDialogViewModel.FromDto(dto);
+
+        Assert.Equal("CORP", roundTripped.RdpDomain);
+
+        ServerDialogViewModel whitespace = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpDomain = "   "
+        };
+
+        ServerProfileDto whitespaceDto = whitespace.ToDto();
+
+        Assert.Null(whitespaceDto.RdpDomain);
+
+        ServerDialogViewModel empty = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpDomain = string.Empty
+        };
+
+        ServerProfileDto emptyDto = empty.ToDto();
+
+        Assert.Null(emptyDto.RdpDomain);
+    }
+
     [Theory]
     [InlineData(0x000)]
     [InlineData(0x001)]

@@ -740,8 +740,15 @@
                                                  ToolTip="{loc:Translate ServerDialogRdpUsernameHint}"
                                                  Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}"
                                                  Style="{StaticResource WatermarkTextBoxStyle}"/>
+                                        <TextBlock x:Name="DlgSrv_BasicRdpDomainLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                        <TextBox x:Name="DlgSrv_BasicRdpDomainBox" TabIndex="11"
+                                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelDomain}"
+                                                 Tag="{loc:Translate ServerDialogRdpDomainWatermark}"
+                                                 ToolTip="{loc:Translate ServerDialogRdpDomainHint}"
+                                                 Text="{Binding RdpDomain, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource WatermarkTextBoxStyle}"/>
                                         <TextBlock x:Name="DlgSrv_BasicRdpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                        <PasswordBox x:Name="RdpPasswordBox" TabIndex="11"
+                                        <PasswordBox x:Name="RdpPasswordBox" TabIndex="12"
                                                      AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
                                                      Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                                         <DockPanel Margin="0,8,0,0"
