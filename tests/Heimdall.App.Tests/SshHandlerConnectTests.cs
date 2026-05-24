@@ -112,6 +112,57 @@ public sealed class SshHandlerConnectTests
         }
     }
 
+    [Fact]
+    public async Task ConnectSshViaPlinkAsync_EarlyFailureWithTunnel_ReleasesTunnelReference()
+    {
+        const int targetPort = 13389;
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        SshHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreatePlinkServer();
+        AppSettings settings = new AppSettings
+        {
+            PlinkPath = @"C:\nonexistent\plink.exe"
+        };
+
+        ConnectionResult result = await handler.ConnectSshViaPlinkAsync(
+            server,
+            settings,
+            "127.0.0.1",
+            targetPort,
+            usesTunnel: true,
+            originalFailure: null,
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(1, tunnelService.ReleaseCount);
+        Assert.Equal(targetPort, tunnelService.ReleasedLocalPort);
+    }
+
+    [Fact]
+    public async Task ConnectSshViaPlinkAsync_EarlyFailureWithoutTunnel_DoesNotReleaseTunnelReference()
+    {
+        const int targetPort = 13389;
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        SshHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreatePlinkServer();
+        AppSettings settings = new AppSettings
+        {
+            PlinkPath = @"C:\nonexistent\plink.exe"
+        };
+
+        ConnectionResult result = await handler.ConnectSshViaPlinkAsync(
+            server,
+            settings,
+            "127.0.0.1",
+            targetPort,
+            usesTunnel: false,
+            originalFailure: null,
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, tunnelService.ReleaseCount);
+    }
+
     private static SshHandler CreateHandler(FakeTunnelService tunnelService)
     {
         LocalizationManager localizer = new LocalizationManager();
@@ -140,6 +191,20 @@ public sealed class SshHandlerConnectTests
             SshUsername = "operator",
             SshGatewayId = "gateway-01",
             UseDirectConnection = false
+        };
+    }
+
+    private static ServerProfileDto CreatePlinkServer()
+    {
+        return new ServerProfileDto
+        {
+            Id = "ssh-plink-test",
+            DisplayName = "SSH Plink Test",
+            ConnectionType = "SSH",
+            RemoteServer = "server01.contoso.local",
+            SshPort = DefaultPorts.Ssh,
+            // Intentionally invalid to force a deterministic early return with no network I/O.
+            SshUsername = "invalid user"
         };
     }
 

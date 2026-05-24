@@ -39,65 +39,10 @@ public sealed class HostKeyStore
     public event Action<string, string, bool>? HostKeyEvent;
 
     /// <summary>
-    /// Verify a host key received from the SSH.NET HostKeyReceived event.
-    /// Returns trusted on first use (TOFU) or fingerprint match.
-    /// Returns untrusted on fingerprint mismatch.
-    /// </summary>
-    /// <param name="host">Remote hostname or IP.</param>
-    /// <param name="port">Remote port.</param>
-    /// <param name="hostKey">Raw host key bytes from the server.</param>
-    /// <returns>Verification result indicating trust status.</returns>
-    /// <remarks>
-    /// <b>Obsolete:</b> the on-first-use return value is <c>Trusted = true,
-    /// FirstUse = true</c>, which a naive caller may misread as "trust without
-    /// prompting". Production code must route through
-    /// <see cref="HostKeyTrustService.Verify"/> or
-    /// <see cref="SshConnectionFactory.ResolvePresentedHostKeyAsync"/>,
-    /// which prompt the user via <see cref="IHostKeyVerifier"/> before
-    /// granting trust.
-    /// </remarks>
-    [Obsolete(
-        "Use HostKeyTrustService.Verify or SshConnectionFactory.ResolvePresentedHostKeyAsync. "
-        + "The byte[] overload returns Trusted=true on first use which is unsafe for callers "
-        + "that do not also prompt via IHostKeyVerifier.")]
-    public HostKeyVerifyResult Verify(string host, int port, byte[] hostKey)
-    {
-        ArgumentNullException.ThrowIfNull(host);
-        ArgumentNullException.ThrowIfNull(hostKey);
-
-        var key = HostKeyFormats.MakeKey(host, port);
-        var fingerprint = ComputeFingerprint(hostKey);
-
-        var sessionEntry = GetSessionEntry(host, port);
-        if (sessionEntry is not null
-            && ConstantTimeEquals(sessionEntry.Fingerprint, fingerprint))
-        {
-            return new HostKeyVerifyResult(Trusted: true, FirstUse: false, fingerprint, sessionEntry.Fingerprint);
-        }
-
-        if (_trustedKeys.TryGetValue(key, out var stored))
-        {
-            var match = ConstantTimeEquals(stored.Fingerprint, fingerprint);
-            return new HostKeyVerifyResult(match, FirstUse: false, fingerprint, stored.Fingerprint);
-        }
-
-        if (sessionEntry is not null)
-        {
-            return new HostKeyVerifyResult(
-                Trusted: false,
-                FirstUse: false,
-                fingerprint,
-                sessionEntry.Fingerprint);
-        }
-
-        // First use: trusted by TOFU policy
-        return new HostKeyVerifyResult(Trusted: true, FirstUse: true, fingerprint, StoredFingerprint: null);
-    }
-
-    /// <summary>
     /// Compare two fingerprint strings without leaking the position of any
-    /// differing byte through timing variations. ASCII-only by construction
-    /// because OpenSSH-style fingerprints are <c>SHA256:&lt;base64&gt;</c>.
+    /// differing byte through timing variations. Inputs are OpenSSH-style
+    /// fingerprints (<c>SHA256:&lt;base64&gt;</c>) and so are ASCII in practice;
+    /// the method itself does not enforce an ASCII charset.
     /// </summary>
     /// <remarks>
     /// The early-exit on length mismatch is acceptable here: OpenSSH host-key

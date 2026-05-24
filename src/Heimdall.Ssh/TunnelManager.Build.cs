@@ -308,7 +308,7 @@ public sealed partial class TunnelManager
         catch (Exception ex) { Core.Logging.FileLogger.Debug(logMessage, ex); }
     }
 
-    private sealed class TunnelBuildContext
+    internal sealed class TunnelBuildContext
     {
         public List<SshClient> IntermediateClients { get; } = [];
         public List<ForwardedPortLocal> IntermediatePorts { get; } = [];

@@ -62,9 +62,8 @@ public sealed class PlinkTunnelRunner : IDisposable
 
     public PlinkTunnelRunner(
         int portCheckIntervalMs = 2000,
-        int killGracePeriodMs = 2000,
-        int stderrReadTimeoutMs = 10000)
-        : this(new PlinkTunnelRunnerOptions(portCheckIntervalMs, killGracePeriodMs, stderrReadTimeoutMs))
+        int killGracePeriodMs = 2000)
+        : this(new PlinkTunnelRunnerOptions(portCheckIntervalMs, killGracePeriodMs))
     {
     }
 
@@ -148,10 +147,10 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         try
         {
-            _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-            _process.Exited += (_, _) =>
-                Core.Logging.FileLogger.Warn($"Plink tunnel process exited (pid={_process?.Id}, port={localPort})");
-            _process.Start();
+            Process process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+            _process = process;
+            process.Exited += (_, _) => LogProcessExit(process, localPort);
+            process.Start();
         }
         catch (Exception ex)
         {
@@ -214,6 +213,30 @@ public sealed class PlinkTunnelRunner : IDisposable
         {
             Stop();
             return new PlinkTunnelResult(false, $"Failed to start plink process: {ex.Message}", SshFailureCode.Unknown);
+        }
+    }
+
+    /// <summary>
+    /// Logs that a plink tunnel process exited. Best-effort diagnostics: the
+    /// <see cref="Process"/> may already have been disposed by a concurrent
+    /// <see cref="Stop"/>, so reading its id is guarded.
+    /// </summary>
+    internal static void LogProcessExit(Process process, int localPort)
+    {
+        ArgumentNullException.ThrowIfNull(process);
+
+        try
+        {
+            Core.Logging.FileLogger.Warn(
+                $"Plink tunnel process exited (pid={process.Id}, port={localPort})");
+        }
+        catch (Exception ex)
+        {
+            // The Process was disposed (or never started) by the time the
+            // Exited callback ran on its thread-pool thread. The exit
+            // notification is diagnostics-only; never let it escape.
+            Core.Logging.FileLogger.Debug(
+                $"[PlinkTunnelRunner] exit-log suppressed (port={localPort}): {ex.Message}");
         }
     }
 

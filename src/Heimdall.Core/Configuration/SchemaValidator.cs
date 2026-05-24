@@ -116,8 +116,6 @@ public static partial class SchemaValidator
             nameof(settings.PlinkPortCheckIntervalMs));
         ValidateRange(errors, settings.PlinkKillGracePeriodMs, 500, 30000,
             nameof(settings.PlinkKillGracePeriodMs));
-        ValidateRange(errors, settings.PlinkStderrReadTimeoutMs, 1000, 60000,
-            nameof(settings.PlinkStderrReadTimeoutMs));
         ValidateRange(errors, settings.SftpUploadDebounceMs, 500, 30000,
             nameof(settings.SftpUploadDebounceMs));
         ValidateRange(errors, settings.ServerShutdownTimeoutMs, 500, 30000,

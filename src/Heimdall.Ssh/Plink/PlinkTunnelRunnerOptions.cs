@@ -31,16 +31,6 @@ namespace Heimdall.Ssh.Plink;
 /// Maximum time <see cref="PlinkTunnelRunner.Stop"/> waits for plink.exe to
 /// exit cleanly after <c>Process.Kill</c> before giving up.
 /// </param>
-/// <param name="StderrReadTimeoutMs">
-/// Reserved for future use: read timeout applied to stderr drain operations.
-/// Currently the drain runs until cancellation; this value is preserved for
-/// API stability and forward compatibility.
-/// </param>
 public sealed record PlinkTunnelRunnerOptions(
     int PortCheckIntervalMs = 2000,
-    int KillGracePeriodMs = 2000,
-    int StderrReadTimeoutMs = 10000)
-{
-    /// <summary>The historical defaults used when no options object is supplied.</summary>
-    public static PlinkTunnelRunnerOptions Default { get; } = new();
-}
+    int KillGracePeriodMs = 2000);

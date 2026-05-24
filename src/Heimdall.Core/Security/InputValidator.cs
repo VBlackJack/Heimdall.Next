@@ -15,6 +15,7 @@
  */
 
 using System.Collections.Frozen;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Heimdall.Core.Security;
@@ -197,6 +198,17 @@ public static class InputValidator
 
         var trimmed = value.Trim().TrimStart('*', '.');
         return trimmed.Length > 0 && Validate(trimmed, "Address");
+    }
+
+    /// <summary>
+    /// Validate an SSH target host as either a domain name or an IP address.
+    /// </summary>
+    /// <param name="host">The host value to validate.</param>
+    /// <returns>True if the host can be used as an SSH target.</returns>
+    public static bool IsValidSshHost(string host)
+    {
+        return !string.IsNullOrWhiteSpace(host)
+            && (ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 
     /// <summary>

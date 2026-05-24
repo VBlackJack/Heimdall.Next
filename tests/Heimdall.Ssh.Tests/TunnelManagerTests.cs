@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Core.Ssh;
+using Renci.SshNet;
 
 namespace Heimdall.Ssh.Tests;
 
@@ -700,5 +701,46 @@ public class TunnelManagerTests : IDisposable
         Assert.False(result);
         Assert.Equal(0, openedCount);
         Assert.Equal(0, closedCount);
+    }
+
+    // ── TunnelBuildContext.Cleanup ───────────────────────────────────
+
+    [Fact]
+    public void TunnelBuildContext_Cleanup_DisposesEveryIntermediateAndFinalResource()
+    {
+        TunnelManager.TunnelBuildContext context = new TunnelManager.TunnelBuildContext();
+        SshClient firstIntermediateClient = new SshClient("127.0.0.1", "u", "p");
+        SshClient secondIntermediateClient = new SshClient("127.0.0.1", "u", "p");
+        SshClient finalClient = new SshClient("127.0.0.1", "u", "p");
+        ForwardedPortLocal firstIntermediatePort = new ForwardedPortLocal("127.0.0.1", 0u, "remote.invalid", 22u);
+        ForwardedPortLocal secondIntermediatePort = new ForwardedPortLocal("127.0.0.1", 0u, "remote.invalid", 22u);
+        ForwardedPortLocal finalPort = new ForwardedPortLocal("127.0.0.1", 0u, "remote.invalid", 22u);
+
+        context.IntermediateClients.Add(firstIntermediateClient);
+        context.IntermediateClients.Add(secondIntermediateClient);
+        context.IntermediatePorts.Add(firstIntermediatePort);
+        context.IntermediatePorts.Add(secondIntermediatePort);
+        context.FinalClient = finalClient;
+        context.FinalPort = finalPort;
+
+        Exception? cleanupException = Record.Exception(() => context.Cleanup());
+
+        Assert.Null(cleanupException);
+        Assert.Throws<ObjectDisposedException>(() => firstIntermediateClient.Connect());
+        Assert.Throws<ObjectDisposedException>(() => secondIntermediateClient.Connect());
+        Assert.Throws<ObjectDisposedException>(() => finalClient.Connect());
+        Assert.Throws<ObjectDisposedException>(() => firstIntermediatePort.Start());
+        Assert.Throws<ObjectDisposedException>(() => secondIntermediatePort.Start());
+        Assert.Throws<ObjectDisposedException>(() => finalPort.Start());
+    }
+
+    [Fact]
+    public void TunnelBuildContext_Cleanup_OnEmptyContext_DoesNotThrow()
+    {
+        TunnelManager.TunnelBuildContext context = new TunnelManager.TunnelBuildContext();
+
+        Exception? cleanupException = Record.Exception(() => context.Cleanup());
+
+        Assert.Null(cleanupException);
     }
 }

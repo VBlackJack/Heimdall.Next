@@ -19,7 +19,7 @@ namespace Heimdall.Ssh;
 /// <summary>
 /// Immutable snapshot describing an active SSH port-forwarding tunnel.
 /// </summary>
-/// <param name="ServerName">Display name of the gateway server.</param>
+/// <param name="ServerName">Host of the (final) gateway server.</param>
 /// <param name="LocalPort">Local port bound for forwarding.</param>
 /// <param name="RemoteHost">Target host on the remote network.</param>
 /// <param name="RemotePort">Target port on the remote network.</param>

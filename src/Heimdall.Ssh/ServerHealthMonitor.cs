@@ -73,13 +73,13 @@ internal sealed class SshHealthCommandRunner(SshClient client) : IHealthCommandR
 }
 
 /// <summary>
-/// Polls an SSH server for CPU, RAM, and disk usage at a configurable interval.
+/// Polls an SSH server for CPU, RAM, and disk usage at a fixed 15-second interval.
 /// Uses the existing <see cref="SshClient"/> from an active shell session to run
 /// lightweight monitoring commands on a multiplexed channel.
 /// </summary>
 public sealed class ServerHealthMonitor : IDisposable
 {
-    private static readonly int DefaultPollIntervalSeconds = 15;
+    private const int PollIntervalSeconds = 15;
     private const string CpuCommandText = "top -b -n 1 | head -5";
     private const string MemoryCommandText = "free -m | grep Mem";
     private const string DiskCommandText = "df -h / | tail -1";
@@ -267,7 +267,7 @@ public sealed class ServerHealthMonitor : IDisposable
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(DefaultPollIntervalSeconds), ct)
+                await Task.Delay(TimeSpan.FromSeconds(PollIntervalSeconds), ct)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)

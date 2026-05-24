@@ -56,7 +56,6 @@ public sealed class AppSettings
     public int SshKeepAliveIntervalSeconds { get; set; } = 30;
     public int PlinkPortCheckIntervalMs { get; set; } = 2000;
     public int PlinkKillGracePeriodMs { get; set; } = 2000;
-    public int PlinkStderrReadTimeoutMs { get; set; } = 10000;
     public int SftpUploadDebounceMs { get; set; } = 2000;
     public int ServerShutdownTimeoutMs { get; set; } = 2000;
     public int SleepPreventionIntervalSeconds { get; set; } = 60;

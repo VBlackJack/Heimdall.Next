@@ -26,7 +26,7 @@ namespace Heimdall.Ssh.Pageant;
 /// Supports SSH agent protocol operations: listing identities and signing data.
 /// Windows-only by construction (Pageant is a Windows GUI process).
 /// </summary>
-public class PageantClient : IDisposable
+public class PageantClient
 {
     private const byte SSH2_AGENTC_REQUEST_IDENTITIES = 11;
     private const byte SSH2_AGENT_IDENTITIES_ANSWER = 12;
@@ -41,8 +41,6 @@ public class PageantClient : IDisposable
     /// Pageant silently rejects WM_COPYDATA messages that don't carry this value.
     /// </summary>
     private static readonly IntPtr AgentCopyDataId = new(0x804e50ba);
-
-    private bool _disposed;
 
     /// <summary>
     /// Check whether the Pageant SSH agent window is reachable.
@@ -59,8 +57,6 @@ public class PageantClient : IDisposable
     /// <exception cref="InvalidOperationException">Pageant is not running or returned an invalid response.</exception>
     public List<PageantKey> GetIdentities()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         // Build request: [length:4 big-endian][SSH2_AGENTC_REQUEST_IDENTITIES:1]
         var request = new byte[5];
         WriteBigEndianUInt32(request, 0, 1); // payload length = 1
@@ -77,11 +73,10 @@ public class PageantClient : IDisposable
     /// <param name="keyBlob">Public key blob identifying which key to use for signing.</param>
     /// <param name="data">Data to sign (typically the session hash + auth request).</param>
     /// <param name="flags">Agent signature flags (0 for default behavior).</param>
-    /// <returns>Raw signature bytes as returned by the agent.</returns>
+    /// <returns>The full SSH signature blob from the agent (algorithm name + signature, each length-prefixed) — not raw signature bytes.</returns>
     /// <exception cref="InvalidOperationException">Pageant is not running or signing failed.</exception>
     public virtual byte[] SignData(byte[] keyBlob, byte[] data, uint flags = 0)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(keyBlob);
         ArgumentNullException.ThrowIfNull(data);
 
@@ -423,12 +418,4 @@ public class PageantClient : IDisposable
              | buffer[offset + 3];
     }
 
-    /// <summary>
-    /// Marks the client disposed. The current implementation owns no long-lived
-    /// handles; <see cref="IDisposable"/> is reserved for future handle caching.
-    /// </summary>
-    public void Dispose()
-    {
-        _disposed = true;
-    }
 }

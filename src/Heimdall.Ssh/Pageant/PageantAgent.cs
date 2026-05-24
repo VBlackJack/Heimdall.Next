@@ -31,7 +31,7 @@ public sealed class PageantAgent : ISshAgent
 
     public IReadOnlyList<ISshAgentKey> GetIdentities()
     {
-        using var client = new PageantClient();
+        PageantClient client = new PageantClient();
         return client.GetIdentities()
             .Select(key => new PageantAgentKey(key))
             .Cast<ISshAgentKey>()

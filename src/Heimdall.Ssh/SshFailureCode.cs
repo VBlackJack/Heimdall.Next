@@ -121,14 +121,6 @@ public enum SshFailureCode
     /// <summary>Circular dependency detected in gateway chain.</summary>
     CircularChainDependency,
 
-    // ── Prompts (embedded terminal) ────────────────────────────────────
-
-    /// <summary>Server is prompting for a username.</summary>
-    UsernamePrompt,
-
-    /// <summary>Server is prompting for a password.</summary>
-    PasswordPrompt,
-
     /// <summary>Operation was cancelled via CancellationToken.</summary>
     Cancelled
 }
