@@ -37,13 +37,12 @@ internal sealed class RdpConnectivityTester
         if (string.IsNullOrWhiteSpace(trimmedHost)
             || !InputValidator.Validate(trimmedHost, "Address"))
         {
-            return RdpConnectivityTestResult.Invalid(
-                "Server address does not match an accepted hostname or IP address format.");
+            return RdpConnectivityTestResult.InvalidAddress();
         }
 
         if (!InputValidator.ValidatePortRange(port))
         {
-            return RdpConnectivityTestResult.Invalid("Port must be between 1 and 65535.");
+            return RdpConnectivityTestResult.InvalidPort();
         }
 
         if (cancellationToken.IsCancellationRequested)
@@ -130,8 +129,11 @@ internal sealed record RdpConnectivityTestResult(
     public static RdpConnectivityTestResult Success(string address, TimeSpan dnsElapsed, TimeSpan tcpElapsed)
         => new(RdpConnectivityTestOutcome.Success, address, dnsElapsed, tcpElapsed, null, null);
 
-    public static RdpConnectivityTestResult Invalid(string detail)
-        => new(RdpConnectivityTestOutcome.Invalid, null, null, null, detail, null);
+    public static RdpConnectivityTestResult InvalidAddress()
+        => new(RdpConnectivityTestOutcome.InvalidAddress, null, null, null, null, null);
+
+    public static RdpConnectivityTestResult InvalidPort()
+        => new(RdpConnectivityTestOutcome.InvalidPort, null, null, null, null, null);
 
     public static RdpConnectivityTestResult DnsTimeout(TimeSpan timeout)
         => new(RdpConnectivityTestOutcome.DnsTimeout, null, timeout, null, null, null);
@@ -155,7 +157,8 @@ internal sealed record RdpConnectivityTestResult(
 internal enum RdpConnectivityTestOutcome
 {
     Success,
-    Invalid,
+    InvalidAddress,
+    InvalidPort,
     DnsTimeout,
     DnsFailed,
     DnsNoResults,

@@ -551,10 +551,8 @@ public partial class ServerDialogViewModel : ObservableValidator
                 L("ServerDialogRdpTestSuccess"),
                 result.ResolvedAddress ?? "?",
                 (int)Math.Round(result.TcpElapsed?.TotalMilliseconds ?? 0)),
-            RdpConnectivityTestOutcome.Invalid => string.Format(
-                CultureInfo.CurrentCulture,
-                L("ServerDialogRdpTestInvalid"),
-                result.Detail ?? string.Empty),
+            RdpConnectivityTestOutcome.InvalidAddress => L("ServerDialogRdpTestInvalidAddress"),
+            RdpConnectivityTestOutcome.InvalidPort => L("ServerDialogRdpTestInvalidPort"),
             RdpConnectivityTestOutcome.DnsTimeout => L("ServerDialogRdpTestDnsTimeout"),
             RdpConnectivityTestOutcome.DnsFailed => string.Format(
                 CultureInfo.CurrentCulture,
