@@ -616,6 +616,8 @@
   "SettingsLabelRdpResizeEnableDelay": "D\u00e9lai de stabilisation de la r\u00e9solution apr\u00e8s connexion",
   "SettingsLabelRdpArtifactCleanupDelay": "D\u00e9lai de nettoyage du fichier .rdp et des identifiants (mode externe)",
   "SettingsLabelRdpCredentialAutofillTimeout": "D\u00e9lai d'attente de l'auto-remplissage des identifiants",
+  "SettingsLabelRdpAutoReconnectMaxAttempts": "Nombre maximal de tentatives de reconnexion automatique",
+  "SettingsLabelRdpKeepAliveInterval": "Intervalle de maintien de session",
   "ValidationSettingsExtToolTimeout": "Le d\u00e9lai des outils externes doit \u00eatre entre 5000 et 600000 ms.",
   "GatewayFieldParentGateway": "Passerelle parente (multi-saut) :",
   "GatewayFieldParentGatewayHint": "S\u00e9lectionnez une passerelle parente pour cr\u00e9er une cha\u00eene SSH multi-saut. Laissez vide pour une connexion directe.",

@@ -616,6 +616,8 @@
   "SettingsLabelRdpResizeEnableDelay": "Resolution stabilization delay after connect",
   "SettingsLabelRdpArtifactCleanupDelay": ".rdp file and credential cleanup delay (external mode)",
   "SettingsLabelRdpCredentialAutofillTimeout": "Credential autofill watcher timeout",
+  "SettingsLabelRdpAutoReconnectMaxAttempts": "Auto-reconnect maximum attempts",
+  "SettingsLabelRdpKeepAliveInterval": "Session keep-alive interval",
   "ValidationSettingsExtToolTimeout": "External tool timeout must be between 5000 and 600000 ms.",
   "GatewayFieldParentGateway": "Parent Gateway (multi-hop):",
   "GatewayFieldParentGatewayHint": "Select a parent gateway to create a multi-hop SSH chain. Leave empty for direct connection.",
