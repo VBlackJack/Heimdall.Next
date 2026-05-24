@@ -26,6 +26,8 @@
 
     <!-- Asymmetric content area margin (below header, sides + bottom) -->
     <Thickness x:Key="ContentAreaMargin">16,0,16,16</Thickness>
+    <!-- Settings sub-tab content margin (trimmed top; the tab strip and card padding already provide spacing) -->
+    <Thickness x:Key="SettingsTabContentMargin">20,4,20,20</Thickness>
 
     <!-- Max width for single-column tool content panels -->
     <sys:Double x:Key="ToolContentMaxWidth">700</sys:Double>
