@@ -54,8 +54,14 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// </summary>
     public const int MaxAutoReconnectAttempts = 20;
 
+    private const int MinAutoReconnectAttempts = 1;
+    private const int MaxAutoReconnectAttemptsLimit = 60;
+
     /// <summary>TCP keep-alive interval in milliseconds (60 seconds).</summary>
     public const int DefaultKeepAliveIntervalMs = 60_000;
+
+    private const int MinKeepAliveIntervalMs = 5_000;
+    private const int MaxKeepAliveIntervalMs = 300_000;
 
     private object? _activeX;
     private bool _disposed;
@@ -360,8 +366,14 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// <inheritdoc />
     public void SetResilienceOptions(int maxAutoReconnectAttempts, int keepAliveIntervalMs)
     {
-        _maxAutoReconnectAttempts = Math.Clamp(maxAutoReconnectAttempts, 1, 60);
-        _keepAliveIntervalMs = Math.Clamp(keepAliveIntervalMs, 5_000, 300_000);
+        _maxAutoReconnectAttempts = Math.Clamp(
+            maxAutoReconnectAttempts,
+            MinAutoReconnectAttempts,
+            MaxAutoReconnectAttemptsLimit);
+        _keepAliveIntervalMs = Math.Clamp(
+            keepAliveIntervalMs,
+            MinKeepAliveIntervalMs,
+            MaxKeepAliveIntervalMs);
 
         Core.Logging.FileLogger.Info(
             $"RdpActiveXHost.SetResilienceOptions: reconnectAttempts={_maxAutoReconnectAttempts} keepAliveMs={_keepAliveIntervalMs} handleCreated={IsHandleCreated}");

@@ -22,6 +22,12 @@ namespace Heimdall.Rdp.Display;
 
 public static class RdpDisplayResolver
 {
+    private const int MinDesktopWidthPx = 640;
+    private const int WidthSnapMultiplePx = 4;
+    private const uint HighDeviceScaleThresholdPercent = 140;
+    private const uint StandardDeviceScaleFactor = 100u;
+    private const uint HighDeviceScaleFactor = 140u;
+
     private static readonly uint[] DesktopScaleFactors = [100, 125, 150, 175, 200];
     private static readonly Size DefaultSize = new(1024, 768);
 
@@ -36,7 +42,9 @@ public static class RdpDisplayResolver
         ArgumentNullException.ThrowIfNull(presets);
 
         var desktopScaleFactor = ResolveDesktopScaleFactor(hostContext.DesktopDpiScale);
-        var deviceScaleFactor = desktopScaleFactor <= 140 ? 100u : 140u;
+        var deviceScaleFactor = desktopScaleFactor <= HighDeviceScaleThresholdPercent
+            ? StandardDeviceScaleFactor
+            : HighDeviceScaleFactor;
 
         return configuredMode switch
         {
@@ -264,20 +272,20 @@ public static class RdpDisplayResolver
 
     private static int SnapDimension(int value)
     {
-        var snapped = RdpDisplayHelper.SnapToMultipleOf(value, 4);
-        return snapped > 0 ? snapped : 4;
+        var snapped = RdpDisplayHelper.SnapToMultipleOf(value, WidthSnapMultiplePx);
+        return snapped > 0 ? snapped : WidthSnapMultiplePx;
     }
 
     private static int SnapWidth(int width, bool floorToDesktopMinimum)
     {
-        var snapped = RdpDisplayHelper.SnapToMultipleOf(width, 4);
+        var snapped = RdpDisplayHelper.SnapToMultipleOf(width, WidthSnapMultiplePx);
         if (snapped <= 0)
         {
-            snapped = 4;
+            snapped = WidthSnapMultiplePx;
         }
 
-        return floorToDesktopMinimum && snapped < 640
-            ? 640
+        return floorToDesktopMinimum && snapped < MinDesktopWidthPx
+            ? MinDesktopWidthPx
             : snapped;
     }
 
