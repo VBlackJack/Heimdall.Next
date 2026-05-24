@@ -31,7 +31,6 @@ public static class CredentialManagerHelper
     private const uint CredTypeGeneric = 1;
     private const uint CredTypeDomainPassword = 2;
     private const uint CredPersistSession = 1;
-    private const uint CredPersistEnterprise = 3;
     private const int CredMaxCredentialBlobSize = 512;
     private const int ErrorNotFound = 1168;
 
