@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Heimdall.Rdp;
 
-namespace Heimdall.Ssh.Tests;
+namespace Heimdall.Rdp.Tests;
 
 public class RdpFileGeneratorTests
 {
