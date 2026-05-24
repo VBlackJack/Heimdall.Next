@@ -510,6 +510,7 @@ public partial class ServerDialog : Window
         DlgSrv_BasicRdpCredentialsTitle.Text = _localizer["ServerDialogRdpCredentials"];
         DlgSrv_BasicRdpCredentialsDesc.Text = _localizer["ServerDialogRdpCredentialsDesc"];
         DlgSrv_BasicRdpUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_BasicRdpDomainLabel.Text = _localizer["ServerDialogLabelDomain"];
         DlgSrv_BasicRdpPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
         DlgSrv_BasicWinRmCredentialsTitle.Text = _localizer["ServerDialogWinRmCredentials"];
         DlgSrv_BasicWinRmCredentialsDesc.Text = _localizer["ServerDialogWinRmCredentialsDesc"];
