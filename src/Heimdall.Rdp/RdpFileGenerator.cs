@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
@@ -33,6 +35,10 @@ public static class RdpFileGenerator
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.Host);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.Port, 1, nameof(options.Port));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.Port, 65535, nameof(options.Port));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Width, 0, nameof(options.Width));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Height, 0, nameof(options.Height));
 
         var sb = new StringBuilder();
         var useSmartSizing = options.SmartSizing;
@@ -47,7 +53,15 @@ public static class RdpFileGenerator
             .ToArray();
 
         // Connection
-        AppendSanitized(sb, "full address:s:", $"{options.Host}:{options.Port}");
+        string host = options.Host;
+        if (!host.StartsWith("[", StringComparison.Ordinal)
+            && IPAddress.TryParse(host, out IPAddress? parsedHost)
+            && parsedHost.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            host = $"[{host}]";
+        }
+
+        AppendSanitized(sb, "full address:s:", $"{host}:{options.Port}");
 
         if (!string.IsNullOrWhiteSpace(options.Username))
         {
@@ -167,7 +181,7 @@ public static class RdpFileGenerator
             sb.AppendLine("gatewayusagemethod:i:0");
         }
 
-        return sb.ToString();
+        return sb.ToString().ReplaceLineEndings("\r\n");
     }
 
     /// <summary>
