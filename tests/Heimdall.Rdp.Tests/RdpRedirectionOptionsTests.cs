@@ -16,7 +16,7 @@
 
 using Heimdall.Rdp;
 
-namespace Heimdall.Ssh.Tests;
+namespace Heimdall.Rdp.Tests;
 
 public class RdpRedirectionOptionsTests
 {
