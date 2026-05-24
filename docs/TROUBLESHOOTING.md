@@ -59,6 +59,7 @@ Index of all issues encountered during development and their solutions.
 44. [SSH — Host Key Unavailable on Plink Fallback](#ssh-host-key-unavailable-plink)
 45. [SSH/SFTP — Host Key Mismatch Mid-Session](#ssh-sftp-host-key-mismatch-mid-session)
 46. [FTP — Cleartext Credential Warning](#ftp-cleartext-credential-warning)
+47. [WinRM Gateway — HTTP 12152 Invalid Server Response](#winrm-gateway-12152)
 
 ---
 
@@ -863,3 +864,15 @@ Do **not** use `IServiceProvider.QueryService` for this case. On `MsTscAx.MsTscA
 **Key lesson**: This is a non-blocking `ConnectionResult.Warning`, not a connection failure. It should route to status text rather than a modal so legacy FTP workflows remain possible.
 
 **Files**: `Services/Handlers/FtpHandler.cs`, `Services/ProtocolSessionResults.cs`, `Services/ConnectionService.cs`, `Sftp/FtpBrowser.cs`
+
+---
+
+## 47. WinRM Gateway — HTTP 12152 Invalid Server Response {#winrm-gateway-12152}
+
+**Symptom**: A WinRM profile routed through an SSH gateway fails with WinHTTP error `12152` ("the server returned an invalid or unrecognized response"). The Heimdall log shows the tunnel established cleanly; the error surfaces inside the PowerShell terminal.
+
+**Root cause**: Environmental, not a Heimdall fault. A hand-built `plink` tunnel reproduces the failure outside Heimdall — the TCP forward opens (`TcpTestSucceeded: True`) but the HTTP/WinRM exchange is closed by the target service or an application-layer device on the `bastion → target` path. An RDP profile through the same bastion works, confirming the tunnel machinery is sound.
+
+**Solution**: No code fix in Heimdall. Diagnose the environment path (bastion forwarding policy, target WinRM listener, intermediate IPS/proxy). Full isolation procedure and `plink` console reading grid: see [winrm-gateway-12152-diagnostic.md](winrm-gateway-12152-diagnostic.md).
+
+**Files**: none (environmental).
