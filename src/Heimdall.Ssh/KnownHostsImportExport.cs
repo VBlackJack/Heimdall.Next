@@ -167,6 +167,10 @@ public sealed class KnownHostsExporter(
     public KnownHostsExportReport ExportFile(string? path = null)
     {
         path ??= KnownHostsImporter.GetDefaultKnownHostsPath();
+        // Known, accepted TOCTOU: an external writer appending to this
+        // OpenSSH-format interop file between the read and the atomic rewrite
+        // can be lost. Heimdall's trust store is the source of truth; this file
+        // is only an export convenience.
         var existingLines = File.Exists(path)
             ? File.ReadAllLines(path, Encoding.UTF8).ToList()
             : [];
