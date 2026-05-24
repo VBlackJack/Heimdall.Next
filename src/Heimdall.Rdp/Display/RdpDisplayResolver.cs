@@ -107,7 +107,7 @@ public static class RdpDisplayResolver
             return CreateMultimonFallback(requested, MultimonFallbackReason.SingleMonitorHost);
         }
 
-        if (requested.SelectedMonitorIndices.Any(index => index >= host.MonitorCount))
+        if (requested.SelectedMonitorIndices.Any(index => index < 0 || index >= host.MonitorCount))
         {
             return CreateMultimonFallback(requested, MultimonFallbackReason.InvalidMonitorIndex);
         }

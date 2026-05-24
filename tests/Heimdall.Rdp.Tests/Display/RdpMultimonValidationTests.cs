@@ -51,6 +51,34 @@ public sealed class RdpMultimonValidationTests
     }
 
     [Fact]
+    public void ValidateMultimon_NegativeSelectedMonitorIndex_FallsBack()
+    {
+        var result = Validate(
+            monitorCount: 2,
+            Settings(RdpResolutionMode.Multimon, useMultimon: true, selectedMonitors: [-1]));
+
+        Assert.True(result.ShouldFallback);
+        Assert.Equal(MultimonFallbackReason.InvalidMonitorIndex, result.Reason);
+        Assert.Equal(RdpResolutionMode.FitWindow, result.CoercedSettings.ResolutionMode);
+        Assert.False(result.CoercedSettings.UseMultimon);
+        Assert.Empty(result.CoercedSettings.SelectedMonitorIndices);
+    }
+
+    [Fact]
+    public void ValidateMultimon_NegativeIndexMixedWithValid_FallsBack()
+    {
+        var result = Validate(
+            monitorCount: 2,
+            Settings(RdpResolutionMode.Multimon, useMultimon: true, selectedMonitors: [0, -1]));
+
+        Assert.True(result.ShouldFallback);
+        Assert.Equal(MultimonFallbackReason.InvalidMonitorIndex, result.Reason);
+        Assert.Equal(RdpResolutionMode.FitWindow, result.CoercedSettings.ResolutionMode);
+        Assert.False(result.CoercedSettings.UseMultimon);
+        Assert.Empty(result.CoercedSettings.SelectedMonitorIndices);
+    }
+
+    [Fact]
     public void ValidateMultimon_EmptySelectionWithMultimonRequested_UsesAllMonitors()
     {
         var requested = Settings(RdpResolutionMode.Multimon, useMultimon: true, selectedMonitors: []);
