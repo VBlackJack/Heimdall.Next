@@ -50,7 +50,5 @@ public interface ITunnelService
     /// <summary>
     /// Releases one reference to an established tunnel local port.
     /// </summary>
-    void ReleaseTunnelReference(int localPort)
-    {
-    }
+    void ReleaseTunnelReference(int localPort);
 }

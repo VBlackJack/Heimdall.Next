@@ -201,6 +201,10 @@ public sealed class RdpHandlerTests
         }
 
         public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort) => null;
+
+        public void ReleaseTunnelReference(int localPort)
+        {
+        }
     }
 
     private sealed class FakeTunnelService : ITunnelService

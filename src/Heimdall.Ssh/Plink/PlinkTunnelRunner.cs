@@ -466,7 +466,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardError = true,
-            RedirectStandardInput = true,
+            RedirectStandardInput = false,
             RedirectStandardOutput = false
         };
 

@@ -107,5 +107,9 @@ public sealed class ConnectionServiceDispatchTests
 
         public Heimdall.Ssh.TunnelForwardedPortFailure? GetRecentForwardedPortFailure(int localPort)
             => null;
+
+        public void ReleaseTunnelReference(int localPort)
+        {
+        }
     }
 }
