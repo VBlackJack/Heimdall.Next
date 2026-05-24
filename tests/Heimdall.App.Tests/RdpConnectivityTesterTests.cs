@@ -21,21 +21,35 @@ namespace Heimdall.App.Tests;
 public sealed class RdpConnectivityTesterTests
 {
     [Fact]
-    public async Task TestAsync_InvalidPortReturnsInvalidOutcome()
+    public async Task TestAsync_InvalidPortReturnsInvalidPortOutcome()
     {
         var sut = new RdpConnectivityTester();
 
         var result = await sut.TestAsync(
             "localhost",
-            0,
+            70000,
             TimeSpan.FromSeconds(1),
             CancellationToken.None);
 
-        Assert.Equal(RdpConnectivityTestOutcome.Invalid, result.Outcome);
+        Assert.Equal(RdpConnectivityTestOutcome.InvalidPort, result.Outcome);
     }
 
     [Fact]
-    public async Task TestAsync_InvalidHostnameReturnsInvalidOutcome()
+    public async Task TestAsync_BlankHostReturnsInvalidAddressOutcome()
+    {
+        RdpConnectivityTester sut = new RdpConnectivityTester();
+
+        RdpConnectivityTestResult result = await sut.TestAsync(
+            "   ",
+            3389,
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+
+        Assert.Equal(RdpConnectivityTestOutcome.InvalidAddress, result.Outcome);
+    }
+
+    [Fact]
+    public async Task TestAsync_InvalidHostnameReturnsInvalidAddressOutcome()
     {
         var sut = new RdpConnectivityTester();
 
@@ -45,7 +59,7 @@ public sealed class RdpConnectivityTesterTests
             TimeSpan.FromSeconds(1),
             CancellationToken.None);
 
-        Assert.Equal(RdpConnectivityTestOutcome.Invalid, result.Outcome);
+        Assert.Equal(RdpConnectivityTestOutcome.InvalidAddress, result.Outcome);
     }
 
     [Fact]
