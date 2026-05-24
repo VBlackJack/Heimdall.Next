@@ -33,6 +33,16 @@ public sealed class KnownHostsParserIpv6Tests
     }
 
     [Fact]
+    public void Parse_BareIpv6_WithMultipleGroups_DefaultsToPort22()
+    {
+        KnownHostsParseResult result = KnownHostsParser.Parse($"2001:db8::1 ssh-ed25519 {SampleKey}");
+
+        KnownHostsRawEntry entry = Assert.Single(result.Entries);
+        Assert.Equal("2001:db8::1", entry.Host);
+        Assert.Equal(22, entry.Port);
+    }
+
+    [Fact]
     public void Parse_BracketedIpv6_DefaultsToPort22()
     {
         var result = KnownHostsParser.Parse($"[::1] ssh-ed25519 {SampleKey}");
@@ -51,6 +61,17 @@ public sealed class KnownHostsParserIpv6Tests
         var diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal(KnownHostsDiagnosticCode.UnsupportedHostPattern, diagnostic.Code);
         Assert.Equal("bare colon non-IPv6", diagnostic.Context);
+    }
+
+    [Fact]
+    public void Parse_MalformedMultiColonToken_SkippedAsUnsupported()
+    {
+        KnownHostsParseResult result = KnownHostsParser.Parse($"a:b:c ssh-ed25519 {SampleKey}");
+
+        Assert.Empty(result.Entries);
+        KnownHostsImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(KnownHostsDiagnosticCode.UnsupportedHostPattern, diagnostic.Code);
+        Assert.Equal("invalid multi-colon host token", diagnostic.Context);
     }
 
     [Fact]

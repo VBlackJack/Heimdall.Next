@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Net;
+
 namespace Heimdall.Core.Ssh;
 
 /// <summary>
@@ -328,6 +330,12 @@ public static class KnownHostsParser
         var colonCount = token.Count(ch => ch == ':');
         if (colonCount >= 2)
         {
+            if (!IPAddress.TryParse(token, out _))
+            {
+                context = "invalid multi-colon host token";
+                return false;
+            }
+
             host = token;
             port = 22;
             return true;
