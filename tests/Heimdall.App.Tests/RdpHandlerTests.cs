@@ -74,6 +74,70 @@ public sealed class RdpHandlerTests
     }
 
     [Fact]
+    public async Task ConnectAsync_ForceExternalDecryptFailureReturnsFailureBeforeLaunching()
+    {
+        var launcher = new TrackingRdpExternalClientLauncher
+        {
+            ProcessToReturn = new FakeLaunchedRdpClientProcess(4242)
+        };
+        var handler = CreateHandler(launcher);
+        var server = CreateServer("Embedded");
+        server.RdpUsername = "user";
+        server.RdpPasswordEncrypted = "not-valid-base64-at-all!!!";
+        var settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        var result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.False(result.Success);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(0, launcher.LaunchCalls);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_ForceExternalDecryptFailureReleasesTunnelReference()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = true,
+            TargetHost = "127.0.0.1",
+            TargetPort = 53389
+        };
+        TrackingRdpExternalClientLauncher launcher = new TrackingRdpExternalClientLauncher
+        {
+            ProcessToReturn = new FakeLaunchedRdpClientProcess(4242)
+        };
+        RdpHandler handler = CreateHandler(tunnelService, launcher);
+        ServerProfileDto server = CreateServer("Embedded");
+        server.RdpUsername = "user";
+        server.RdpPasswordEncrypted = "not-valid-base64-at-all!!!";
+        AppSettings settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.False(result.Success);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(0, launcher.LaunchCalls);
+        Assert.Equal(1, tunnelService.ReleaseCount);
+        Assert.Equal(53389, tunnelService.ReleasedLocalPort);
+    }
+
+    [Fact]
     public async Task ConnectAsync_ForceExternalPostTunnelLaunchFailureReleasesTunnelReference()
     {
         FakeTunnelService tunnelService = new FakeTunnelService
