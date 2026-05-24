@@ -453,8 +453,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         Unloaded -= OnUnloaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
         _resizeTimer.Stop();
-        _autofillFilledTimer?.Stop();
-        _autofillFilledTimer = null;
+        _resizeTimer.Tick -= OnResizeTimerTick;
+        if (_autofillFilledTimer is not null)
+        {
+            _autofillFilledTimer.Stop();
+            _autofillFilledTimer.Tick -= OnAutofillFilledTimerTick;
+            _autofillFilledTimer = null;
+        }
+
         _autofillRetryContext = null;
         StopTransientToastTimer();
         HideLetterboxHint();
@@ -606,22 +612,29 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private async void OnWindowDpiChanged(object sender, System.Windows.DpiChangedEventArgs e)
     {
-        if (_disposed || _rdpHost is null || _server is null)
+        try
         {
-            return;
+            if (_disposed || _rdpHost is null || _server is null)
+            {
+                return;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP DPI changed: old={e.OldDpi.DpiScaleX:0.##}x{e.OldDpi.DpiScaleY:0.##} new={e.NewDpi.DpiScaleX:0.##}x{e.NewDpi.DpiScaleY:0.##}");
+
+            if (!_allowResolutionUpdates)
+            {
+                _dpiChangeDroppedDuringLockout = true;
+                Core.Logging.FileLogger.Info("EmbeddedRDP DPI change dropped during post-connect stabilization.");
+                return;
+            }
+
+            await ApplyCurrentResolutionAsync("dpi-change", force: true);
         }
-
-        Core.Logging.FileLogger.Info(
-            $"EmbeddedRDP DPI changed: old={e.OldDpi.DpiScaleX:0.##}x{e.OldDpi.DpiScaleY:0.##} new={e.NewDpi.DpiScaleX:0.##}x{e.NewDpi.DpiScaleY:0.##}");
-
-        if (!_allowResolutionUpdates)
+        catch (Exception ex)
         {
-            _dpiChangeDroppedDuringLockout = true;
-            Core.Logging.FileLogger.Info("EmbeddedRDP DPI change dropped during post-connect stabilization.");
-            return;
+            Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] OnWindowDpiChanged: {ex.Message}");
         }
-
-        await ApplyCurrentResolutionAsync("dpi-change", force: true);
     }
 
     private void RegisterEscapeHook()
@@ -1027,20 +1040,27 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private async void OnResizeTimerTick(object? sender, EventArgs e)
     {
-        _resizeTimer.Stop();
-
-        if (_disposed || _rdpHost is null || _server is null)
+        try
         {
-            return;
-        }
+            _resizeTimer.Stop();
 
-        if (UsesFixedLocalResolution())
+            if (_disposed || _rdpHost is null || _server is null)
+            {
+                return;
+            }
+
+            if (UsesFixedLocalResolution())
+            {
+                ApplyHostLayout();
+                return;
+            }
+
+            await ApplyCurrentResolutionAsync("resize");
+        }
+        catch (Exception ex)
         {
-            ApplyHostLayout();
-            return;
+            Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] OnResizeTimerTick: {ex.Message}");
         }
-
-        await ApplyCurrentResolutionAsync("resize");
     }
 
     private bool ShouldUseDynamicResolutionUpdates()
@@ -2738,16 +2758,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private async void OnResolutionMenuClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem item || item.Tag is not string tag)
-            return;
+        try
+        {
+            if (sender is not MenuItem item || item.Tag is not string tag)
+            {
+                return;
+            }
 
-        if (tag == "Fit")
-        {
-            await ApplyResolutionChoiceAsync(ResolutionChoice.MatchWindow);
+            if (tag == "Fit")
+            {
+                await ApplyResolutionChoiceAsync(ResolutionChoice.MatchWindow);
+            }
+            else if (ResolutionPresetCatalog.TryParse(tag, out ResolutionPreset preset))
+            {
+                await ApplyResolutionChoiceAsync(ResolutionChoice.Fixed(preset.Width, preset.Height));
+            }
         }
-        else if (ResolutionPresetCatalog.TryParse(tag, out var preset))
+        catch (Exception ex)
         {
-            await ApplyResolutionChoiceAsync(ResolutionChoice.Fixed(preset.Width, preset.Height));
+            Core.Logging.FileLogger.Warn($"[EmbeddedRdpView] OnResolutionMenuClick: {ex.Message}");
         }
     }
 
