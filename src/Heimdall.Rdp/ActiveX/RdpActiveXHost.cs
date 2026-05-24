@@ -1099,13 +1099,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
             return false;
         }
 
-        var selectedMonitors = string.Join(',', selectedMonitorIndices);
-        if (TrySetClientShellRdpProperty(ocx, "selectedmonitors", selectedMonitors))
-        {
-            return true;
-        }
-
-        return TrySetNonScriptable5SelectedMonitors(ocx, selectedMonitors);
+        string selectedMonitors = string.Join(',', selectedMonitorIndices);
+        return TrySetClientShellRdpProperty(ocx, "selectedmonitors", selectedMonitors);
     }
 
     private static bool TrySetClientShellRdpProperty(object ocx, string propertyName, object value)
@@ -1123,45 +1118,6 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
             Core.Logging.FileLogger.Info(
                 $"RdpActiveXHost.MsRdpClientShell.SetRdpProperty threw {FormatExceptionForLog(ex)} property={propertyName} value={value}");
             return false;
-        }
-    }
-
-    private static bool TrySetNonScriptable5SelectedMonitors(object ocx, string selectedMonitors)
-    {
-        IntPtr nonScriptable5Ptr = IntPtr.Zero;
-        try
-        {
-            if (!TryGetNonScriptable5(ocx, out nonScriptable5Ptr, out var acquisitionPath))
-            {
-                Core.Logging.FileLogger.Info(
-                    $"RdpActiveXHost.IMsRdpClientNonScriptable5 SelectedMonitors fallback: interface unavailable; value={selectedMonitors}");
-                return false;
-            }
-
-            var nonScriptable5 = Marshal.GetObjectForIUnknown(nonScriptable5Ptr);
-            nonScriptable5.GetType().InvokeMember(
-                "SelectedMonitors",
-                BindingFlags.SetProperty,
-                null,
-                nonScriptable5,
-                [selectedMonitors]);
-
-            Core.Logging.FileLogger.Info(
-                $"RdpActiveXHost.IMsRdpClientNonScriptable5.SelectedMonitors set value={selectedMonitors} via={acquisitionPath}");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Info(
-                $"RdpActiveXHost.IMsRdpClientNonScriptable5.SelectedMonitors threw {FormatExceptionForLog(ex)} value={selectedMonitors}");
-            return false;
-        }
-        finally
-        {
-            if (nonScriptable5Ptr != IntPtr.Zero)
-            {
-                Marshal.Release(nonScriptable5Ptr);
-            }
         }
     }
 
