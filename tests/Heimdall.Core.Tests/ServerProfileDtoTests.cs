@@ -129,6 +129,7 @@ public class ServerProfileDtoTests
         Assert.Null(dto.SshGatewayId);
         Assert.Null(dto.RdpUsername);
         Assert.Null(dto.RdpPasswordEncrypted);
+        Assert.Null(dto.RdpDomain);
         Assert.Null(dto.ProjectId);
         Assert.Null(dto.SshUsername);
         Assert.Null(dto.SshKeyPath);
@@ -158,6 +159,7 @@ public class ServerProfileDtoTests
             Group = "Databases",
             SshGatewayId = "gw-01",
             RdpUsername = @"CORP\admin",
+            RdpDomain = "CORP",
             ConnectionType = "RDP",
             WinRmPort = 5986,
             WinRmUsername = @"CORP\operator",
@@ -198,6 +200,7 @@ public class ServerProfileDtoTests
         Assert.Equal(original.Group, deserialized.Group);
         Assert.Equal(original.SshGatewayId, deserialized.SshGatewayId);
         Assert.Equal(original.RdpUsername, deserialized.RdpUsername);
+        Assert.Equal(original.RdpDomain, deserialized.RdpDomain);
         Assert.Equal(original.ConnectionType, deserialized.ConnectionType);
         Assert.Equal(original.WinRmPort, deserialized.WinRmPort);
         Assert.Equal(original.WinRmUsername, deserialized.WinRmUsername);

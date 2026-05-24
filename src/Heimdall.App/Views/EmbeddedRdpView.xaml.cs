@@ -1392,7 +1392,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
             var connectHost = ResolveConnectHost(_server);
             var connectPort = ResolveConnectPort(_server);
-            var (username, domain) = SplitUsername(_server.RdpUsername);
+            (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
+                _server.RdpUsername,
+                _server.RdpDomain);
             var password = TryDecryptPassword(_server);
             var (width, height) = GetDisplayDimensions();
             var displayUpdateSettings = GetDisplayUpdateSettings(width, height);
@@ -3703,34 +3705,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             server.RemoteServer,
             server.RemotePort,
             localPort);
-    }
-
-    private static (string Username, string? Domain) SplitUsername(string? username)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return (string.Empty, null);
-        }
-
-        // DOMAIN\user format (NetBIOS)
-        var separatorIndex = username.IndexOf('\\');
-        if (separatorIndex > 0 && separatorIndex < username.Length - 1)
-        {
-            return (
-                username[(separatorIndex + 1)..],
-                username[..separatorIndex]);
-        }
-
-        // user@domain.com format (UPN) — pass the full UPN as the username
-        // and extract the domain for logging/diagnostics. The RDP ActiveX control
-        // accepts UPN directly in the UserName field.
-        var atIndex = username.IndexOf('@');
-        if (atIndex > 0 && atIndex < username.Length - 1)
-        {
-            return (username, username[(atIndex + 1)..]);
-        }
-
-        return (username, null);
     }
 
     private static string? TryDecryptPassword(ServerProfileDto server)
