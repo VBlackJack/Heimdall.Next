@@ -290,6 +290,8 @@ internal sealed class RdpHandler : IProtocolHandler
             if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
             {
                 var autofillPassword = rdpPassword;
+                // Autofill must outlive ConnectAsync: the connect-scoped token is cancelled
+                // when ConnectAsync returns. WaitAndFillAsync self-bounds via its timeout.
                 _ = Task.Run(async () =>
                 {
                     try
@@ -300,7 +302,7 @@ internal sealed class RdpHandler : IProtocolHandler
                                 rdpHost,
                                 autofillPassword,
                                 autofillTimeout,
-                                ct)
+                                CancellationToken.None)
                             .ConfigureAwait(false);
                         if (!filled)
                         {
@@ -308,14 +310,11 @@ internal sealed class RdpHandler : IProtocolHandler
                                 $"External RDP CredUI autofill timed out for {server.DisplayName}");
                         }
                     }
-                    catch (OperationCanceledException)
-                    {
-                    }
                     catch (Exception ex)
                     {
                         Core.Logging.FileLogger.Warn($"External RDP CredUI autofill failed: {ex.Message}");
                     }
-                }, ct);
+                }, CancellationToken.None);
             }
 
             var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) &&
