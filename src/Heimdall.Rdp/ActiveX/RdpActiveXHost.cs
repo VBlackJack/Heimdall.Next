@@ -628,51 +628,145 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
     internal void RaiseConnected()
     {
-        IsConnected = true;
-        Connected?.Invoke();
-        StripScrollbarStylesRecursiveOnUiThread("OnConnected");
-        BeginPostConnectStripTimerOnUiThread("OnConnected");
+        try
+        {
+            IsConnected = true;
+            try
+            {
+                Connected?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseConnected: event subscriber threw: {ex.Message}");
+            }
+
+            StripScrollbarStylesRecursiveOnUiThread("OnConnected");
+            BeginPostConnectStripTimerOnUiThread("OnConnected");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseConnected: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseDisconnected(int discReason)
     {
-        IsConnected = false;
-        StopPostConnectStripTimerOnUiThread($"OnDisconnected reason={discReason}");
-        Disconnected?.Invoke(discReason);
+        try
+        {
+            IsConnected = false;
+            StopPostConnectStripTimerOnUiThread($"OnDisconnected reason={discReason}");
+            try
+            {
+                Disconnected?.Invoke(discReason);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseDisconnected: event subscriber threw: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseDisconnected: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseFatalError(int errorCode)
     {
-        IsConnected = false;
-        StopPostConnectStripTimerOnUiThread($"OnFatalError error={errorCode}");
-        FatalError?.Invoke(errorCode);
+        try
+        {
+            IsConnected = false;
+            StopPostConnectStripTimerOnUiThread($"OnFatalError error={errorCode}");
+            try
+            {
+                FatalError?.Invoke(errorCode);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseFatalError: event subscriber threw: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseFatalError: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseLoginComplete()
     {
-        LoginComplete?.Invoke();
-        StripScrollbarStylesRecursiveOnUiThread("OnLoginComplete");
+        try
+        {
+            try
+            {
+                LoginComplete?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseLoginComplete: event subscriber threw: {ex.Message}");
+            }
+
+            StripScrollbarStylesRecursiveOnUiThread("OnLoginComplete");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseLoginComplete: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseRemoteDesktopSizeChanged(int width, int height)
     {
-        Core.Logging.FileLogger.Info(
-            $"RdpActiveXHost.OnRemoteDesktopSizeChange: width={width} height={height}");
-        StripScrollbarStylesRecursiveOnUiThread("OnRemoteDesktopSizeChange");
+        try
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.OnRemoteDesktopSizeChange: width={width} height={height}");
+            StripScrollbarStylesRecursiveOnUiThread("OnRemoteDesktopSizeChange");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseRemoteDesktopSizeChanged: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseAutoReconnecting(int disconnectReason, int attemptCount)
     {
-        IsConnected = false;
-        AutoReconnecting?.Invoke(disconnectReason, attemptCount);
+        try
+        {
+            IsConnected = false;
+            try
+            {
+                AutoReconnecting?.Invoke(disconnectReason, attemptCount);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseAutoReconnecting: event subscriber threw: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseAutoReconnecting: COM event handling failed: {ex.Message}");
+        }
     }
 
     internal void RaiseAutoReconnected()
     {
-        IsConnected = true;
-        AutoReconnected?.Invoke();
-        StripScrollbarStylesRecursiveOnUiThread("OnAutoReconnected");
-        BeginPostConnectStripTimerOnUiThread("OnAutoReconnected");
+        try
+        {
+            IsConnected = true;
+            try
+            {
+                AutoReconnected?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseAutoReconnected: event subscriber threw: {ex.Message}");
+            }
+
+            StripScrollbarStylesRecursiveOnUiThread("OnAutoReconnected");
+            BeginPostConnectStripTimerOnUiThread("OnAutoReconnected");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.RaiseAutoReconnected: COM event handling failed: {ex.Message}");
+        }
     }
 
     #endregion
