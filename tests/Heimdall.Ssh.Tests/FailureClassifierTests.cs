@@ -127,6 +127,19 @@ public class FailureClassifierTests
     }
 
     [Fact]
+    public void Classify_ConnectionException_WithInnerSocketException_UsesSocketErrorCode()
+    {
+        SocketException socketEx = new SocketException((int)SocketError.ConnectionRefused);
+        SshConnectionException ex = new SshConnectionException("Transport failed", socketEx);
+
+        SshFailureInfo result = FailureClassifier.Classify(ex);
+
+        Assert.Equal(SshFailureCode.NetworkRefused, result.Code);
+        Assert.True(result.IsFatal);
+        Assert.Same(socketEx, result.OriginalException);
+    }
+
+    [Fact]
     public void Classify_ConnectionException_Reset_ReturnsNetworkReset()
     {
         var ex = new SshConnectionException("Connection reset by peer");

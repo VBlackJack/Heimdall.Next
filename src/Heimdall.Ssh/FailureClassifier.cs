@@ -113,8 +113,12 @@ public static class FailureClassifier
         SshAuthenticationException ex,
         SshConnectionParams? connectionParams)
     {
-        var msg = ex.Message ?? "";
+        string msg = ex.Message ?? "";
 
+        // SSH.NET exposes no typed granularity for these auth sub-cases, so
+        // message inspection is a deliberate last resort. The default arm is
+        // fatal, so a wording change can only make the message less precise;
+        // it cannot downgrade a failure to non-fatal or success.
         if (msg.Contains("key", StringComparison.OrdinalIgnoreCase))
             return new SshFailureInfo(SshFailureCode.KeyRejected, "Server rejected the SSH key.", true, ex);
 
@@ -157,8 +161,12 @@ public static class FailureClassifier
         SshException ex,
         SshConnectionParams? connectionParams)
     {
-        var msg = ex.Message ?? "";
+        string msg = ex.Message ?? "";
 
+        // SSH.NET exposes no typed granularity for these key sub-cases, so
+        // message inspection is a deliberate last resort. The default arm is
+        // fatal, so a wording change can only make the message less precise;
+        // it cannot downgrade a failure to non-fatal or success.
         if (!string.IsNullOrWhiteSpace(connectionParams?.KeyPath)
             && !string.IsNullOrEmpty(connectionParams.KeyPassphrase)
             && msg.Contains("passphrase", StringComparison.OrdinalIgnoreCase))
@@ -186,8 +194,16 @@ public static class FailureClassifier
     private static SshFailureInfo ClassifyConnectionException(
         SshConnectionException ex)
     {
-        var msg = ex.Message ?? "";
+        if (ex.InnerException is SocketException socketEx)
+        {
+            return ClassifySocketException(socketEx);
+        }
 
+        string msg = ex.Message ?? "";
+
+        // Last-resort heuristic: SSH.NET does not always expose a typed reason
+        // here. The default arm is fatal, so a wording change cannot downgrade
+        // a failure to non-fatal or success.
         if (msg.Contains("refused", StringComparison.OrdinalIgnoreCase))
             return new SshFailureInfo(SshFailureCode.NetworkRefused, "Connection refused.", true, ex);
 
