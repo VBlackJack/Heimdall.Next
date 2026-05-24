@@ -120,6 +120,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Credential mode injects the password via a self-deleting, ACL-restricted bootstrap script — no plaintext on disk or in PowerShell history
 - Transport pre-flight check (TCP reachability + TLS handshake) surfaces clear, localized errors before the session launches
 - Optional SSH gateway routing: a WinRM session can be tunneled through an SSH bastion, like RDP and SSH. Over the tunnel the WinRM transport is HTTP only (NTLM authentication); direct WinRM connections are unaffected.
+- Known gateway limitation: some environments accept the tunnel at TCP level but the target (or an intermediate device) closes the WinRM HTTP exchange — diagnosed as environmental, not a Heimdall fault. See [docs/winrm-gateway-12152-diagnostic.md](docs/winrm-gateway-12152-diagnostic.md).
 
 ### Local Shell
 - Embedded PowerShell, cmd, bash, or custom shell via ConPTY
