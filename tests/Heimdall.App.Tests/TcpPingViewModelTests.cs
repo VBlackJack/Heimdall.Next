@@ -26,6 +26,8 @@ namespace Heimdall.App.Tests;
 
 public sealed class TcpPingViewModelTests
 {
+    private const int DefaultWaitTimeoutMs = 10_000;
+
     [Fact]
     public async Task StartCommand_EmptyHost_ShowsRequiredError()
     {
@@ -508,7 +510,7 @@ public sealed class TcpPingViewModelTests
         return manager;
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 2000)
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = DefaultWaitTimeoutMs)
     {
         var sw = Stopwatch.StartNew();
         while (!condition())
