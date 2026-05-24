@@ -201,30 +201,37 @@ internal static class RdpKeyboardEscapeHook
 
     private static IntPtr OnKeyboardHook(int code, IntPtr wParam, IntPtr lParam)
     {
-        if (code == HcAction && IsKeyDown(lParam))
+        try
         {
-            if (MatchesShortcut(wParam, _escapeShortcut))
+            if (code == HcAction && IsKeyDown(lParam))
             {
-                var view = FindFocusedRdpView();
-                if (view is not null)
+                if (MatchesShortcut(wParam, _escapeShortcut))
                 {
-                    _ = view.Dispatcher.BeginInvoke(
-                        DispatcherPriority.Input,
-                        new Action(view.FocusRdpToolbarFromEscapeHook));
-                    return new IntPtr(1);
+                    var view = FindFocusedRdpView();
+                    if (view is not null)
+                    {
+                        _ = view.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Input,
+                            new Action(view.FocusRdpToolbarFromEscapeHook));
+                        return new IntPtr(1);
+                    }
+                }
+                else if (MatchesShortcut(wParam, _fullscreenShortcut))
+                {
+                    var view = FindFocusedRdpView();
+                    if (view is not null)
+                    {
+                        _ = view.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Input,
+                            new Action(view.ToggleFullscreen));
+                        return new IntPtr(1);
+                    }
                 }
             }
-            else if (MatchesShortcut(wParam, _fullscreenShortcut))
-            {
-                var view = FindFocusedRdpView();
-                if (view is not null)
-                {
-                    _ = view.Dispatcher.BeginInvoke(
-                        DispatcherPriority.Input,
-                        new Action(view.ToggleFullscreen));
-                    return new IntPtr(1);
-                }
-            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("RDP keyboard escape hook callback failed.", ex);
         }
 
         return CallNextHookEx(_hookHandle, code, wParam, lParam);
