@@ -40,6 +40,25 @@ public class RdpFileGeneratorTests
         Assert.Contains("authentication level:i:", content);
     }
 
+    [Fact]
+    public void Generate_UsesCrLfLineEndings()
+    {
+        RdpFileOptions options = new RdpFileOptions { Host = "server.example.com" };
+
+        string content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("\r\n", content);
+        for (int index = 0; index < content.Length; index++)
+        {
+            if (content[index] == '\n')
+            {
+                Assert.True(
+                    index > 0 && content[index - 1] == '\r',
+                    $"Bare LF found at index {index}.");
+            }
+        }
+    }
+
     // ── Host and port ─────────────────────────────────────────────────
 
     [Fact]
@@ -60,6 +79,24 @@ public class RdpFileGeneratorTests
         var content = RdpFileGenerator.Generate(options);
 
         Assert.Contains("full address:s:10.0.0.1:3390", content);
+    }
+
+    [Fact]
+    public void Generate_IPv6Host_BracketsFullAddressButLeavesIpv4AndHostnamesUnbracketed()
+    {
+        RdpFileOptions ipv6Options = new RdpFileOptions { Host = "2001:db8::1", Port = 3390 };
+        RdpFileOptions ipv4Options = new RdpFileOptions { Host = "10.0.0.1", Port = 3390 };
+        RdpFileOptions hostnameOptions = new RdpFileOptions { Host = "server.example.com", Port = 3390 };
+
+        string ipv6Content = RdpFileGenerator.Generate(ipv6Options);
+        string ipv4Content = RdpFileGenerator.Generate(ipv4Options);
+        string hostnameContent = RdpFileGenerator.Generate(hostnameOptions);
+
+        Assert.Contains("full address:s:[2001:db8::1]:3390", ipv6Content);
+        Assert.Contains("full address:s:10.0.0.1:3390", ipv4Content);
+        Assert.DoesNotContain("full address:s:[10.0.0.1]:3390", ipv4Content);
+        Assert.Contains("full address:s:server.example.com:3390", hostnameContent);
+        Assert.DoesNotContain("full address:s:[server.example.com]:3390", hostnameContent);
     }
 
     // ── Username ──────────────────────────────────────────────────────
@@ -394,6 +431,34 @@ public class RdpFileGeneratorTests
     {
         Assert.Throws<ArgumentException>(() =>
             RdpFileGenerator.Generate(new RdpFileOptions { Host = "" }));
+    }
+
+    [Fact]
+    public void Generate_PortZero_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RdpFileGenerator.Generate(new RdpFileOptions { Host = "srv", Port = 0 }));
+    }
+
+    [Fact]
+    public void Generate_PortAboveMaximum_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RdpFileGenerator.Generate(new RdpFileOptions { Host = "srv", Port = 70000 }));
+    }
+
+    [Fact]
+    public void Generate_WidthZero_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RdpFileGenerator.Generate(new RdpFileOptions { Host = "srv", Width = 0 }));
+    }
+
+    [Fact]
+    public void Generate_HeightZero_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            RdpFileGenerator.Generate(new RdpFileOptions { Host = "srv", Height = 0 }));
     }
 
     // ── Multi-monitor and dynamic resolution ──────────────────────────
