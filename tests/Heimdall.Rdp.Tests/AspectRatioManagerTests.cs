@@ -18,7 +18,7 @@ using System.Runtime.Versioning;
 using Heimdall.Core.Models;
 using Heimdall.Rdp;
 
-namespace Heimdall.Ssh.Tests;
+namespace Heimdall.Rdp.Tests;
 
 [SupportedOSPlatform("windows")]
 public class AspectRatioManagerTests
