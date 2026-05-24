@@ -621,12 +621,11 @@ public static partial class CredentialAutofill
         {
             var element = edits[index];
             var name = SafeAutomationName(element);
-            var automationId = SafeAutomationId(element);
             var isEnabled = SafeAutomationBool(element, AutomationElement.IsEnabledProperty);
             var isPassword = SafeAutomationBool(element, AutomationElement.IsPasswordProperty);
 
-            FileLogger.Info(
-                $"CredentialAutofill UIA edit[{index}]: name='{name}' automationId='{automationId}' enabled={isEnabled} isPassword={isPassword}");
+            FileLogger.Debug(
+                $"CredentialAutofill UIA edit[{index}]: enabled={isEnabled} isPassword={isPassword}");
 
             if (!isEnabled)
             {
@@ -665,12 +664,10 @@ public static partial class CredentialAutofill
         for (var index = 0; index < buttons.Count; index++)
         {
             var button = buttons[index];
-            var name = SafeAutomationName(button);
-            var automationId = SafeAutomationId(button);
             var isEnabled = SafeAutomationBool(button, AutomationElement.IsEnabledProperty);
 
-            FileLogger.Info(
-                $"CredentialAutofill UIA button[{index}]: name='{name}' automationId='{automationId}' enabled={isEnabled}");
+            FileLogger.Debug(
+                $"CredentialAutofill UIA button[{index}]: enabled={isEnabled}");
 
             if (!isEnabled)
             {
@@ -682,7 +679,7 @@ public static partial class CredentialAutofill
                 firstEnabled = button;
             }
 
-            if (OkButtonPattern.IsMatch(name))
+            if (OkButtonPattern.IsMatch(SafeAutomationName(button)))
             {
                 return button;
             }
@@ -919,19 +916,6 @@ public static partial class CredentialAutofill
         catch (Exception ex)
         {
             FileLogger.Warn($"[CredentialAutofill] SafeAutomationName: {ex.Message}");
-            return string.Empty;
-        }
-    }
-
-    private static string SafeAutomationId(AutomationElement element)
-    {
-        try
-        {
-            return element.Current.AutomationId ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Warn($"[CredentialAutofill] SafeAutomationId: {ex.Message}");
             return string.Empty;
         }
     }
