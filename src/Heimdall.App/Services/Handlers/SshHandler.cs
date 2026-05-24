@@ -15,7 +15,6 @@
  */
 
 using System.IO;
-using System.Net;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
@@ -185,7 +184,8 @@ internal sealed class SshHandler : IProtocolHandler
 
             if (ex.IsMismatch && !string.IsNullOrWhiteSpace(ex.StoredFingerprint))
             {
-                var message = BuildHostKeyMismatchMessage(
+                string message = SshFailureMessageBuilder.HostKeyMismatch(
+                    _localizer,
                     ex.StoredFingerprint,
                     ex.PresentedFingerprint);
                 _connectionSm.SetError(server.Id, message);
@@ -200,7 +200,7 @@ internal sealed class SshHandler : IProtocolHandler
                         ex.Port));
             }
 
-            var cancelledMessage = BuildCancelledMessage();
+            string cancelledMessage = SshFailureMessageBuilder.Cancelled(_localizer);
             _connectionSm.SetError(server.Id, cancelledMessage);
             return new ConnectionResult(
                 false,
@@ -312,7 +312,7 @@ internal sealed class SshHandler : IProtocolHandler
                     SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
             }
 
-            if (!IsValidSshHost(targetHost))
+            if (!InputValidator.IsValidSshHost(targetHost))
             {
                 string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
                 _connectionSm.SetError(server.Id, msg);
@@ -407,7 +407,7 @@ internal sealed class SshHandler : IProtocolHandler
     /// Launches plink.exe as an interactive SSH session via ConPTY.
     /// Used when SSH.NET cannot authenticate.
     /// </summary>
-    private async Task<ConnectionResult> ConnectSshViaPlinkAsync(
+    internal async Task<ConnectionResult> ConnectSshViaPlinkAsync(
         ServerProfileDto server,
         AppSettings settings,
         string targetHost,
@@ -448,7 +448,7 @@ internal sealed class SshHandler : IProtocolHandler
                     SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidSshUsername, msg));
             }
 
-            if (!IsValidSshHost(targetHost))
+            if (!InputValidator.IsValidSshHost(targetHost))
             {
                 string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetHost];
                 _connectionSm.SetError(server.Id, msg);
@@ -514,7 +514,7 @@ internal sealed class SshHandler : IProtocolHandler
                 passwordFilePath = CreatePlinkPasswordFile(promptedPassword);
                 if (passwordFilePath is null)
                 {
-                    string message = BuildCancelledMessage();
+                    string message = SshFailureMessageBuilder.Cancelled(_localizer);
                     _connectionSm.SetError(server.Id, message);
                     return new ConnectionResult(
                         false,
@@ -766,34 +766,6 @@ internal sealed class SshHandler : IProtocolHandler
         return true;
     }
 
-    private static bool IsValidSshHost(string host)
-    {
-        return !string.IsNullOrWhiteSpace(host)
-            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
-    }
-
-    private string BuildHostKeyMismatchMessage(
-        string storedFingerprint,
-        string presentedFingerprint)
-    {
-        var message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
-        if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
-        {
-            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
-        }
-
-        var detail = _localizer.Format(
-            SshLocalizationKeys.ErrorHostKeyMismatchDetail,
-            storedFingerprint,
-            presentedFingerprint);
-        if (string.Equals(detail, SshLocalizationKeys.ErrorHostKeyMismatchDetail, StringComparison.Ordinal))
-        {
-            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
-        }
-
-        return $"{message} {detail}";
-    }
-
     private ConnectionResult BuildPlinkHostKeyRejectionResult(
         string serverId,
         string targetHost,
@@ -804,7 +776,8 @@ internal sealed class SshHandler : IProtocolHandler
             && decision.StoredFingerprint is not null
             && decision.PresentedFingerprint is not null)
         {
-            var message = BuildHostKeyMismatchMessage(
+            string message = SshFailureMessageBuilder.HostKeyMismatch(
+                _localizer,
                 decision.StoredFingerprint,
                 decision.PresentedFingerprint);
             _connectionSm.SetError(serverId, message);
@@ -821,7 +794,7 @@ internal sealed class SshHandler : IProtocolHandler
 
         if (decision.FailureCode == SshFailureCode.Cancelled)
         {
-            var message = BuildCancelledMessage();
+            string message = SshFailureMessageBuilder.Cancelled(_localizer);
             _connectionSm.SetError(serverId, message);
             return new ConnectionResult(
                 false,
@@ -833,7 +806,7 @@ internal sealed class SshHandler : IProtocolHandler
                     SshFailureCode.Cancelled));
         }
 
-        var unavailableMessage = BuildHostKeyUnavailableMessage();
+        string unavailableMessage = SshFailureMessageBuilder.HostKeyUnavailable(_localizer);
         _connectionSm.SetError(serverId, unavailableMessage);
         return new ConnectionResult(
             false,
@@ -845,19 +818,4 @@ internal sealed class SshHandler : IProtocolHandler
                 targetPort));
     }
 
-    private string BuildHostKeyUnavailableMessage()
-    {
-        var message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
-            ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
-            : message;
-    }
-
-    private string BuildCancelledMessage()
-    {
-        var message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
-            ? "Connection was cancelled."
-            : message;
-    }
 }

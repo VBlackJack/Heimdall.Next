@@ -84,25 +84,6 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
-    /// Attaches TOFU (Trust On First Use) host key verification to an SSH.NET client.
-    /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
-    /// BEFORE calling <c>Connect()</c>.
-    /// </summary>
-    [Obsolete("Use ResolveHostKeyAsync and AttachPinnedHostKeyVerification.", true)]
-    public static void AttachHostKeyVerification(
-        Renci.SshNet.BaseClient client,
-        string host,
-        int port,
-        HostKeyStore hostKeyStore)
-    {
-        ArgumentNullException.ThrowIfNull(client);
-        ArgumentNullException.ThrowIfNull(hostKeyStore);
-
-        throw new InvalidOperationException(
-            "Host key verification requires a pre-resolved PinnedFingerprintVerifier.");
-    }
-
-    /// <summary>
     /// Attaches pre-resolved host key verification to an SSH.NET client.
     /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
     /// BEFORE calling <c>Connect()</c>.
@@ -293,7 +274,7 @@ public static class SshConnectionFactory
         }
 
         throw new InvalidOperationException(
-            $"SSH host key probe completed without receiving a host key for {connectionParams.Host}:{connectionParams.Port}.");
+            $"SSH host key probe completed without receiving a host key for {verificationHost}:{verificationPort}.");
     }
 
     internal static async Task<PinnedFingerprintVerifier> ResolvePresentedHostKeyAsync(
@@ -422,19 +403,6 @@ public static class SshConnectionFactory
         return connectionParams.AgentForwarding
             && SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference)
                 .HasPlinkCompatibleAgent();
-    }
-
-    /// <summary>
-    /// Assembles the list of authentication methods from connection parameters.
-    /// Order: key file, password, agent. SSH.NET tries them in order.
-    /// </summary>
-    private static List<AuthenticationMethod> BuildAuthMethods(SshConnectionParams connectionParams)
-    {
-        ArgumentNullException.ThrowIfNull(connectionParams);
-
-        return BuildAuthMethods(
-            connectionParams,
-            SshAgentRegistry.CreateDefault(connectionParams.SshAgentPreference));
     }
 
     private static List<AuthenticationMethod> BuildAuthMethods(

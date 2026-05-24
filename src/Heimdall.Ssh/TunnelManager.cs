@@ -66,7 +66,13 @@ public sealed partial class TunnelManager : IDisposable
     /// <returns>True if the tunnel should be closed; false if still in use.</returns>
     public bool ReleaseReference(int localPort)
     {
-        var newCount = _refCounts.AddOrUpdate(localPort, 0, (_, current) => Math.Max(0, current - 1));
+        if (!_refCounts.ContainsKey(localPort))
+        {
+            CloseTunnel(localPort);
+            return true;
+        }
+
+        int newCount = _refCounts.AddOrUpdate(localPort, 0, (_, current) => Math.Max(0, current - 1));
 
         if (newCount <= 0)
         {
@@ -277,7 +283,12 @@ public sealed partial class TunnelManager : IDisposable
                 int intermediateLocalPort = nextLocalPort;
                 nextLocalPort = (i < gatewayChain.Count - 1) ? GetEphemeralPort() : localPort;
 
-                // Forward through current client to the next gateway's SSH port
+                // Forward through current client to the next gateway's SSH port.
+                // Only the final forwarded port gets an Exception handler that
+                // raises ForwardedPortFailed. A runtime failure in an
+                // intermediate hop drops the downstream SSH client and surfaces
+                // through the final port/client; per-hop mid-chain attribution
+                // is intentionally out of scope.
                 var intermediatePort = new ForwardedPortLocal(
                     "127.0.0.1",
                     (uint)intermediateLocalPort,

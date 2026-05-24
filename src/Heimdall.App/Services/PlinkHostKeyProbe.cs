@@ -15,7 +15,6 @@
  */
 
 using System.Diagnostics;
-using System.Net;
 using System.Text.RegularExpressions;
 using Heimdall.Core.Security;
 
@@ -52,7 +51,7 @@ internal static class PlinkHostKeyProbe
                 return null;
             }
 
-            if (!IsValidSshHost(host))
+            if (!InputValidator.IsValidSshHost(host))
             {
                 return null;
             }
@@ -148,11 +147,5 @@ internal static class PlinkHostKeyProbe
         }
 
         return null;
-    }
-
-    private static bool IsValidSshHost(string host)
-    {
-        return !string.IsNullOrWhiteSpace(host)
-            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 }

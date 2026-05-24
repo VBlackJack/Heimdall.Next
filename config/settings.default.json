@@ -22,7 +22,6 @@
     "sshKeepAliveIntervalSeconds": 30,
     "plinkPortCheckIntervalMs": 2000,
     "plinkKillGracePeriodMs": 2000,
-    "plinkStderrReadTimeoutMs": 10000,
     "sftpUploadDebounceMs": 2000,
     "serverShutdownTimeoutMs": 2000,
     "sleepPreventionIntervalSeconds": 60,

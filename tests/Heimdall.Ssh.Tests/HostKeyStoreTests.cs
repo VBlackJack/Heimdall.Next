@@ -16,131 +16,15 @@
 
 using Heimdall.Core.Ssh;
 
-#pragma warning disable CS0618 // Type or member is obsolete — this test exercises the legacy byte[] contract intentionally.
-
 namespace Heimdall.Ssh.Tests;
 
-// The plink TOFU caller shells out to plink.exe and is not currently isolated
-// behind a unit-test seam. These tests cover the HostKeyStore contract used by
-// both the SSH.NET path and the plink fallback, including first-trust
-// persistence signaling via HostKeyEvent.
+// These tests cover HostKeyStore storage and trust-management behavior used by
+// the SSH.NET path and plink fallback, including persistence signaling via
+// HostKeyEvent.
 public class HostKeyStoreTests
 {
     private readonly HostKeyStore _store = new();
     private readonly byte[] _sampleKey = [0x01, 0x02, 0x03, 0x04, 0x05];
-
-    // ── Verify (TOFU) ──────────────────────────────────────────────────
-
-    [Fact]
-    public void Verify_FirstUse_ReturnsTrustedAndFirstUse()
-    {
-        var result = _store.Verify("server.example.com", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.True(result.FirstUse);
-        Assert.Null(result.StoredFingerprint);
-        Assert.StartsWith("SHA256:", result.Fingerprint);
-    }
-
-    [Fact]
-    public void LegacyByteOverload_FirstUse_ReturnsTrustedTrueByDesign()
-    {
-        // This test documents the obsolete legacy contract: the byte[] overload
-        // returns Trusted=true on first use, which is why production code must
-        // route through HostKeyTrustService instead. See the [Obsolete] message
-        // on HostKeyStore.Verify(string, int, byte[]) for the migration path.
-        var result = _store.Verify("first.example.com", 22, _sampleKey);
-
-        Assert.True(result.FirstUse);
-        Assert.True(result.Trusted);
-    }
-
-    [Fact]
-    public void Verify_KnownHost_MatchingKey_ReturnsTrusted()
-    {
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
-        _store.Trust("server.example.com", 22, fingerprint);
-
-        var result = _store.Verify("server.example.com", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.False(result.FirstUse);
-        Assert.Equal(fingerprint, result.StoredFingerprint);
-        Assert.Equal(fingerprint, result.Fingerprint);
-    }
-
-    [Fact]
-    public void Verify_KnownHost_MismatchedKey_ReturnsUntrusted()
-    {
-        _store.Trust("server.example.com", 22, "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-
-        byte[] differentKey = [0xFF, 0xFE, 0xFD, 0xFC];
-        var result = _store.Verify("server.example.com", 22, differentKey);
-
-        Assert.False(result.Trusted);
-        Assert.False(result.FirstUse);
-        Assert.Equal("SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", result.StoredFingerprint);
-    }
-
-    [Fact]
-    public void Verify_SessionTrustedHost_MatchingKey_ReturnsTrustedWithoutPersisting()
-    {
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
-        var eventRaised = false;
-        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
-
-        _store.TrustForSession("server.example.com", 22, fingerprint, "ssh-ed25519");
-
-        var result = _store.Verify("server.example.com", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.False(result.FirstUse);
-        Assert.Equal(fingerprint, result.StoredFingerprint);
-        Assert.Null(_store.GetFingerprint("server.example.com", 22));
-        Assert.Empty(_store.GetAllTrusted());
-        Assert.False(eventRaised);
-    }
-
-    [Fact]
-    public void Verify_SessionTrustedHost_DoesNotSurviveFreshStore()
-    {
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
-        _store.TrustForSession("server.example.com", 22, fingerprint, "ssh-ed25519");
-
-        var freshStore = new HostKeyStore();
-        var result = freshStore.Verify("server.example.com", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.True(result.FirstUse);
-        Assert.Null(result.StoredFingerprint);
-    }
-
-    [Fact]
-    public void Verify_DifferentPorts_AreSeparateEntries()
-    {
-        var fp22 = HostKeyStore.ComputeFingerprint(_sampleKey);
-        _store.Trust("server.example.com", 22, fp22);
-
-        byte[] otherKey = [0xAA, 0xBB, 0xCC];
-        var result = _store.Verify("server.example.com", 2222, otherKey);
-
-        Assert.True(result.Trusted);
-        Assert.True(result.FirstUse);
-    }
-
-    [Fact]
-    public void Verify_CaseInsensitiveHost_TreatedAsSeparateEntries()
-    {
-        // MakeKey is case-sensitive: "Server.Example.com:22" != "server.example.com:22"
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
-        _store.Trust("Server.Example.COM", 22, fingerprint);
-
-        // Lowercase lookup should not find the uppercase entry (TOFU = first use)
-        var result = _store.Verify("server.example.com", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.True(result.FirstUse);
-    }
 
     [Fact]
     public void LoadFromConfig_EmptyCollection_DoesNotThrow()
@@ -163,31 +47,6 @@ public class HostKeyStoreTests
     }
 
     // ── HostKeyEvent ───────────────────────────────────────────────────
-
-    [Fact]
-    public void Verify_DoesNotRaiseHostKeyEvent()
-    {
-        var eventRaised = false;
-
-        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
-
-        _store.Verify("test.host", 22, _sampleKey);
-
-        Assert.False(eventRaised);
-    }
-
-    [Fact]
-    public void Verify_Mismatch_DoesNotRaiseHostKeyEvent()
-    {
-        _store.Trust("test.host", 22, "SHA256:old");
-        var eventRaised = false;
-
-        _store.HostKeyEvent += (_, _, _) => eventRaised = true;
-
-        _store.Verify("test.host", 22, _sampleKey);
-
-        Assert.False(eventRaised);
-    }
 
     // ── LoadFromConfig ─────────────────────────────────────────────────
 
@@ -285,19 +144,19 @@ public class HostKeyStoreTests
     }
 
     [Fact]
-    public void Verify_FirstUseThenTrust_RaisesTrustedEventOnlyOnce()
+    public void Trust_RaisesTrustedEventOnlyOnce()
     {
-        var trustedEvents = new List<(string Host, string Fingerprint, bool Trusted)>();
+        List<(string Host, string Fingerprint, bool Trusted)> trustedEvents = [];
 
         _store.HostKeyEvent += (host, fingerprint, trusted) =>
             trustedEvents.Add((host, fingerprint, trusted));
 
-        var result = _store.Verify("test.host", 22, _sampleKey);
-        _store.Trust("test.host", 22, result.Fingerprint);
+        string fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        _store.Trust("test.host", 22, fingerprint);
 
-        var trustedEvent = Assert.Single(trustedEvents);
+        (string Host, string Fingerprint, bool Trusted) trustedEvent = Assert.Single(trustedEvents);
         Assert.Equal("test.host:22", trustedEvent.Host);
-        Assert.Equal(result.Fingerprint, trustedEvent.Fingerprint);
+        Assert.Equal(fingerprint, trustedEvent.Fingerprint);
         Assert.True(trustedEvent.Trusted);
     }
 
@@ -404,18 +263,6 @@ public class HostKeyStoreTests
     // ── Null argument validation ───────────────────────────────────────
 
     [Fact]
-    public void Verify_NullHost_ThrowsArgumentNull()
-    {
-        Assert.Throws<ArgumentNullException>(() => _store.Verify(null!, 22, _sampleKey));
-    }
-
-    [Fact]
-    public void Verify_NullHostKey_ThrowsArgumentNull()
-    {
-        Assert.Throws<ArgumentNullException>(() => _store.Verify("host", 22, null!));
-    }
-
-    [Fact]
     public void Trust_NullHost_ThrowsArgumentNull()
     {
         Assert.Throws<ArgumentNullException>(() => _store.Trust(null!, 22, "fp"));
@@ -456,37 +303,12 @@ public class HostKeyStoreTests
     }
 
     [Fact]
-    public void Verify_IPv6Address_FirstUse_ReturnsTrustedAndFirstUse()
-    {
-        var result = _store.Verify("[::1]", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.True(result.FirstUse);
-    }
-
-    [Fact]
-    public void Trust_Verify_IPv6_Roundtrip()
-    {
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
-        _store.Trust("[::1]", 22, fingerprint);
-
-        var result = _store.Verify("[::1]", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.False(result.FirstUse);
-        Assert.Equal(fingerprint, result.StoredFingerprint);
-    }
-
-    [Fact]
     public void Trust_IPv6FullAddress_Roundtrip()
     {
-        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        string fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
         _store.Trust("[2001:db8::1]", 22, fingerprint);
 
-        var result = _store.Verify("[2001:db8::1]", 22, _sampleKey);
-
-        Assert.True(result.Trusted);
-        Assert.False(result.FirstUse);
+        Assert.Equal(fingerprint, _store.GetFingerprint("[2001:db8::1]", 22));
     }
 
     [Fact]
@@ -538,19 +360,6 @@ public class HostKeyStoreTests
         Assert.Null(_store.GetFingerprint("[::1]", 22));
     }
 
-    [Fact]
-    public void Verify_IPv6_Mismatch_ReturnsUntrusted()
-    {
-        _store.Trust("[::1]", 22, "SHA256:originalkey");
-
-        byte[] differentKey = [0xAA, 0xBB, 0xCC];
-        var result = _store.Verify("[::1]", 22, differentKey);
-
-        Assert.False(result.Trusted);
-        Assert.False(result.FirstUse);
-        Assert.Equal("SHA256:originalkey", result.StoredFingerprint);
-    }
-
     // ── ConstantTimeEquals ─────────────────────────────────────────────
 
     [Theory]
@@ -571,5 +380,3 @@ public class HostKeyStoreTests
         Assert.False(HostKeyStore.ConstantTimeEquals(null!, null!));
     }
 }
-
-#pragma warning restore CS0618

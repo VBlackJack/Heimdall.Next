@@ -255,48 +255,6 @@ public class PageantClientTests
         Assert.Contains("Invalid signature length", ex.Message);
     }
 
-    // ── Dispose ──────────────────────────────────────────────────────
-
-    [Fact]
-    public void Dispose_CalledTwice_DoesNotThrow()
-    {
-        var client = new PageantClient();
-        client.Dispose();
-        client.Dispose();
-    }
-
-    [Fact]
-    public void GetIdentities_AfterDispose_ThrowsObjectDisposed()
-    {
-        var client = new PageantClient();
-        client.Dispose();
-
-        Assert.Throws<ObjectDisposedException>(() => client.GetIdentities());
-    }
-
-    [Fact]
-    public void SignData_AfterDispose_ThrowsObjectDisposed()
-    {
-        var client = new PageantClient();
-        client.Dispose();
-
-        Assert.Throws<ObjectDisposedException>(() => client.SignData(new byte[] { 1 }, new byte[] { 2 }));
-    }
-
-    [Fact]
-    public void PageantKeyWrapper_RsaKey_UsesGenericAgentAlgorithmSet()
-    {
-        var pageantKey = new PageantKey(
-            OpenSshAgentProtocolTests.BuildKeyBlob("ssh-rsa"),
-            "rsa@test",
-            "ssh-rsa");
-
-        using var wrapper = new PageantKeyWrapper(pageantKey);
-
-        var algorithms = wrapper.HostKeyAlgorithms.Select(algorithm => algorithm.Name).ToList();
-        Assert.Equal(["rsa-sha2-256", "rsa-sha2-512", "ssh-rsa"], algorithms);
-    }
-
     // ── Test helpers ─────────────────────────────────────────────────
 
     /// <summary>

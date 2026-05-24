@@ -38,7 +38,7 @@ internal sealed class PageantAgentKey : ISshAgentKey
 
     public byte[] Sign(byte[] data, SshAgentSignFlags flags)
     {
-        using var client = _clientFactory();
+        PageantClient client = _clientFactory();
         return client.SignData(PublicKeyBlob, data, (uint)flags);
     }
 }

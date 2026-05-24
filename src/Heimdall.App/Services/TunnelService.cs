@@ -358,8 +358,7 @@ public sealed class TunnelService : ITunnelService
 
         PlinkTunnelRunner runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
-            _currentSettings?.PlinkKillGracePeriodMs ?? 2000,
-            _currentSettings?.PlinkStderrReadTimeoutMs ?? 10000);
+            _currentSettings?.PlinkKillGracePeriodMs ?? 2000);
         PlinkTunnelResult result = await runner.StartAsync(
                 plinkPath,
                 gatewayParams.Host,
@@ -493,68 +492,31 @@ public sealed class TunnelService : ITunnelService
         destination.Write(bytes, 0, bytes.Length);
     }
 
-    private string BuildHostKeyMismatchMessage(
-        string storedFingerprint,
-        string presentedFingerprint)
-    {
-        string message = _localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
-        if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
-        {
-            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
-        }
-
-        string detail = _localizer.Format(
-            SshLocalizationKeys.ErrorHostKeyMismatchDetail,
-            storedFingerprint,
-            presentedFingerprint);
-        if (string.Equals(detail, SshLocalizationKeys.ErrorHostKeyMismatchDetail, StringComparison.Ordinal))
-        {
-            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
-        }
-
-        return $"{message} {detail}";
-    }
-
     private string BuildPlinkHostKeyFailureMessage(PlinkHostKeyDecision decision)
     {
         if (decision.FailureCode == SshFailureCode.HostKeyMismatch
             && decision.StoredFingerprint is not null
             && decision.PresentedFingerprint is not null)
         {
-            return BuildHostKeyMismatchMessage(
+            return SshFailureMessageBuilder.HostKeyMismatch(
+                _localizer,
                 decision.StoredFingerprint,
                 decision.PresentedFingerprint);
         }
 
         if (decision.FailureCode == SshFailureCode.Cancelled)
         {
-            return BuildCancelledMessage();
+            return SshFailureMessageBuilder.Cancelled(_localizer);
         }
 
         if (decision.FailureCode == SshFailureCode.HostKeyUnavailable)
         {
-            return BuildHostKeyUnavailableMessage();
+            return SshFailureMessageBuilder.HostKeyUnavailable(_localizer);
         }
 
         return decision.FailureMessageKey is null
             ? _localizer[SshLocalizationKeys.ErrorTunnelFailed]
             : _localizer[decision.FailureMessageKey];
-    }
-
-    private string BuildHostKeyUnavailableMessage()
-    {
-        string message = _localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
-            ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
-            : message;
-    }
-
-    private string BuildCancelledMessage()
-    {
-        string message = _localizer[SshLocalizationKeys.ErrorSshCancelled];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
-            ? "Connection was cancelled."
-            : message;
     }
 
     private string ResolvePreflightMessage(string? messageOrKey)

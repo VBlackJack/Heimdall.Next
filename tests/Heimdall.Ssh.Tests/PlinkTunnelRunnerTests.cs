@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Diagnostics;
 using System.IO;
 using Heimdall.Ssh.Plink;
 
@@ -161,6 +162,27 @@ public class PlinkTunnelRunnerTests : IDisposable
     public void ProcessId_BeforeStart_ReturnsNull()
     {
         Assert.Null(_runner.ProcessId);
+    }
+
+    [Fact]
+    public void LogProcessExit_LiveProcess_DoesNotThrow()
+    {
+        using Process process = Process.GetCurrentProcess();
+
+        Exception? exception = Record.Exception(() => PlinkTunnelRunner.LogProcessExit(process, 10022));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void LogProcessExit_DisposedProcess_DoesNotThrow()
+    {
+        Process process = new Process();
+        process.Dispose();
+
+        Exception? exception = Record.Exception(() => PlinkTunnelRunner.LogProcessExit(process, 10023));
+
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -404,8 +426,7 @@ public class PlinkTunnelRunnerTests : IDisposable
         // throw and must produce a usable runner.
         var options = new PlinkTunnelRunnerOptions(
             PortCheckIntervalMs: 250,
-            KillGracePeriodMs: 1000,
-            StderrReadTimeoutMs: 5000);
+            KillGracePeriodMs: 1000);
 
         using var runner = new PlinkTunnelRunner(options);
 
@@ -416,11 +437,10 @@ public class PlinkTunnelRunnerTests : IDisposable
     [Fact]
     public void Options_Default_MatchesHistoricalConstants()
     {
-        // The Default record must keep the historical constants so the
-        // parameterless ctor and Default-based ctor are observably equivalent.
-        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.PortCheckIntervalMs);
-        Assert.Equal(2000, PlinkTunnelRunnerOptions.Default.KillGracePeriodMs);
-        Assert.Equal(10000, PlinkTunnelRunnerOptions.Default.StderrReadTimeoutMs);
+        PlinkTunnelRunnerOptions options = new PlinkTunnelRunnerOptions();
+
+        Assert.Equal(2000, options.PortCheckIntervalMs);
+        Assert.Equal(2000, options.KillGracePeriodMs);
     }
 
     [Fact]
