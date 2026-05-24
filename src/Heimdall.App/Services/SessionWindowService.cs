@@ -38,12 +38,12 @@ namespace Heimdall.App.Services;
 /// <see cref="SplitPaletteRequested"/> event. The host window subscribes
 /// and calls its own <c>BeginFocusCommandPalette</c> helper.
 /// </remarks>
-public sealed class SessionSplitService
+public sealed class SessionWindowService : ISessionWindowService
 {
     /// <summary>
-    /// Initialises a new <see cref="SessionSplitService"/>.
+    /// Initialises a new <see cref="SessionWindowService"/>.
     /// </summary>
-    public SessionSplitService()
+    public SessionWindowService()
     {
     }
 

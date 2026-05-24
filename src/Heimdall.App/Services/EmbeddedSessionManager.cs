@@ -569,12 +569,12 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             TelnetPasswordEncrypted = server.TelnetPasswordEncrypted
         };
 
-    public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+    public void DisconnectSession(SessionPaneModel pane, DisconnectReason reason)
     {
         ArgumentNullException.ThrowIfNull(pane);
 
         Core.Logging.FileLogger.Info(
-            $"EmbeddedSessionManager.DisconnectSessionAsync started paneId={pane.PaneId} title='{pane.Title}' connectionType={pane.ConnectionType} reason={reason}");
+            $"EmbeddedSessionManager.DisconnectSession started paneId={pane.PaneId} title='{pane.Title}' connectionType={pane.ConnectionType} reason={reason}");
 
         switch (pane.HostControl)
         {
@@ -586,35 +586,34 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 try
                 {
                     Core.Logging.FileLogger.Info(
-                        $"EmbeddedSessionManager.DisconnectSessionAsync disposing host paneId={pane.PaneId} reason={reason} hostType={disposable.GetType().FullName}");
+                        $"EmbeddedSessionManager.DisconnectSession disposing host paneId={pane.PaneId} reason={reason} hostType={disposable.GetType().FullName}");
                     disposable.Dispose();
                 }
                 catch (ObjectDisposedException)
                 {
                     Core.Logging.FileLogger.Info(
-                        $"EmbeddedSessionManager.DisconnectSessionAsync host already disposed paneId={pane.PaneId} reason={reason}");
+                        $"EmbeddedSessionManager.DisconnectSession host already disposed paneId={pane.PaneId} reason={reason}");
                 }
                 catch (Exception ex)
                 {
                     Core.Logging.FileLogger.Warn(
-                        $"EmbeddedSessionManager.DisconnectSessionAsync host dispose failed paneId={pane.PaneId} reason={reason}: {ex.Message}");
+                        $"EmbeddedSessionManager.DisconnectSession host dispose failed paneId={pane.PaneId} reason={reason}: {ex.Message}");
                 }
                 break;
 
             case null:
                 Core.Logging.FileLogger.Info(
-                    $"EmbeddedSessionManager.DisconnectSessionAsync no host paneId={pane.PaneId} reason={reason}");
+                    $"EmbeddedSessionManager.DisconnectSession no host paneId={pane.PaneId} reason={reason}");
                 break;
 
             default:
                 Core.Logging.FileLogger.Info(
-                    $"EmbeddedSessionManager.DisconnectSessionAsync non-disposable host paneId={pane.PaneId} reason={reason} hostType={pane.HostControl.GetType().FullName}");
+                    $"EmbeddedSessionManager.DisconnectSession non-disposable host paneId={pane.PaneId} reason={reason} hostType={pane.HostControl.GetType().FullName}");
                 break;
         }
 
         Core.Logging.FileLogger.Info(
-            $"EmbeddedSessionManager.DisconnectSessionAsync completed paneId={pane.PaneId} reason={reason}");
-        return Task.CompletedTask;
+            $"EmbeddedSessionManager.DisconnectSession completed paneId={pane.PaneId} reason={reason}");
     }
 
     /// <summary>

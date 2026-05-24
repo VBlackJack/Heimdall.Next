@@ -444,14 +444,12 @@ public sealed class SessionCoordinatorPreMountTests
             return new object();
         }
 
-        public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+        public void DisconnectSession(SessionPaneModel pane, DisconnectReason reason)
         {
             if (pane.HostControl is IDisposable disposable)
             {
                 disposable.Dispose();
             }
-
-            return Task.CompletedTask;
         }
 
         public EmbeddedSshView CreateConnectingSshHostControl(

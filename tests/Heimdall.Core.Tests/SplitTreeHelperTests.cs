@@ -22,9 +22,9 @@ public class SplitTreeHelperTests
 {
     // ── Helper factories ─────────────────────────────────────────────
 
-    private static SessionPaneModel MakePane(string id = "", string serverId = "")
+    private static SessionPaneModel MakePane(string id = "")
     {
-        var pane = new SessionPaneModel { ServerId = serverId };
+        var pane = new SessionPaneModel();
         if (!string.IsNullOrEmpty(id)) pane.PaneId = id;
         return pane;
     }
@@ -144,24 +144,6 @@ public class SplitTreeHelperTests
         Assert.Null(SplitTreeHelper.FindPane(root, "NOPE"));
     }
 
-    // ── FindPaneByServerId ───────────────────────────────────────────
-
-    [Fact]
-    public void FindPaneByServerId_FindsCorrectPane()
-    {
-        var target = MakePane(serverId: "srv-42");
-        var root = MakeSplit(MakePane(serverId: "srv-1"), target);
-
-        Assert.Same(target, SplitTreeHelper.FindPaneByServerId(root, "srv-42"));
-    }
-
-    [Fact]
-    public void FindPaneByServerId_NotFound_ReturnsNull()
-    {
-        var root = MakePane(serverId: "srv-1");
-        Assert.Null(SplitTreeHelper.FindPaneByServerId(root, "srv-99"));
-    }
-
     // ── FindPaneByHostControl ────────────────────────────────────────
 
     [Fact]
@@ -215,25 +197,6 @@ public class SplitTreeHelperTests
     {
         var root = MakeSplit(MakePane("A"), MakePane("B"));
         Assert.Null(SplitTreeHelper.FindParent(root, "NOPE"));
-    }
-
-    // ── FindSibling ──────────────────────────────────────────────────
-
-    [Fact]
-    public void FindSibling_ReturnsSibling()
-    {
-        var a = MakePane("A");
-        var b = MakePane("B");
-        var root = MakeSplit(a, b);
-
-        Assert.Same(b, SplitTreeHelper.FindSibling(root, "A"));
-        Assert.Same(a, SplitTreeHelper.FindSibling(root, "B"));
-    }
-
-    [Fact]
-    public void FindSibling_RootPane_ReturnsNull()
-    {
-        Assert.Null(SplitTreeHelper.FindSibling(MakePane("A"), "A"));
     }
 
     // ── CountLeaves ──────────────────────────────────────────────────
@@ -601,30 +564,6 @@ public class SplitTreeHelperTests
         Assert.Null(SplitTreeHelper.FindPane(result!, "A"));
     }
 
-    // ── FindSibling: deep nested tree ────────────────────────────────
-
-    [Fact]
-    public void FindSibling_DeepTree_ReturnsCorrectSibling()
-    {
-        //        root
-        //       /    \
-        //    inner    C
-        //    /    \
-        //   A      B
-        var a = MakePane("A");
-        var b = MakePane("B");
-        var c = MakePane("C");
-        var inner = MakeSplit(a, b);
-        var root = MakeSplit(inner, c);
-
-        // A's sibling is B (within inner)
-        Assert.Same(b, SplitTreeHelper.FindSibling(root, "A"));
-        // B's sibling is A (within inner)
-        Assert.Same(a, SplitTreeHelper.FindSibling(root, "B"));
-        // inner's child C — C's sibling is the inner container
-        Assert.Same(inner, SplitTreeHelper.FindSibling(root, "C"));
-    }
-
     // ── Swap idempotence (swap twice returns original) ───────────────
 
     [Fact]
@@ -689,20 +628,6 @@ public class SplitTreeHelperTests
         model.SplitRatio = 0.01; // Will be clamped to MinRatio
         Assert.NotNull(reportedValue);
         Assert.Equal(SplitContainerModel.MinRatio, reportedValue);
-    }
-
-    // ── FindPaneByServerId: duplicate server IDs ─────────────────────
-
-    [Fact]
-    public void FindPaneByServerId_Duplicates_ReturnsFirst()
-    {
-        var a = MakePane("A", serverId: "srv-same");
-        var b = MakePane("B", serverId: "srv-same");
-        var root = MakeSplit(a, b);
-
-        // Should return the first match (depth-first = A)
-        var found = SplitTreeHelper.FindPaneByServerId(root, "srv-same");
-        Assert.Same(a, found);
     }
 
     // ── Defensive: null First/Second on uninitialized container ──────

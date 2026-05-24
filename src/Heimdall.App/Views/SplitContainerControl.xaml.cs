@@ -45,6 +45,13 @@ public partial class SplitContainerControl : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _model ??= DataContext as SplitContainerModel;
+        if (_model is not null)
+        {
+            _model.PropertyChanged -= OnModelPropertyChanged;
+            _model.PropertyChanged += OnModelPropertyChanged;
+        }
+
         ApplyLocalization();
         SyncContent();
         ApplyLayout();
@@ -56,13 +63,6 @@ public partial class SplitContainerControl : UserControl
         {
             _model.PropertyChanged -= OnModelPropertyChanged;
         }
-
-        Splitter.DragCompleted -= OnSplitterDragCompleted;
-        Splitter.MouseDoubleClick -= OnSplitterDoubleClick;
-        DataContextChanged -= OnDataContextChanged;
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
-        _model = null;
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -74,7 +74,7 @@ public partial class SplitContainerControl : UserControl
 
         _model = e.NewValue as SplitContainerModel;
 
-        if (_model is not null)
+        if (_model is not null && IsLoaded)
         {
             _model.PropertyChanged += OnModelPropertyChanged;
         }
@@ -101,6 +101,11 @@ public partial class SplitContainerControl : UserControl
 
     private void SyncContent()
     {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
         var first = _model?.First;
         var second = _model?.Second;
 
@@ -116,17 +121,32 @@ public partial class SplitContainerControl : UserControl
     /// </summary>
     private void InvalidateLayout()
     {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
         if (_layoutDirty) return;
         _layoutDirty = true;
         Dispatcher.BeginInvoke(DispatcherPriority.Render, () =>
         {
             _layoutDirty = false;
+            if (!IsLoaded)
+            {
+                return;
+            }
+
             ApplyLayout();
         });
     }
 
     private void ApplyLayout()
     {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
         // Re-sync content on every layout pass (critical for TabControl tab switching)
         SyncContent();
 
@@ -202,7 +222,7 @@ public partial class SplitContainerControl : UserControl
     /// </summary>
     private void OnSplitterDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (_model is null) return;
+        if (!IsLoaded || _model is null) return;
         _model.SplitRatio = SplitContainerModel.DefaultRatio;
         e.Handled = true;
     }
@@ -214,7 +234,7 @@ public partial class SplitContainerControl : UserControl
     private void OnSplitterDragCompleted(
         object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
-        if (_model is null) return;
+        if (!IsLoaded || _model is null) return;
 
         double ratio;
         if (_model.Orientation == SplitOrientation.Horizontal && RootGrid.RowDefinitions.Count >= 3)

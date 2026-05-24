@@ -18,7 +18,8 @@ namespace Heimdall.Core.Models;
 
 /// <summary>
 /// Pure static utility methods for manipulating the recursive split pane tree.
-/// All operations are side-effect free except where noted. No WPF dependency.
+/// Traversal operations are side-effect free; mutation helpers update the tree
+/// model in place where documented. No WPF dependency.
 /// </summary>
 public static class SplitTreeHelper
 {
@@ -71,29 +72,6 @@ public static class SplitTreeHelper
     }
 
     /// <summary>
-    /// Finds a leaf pane by its <see cref="SessionPaneModel.ServerId"/>.
-    /// Returns the first match (depth-first). Returns null if not found.
-    /// </summary>
-    public static SessionPaneModel? FindPaneByServerId(ISplitContent? root, string serverId)
-    {
-        if (string.IsNullOrEmpty(serverId) || root is null) return null;
-
-        if (root is SessionPaneModel pane &&
-            string.Equals(pane.ServerId, serverId, StringComparison.Ordinal))
-        {
-            return pane;
-        }
-
-        if (root is SplitContainerModel container)
-        {
-            return FindPaneByServerId(container.First, serverId)
-                   ?? FindPaneByServerId(container.Second, serverId);
-        }
-
-        return null;
-    }
-
-    /// <summary>
     /// Finds a leaf pane by its <see cref="SessionPaneModel.HostControl"/> reference.
     /// Returns null if not found.
     /// </summary>
@@ -132,20 +110,6 @@ public static class SplitTreeHelper
     }
 
     /// <summary>
-    /// Returns the sibling of a pane within the same parent container.
-    /// Returns null if the pane has no parent (root) or not found.
-    /// </summary>
-    public static ISplitContent? FindSibling(ISplitContent? root, string paneId)
-    {
-        var parent = FindParent(root, paneId);
-        if (parent is null) return null;
-
-        if (IsDirectChild(parent.First, paneId)) return parent.Second;
-        if (IsDirectChild(parent.Second, paneId)) return parent.First;
-        return null;
-    }
-
-    /// <summary>
     /// Removes a leaf pane from the tree and promotes its sibling.
     /// Returns the new root (which may be a single <see cref="SessionPaneModel"/>
     /// if only one pane remains). Returns null if the pane is the only node.
@@ -168,13 +132,13 @@ public static class SplitTreeHelper
         if (IsDirectChild(container.First, paneId))
         {
             // Promote the other child (Second) to replace this container
-            return PromoteInTree(root, container, container.Second);
+            return container.Second;
         }
 
         if (IsDirectChild(container.Second, paneId))
         {
             // Promote the other child (First) to replace this container
-            return PromoteInTree(root, container, container.First);
+            return container.First;
         }
 
         // Recurse deeper — rebuild the tree with the modified subtree
@@ -184,7 +148,7 @@ public static class SplitTreeHelper
             if (modifiedFirst is null)
             {
                 // Entire First subtree consumed — promote Second
-                return PromoteInTree(root, container, container.Second);
+                return container.Second;
             }
 
             container.First = modifiedFirst;
@@ -197,7 +161,7 @@ public static class SplitTreeHelper
             if (modifiedSecond is null)
             {
                 // Entire Second subtree consumed — promote First
-                return PromoteInTree(root, container, container.First);
+                return container.First;
             }
 
             container.Second = modifiedSecond;
@@ -299,44 +263,5 @@ public static class SplitTreeHelper
     {
         return child is SessionPaneModel pane &&
                string.Equals(pane.PaneId, paneId, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Replaces <paramref name="target"/> container in the tree with
-    /// <paramref name="promotion"/> (the surviving child after a removal).
-    /// </summary>
-    private static ISplitContent PromoteInTree(
-        ISplitContent root, SplitContainerModel target, ISplitContent promotion)
-    {
-        if (ReferenceEquals(root, target))
-        {
-            return promotion;
-        }
-
-        // Walk the tree to find and replace the target container
-        ReplaceContainer(root, target, promotion);
-        return root;
-    }
-
-    private static bool ReplaceContainer(
-        ISplitContent node, SplitContainerModel target, ISplitContent replacement)
-    {
-        if (node is not SplitContainerModel container) return false;
-
-        if (ReferenceEquals(container.First, target))
-        {
-            container.First = replacement;
-            return true;
-        }
-
-        if (ReferenceEquals(container.Second, target))
-        {
-            container.Second = replacement;
-            return true;
-        }
-
-        // Short-circuit after first match
-        return ReplaceContainer(container.First, target, replacement)
-            || ReplaceContainer(container.Second, target, replacement);
     }
 }

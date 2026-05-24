@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading;
 using Heimdall.App.Services;
@@ -22,6 +23,9 @@ using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.SessionDiagnostics;
+using Heimdall.Core.StateMachine;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
 
@@ -29,12 +33,11 @@ namespace Heimdall.App.Tests;
 /// Unit tests for <see cref="SplitService"/>. Covers the synchronous and
 /// self-contained methods that can be exercised without a live WPF dispatcher
 /// or a full integration harness: the per-session cancellation token
-/// lifecycle, <c>CloseAllPanes</c>'s tool-pane blocking guard,
-/// <c>ToggleSplitOrientation</c>, and <c>SplitSessionWithTool</c>'s
-/// short-circuit guards (unknown tool, max panes). The async flows
-/// (<c>SplitSessionWithServerAsync</c>, <c>ReconnectPaneAsync</c>,
-/// <c>SwapSplitPanesAsync</c>) depend on the WPF dispatcher and real
-/// connection plumbing and are out of scope here.
+/// lifecycle, server-pane tunnel cleanup, <c>CloseAllPanes</c>'s close guards,
+/// <c>ToggleSplitOrientation</c>, and <c>SplitSessionWithTool</c>'s short-circuit
+/// guards (unknown tool, max panes). Async coverage is limited to dispatcher-free
+/// error handling in <c>ReconnectPaneAsync</c>; the WPF dispatcher-dependent swap
+/// flow remains out of scope here.
 /// </summary>
 public sealed class SplitServiceTests : IDisposable
 {
@@ -42,6 +45,8 @@ public sealed class SplitServiceTests : IDisposable
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly ToolRegistry _toolRegistry;
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly TunnelManager _tunnelManager;
     private readonly SplitService _sut;
 
     public SplitServiceTests()
@@ -52,17 +57,18 @@ public sealed class SplitServiceTests : IDisposable
         _configManager = new ConfigManager(_tempDir);
         _localizer = new LocalizationManager();
         _toolRegistry = new ToolRegistry();
+        _connectionSm = new ConnectionStateMachine();
+        _tunnelManager = new TunnelManager();
 
-        // All 8 SplitService dependencies are sealed (Moq cannot mock sealed
-        // types at runtime). We pass real instances for dependencies the
-        // targeted methods read and a tiny fake session manager for host
-        // teardown; the remaining connection dependencies are only invoked by
-        // async connection flows that are outside this fixture.
+        // ConnectionStateMachine and TunnelManager are sealed, so use real
+        // lightweight instances. The fake session manager is enough for host
+        // teardown, and async connection tests supply a tiny IConnectionService
+        // double through CreateSplitService.
         _sut = new SplitService(
             _configManager,
             _localizer,
-            connectionSm: null!,
-            tunnelManager: null!,
+            _connectionSm,
+            _tunnelManager,
             sessionManager: new FakeEmbeddedSessionManager(),
             connectionService: null!,
             _toolRegistry,
@@ -71,6 +77,7 @@ public sealed class SplitServiceTests : IDisposable
 
     public void Dispose()
     {
+        _tunnelManager.Dispose();
         try { Directory.Delete(_tempDir, recursive: true); }
         catch { /* test cleanup */ }
         GC.SuppressFinalize(this);
@@ -219,7 +226,162 @@ public sealed class SplitServiceTests : IDisposable
         Assert.False(blockedView.Disposed);
     }
 
-    // ── Category D: ToggleSplitOrientation ──────────────────────────────
+    [Fact]
+    public void CloseAllPanes_MixedServerAndTool_ReleasesServerTunnelAndDisposesHosts()
+    {
+        const string serverId = "session-server";
+        const int localPort = 45124;
+        RegisterTrackedTunnel(serverId, localPort);
+
+        var serverHost = new DisposableHost();
+        var serverPane = MakePane(paneId: "server-pane", serverId: serverId, connectionType: "RDP");
+        serverPane.OriginalServerId = "profile-server";
+        serverPane.Title = "Server";
+        serverPane.HostControl = serverHost;
+
+        var toolHost = new StubToolView(canClose: true);
+        var toolPane = MakePane(paneId: "tool-pane", serverId: "tool-ping", connectionType: "TOOL:PING");
+        toolPane.HostControl = toolHost;
+
+        var session = new SessionTabViewModel
+        {
+            RootContent = new SplitContainerModel
+            {
+                First = serverPane,
+                Second = toolPane,
+                Orientation = SplitOrientation.Vertical
+            }
+        };
+
+        var result = _sut.CloseAllPanes(session);
+
+        Assert.True(result);
+        Assert.Null(serverPane.HostControl);
+        Assert.Null(toolPane.HostControl);
+        Assert.True(serverHost.Disposed);
+        Assert.True(toolHost.Disposed);
+        AssertServerStateReset(serverId);
+        AssertSingleTunnelReferenceReleased(localPort);
+    }
+
+    // ── Category C: ClosePane / server-pane cleanup ──────────────────────
+
+    [Fact]
+    public void ClosePane_ServerPaneWithTunnel_ReleasesTunnelResetsStateAndPromotesSibling()
+    {
+        const string serverId = "split-server";
+        const int localPort = 45125;
+        RegisterTrackedTunnel(serverId, localPort);
+
+        var host = new DisposableHost();
+        var serverPane = MakePane(paneId: "server-pane", serverId: serverId, connectionType: "SSH");
+        serverPane.OriginalServerId = "profile-server";
+        serverPane.Title = "Server";
+        serverPane.HostControl = host;
+
+        var sibling = MakePane(paneId: "sibling", connectionType: "TOOL:NOTES");
+        var session = new SessionTabViewModel
+        {
+            RootContent = new SplitContainerModel
+            {
+                First = serverPane,
+                Second = sibling,
+                Orientation = SplitOrientation.Horizontal
+            }
+        };
+
+        _sut.ClosePane(session, serverPane.PaneId);
+
+        Assert.Same(sibling, session.RootContent);
+        Assert.Null(serverPane.HostControl);
+        Assert.True(host.Disposed);
+        AssertServerStateReset(serverId);
+        AssertSingleTunnelReferenceReleased(localPort);
+    }
+
+    [Fact]
+    public void ClosePane_ToolPaneBlocking_PreservesTreeAndHost()
+    {
+        var blockingView = new StubToolView(canClose: false);
+        var toolPane = MakePane(paneId: "tool-pane", serverId: "tool-ping", connectionType: "TOOL:PING");
+        toolPane.Title = "Ping";
+        toolPane.HostControl = blockingView;
+
+        var sibling = MakePane(paneId: "sibling");
+        var root = new SplitContainerModel
+        {
+            First = sibling,
+            Second = toolPane,
+            Orientation = SplitOrientation.Vertical
+        };
+        var session = new SessionTabViewModel { RootContent = root };
+
+        _sut.ClosePane(session, toolPane.PaneId);
+
+        Assert.Same(root, session.RootContent);
+        Assert.Same(blockingView, toolPane.HostControl);
+        Assert.False(blockingView.Disposed);
+    }
+
+    [Fact]
+    public void CleanupOrphanedPane_ServerWithTunnel_ReleasesTunnelAndResetsState()
+    {
+        const string serverId = "orphan-server";
+        const int localPort = 45126;
+        RegisterTrackedTunnel(serverId, localPort);
+
+        _sut.CleanupOrphanedPane(serverId);
+
+        AssertServerStateReset(serverId);
+        AssertSingleTunnelReferenceReleased(localPort);
+    }
+
+    // ── Category D: Reconnect exception handling ─────────────────────────
+
+    [Fact]
+    public async Task ReconnectPaneAsync_UnexpectedConnectException_SetsErrorAndDoesNotThrow()
+    {
+        var sut = CreateSplitService(new ThrowingConnectionService(new InvalidOperationException("boom")));
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "RDP"
+            }
+        });
+
+        var host = new DisposableHost();
+        var pane = MakePane(paneId: "pane-1", serverId: "old-session", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.Title = "Server 1";
+        pane.HostControl = host;
+
+        var session = new SessionTabViewModel { RootContent = pane };
+        session.Title = "Split tab";
+        var activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        string? capturedStatus = null;
+        sut.SetStatusText = s => capturedStatus = s;
+
+        _connectionSm.TryTransition("old-session", ConnectionState.Initializing);
+        _connectionSm.SetTunnelInfo("old-session", localPort: 45123, processId: 123);
+
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.Equal("Error", pane.Status);
+        Assert.Null(pane.HostControl);
+        Assert.True(host.Disposed);
+        Assert.NotNull(capturedStatus);
+        Assert.Contains("boom", capturedStatus);
+        Assert.Equal(ConnectionState.Disconnected, _connectionSm.GetState("old-session"));
+        Assert.Null(_connectionSm.GetStateData("old-session")?.TunnelLocalPort);
+    }
+
+    // ── Category E: ToggleSplitOrientation ──────────────────────────────
 
     [Fact]
     public void ToggleSplitOrientation_HorizontalBecomesVertical()
@@ -268,7 +430,7 @@ public sealed class SplitServiceTests : IDisposable
         Assert.Same(leaf, session.RootContent);
     }
 
-    // ── Category E: SplitSessionWithTool guards ─────────────────────────
+    // ── Category F: SplitSessionWithTool guards ─────────────────────────
 
     [Fact]
     public void SplitSessionWithTool_UnknownToolId_LeavesTreeUnchanged()
@@ -302,7 +464,86 @@ public sealed class SplitServiceTests : IDisposable
         Assert.Equal("SplitMaxPanesReached", capturedStatus);
     }
 
-    // ── Category F: Forced embedded mode policy ────────────────────────
+    // ── Category G: MergeExistingSession guards ─────────────────────────
+
+    [Fact]
+    public void MergeExistingSession_SourcePaneStillConnecting_IsBlocked()
+    {
+        SessionPaneModel connectedLeaf = MakePane(paneId: "connected", connectionType: "SSH");
+        connectedLeaf.HostControl = new DisposableHost();
+
+        SessionPaneModel connectingLeaf = MakePane(paneId: "connecting", connectionType: "SSH");
+        connectingLeaf.Title = "Connecting host";
+        // HostControl null + no FailureDetails => still connecting.
+
+        SplitContainerModel sourceRoot = new()
+        {
+            First = connectedLeaf,
+            Second = connectingLeaf,
+            Orientation = SplitOrientation.Vertical
+        };
+        SessionTabViewModel source = new() { RootContent = sourceRoot };
+        source.ServerId = "source-session";
+        source.Title = "Source";
+
+        SessionTabViewModel target = new();
+        target.Title = "Target";
+        ISplitContent targetRootBefore = target.RootContent;
+
+        ObservableCollection<SessionTabViewModel> activeSessions = new() { target, source };
+        _sut.ActiveSessionsProvider = () => activeSessions;
+        string? capturedStatus = null;
+        _sut.SetStatusText = s => capturedStatus = s;
+
+        _sut.MergeExistingSession(target, "source-session", SplitOrientation.Vertical);
+
+        // Merge blocked: nothing mutated, both sessions intact.
+        Assert.Equal("SplitMergeBlockedByConnecting", capturedStatus);
+        Assert.Contains(source, activeSessions);
+        Assert.Same(sourceRoot, source.RootContent);
+        Assert.Same(targetRootBefore, target.RootContent);
+        Assert.False(target.IsSplit);
+    }
+
+    [Fact]
+    public void MergeExistingSession_SourcePaneFailed_IsNotBlockedByConnectingGuard()
+    {
+        SessionPaneModel connectedLeaf = MakePane(paneId: "connected", connectionType: "SSH");
+        connectedLeaf.HostControl = new DisposableHost();
+
+        // Failed pane: HostControl null but HasFailureDetails true => terminal,
+        // not in-flight. The connecting guard must NOT block it.
+        SessionPaneModel failedLeaf = MakePane(paneId: "failed", connectionType: "SSH");
+        failedLeaf.Title = "Failed host";
+        failedLeaf.FailureDetails = new SessionDiagnostic(SessionFailureStage.Unknown, "TestFailure");
+
+        SplitContainerModel sourceRoot = new()
+        {
+            First = connectedLeaf,
+            Second = failedLeaf,
+            Orientation = SplitOrientation.Vertical
+        };
+        SessionTabViewModel source = new() { RootContent = sourceRoot };
+        source.ServerId = "source-session";
+        source.Title = "Source";
+
+        SessionTabViewModel target = new();
+        target.Title = "Target";
+
+        ObservableCollection<SessionTabViewModel> activeSessions = new() { target, source };
+        _sut.ActiveSessionsProvider = () => activeSessions;
+        string? capturedStatus = null;
+        _sut.SetStatusText = s => capturedStatus = s;
+
+        _sut.MergeExistingSession(target, "source-session", SplitOrientation.Vertical);
+
+        // Merge proceeded: the connecting guard did not fire.
+        Assert.NotEqual("SplitMergeBlockedByConnecting", capturedStatus);
+        Assert.DoesNotContain(source, activeSessions);
+        Assert.True(target.IsSplit);
+    }
+
+    // ── Category H: Forced embedded mode policy ────────────────────────
 
     [Fact]
     public void ForceEmbeddedMode_RdpExternal_ReturnsTrue_AndSetsEmbedded()
@@ -342,6 +583,41 @@ public sealed class SplitServiceTests : IDisposable
             "GetSessionToken",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         return (CancellationToken)method!.Invoke(_sut, new object[] { session })!;
+    }
+
+    private SplitService CreateSplitService(IConnectionService connectionService)
+        => new(
+            _configManager,
+            _localizer,
+            _connectionSm,
+            _tunnelManager,
+            new FakeEmbeddedSessionManager(),
+            connectionService,
+            _toolRegistry,
+            dialogService: null!);
+
+    private void RegisterTrackedTunnel(string serverId, int localPort)
+    {
+        var info = new TunnelInfo("gateway", localPort, "target.internal", 3389, DateTime.UtcNow, true);
+        Assert.True(_tunnelManager.TryRegisterExternalTunnel(info, new DisposableHost(), () => true));
+        _tunnelManager.AddReference(localPort);
+
+        Assert.True(_connectionSm.TryTransition(serverId, ConnectionState.Initializing));
+        _connectionSm.SetTunnelInfo(serverId, localPort, processId: 123);
+    }
+
+    private void AssertServerStateReset(string serverId)
+    {
+        Assert.Equal(ConnectionState.Disconnected, _connectionSm.GetState(serverId));
+        Assert.Null(_connectionSm.GetStateData(serverId)?.TunnelLocalPort);
+        Assert.Null(_connectionSm.GetStateData(serverId)?.TunnelProcessId);
+    }
+
+    private void AssertSingleTunnelReferenceReleased(int localPort)
+    {
+        Assert.True(_tunnelManager.HasTunnel(localPort));
+        Assert.True(_tunnelManager.ReleaseReference(localPort));
+        Assert.False(_tunnelManager.HasTunnel(localPort));
     }
 
     private static SessionPaneModel MakePane(
@@ -390,6 +666,87 @@ public sealed class SplitServiceTests : IDisposable
         public void Dispose() => Disposed = true;
     }
 
+    private sealed class DisposableHost : IDisposable
+    {
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class ThrowingConnectionService : IConnectionService
+    {
+        private readonly Exception _exception;
+
+        public ThrowingConnectionService(Exception exception)
+        {
+            _exception = exception;
+        }
+
+        public AppSettings? CurrentSettings => null;
+
+        public PreflightResult RunPreflight(ServerProfileDto server, AppSettings settings)
+            => PreflightResult.Ok();
+
+        public Task<ConnectionResult> ConnectSshAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectRdpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
+            => Task.FromException<ConnectionResult>(_exception);
+
+        public Task<ConnectionResult> ConnectSftpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectVncAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectTelnetAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectFtpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectCitrixAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectLocalShellAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectWinRmAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public void Dispose() { }
+
+        private static Task<ConnectionResult> NotScriptedAsync()
+            => Task.FromResult(new ConnectionResult(false, "not scripted", null));
+    }
+
     private sealed class FakeEmbeddedSessionManager : IEmbeddedSessionManager
     {
         public Action<byte[], object?>? BroadcastCallback { get; set; }
@@ -411,14 +768,12 @@ public sealed class SplitServiceTests : IDisposable
             throw new NotSupportedException();
         }
 
-        public Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason)
+        public void DisconnectSession(SessionPaneModel pane, DisconnectReason reason)
         {
             if (pane.HostControl is IDisposable disposable)
             {
                 disposable.Dispose();
             }
-
-            return Task.CompletedTask;
         }
 
         public EmbeddedSshView CreateConnectingSshHostControl(
