@@ -22,7 +22,7 @@ namespace Heimdall.Rdp;
 
 /// <summary>
 /// Generates .rdp files for launching external mstsc.exe connections.
-/// All parameter values are sanitized against CRLF injection (CWE-93).
+/// User-supplied string values are sanitized against CRLF injection (CWE-93).
 /// </summary>
 public static class RdpFileGenerator
 {
