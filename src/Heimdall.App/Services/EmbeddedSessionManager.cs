@@ -490,6 +490,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             SshGatewayId = server.SshGatewayId,
             RdpUsername = server.RdpUsername,
             RdpPasswordEncrypted = server.RdpPasswordEncrypted,
+            RdpDomain = server.RdpDomain,
             UseDirectConnection = server.UseDirectConnection,
             ProjectId = server.ProjectId,
             ConnectionType = server.ConnectionType,

@@ -47,6 +47,44 @@ internal static class RdpProfileResolver
     private const int MaximumFixedHeight = 4320;
 
     /// <summary>
+    /// Resolves the username/domain pair used for RDP credential injection.
+    /// </summary>
+    public static (string Username, string? Domain) ResolveCredentialIdentity(
+        string? rdpUsername,
+        string? rdpDomain)
+    {
+        if (!string.IsNullOrWhiteSpace(rdpDomain))
+        {
+            return (rdpUsername ?? string.Empty, rdpDomain);
+        }
+
+        if (string.IsNullOrWhiteSpace(rdpUsername))
+        {
+            return (string.Empty, null);
+        }
+
+        // DOMAIN\user format (NetBIOS)
+        int separatorIndex = rdpUsername.IndexOf('\\');
+        if (separatorIndex > 0 && separatorIndex < rdpUsername.Length - 1)
+        {
+            return (
+                rdpUsername[(separatorIndex + 1)..],
+                rdpUsername[..separatorIndex]);
+        }
+
+        // user@domain.com format (UPN) - pass the full UPN as the username
+        // and extract the domain for logging/diagnostics. The RDP ActiveX control
+        // accepts UPN directly in the UserName field.
+        int atIndex = rdpUsername.IndexOf('@');
+        if (atIndex > 0 && atIndex < rdpUsername.Length - 1)
+        {
+            return (rdpUsername, rdpUsername[(atIndex + 1)..]);
+        }
+
+        return (rdpUsername, null);
+    }
+
+    /// <summary>
     /// Builds the RDP redirection options using strict global-default semantics.
     /// </summary>
     public static RdpRedirectionOptions BuildRedirections(

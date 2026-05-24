@@ -137,6 +137,7 @@ internal sealed class RdpHandler : IProtocolHandler
                 Host = rdpHost,
                 Port = rdpPort,
                 Username = server.RdpUsername,
+                Domain = string.IsNullOrWhiteSpace(server.RdpDomain) ? null : server.RdpDomain,
                 Width = resolution.Width,
                 Height = resolution.Height,
                 ColorDepth = RdpProfileResolver.ResolveColorDepth(server, settings),

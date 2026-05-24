@@ -24,6 +24,66 @@ namespace Heimdall.App.Tests;
 public sealed class RdpProfileResolverTests
 {
     [Fact]
+    public void ResolveCredentialIdentity_ExplicitDomainWins()
+    {
+        (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
+            @"LEGACY\admin",
+            "CORP");
+
+        Assert.Equal(@"LEGACY\admin", username);
+        Assert.Equal("CORP", domain);
+    }
+
+    [Fact]
+    public void ResolveCredentialIdentity_NetBiosUsername_SplitsDomainAndUser()
+    {
+        (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
+            @"CORP\admin",
+            null);
+
+        Assert.Equal("admin", username);
+        Assert.Equal("CORP", domain);
+    }
+
+    [Fact]
+    public void ResolveCredentialIdentity_UpnUsername_KeepsFullUsernameAndExtractsDomain()
+    {
+        (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
+            "admin@corp.local",
+            null);
+
+        Assert.Equal("admin@corp.local", username);
+        Assert.Equal("corp.local", domain);
+    }
+
+    [Fact]
+    public void ResolveCredentialIdentity_PlainUsername_HasNoDomain()
+    {
+        (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
+            "admin",
+            null);
+
+        Assert.Equal("admin", username);
+        Assert.Null(domain);
+    }
+
+    [Fact]
+    public void ResolveCredentialIdentity_NullOrEmptyUsername_ReturnsEmptyUsernameAndNoDomain()
+    {
+        (string nullUsername, string? nullDomain) = RdpProfileResolver.ResolveCredentialIdentity(
+            null,
+            null);
+        (string emptyUsername, string? emptyDomain) = RdpProfileResolver.ResolveCredentialIdentity(
+            "",
+            null);
+
+        Assert.Equal(string.Empty, nullUsername);
+        Assert.Null(nullDomain);
+        Assert.Equal(string.Empty, emptyUsername);
+        Assert.Null(emptyDomain);
+    }
+
+    [Fact]
     public void BuildRedirections_UsesSettingsWhenFlagIsTrue()
     {
         var server = new ServerProfileDto

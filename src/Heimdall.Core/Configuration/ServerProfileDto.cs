@@ -45,6 +45,7 @@ public sealed class ServerProfileDto
     public string? SshGatewayId { get; set; }
     public string? RdpUsername { get; set; }
     public string? RdpPasswordEncrypted { get; set; }
+    public string? RdpDomain { get; set; }
     public bool UseDirectConnection { get; set; }
     public string? ProjectId { get; set; }
     public string ConnectionType { get; set; } = "RDP";
