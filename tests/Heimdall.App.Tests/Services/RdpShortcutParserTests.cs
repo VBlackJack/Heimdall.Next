@@ -23,6 +23,8 @@ public sealed class RdpShortcutParserTests
 {
     [Theory]
     [InlineData("Ctrl+Alt+Home", ModifierKeys.Control | ModifierKeys.Alt, Key.Home)]
+    [InlineData("Ctrl+Alt+End", ModifierKeys.Control | ModifierKeys.Alt, Key.End)]
+    [InlineData("Ctrl+Home", ModifierKeys.Control, Key.Home)]
     [InlineData("Ctrl+Shift+Escape", ModifierKeys.Control | ModifierKeys.Shift, Key.Escape)]
     [InlineData("Alt+End", ModifierKeys.Alt, Key.End)]
     public void ParseOrDefault_ParsesWellFormedShortcuts(
@@ -32,15 +34,16 @@ public sealed class RdpShortcutParserTests
     {
         var parsed = RdpShortcutParser.ParseOrDefault(shortcut);
 
-        Assert.Equal(expectedModifiers, parsed.Modifiers);
-        Assert.Equal(expectedKey, parsed.Key);
+        Assert.Equal(new RdpShortcut(expectedModifiers, expectedKey), parsed);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
+    [InlineData("   ")]
     [InlineData("foo")]
     [InlineData("Ctrl+")]
+    [InlineData("Ctrl+NotARealKey")]
     [InlineData("++")]
     [InlineData("Home")]
     public void ParseOrDefault_ReturnsDefaultForInvalidShortcuts(string? shortcut)
@@ -55,14 +58,22 @@ public sealed class RdpShortcutParserTests
     {
         var parsed = RdpShortcutParser.ParseFullscreenOrDefault("F11");
 
-        Assert.Equal(ModifierKeys.None, parsed.Modifiers);
-        Assert.Equal(Key.F11, parsed.Key);
+        Assert.Equal(new RdpShortcut(ModifierKeys.None, Key.F11), parsed);
+    }
+
+    [Fact]
+    public void ParseFullscreenOrDefault_ParsesModifiedKey()
+    {
+        var parsed = RdpShortcutParser.ParseFullscreenOrDefault("Ctrl+F12");
+
+        Assert.Equal(new RdpShortcut(ModifierKeys.Control, Key.F12), parsed);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("foo")]
+    [InlineData("NotARealKey")]
     [InlineData("Ctrl+")]
     [InlineData("++")]
     public void ParseFullscreenOrDefault_ReturnsDefaultForInvalidShortcuts(string? shortcut)
