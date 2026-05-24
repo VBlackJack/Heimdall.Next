@@ -90,7 +90,13 @@ public sealed class SplitService : ISplitService
     /// </summary>
     public void RegisterSession(SessionTabViewModel session)
     {
-        _sessionCts.TryAdd(session, new CancellationTokenSource());
+        CancellationTokenSource cts = new();
+        if (!_sessionCts.TryAdd(session, cts))
+        {
+            cts.Dispose();
+            Core.Logging.FileLogger.Debug(
+                $"RegisterSession ignored: session '{session.Title}' is already registered.");
+        }
     }
 
     /// <summary>
@@ -348,6 +354,23 @@ public sealed class SplitService : ISplitService
         var targetPane = ResolvePaneOrPrimary(target, targetPaneId);
         if (targetPane is null) return;
 
+        // Block the merge while any source pane is still mid-connection. Such a
+        // pane has no host control and no failure diagnostics: its connection is
+        // in flight. Merging would re-parent it and then CancelSession(source)
+        // aborts that connection, stranding the pane in the "connecting"
+        // placeholder forever. A failed pane (HasFailureDetails set) is terminal,
+        // not in-flight, and merges fine.
+        foreach (SessionPaneModel leaf in SplitTreeHelper.EnumerateLeaves(source.RootContent))
+        {
+            if (leaf.HostControl is null && !leaf.HasFailureDetails)
+            {
+                SetStatusText?.Invoke(_localizer["SplitMergeBlockedByConnecting"]);
+                Core.Logging.FileLogger.Info(
+                    $"Merge blocked: source pane '{leaf.Title}' is still connecting.");
+                return;
+            }
+        }
+
         // Check CanClose for tool panes in the source tree (busy tool blocks the merge)
         foreach (var leaf in SplitTreeHelper.EnumerateLeaves(source.RootContent))
         {
@@ -431,7 +454,7 @@ public sealed class SplitService : ISplitService
 
     /// <summary>
     /// Closes a specific pane in the split tree. Releases tunnel, resets state machine,
-    /// and promotes the sibling. Fixed disposal order: detach → remove → dispose.
+    /// disconnects/disposes the host, detaches it, and promotes the sibling.
     /// </summary>
     public void ClosePane(
         SessionTabViewModel session,
@@ -508,21 +531,18 @@ public sealed class SplitService : ISplitService
             return;
         }
 
-        // Save old connection state for deferred cleanup (released only after successful reconnect)
+        // Save old connection state for deferred cleanup.
         var oldServerId = pane.ServerId;
-
-        // Dispose current host control through the shared teardown order before
-        // replacing it with the reconnect placeholder state.
-        await _sessionManager.DisconnectSessionAsync(pane, DisconnectReason.ReconnectInitiated);
-        pane.FailureDetails = null;
-        pane.HostControl = null;
-        pane.Status = _localizer["SplitSecondaryConnecting"];
-
-        var parent = SplitTreeHelper.FindParent(session.RootContent, paneId);
-        var orientation = parent?.Orientation ?? SplitOrientation.Vertical;
 
         try
         {
+            // Dispose current host control through the shared teardown order before
+            // replacing it with the reconnect placeholder state.
+            _sessionManager.DisconnectSession(pane, DisconnectReason.ReconnectInitiated);
+            pane.FailureDetails = null;
+            pane.HostControl = null;
+            pane.Status = _localizer["SplitSecondaryConnecting"];
+
             var servers = await _configManager.LoadServersAsync();
             var settings = await _configManager.LoadSettingsAsync();
             ct.ThrowIfCancellationRequested();
@@ -534,7 +554,7 @@ public sealed class SplitService : ISplitService
             {
                 pane.Status = "Error";
                 // Release old state on failure (nothing new to preserve)
-                ReleaseOldConnectionState(oldServerId);
+                TryReleaseOldConnectionState(oldServerId, "ReconnectPane missing server");
                 Core.Logging.FileLogger.Warn(
                     $"ReconnectPane failed: server '{serverId}' no longer in inventory.");
                 return;
@@ -550,7 +570,7 @@ public sealed class SplitService : ISplitService
             if (!result.Success || result.Session is null)
             {
                 pane.Status = "Error";
-                ReleaseOldConnectionState(oldServerId);
+                TryReleaseOldConnectionState(oldServerId, "ReconnectPane connection failure");
                 SetStatusText?.Invoke(result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"]);
                 Core.Logging.FileLogger.Warn(
                     $"ReconnectPane failed for '{serverDto.DisplayName}': {result.ErrorMessage}");
@@ -565,14 +585,14 @@ public sealed class SplitService : ISplitService
             {
                 SafeDispose(result.Session as IDisposable);
                 CleanupOrphanedPane(serverDto.Id);
-                ReleaseOldConnectionState(oldServerId);
+                TryReleaseOldConnectionState(oldServerId, "ReconnectPane post-await guard");
                 Core.Logging.FileLogger.Info(
                     $"ReconnectPane cancelled for '{serverDto.DisplayName}' — session or pane removed.");
                 return;
             }
 
             // Success: release old state AFTER new connection is confirmed
-            ReleaseOldConnectionState(oldServerId);
+            TryReleaseOldConnectionState(oldServerId, "ReconnectPane success");
 
             var hostControl = _sessionManager.CreateHostControl(
                 session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
@@ -591,9 +611,16 @@ public sealed class SplitService : ISplitService
         }
         catch (OperationCanceledException)
         {
-            ReleaseOldConnectionState(oldServerId);
+            TryReleaseOldConnectionState(oldServerId, "ReconnectPane cancellation");
             Core.Logging.FileLogger.Info(
                 $"ReconnectPane cancelled for session '{session.Title}' — tab closed during reconnection.");
+        }
+        catch (Exception ex)
+        {
+            pane.Status = "Error";
+            TryReleaseOldConnectionState(oldServerId, "ReconnectPane exception");
+            Core.Logging.FileLogger.Error($"ReconnectPane error: {ex.Message}", ex);
+            SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
         }
     }
 
@@ -604,51 +631,76 @@ public sealed class SplitService : ISplitService
     /// </summary>
     public async Task SwapSplitPanesAsync(SessionTabViewModel session, string? paneId = null)
     {
-        if (!session.IsSplit) return;
+        Dictionary<string, object?>? detachedHostControls = null;
 
-        var container = !string.IsNullOrEmpty(paneId)
-            ? SplitTreeHelper.FindParent(session.RootContent, paneId)
-            : session.RootContent as SplitContainerModel;
-
-        if (container is null) return;
-
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is null) return;
-
-        // Detach all host controls (UIElement single-parent rule)
-        var hostControls = new Dictionary<string, object?>();
-        foreach (var pane in SplitTreeHelper.EnumerateLeaves(container))
+        try
         {
-            hostControls[pane.PaneId] = pane.HostControl;
-            pane.HostControl = null;
+            if (!session.IsSplit) return;
+
+            var container = !string.IsNullOrEmpty(paneId)
+                ? SplitTreeHelper.FindParent(session.RootContent, paneId)
+                : session.RootContent as SplitContainerModel;
+
+            if (container is null) return;
+
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher is null) return;
+
+            // Detach all host controls (UIElement single-parent rule)
+            detachedHostControls = new Dictionary<string, object?>();
+            foreach (var pane in SplitTreeHelper.EnumerateLeaves(container))
+            {
+                detachedHostControls[pane.PaneId] = pane.HostControl;
+                pane.HostControl = null;
+            }
+
+            // Let the current SessionPaneControls process HostControl=null and
+            // release their visual children before the subtree swap. Doing the
+            // detach and swap in one dispatcher turn still races WebView2/ActiveX
+            // reparenting because WPF has not stabilized the intermediate state yet.
+            await AwaitVisualTreeAsync(dispatcher);
+
+            (container.First, container.Second) = (container.Second, container.First);
+            session.NotifyShimPropertiesChanged();
+
+            // Let ContentPresenters finish rebinding / recreating their template
+            // children against the swapped tree before reattaching the live hosts.
+            await AwaitVisualTreeAsync(dispatcher);
+
+            ObservableCollection<SessionTabViewModel>? activeSessions =
+                ActiveSessionsProvider?.Invoke();
+            if (activeSessions is null || !activeSessions.Contains(session))
+            {
+                DisconnectDetachedHosts(session, detachedHostControls);
+                detachedHostControls = null;
+                Core.Logging.FileLogger.Info(
+                    $"Swap split panes aborted for '{session.Title}' — tab closed during the swap.");
+                return;
+            }
+
+            RestoreHostControls(session, detachedHostControls);
+            detachedHostControls = null;
+
+            // The primary/secondary shim properties are computed from the tree and
+            // do not forward leaf PropertyChanged automatically. Nudge them again
+            // after restore so tab overlays / headers observe the new host owner.
+            session.NotifyShimPropertiesChanged();
+
+            Core.Logging.FileLogger.Info(
+                string.Format(_localizer["LogSplitSwapped"], session.Title));
         }
-
-        // Let the current SessionPaneControls process HostControl=null and
-        // release their visual children before the subtree swap. Doing the
-        // detach and swap in one dispatcher turn still races WebView2/ActiveX
-        // reparenting because WPF has not stabilized the intermediate state yet.
-        await AwaitVisualTreeAsync(dispatcher);
-
-        (container.First, container.Second) = (container.Second, container.First);
-        session.NotifyShimPropertiesChanged();
-
-        // Let ContentPresenters finish rebinding / recreating their template
-        // children against the swapped tree before reattaching the live hosts.
-        await AwaitVisualTreeAsync(dispatcher);
-
-        foreach (var (id, control) in hostControls)
+        catch (OperationCanceledException)
         {
-            var pane = SplitTreeHelper.FindPane(session.RootContent, id);
-            if (pane is not null) pane.HostControl = control;
+            TryRestoreDetachedHostControls(session, detachedHostControls);
+            Core.Logging.FileLogger.Info(
+                $"Swap split panes cancelled for session '{session.Title}'.");
         }
-
-        // The primary/secondary shim properties are computed from the tree and
-        // do not forward leaf PropertyChanged automatically. Nudge them again
-        // after restore so tab overlays / headers observe the new host owner.
-        session.NotifyShimPropertiesChanged();
-
-        Core.Logging.FileLogger.Info(
-            string.Format(_localizer["LogSplitSwapped"], session.Title));
+        catch (Exception ex)
+        {
+            TryRestoreDetachedHostControls(session, detachedHostControls);
+            Core.Logging.FileLogger.Error($"Swap split panes error: {ex.Message}", ex);
+            SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
+        }
     }
 
     // ── Toggle orientation ───────────────────────────────────────────
@@ -823,6 +875,48 @@ public sealed class SplitService : ISplitService
         _connectionSm.Reset(oldServerId);
     }
 
+    private void TryReleaseOldConnectionState(string oldServerId, string context)
+    {
+        try
+        {
+            ReleaseOldConnectionState(oldServerId);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"{context}: failed to release old connection state for '{oldServerId}': {ex.Message}");
+        }
+    }
+
+    private static void RestoreHostControls(
+        SessionTabViewModel session,
+        IReadOnlyDictionary<string, object?> hostControls)
+    {
+        foreach (var (id, control) in hostControls)
+        {
+            var pane = SplitTreeHelper.FindPane(session.RootContent, id);
+            if (pane is not null) pane.HostControl = control;
+        }
+    }
+
+    private static void TryRestoreDetachedHostControls(
+        SessionTabViewModel session,
+        IReadOnlyDictionary<string, object?>? hostControls)
+    {
+        if (hostControls is null) return;
+
+        try
+        {
+            RestoreHostControls(session, hostControls);
+            session.NotifyShimPropertiesChanged();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"Failed to restore detached split pane hosts after swap error: {ex.Message}");
+        }
+    }
+
     private static void SafeDispose(IDisposable? disposable)
     {
         if (disposable is null) return;
@@ -834,16 +928,46 @@ public sealed class SplitService : ISplitService
         }
     }
 
+    /// <summary>
+    /// Tears down host controls detached for a swap that can no longer be
+    /// completed (the session tab was closed mid-swap). Without this the
+    /// controls leak: they were detached to HostControl = null, so
+    /// CloseAllPanes skipped disposing them.
+    /// </summary>
+    private void DisconnectDetachedHosts(
+        SessionTabViewModel session,
+        IReadOnlyDictionary<string, object?> hostControls)
+    {
+        foreach (KeyValuePair<string, object?> entry in hostControls)
+        {
+            string id = entry.Key;
+            object? control = entry.Value;
+            SessionPaneModel? pane = SplitTreeHelper.FindPane(session.RootContent, id);
+            if (pane is not null)
+            {
+                // Re-attach so the teardown sequence (RDP COM teardown
+                // included) can see the host, then detach again.
+                pane.HostControl = control;
+                DisconnectPaneHost(pane, DisconnectReason.UserAction);
+                pane.HostControl = null;
+            }
+            else
+            {
+                SafeDispose(control as IDisposable);
+            }
+        }
+    }
+
     private void DisconnectPaneHost(SessionPaneModel pane, DisconnectReason reason)
     {
         try
         {
-            _sessionManager.DisconnectSessionAsync(pane, reason).GetAwaiter().GetResult();
+            _sessionManager.DisconnectSession(pane, reason);
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn(
-                $"DisconnectSessionAsync failed for pane '{pane.PaneId}' reason={reason}: {ex.Message}");
+                $"DisconnectSession failed for pane '{pane.PaneId}' reason={reason}: {ex.Message}");
         }
     }
 

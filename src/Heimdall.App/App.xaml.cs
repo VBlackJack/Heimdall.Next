@@ -381,7 +381,7 @@ public partial class App : System.Windows.Application
             (SplitService)sp.GetRequiredService<ISplitService>());
         services.AddSingleton<ContextMenuFactory>();
         services.AddSingleton<SessionTabContextMenuFactory>();
-        services.AddSingleton<SessionSplitService>();
+        services.AddSingleton<ISessionWindowService, SessionWindowService>();
         services.AddSingleton<FileShareService>();
         services.AddSingleton<KeyboardShortcutService>();
         services.AddSingleton<IForegroundWatchService, ForegroundWatchService>();

@@ -31,7 +31,7 @@ Heimdall.slnx (14 projects)
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
 │       ├── Views/Tools: 59 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
-│                     SplitService, SessionSplitService, EmbeddedSessionManager, ToolRegistry,
+│                     SplitService, SessionWindowService, EmbeddedSessionManager, ToolRegistry,
 │                     TaskSchedulerService, MacroService, EphemeralFileServer, FileShareService,
 │                     X11ServerManager, WebSocketVncProxy, KeyboardShortcutService,
 │                     ContextMenuFactory, SessionTabContextMenuFactory, ToolsTabPopulationService,
@@ -333,13 +333,13 @@ ISplitContent (marker interface)
 - `ServerId` (session-scoped): assigned AFTER successful connection; used as state machine key and tunnel tracking key. Empty during connection phase.
 - `OriginalServerId` (stable): set at pane creation from server inventory ID; never changes. Used for reconnect lookups, disconnect history, and `SplitLayoutMemory` pairing. Set early in `SplitSessionWithServerAsync` for proper cleanup if the pane is closed during connection.
 
-`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindPaneByServerId`, `FindPaneByHostControl`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match. Pane-scoped failure diagnostics now live on `SessionPaneModel` (`FailureDetails` plus derived visibility helpers), so SSH/RDP failure disclosure remains attached to the correct pane even when tabs are split.
+`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal and mutation helpers: `EnumerateLeaves`, `FindPane`, `FindPaneByHostControl`, `FindParent`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. `ReplacePaneRecursive` short-circuits after the first pane match. Pane-scoped failure diagnostics now live on `SessionPaneModel` (`FailureDetails` plus derived visibility helpers), so SSH/RDP failure disclosure remains attached to the correct pane even when tabs are split.
 
 **SplitService** (extracted from MainViewModel): All split/merge orchestration lives in `Heimdall.App.Services.SplitService`, a singleton DI service that owns:
 - `SplitSessionWithServerAsync` — async connection + tree insertion with CancellationToken propagated to protocol handlers
 - `SplitSessionWithTool` — synchronous tool docking
 - `MergeExistingSession` — live reparent with CanClose() check on all source tree leaves (not just primary shim); user feedback when blocked by busy tool
-- `ClosePane` — type-aware cleanup with fixed disposal order (detach → remove → dispose)
+- `ClosePane` — type-aware cleanup: disconnect/dispose host → set `HostControl=null` → remove pane from tree
 - `CloseAllPanes` — centralized tab teardown: CanClose() gate, cancellation, history, tunnel release, state reset, disposal (called by `ConnectionViewModel.CloseSessionInternal`)
 - `ReconnectPaneAsync` — deferred old state machine cleanup (released only after new connection succeeds); no longer creates self-referential LayoutMemory entries
 - `SwapSplitPanesAsync` — async two-phase swap: detach host controls → await visual tree → swap model → await again → restore (prevents WebView2/ActiveX reparenting race)
@@ -360,7 +360,7 @@ ISplitContent (marker interface)
 
 **Drag-to-split**: Drag a tab onto the content area of another tab. Orientation is auto-detected from drop position (closest edge). Works on already-split sessions to create 3+ pane layouts.
 
-**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (promotes sibling in tree), unsplit (restores pane as independent tab). Pane close is type-aware: connection panes get disconnect history + tunnel release + state machine reset; tool panes check `IToolView.CanClose()` and skip state machine/tunnel teardown. Disposal order is fixed: detach HostControl from visual tree → remove pane from tree → dispose host control (prevents RDP/ActiveX airspace issues).
+**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (promotes sibling in tree), unsplit (restores pane as independent tab). Pane close is type-aware: connection panes get disconnect history + tunnel release + state machine reset; tool panes check `IToolView.CanClose()` and skip state machine/tunnel teardown. Close order is fixed: disconnect/dispose the host through `EmbeddedSessionManager`, set `HostControl=null`, then remove the pane from the tree. RDP/ActiveX-specific teardown order is handled inside `RdpDisconnectTeardownSequence`.
 
 **Splitter ratio**: Model auto-clamps `SplitRatio` to `[0.1, 0.9]` in the setter (before PropertyChanged fires) — the view reads the ratio directly without redundant clamping. Captured via `GridSplitter.DragCompleted` per `SplitContainerControl` with NaN/Infinity guard, persisted in the tree model. Restored on tab switch via layout rebuild. Double-click splitter resets to `DefaultRatio` (0.5).
 
@@ -463,7 +463,7 @@ ISplitContent (marker interface)
    - **`ToolsTabPopulationService`** (605 lines) — owns the full-page Tools tab rebuild and the sidebar Tools `TreeView` data/filter. Reaches back via `Action<ToolDescriptor>` (card click) + `Action<string>` (pin click). Theme tokens are resolved via `Application.Current.FindResource` so the service stays decoupled from any `FrameworkElement`.
    - **`FileShareService`** — ephemeral HTTP/TFTP folder sharing lifecycle (previously inline in `OnShareFolderClick`). Event-based API (`ShareStarted` / `ShareStopped`), `IAsyncDisposable` — `App.OnExit` routes through `IAsyncDisposable.DisposeAsync` on the service provider to properly dispose async-only services.
    - **`KeyboardShortcutService`** (18 shortcuts) — fluent shortcut registration with `canExecute` gating, replacing the monolithic `OnPreviewKeyDown` switch. Registered in `MainWindow` constructor.
-   - **`SessionSplitService`** — split/merge/detach/unsplit orchestration moved out of MainWindow. Exposes `SplitPaletteRequested` event for MainWindow to open the palette in split mode.
+   - **`SessionWindowService`** — split/merge/detach/unsplit orchestration moved out of MainWindow. Exposes `SplitPaletteRequested` event for MainWindow to open the palette in split mode.
 
 2. **Split into `partial class` files** when the logic *must* touch named XAML elements directly (so extraction to a service would require passing dozens of `FrameworkElement` parameters on every call). The new file declares `public partial class MainWindow` and holds a thematically coherent subset of methods. Cross-file access is free (same class, same assembly) so static helpers and private fields remain shared without any visibility changes. POCOs co-located with the partials (`WindowUIState`, `TreeInteractionState`, `TabInteractionState`) own the fields/flags previously scattered across the monolith.
    - **`MainWindow.Localization.cs`** (519 lines) — the 8 `Apply*Localization` methods (`ApplyLocalization` orchestrator + Navigation / Toolbar / Tunnel / Scheduled / Settings / About / Accessibility). Phase 5A/5B have since migrated Navigation/Toolbar/Accessibility to `{loc:Translate}` — those apply helpers are now empty stubs pending deletion after Phase 5C/5D.
@@ -473,7 +473,7 @@ ISplitContent (marker interface)
 
 **Decision rule**: if the method's entire body is `Mw_X.Text = vm.Localize(...)` against named elements, use a partial class. If it manipulates the tree or builds controls from data and can be reshaped to take a `Panel`/`Control` parameter, extract to a service. The same `ConnectionService` in `Heimdall.App/Services/` already uses this partial-class pattern with 10 files for its per-protocol connection flows.
 
-**Result**: `MainWindow.xaml.cs` dropped from **4,895 → 2,123 lines (−57%)** across Chantier 1 + Phases 1–3, with each extracted unit now independently reviewable and the door open for targeted unit tests where appropriate. Phase 1 extracted `OnboardingFlowViewModel`, `FileShareService`, and the `WindowUI` partial. Phase 2 extracted `KeyboardShortcutService`, `SidebarViewModel`, `ToolsTabViewModel`, and removed a dead `OnWindowDeactivated` Command Palette handler that had been closing the palette on open. Phase 3 extracted `TreeInteractions`/`TabInteractions` partials, `SessionTabContextMenuFactory`, and `SessionSplitService`.
+**Result**: `MainWindow.xaml.cs` dropped from **4,895 → 2,123 lines (−57%)** across Chantier 1 + Phases 1–3, with each extracted unit now independently reviewable and the door open for targeted unit tests where appropriate. Phase 1 extracted `OnboardingFlowViewModel`, `FileShareService`, and the `WindowUI` partial. Phase 2 extracted `KeyboardShortcutService`, `SidebarViewModel`, `ToolsTabViewModel`, and removed a dead `OnWindowDeactivated` Command Palette handler that had been closing the palette on open. Phase 3 extracted `TreeInteractions`/`TabInteractions` partials, `SessionTabContextMenuFactory`, and `SessionWindowService`.
 
 ### 27. MainViewModel Sub-VM Composition
 

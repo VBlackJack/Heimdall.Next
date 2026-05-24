@@ -2983,6 +2983,7 @@
   "SplitSecondaryConnecting": "Connecting...",
   "SplitDropToMerge": "Drop to split",
   "SplitMaxPanesReached": "Maximum number of panes reached (8).",
+  "SplitMergeBlockedByConnecting": "Merge blocked: a source pane is still connecting.",
   "SplitMergeBlockedByTool": "Merge blocked: a tool in the source tab is busy.",
   "SplitForcedEmbeddedTitle": "Split mode requires embedded sessions",
   "SplitForcedEmbeddedMessage": "{0} is configured for external (mstsc.exe) mode, but split panes can only host embedded sessions. This split will use embedded mode. Open the server in a normal tab to keep external mode.",

@@ -97,7 +97,7 @@ public interface IEmbeddedSessionManager
     /// <summary>
     /// Tears down a hosted pane through the shared disconnect lifecycle.
     /// </summary>
-    Task DisconnectSessionAsync(SessionPaneModel pane, DisconnectReason reason);
+    void DisconnectSession(SessionPaneModel pane, DisconnectReason reason);
 
     /// <summary>
     /// Creates an SSH host control in a Connecting state before the SSH session exists.

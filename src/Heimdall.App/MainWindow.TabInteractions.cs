@@ -108,7 +108,7 @@ public partial class MainWindow
                 && draggedSession is not null
                 && detachVm is not null)
             {
-                _splitService.DetachSessionToFloatingWindow(draggedSession, detachVm);
+                _sessionWindowService.DetachSessionToFloatingWindow(draggedSession, detachVm);
             }
 
             _tabState.DragWasCancelled = false;

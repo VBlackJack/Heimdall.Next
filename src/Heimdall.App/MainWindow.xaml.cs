@@ -66,7 +66,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly Services.HeimdallThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
     private readonly SessionTabContextMenuFactory _sessionTabContextMenuFactory;
-    private readonly SessionSplitService _splitService;
+    private readonly ISessionWindowService _sessionWindowService;
     private readonly FileShareService _fileShareService;
     private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly IForegroundWatchService _foregroundWatchService;
@@ -129,7 +129,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Services.HeimdallThemeService themeService,
         ContextMenuFactory contextMenuFactory,
         SessionTabContextMenuFactory sessionTabContextMenuFactory,
-        SessionSplitService splitService,
+        ISessionWindowService sessionWindowService,
         ToolsTabPopulationService toolsTabPopulation,
         FileShareService fileShareService,
         KeyboardShortcutService keyboardShortcutService,
@@ -155,8 +155,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _themeService = themeService;
         _contextMenuFactory = contextMenuFactory;
         _sessionTabContextMenuFactory = sessionTabContextMenuFactory;
-        _splitService = splitService;
-        _splitService.SplitPaletteRequested += OnSplitPaletteRequested;
+        _sessionWindowService = sessionWindowService;
+        _sessionWindowService.SplitPaletteRequested += OnSplitPaletteRequested;
         _toolsTabPopulation = toolsTabPopulation;
         _keyboardShortcutService = keyboardShortcutService;
         RegisterKeyboardShortcuts();
@@ -288,12 +288,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     /// <summary>
     /// Handles split requests from embedded view header buttons by delegating
-    /// to <see cref="SessionSplitService.HandleEmbeddedSplitRequest"/>.
+    /// to <see cref="ISessionWindowService.HandleEmbeddedSplitRequest"/>.
     /// </summary>
     private void OnEmbeddedSplitRequested(SessionTabViewModel session)
     {
         if (DataContext is not MainViewModel vm) return;
-        _splitService.HandleEmbeddedSplitRequest(session, vm);
+        _sessionWindowService.HandleEmbeddedSplitRequest(session, vm);
     }
 
     private void OnSplitPaletteRequested(object? sender, EventArgs e)
@@ -2589,7 +2589,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     // OnResolutionChanged and ToggleFullscreen stay in MainWindow
     // (fullscreen touches named XAML elements via MainWindow.WindowUI.cs;
     // resolution dispatches to the active RDP view). All split/merge/detach
-    // operations delegate to SessionSplitService.
+    // operations delegate to SessionWindowService.
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.OnResolutionChanged(SessionPaneModel pane, ResolutionChoice choice)
@@ -2603,14 +2603,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     void ISessionTabContextCallbacks.DetachSessionToFloatingWindow(SessionTabViewModel session)
     {
         if (DataContext is not MainViewModel vm) return;
-        _splitService.DetachSessionToFloatingWindow(session, vm);
+        _sessionWindowService.DetachSessionToFloatingWindow(session, vm);
     }
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.DetachSecondaryToFloatingWindow(SessionTabViewModel session)
     {
         if (DataContext is not MainViewModel vm) return;
-        _splitService.DetachSecondaryToFloatingWindow(session, vm);
+        _sessionWindowService.DetachSecondaryToFloatingWindow(session, vm);
     }
 
     /// <inheritdoc />
@@ -2619,14 +2619,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Heimdall.Core.Models.SplitOrientation orientation)
     {
         if (DataContext is not MainViewModel vm) return;
-        _splitService.RequestSplitSession(session, orientation, vm);
+        _sessionWindowService.RequestSplitSession(session, orientation, vm);
     }
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.UnsplitSession(SessionTabViewModel session)
     {
         if (DataContext is not MainViewModel vm) return;
-        _splitService.UnsplitSession(session, vm);
+        _sessionWindowService.UnsplitSession(session, vm);
     }
 
     private void OnFileShareSharingStarted(object? sender, FileShareStartedEventArgs e)
@@ -2891,7 +2891,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _fileShareService.FileServed -= OnFileShareFileServed;
         _foregroundWatchService.ForegroundChanged -= OnForegroundChangedOutsideProcess;
         _foregroundWatchService.Stop();
-        _splitService.SplitPaletteRequested -= OnSplitPaletteRequested;
+        _sessionWindowService.SplitPaletteRequested -= OnSplitPaletteRequested;
         CommandPalettePopup.Closed -= OnCommandPaletteClosed;
         _ = _fileShareService.DisposeAsync();
         base.OnClosed(e);
