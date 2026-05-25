@@ -503,26 +503,26 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Downloads a file via <c>sudo cat</c> over a direct SSH exec channel,
+    /// Downloads a file via <c>sudo base64</c> over a direct SSH exec channel,
     /// bypassing SFTP permission restrictions.
     /// </summary>
     internal async Task DownloadViaSudoAsync(string remotePath, string localPath, CancellationToken ct)
     {
-        string escaped = PathEscaper.EscapeForShell(remotePath);
-        using var ssh = await CreateSudoSshClientAsync(ct);
+        string command = BuildSudoBase64DownloadCommand(remotePath);
+        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
 
         try
         {
-            using var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct)
+            using Renci.SshNet.SshCommand cmd = await Task.Run(() => ssh.RunCommand(command), ct)
                 .ConfigureAwait(false);
 
             if (cmd.ExitStatus != 0)
             {
-                throw new InvalidOperationException($"sudo cat failed (exit {cmd.ExitStatus}): {cmd.Error}");
+                throw new InvalidOperationException($"sudo base64 failed (exit {cmd.ExitStatus}): {cmd.Error}");
             }
 
-            await File.WriteAllTextAsync(localPath, cmd.Result ?? string.Empty, System.Text.Encoding.UTF8, ct)
-                .ConfigureAwait(false);
+            byte[] bytes = DecodeSudoBase64(cmd.Result ?? string.Empty);
+            await File.WriteAllBytesAsync(localPath, bytes, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -858,6 +858,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         int other = TriadToDigit(perms[6], perms[7], perms[8]);
 
         return $"{owner}{group}{other}";
+    }
+
+    internal static string BuildSudoBase64DownloadCommand(string remotePath)
+    {
+        return $"sudo base64 -- {PathEscaper.EscapeForShell(remotePath)}";
+    }
+
+    internal static byte[] DecodeSudoBase64(string commandOutput)
+    {
+        return Convert.FromBase64String(commandOutput ?? string.Empty);
     }
 
     /// <summary>
