@@ -87,23 +87,34 @@ public sealed class SftpBrowser : IRemoteBrowser
             .ConfigureAwait(false);
 
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
-        _client = new SftpClient(connectionInfo);
+        var client = new SftpClient(connectionInfo);
+        _client = client;
 
         SshConnectionFactory.AttachPinnedHostKeyVerification(
-            _client,
+            client,
             connectionParams.Host,
             connectionParams.Port,
             pinnedVerifier);
 
-        await Task.Run(() =>
+        client.ErrorOccurred += OnErrorOccurred;
+
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            _client.Connect();
-        }, ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                client.Connect();
+            }, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            client.ErrorOccurred -= OnErrorOccurred;
+            client.Dispose();
+            _client = null;
+            throw;
+        }
 
-        _client.ErrorOccurred += OnErrorOccurred;
-
-        CurrentDirectory = _client.WorkingDirectory ?? "/";
+        CurrentDirectory = client.WorkingDirectory ?? "/";
         DirectoryChanged?.Invoke(CurrentDirectory);
     }
 
@@ -223,27 +234,36 @@ public sealed class SftpBrowser : IRemoteBrowser
                 totalBytes = attrs.Size;
             }, ct).ConfigureAwait(false);
 
-            await using var fileStream = new FileStream(
-                localPath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize: 81920,
-                useAsync: true);
-
-            await Task.Run(() =>
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                client.DownloadFile(remotePath, fileStream, bytesTransferred =>
+                await using (var fileStream = new FileStream(
+                    localPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 81920,
+                    useAsync: true))
                 {
-                    ct.ThrowIfCancellationRequested();
-                    TransferProgress?.Invoke(new SftpTransferProgress(
-                        fileName,
-                        (long)bytesTransferred,
-                        totalBytes,
-                        IsUpload: false));
-                });
-            }, ct).ConfigureAwait(false);
+                    await Task.Run(() =>
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        client.DownloadFile(remotePath, fileStream, bytesTransferred =>
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            TransferProgress?.Invoke(new SftpTransferProgress(
+                                fileName,
+                                (long)bytesTransferred,
+                                totalBytes,
+                                IsUpload: false));
+                        });
+                    }, ct).ConfigureAwait(false);
+                }
+            }
+            catch
+            {
+                TryDeleteLocalFile(localPath);
+                throw;
+            }
         }
         finally
         {
@@ -341,15 +361,19 @@ public sealed class SftpBrowser : IRemoteBrowser
             await Task.Run(() =>
             {
                 ct.ThrowIfCancellationRequested();
-                var attrs = client.GetAttributes(path);
+                var (entry, deletePath) = GetEntryWithoutFollowingTarget(client, path);
 
-                if (attrs.IsDirectory)
+                if (entry.IsSymbolicLink)
                 {
-                    DeleteDirectoryRecursive(client, path, ct);
+                    client.DeleteFile(deletePath);
+                }
+                else if (entry.IsDirectory)
+                {
+                    DeleteDirectoryRecursive(client, deletePath, ct);
                 }
                 else
                 {
-                    client.DeleteFile(path);
+                    client.DeleteFile(deletePath);
                 }
             }, ct).ConfigureAwait(false);
         }
@@ -488,6 +512,58 @@ public sealed class SftpBrowser : IRemoteBrowser
             e.Exception,
             SecurityEventOccurred,
             Disconnected);
+    }
+
+    private static (ISftpFile Entry, string DeletePath) GetEntryWithoutFollowingTarget(SftpClient client, string path)
+    {
+        var trimmedPath = path.TrimEnd('/');
+        var normalizedPath = trimmedPath.Length == 0 ? "/" : trimmedPath;
+
+        if (normalizedPath == "/")
+        {
+            return (client.Get(normalizedPath), normalizedPath);
+        }
+
+        var lastSlash = normalizedPath.LastIndexOf('/');
+        var parentPath = lastSlash switch
+        {
+            < 0 => ".",
+            0 => "/",
+            _ => normalizedPath[..lastSlash]
+        };
+        var entryName = lastSlash < 0
+            ? normalizedPath
+            : normalizedPath[(lastSlash + 1)..];
+
+        // SSH.NET 2025.1.0's Get/GetAttributes canonicalize via REALPATH first.
+        // A parent listing gives lstat-style entries, so symlinks, including
+        // broken ones, are unlinked as entries instead of following their target.
+        foreach (ISftpFile entry in client.ListDirectory(parentPath))
+        {
+            if (string.Equals(entry.Name, entryName, StringComparison.Ordinal))
+            {
+                return (entry, normalizedPath);
+            }
+        }
+
+        throw new Renci.SshNet.Common.SftpPathNotFoundException(
+            $"Remote path not found: {path}");
+    }
+
+    private static void TryDeleteLocalFile(string localPath)
+    {
+        try
+        {
+            if (File.Exists(localPath))
+            {
+                File.Delete(localPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[SftpBrowser] failed to delete partial download {localPath}: {ex.Message}");
+        }
     }
 
     /// <summary>
