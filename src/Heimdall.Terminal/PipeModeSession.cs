@@ -46,6 +46,7 @@ public sealed class PipeModeSession : ITerminalSession
         if (_process is not null) throw new InvalidOperationException("Session already started.");
 
         _cts = new CancellationTokenSource();
+        bool processStarted = false;
 
         var psi = new ProcessStartInfo
         {
@@ -73,16 +74,26 @@ public sealed class PipeModeSession : ITerminalSession
         _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         _process.Exited += OnProcessExited;
 
-        if (!_process.Start())
+        try
         {
-            throw new InvalidOperationException($"Failed to start process: {executable}");
-        }
+            if (!_process.Start())
+            {
+                throw new InvalidOperationException($"Failed to start process: {executable}");
+            }
 
-        // Background read loops for stdout + stderr (both → DataReceived events)
-        // Stderr must be merged so Plink host key prompts and error messages
-        // are visible in the terminal.
-        _readLoop = Task.Run(() => ReadStreamLoop(_process.StandardOutput.BaseStream, _cts.Token), _cts.Token);
-        _stderrLoop = Task.Run(() => ReadStreamLoop(_process.StandardError.BaseStream, _cts.Token), _cts.Token);
+            processStarted = true;
+
+            // Background read loops for stdout + stderr (both → DataReceived events)
+            // Stderr must be merged so Plink host key prompts and error messages
+            // are visible in the terminal.
+            _readLoop = Task.Run(() => ReadStreamLoop(_process.StandardOutput.BaseStream, _cts.Token), _cts.Token);
+            _stderrLoop = Task.Run(() => ReadStreamLoop(_process.StandardError.BaseStream, _cts.Token), _cts.Token);
+        }
+        catch
+        {
+            CleanupFailedStart(processStarted);
+            throw;
+        }
 
         return Task.CompletedTask;
     }
@@ -116,15 +127,7 @@ public sealed class PipeModeSession : ITerminalSession
     public void Kill()
     {
         if (_disposed || _process is null) return;
-        try
-        {
-            if (!_process.HasExited)
-            {
-                _process.Kill();
-                _process.WaitForExit(3000);
-            }
-        }
-        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Kill: {ex.Message}"); }
+        KillProcess();
     }
 
     public void Dispose()
@@ -133,12 +136,51 @@ public sealed class PipeModeSession : ITerminalSession
         _disposed = true;
 
         _cts?.Cancel();
-        Kill();
+        KillProcess();
 
+        if (_process is not null)
+        {
+            _process.Exited -= OnProcessExited;
+        }
         try { _process?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Dispose process: {ex.Message}"); }
         _process = null;
         _cts?.Dispose();
         _cts = null;
+    }
+
+    private void CleanupFailedStart(bool processStarted)
+    {
+        _cts?.Cancel();
+
+        if (_process is not null)
+        {
+            _process.Exited -= OnProcessExited;
+            if (processStarted)
+            {
+                KillProcess();
+            }
+
+            try { _process.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] CleanupFailedStart process: {ex.Message}"); }
+            _process = null;
+        }
+
+        _cts?.Dispose();
+        _cts = null;
+        _readLoop = null;
+        _stderrLoop = null;
+    }
+
+    private void KillProcess()
+    {
+        try
+        {
+            if (_process?.HasExited == false)
+            {
+                _process.Kill();
+                _process.WaitForExit(3000);
+            }
+        }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Kill: {ex.Message}"); }
     }
 
     private async Task ReadStreamLoop(System.IO.Stream stream, CancellationToken ct)
