@@ -1865,6 +1865,7 @@
   "FileBrowserNewFolderPrompt": "Enter a name for the new folder:",
   "FileBrowserStatusItems": "{0} item(s)",
   "FileBrowserEmptyFolder": "This folder is empty",
+  "FileBrowserLoadError": "Could not open this folder \u2014 access denied or unavailable.",
   "FileBrowserDeleteError": "Failed to delete \"{0}\": {1}",
   "FileBrowserRenameError": "Failed to rename \"{0}\": {1}",
   "FileBrowserNewFolderError": "Failed to create folder: {0}",

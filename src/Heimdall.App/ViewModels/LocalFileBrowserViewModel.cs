@@ -51,6 +51,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
     private readonly List<LocalFileEntry> _allFiles = [];
     private readonly LocalizationManager? _localizer;
     private IDialogService? _dialogService;
+    private int _loadGeneration;
 
     [ObservableProperty]
     private string _currentPath = "";
@@ -95,7 +96,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
         Files = [];
         CurrentPath = validatedPath;
 
-        LoadDirectoryCore(validatedPath, pushToHistory: false);
+        _ = LoadDirectoryCoreAsync(validatedPath, pushToHistory: false);
     }
 
     /// <summary>
@@ -132,60 +133,72 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
     /// Loads a directory and refreshes the unfiltered file cache.
     /// </summary>
     /// <param name="path">The directory path to load.</param>
-    public void LoadDirectory(string path)
+    public Task LoadDirectory(string path)
     {
-        LoadDirectoryCore(path, pushToHistory: true);
+        return LoadDirectoryCoreAsync(path, pushToHistory: true);
     }
 
     /// <summary>
     /// Navigates to the previous directory in the back stack when available.
     /// </summary>
-    public void NavigateBack()
+    public Task NavigateBack()
     {
-        if (_history.TryPop(out var previousPath))
+        if (_history.TryPop(out string? previousPath) && previousPath is not null)
         {
-            LoadDirectoryCore(previousPath, pushToHistory: false);
+            return LoadDirectoryCoreAsync(previousPath, pushToHistory: false);
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Navigates to the parent directory of the current path.
     /// </summary>
-    public void NavigateUp()
+    public Task NavigateUp()
     {
-        var parent = Directory.GetParent(CurrentPath);
+        DirectoryInfo? parent = Directory.GetParent(CurrentPath);
         if (parent is not null)
         {
-            LoadDirectory(parent.FullName);
+            return LoadDirectory(parent.FullName);
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Navigates back to the session root directory.
     /// </summary>
-    public void NavigateHome()
+    public Task NavigateHome()
     {
-        LoadDirectory(SessionRoot);
+        return LoadDirectory(SessionRoot);
     }
 
     /// <summary>
     /// Reloads the current directory contents without modifying history.
     /// </summary>
-    public void Refresh()
+    public Task Refresh()
     {
-        LoadDirectory(CurrentPath);
+        return LoadDirectoryCoreAsync(CurrentPath, pushToHistory: false);
     }
 
     /// <summary>
     /// Navigates to a user-entered path when it points to an existing directory.
     /// </summary>
     /// <param name="path">The requested directory path.</param>
-    public void NavigateToPath(string? path)
+    public Task NavigateToPath(string? path)
     {
-        if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+        if (string.IsNullOrWhiteSpace(path))
         {
-            LoadDirectory(path);
+            return Task.CompletedTask;
         }
+
+        string requestedPath = path.Trim();
+        if (!Directory.Exists(requestedPath))
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadDirectory(requestedPath);
     }
 
     /// <summary>
@@ -198,7 +211,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
     {
         if (entry.IsDirectory)
         {
-            LoadDirectory(entry.FullPath);
+            _ = LoadDirectory(entry.FullPath);
             return true;
         }
 
@@ -284,14 +297,17 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
 
             try
             {
-                if (entry.IsDirectory)
+                await Task.Run(() =>
                 {
-                    Directory.Delete(entry.FullPath, recursive: true);
-                }
-                else
-                {
-                    File.Delete(entry.FullPath);
-                }
+                    if (entry.IsDirectory)
+                    {
+                        Directory.Delete(entry.FullPath, recursive: true);
+                    }
+                    else
+                    {
+                        File.Delete(entry.FullPath);
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -300,7 +316,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
             }
         }
 
-        Refresh();
+        await Refresh();
     }
 
     /// <summary>
@@ -344,16 +360,19 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
                 return;
             }
 
-            if (entry.IsDirectory)
+            await Task.Run(() =>
             {
-                Directory.Move(entry.FullPath, newPath);
-            }
-            else
-            {
-                File.Move(entry.FullPath, newPath);
-            }
+                if (entry.IsDirectory)
+                {
+                    Directory.Move(entry.FullPath, newPath);
+                }
+                else
+                {
+                    File.Move(entry.FullPath, newPath);
+                }
+            });
 
-            Refresh();
+            await Refresh();
         }
         catch (Exception ex)
         {
@@ -402,7 +421,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
             }
 
             Directory.CreateDirectory(newPath);
-            Refresh();
+            await Refresh();
         }
         catch (Exception ex)
         {
@@ -448,11 +467,11 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
                         }
                     }
 
-                    File.Copy(sourcePath, destinationPath, overwrite: true);
+                    await Task.Run(() => File.Copy(sourcePath, destinationPath, overwrite: true));
                 }
                 else if (Directory.Exists(sourcePath))
                 {
-                    CopyDirectoryRecursive(sourcePath, destinationPath);
+                    await Task.Run(() => CopyDirectoryRecursive(sourcePath, destinationPath));
                 }
             }
             catch (Exception ex)
@@ -462,7 +481,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
             }
         }
 
-        Refresh();
+        await Refresh();
     }
 
     /// <summary>
@@ -493,38 +512,17 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
         UpdateStatusText();
     }
 
-    private void LoadDirectoryCore(string path, bool pushToHistory)
+    private async Task LoadDirectoryCoreAsync(string path, bool pushToHistory)
     {
+        int generation = ++_loadGeneration;
+        IsLoading = true;
+
         try
         {
-            IsLoading = true;
-
-            var entries = new List<LocalFileEntry>();
-
-            foreach (var directoryPath in Directory.EnumerateDirectories(path))
+            List<LocalFileEntry> entries = await Task.Run(() => EnumerateDirectory(path));
+            if (generation != _loadGeneration)
             {
-                try
-                {
-                    var info = new DirectoryInfo(directoryPath);
-                    entries.Add(new LocalFileEntry(info.Name, info.FullName, true, 0, info.LastWriteTime));
-                }
-                catch (Exception ex)
-                {
-                    Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible directory: {ex.Message}");
-                }
-            }
-
-            foreach (var filePath in Directory.EnumerateFiles(path))
-            {
-                try
-                {
-                    var info = new FileInfo(filePath);
-                    entries.Add(new LocalFileEntry(info.Name, info.FullName, false, info.Length, info.LastWriteTime));
-                }
-                catch (Exception ex)
-                {
-                    Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible file: {ex.Message}");
-                }
+                return;
             }
 
             if (pushToHistory && !string.Equals(path, CurrentPath, StringComparison.OrdinalIgnoreCase))
@@ -534,9 +532,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
 
             CurrentPath = path;
             _allFiles.Clear();
-            _allFiles.AddRange(entries
-                .OrderByDescending(entry => entry.IsDirectory)
-                .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase));
+            _allFiles.AddRange(entries);
 
             ApplyFilter();
             CanGoBack = _history.Count > 0;
@@ -545,11 +541,54 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
         catch (Exception ex)
         {
             Heimdall.Core.Logging.FileLogger.Warn($"LocalFileBrowser load failed: {ex.Message}");
+            if (generation == _loadGeneration)
+            {
+                StatusText = L10n("FileBrowserLoadError");
+            }
         }
         finally
         {
-            IsLoading = false;
+            if (generation == _loadGeneration)
+            {
+                IsLoading = false;
+            }
         }
+    }
+
+    private static List<LocalFileEntry> EnumerateDirectory(string path)
+    {
+        List<LocalFileEntry> entries = [];
+
+        foreach (string directoryPath in Directory.EnumerateDirectories(path))
+        {
+            try
+            {
+                DirectoryInfo info = new DirectoryInfo(directoryPath);
+                entries.Add(new LocalFileEntry(info.Name, info.FullName, true, 0, info.LastWriteTime));
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible directory: {ex.Message}");
+            }
+        }
+
+        foreach (string filePath in Directory.EnumerateFiles(path))
+        {
+            try
+            {
+                FileInfo info = new FileInfo(filePath);
+                entries.Add(new LocalFileEntry(info.Name, info.FullName, false, info.Length, info.LastWriteTime));
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible file: {ex.Message}");
+            }
+        }
+
+        return entries
+            .OrderByDescending(entry => entry.IsDirectory)
+            .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void ApplyFilter()
@@ -610,7 +649,7 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
     {
         if (depth >= MaxCopyDepth)
         {
-            throw new IOException("Directory copy aborted: nesting exceeds 256 levels (possible junction loop).");
+            throw new IOException($"Directory copy aborted: nesting exceeds {MaxCopyDepth} levels (possible junction loop).");
         }
 
         Directory.CreateDirectory(destDir);
