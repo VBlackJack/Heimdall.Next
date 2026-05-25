@@ -323,18 +323,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 break;
 
             case Key.F2:
-                if (FileListView.SelectedItem is SftpFileInfo)
-                {
-                    OnCtxRenameClick(this, new RoutedEventArgs());
-                }
+                _viewModel.RenameSelectedCommand.Execute(null);
                 e.Handled = true;
                 break;
 
             case Key.Delete:
-                if (FileListView.SelectedItems.Count > 0)
-                {
-                    OnCtxDeleteClick(this, new RoutedEventArgs());
-                }
+                _viewModel.DeleteSelectedCommand.Execute(null);
                 e.Handled = true;
                 break;
 
@@ -432,7 +426,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        _viewModel.UpdateSelectionInfo(GetSelectedFiles());
+        _viewModel.SetSelection(GetSelectedFiles(), FileListView.SelectedItem as SftpFileInfo);
     }
 
     // ------------------------------------------------------------------
@@ -707,71 +701,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
     }
 
-    private async void OnCtxRenameClick(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (FileListView.SelectedItem is SftpFileInfo file)
-            {
-                await _viewModel.RenameEntryAsync(file);
-            }
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP rename handler failed: {ex.Message}");
-        }
-    }
-
-    private async void OnCtxDeleteClick(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            List<SftpFileInfo> selected = GetSelectedFiles();
-            if (selected.Count > 0)
-            {
-                await _viewModel.DeleteEntriesAsync(selected);
-            }
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP delete handler failed: {ex.Message}");
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // Chmod (permissions editor)
-    // ------------------------------------------------------------------
-
-    private async void OnCtxChmodClick(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (FileListView.SelectedItem is SftpFileInfo file)
-            {
-                await _viewModel.ChmodAsync(file);
-            }
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP chmod handler failed: {ex.Message}");
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // Properties dialog
-    // ------------------------------------------------------------------
-
-    private void OnCtxPropertiesClick(object sender, RoutedEventArgs e)
-    {
-        if (FileListView.SelectedItem is SftpFileInfo file)
-        {
-            _viewModel.ShowProperties(file);
-        }
-    }
-
     // ------------------------------------------------------------------
     // Context menu actions
     // ------------------------------------------------------------------
@@ -865,17 +794,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             UpdateStatus(_localizer?.Format("SftpStatusPathCopied", file.FullPath)
                 ?? $"Copied: {file.FullPath}");
         }
-    }
-
-    private void OnCtxOpenInTerminalClick(object sender, RoutedEventArgs e)
-    {
-        string targetDir = _viewModel.CurrentPath;
-        if (FileListView.SelectedItem is SftpFileInfo file && file.IsDirectory)
-        {
-            targetDir = file.FullPath;
-        }
-
-        _viewModel.RequestOpenInTerminal(targetDir);
     }
 
     private async Task EditFileAsync(SftpFileInfo file)

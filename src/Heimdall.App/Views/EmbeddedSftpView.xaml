@@ -364,6 +364,7 @@
 
             <ListView.ContextMenu>
                 <ContextMenu x:Name="FileContextMenu"
+                             DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
                              Opened="OnContextMenuOpened">
                     <MenuItem x:Name="CtxOpen" Click="OnCtxOpenClick" InputGestureText="Enter"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
@@ -390,20 +391,20 @@
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="CtxRename" Click="OnCtxRenameClick" InputGestureText="F2"
+                    <MenuItem x:Name="CtxRename" Command="{Binding RenameSelectedCommand}" InputGestureText="F2"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxDelete" Click="OnCtxDeleteClick" InputGestureText="Del"
+                    <MenuItem x:Name="CtxDelete" Command="{Binding DeleteSelectedCommand}" InputGestureText="Del"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="{StaticResource FontSizeSubtitle}"
                                        Foreground="{DynamicResource ErrorTextBrush}"/>
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxChmod" Click="OnCtxChmodClick"
+                    <MenuItem x:Name="CtxChmod" Command="{Binding ChmodSelectedCommand}"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D7;" FontSize="{StaticResource FontSizeSubtitle}"/>
@@ -416,7 +417,7 @@
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxProperties" Click="OnCtxPropertiesClick"
+                    <MenuItem x:Name="CtxProperties" Command="{Binding ShowSelectedPropertiesCommand}"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="{StaticResource FontSizeSubtitle}"/>
@@ -429,7 +430,7 @@
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxOpenInTerminal" Click="OnCtxOpenInTerminalClick"
+                    <MenuItem x:Name="CtxOpenInTerminal" Command="{Binding OpenSelectedInTerminalCommand}"
                               AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="{StaticResource FontSizeSubtitle}"/>
