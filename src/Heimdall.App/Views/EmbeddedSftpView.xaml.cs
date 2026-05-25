@@ -31,10 +31,22 @@ using Microsoft.Win32;
 namespace Heimdall.App.Views;
 
 /// <summary>
-/// WPF host for an interactive SFTP file browser backed by <see cref="SftpBrowser"/>.
-/// Provides directory navigation, file transfers, inline editing, drag-drop upload,
-/// column sorting, file filtering, bookmarks, chmod, and keyboard shortcuts.
+/// View half of the embedded SFTP/FTP file browser. Its partner
+/// <c>EmbeddedSftpViewModel</c> owns navigation state, the listing,
+/// filtering/sorting, file operations, transfer orchestration and status; this
+/// class is a thin host reached through bindings and commands.
 /// </summary>
+/// <remarks>
+/// The code-behind is intentionally limited to wiring that cannot move to the
+/// ViewModel without coupling it to WPF/Win32 internals or to other views:
+/// Win32 file/folder pickers (<c>OpenFileDialog</c> / <c>FolderBrowserDialog</c>,
+/// since <c>IDialogService</c> has no file-picker); drag-and-drop;
+/// <c>GridView</c> column sizing and sort-header management; the embedded-editor
+/// hand-off (<c>EditFileAsync</c> creates an <c>EmbeddedEditorView</c> and swaps
+/// panes in the split tree); the bookmarks overflow <c>ContextMenu</c> built in
+/// code; and session lifecycle — browser/editor creation, reconnect, the
+/// health-check timer, and the browser/editor event relays into the ViewModel.
+/// </remarks>
 public partial class EmbeddedSftpView : UserControl, IDisposable
 {
     private const double FileListWidthPadding = 10;
