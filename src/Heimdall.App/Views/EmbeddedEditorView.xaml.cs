@@ -132,6 +132,14 @@ public partial class EmbeddedEditorView : UserControl
         _viewModel.UpdateCursorPosition(Editor.TextArea.Caret.Line, Editor.TextArea.Caret.Column);
     }
 
+    /// <summary>
+    /// Confirms that the remote save dispatched by the editor was uploaded successfully.
+    /// </summary>
+    public void ConfirmRemoteSaved()
+    {
+        _viewModel.ConfirmRemoteSaved();
+    }
+
     private async void OnSaveClick(object sender, RoutedEventArgs e)
     {
         await _viewModel.SaveAsync(Editor.Text);

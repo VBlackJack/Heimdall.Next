@@ -965,6 +965,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                         await _browser.UploadFileAsync(localPath, remotePath);
                         UpdateStatus(_localizer?.Format("SftpStatusAutoUploaded", file.Name)
                             ?? $"Uploaded: {file.Name}");
+                        editorView.ConfirmRemoteSaved();
                     }
                     catch (Exception uploadEx)
                     {
