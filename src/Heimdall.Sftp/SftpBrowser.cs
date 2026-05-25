@@ -27,9 +27,8 @@ namespace Heimdall.Sftp;
 /// </summary>
 /// <remarks>
 /// Operations wrap blocking SSH.NET calls in <see cref="Task.Run"/>. The
-/// <see cref="CancellationToken"/> is honoured at the operation boundary, not
-/// mid-call; a blocking transfer already in progress runs to completion or to
-/// its own timeout.
+/// <see cref="CancellationToken"/> is honoured at operation boundaries and by
+/// cancellation-aware file streams during transfers.
 /// </remarks>
 public sealed class SftpBrowser : IRemoteBrowser
 {
@@ -250,18 +249,25 @@ public sealed class SftpBrowser : IRemoteBrowser
                     bufferSize: 81920,
                     useAsync: true))
                 {
+                    using CancellationAwareStream outputStream = new(fileStream, ct);
+
                     await Task.Run(() =>
                     {
                         ct.ThrowIfCancellationRequested();
-                        client.DownloadFile(remotePath, fileStream, bytesTransferred =>
+                        client.DownloadFile(remotePath, outputStream, bytesTransferred =>
                         {
-                            ct.ThrowIfCancellationRequested();
+                            if (ct.IsCancellationRequested)
+                            {
+                                return;
+                            }
+
                             TransferProgress?.Invoke(new SftpTransferProgress(
                                 fileName,
                                 (long)bytesTransferred,
                                 totalBytes,
                                 IsUpload: false));
                         });
+                        ct.ThrowIfCancellationRequested();
                     }, ct).ConfigureAwait(false);
                 }
             }
@@ -307,19 +313,25 @@ public sealed class SftpBrowser : IRemoteBrowser
                 FileShare.Read,
                 bufferSize: 81920,
                 useAsync: true);
+            using CancellationAwareStream inputStream = new(fileStream, ct);
 
             await Task.Run(() =>
             {
                 ct.ThrowIfCancellationRequested();
-                client.UploadFile(fileStream, remotePath, bytesTransferred =>
+                client.UploadFile(inputStream, remotePath, bytesTransferred =>
                 {
-                    ct.ThrowIfCancellationRequested();
+                    if (ct.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
                     TransferProgress?.Invoke(new SftpTransferProgress(
                         fileName,
                         (long)bytesTransferred,
                         totalBytes,
                         IsUpload: true));
                 });
+                ct.ThrowIfCancellationRequested();
             }, ct).ConfigureAwait(false);
         }
         finally
@@ -754,3 +766,77 @@ public sealed record SftpTransferProgress(
     long BytesTransferred,
     long TotalBytes,
     bool IsUpload);
+
+internal sealed class CancellationAwareStream : Stream
+{
+    private readonly Stream _inner;
+    private readonly CancellationToken _ct;
+
+    public CancellationAwareStream(Stream inner, CancellationToken ct)
+    {
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _ct = ct;
+    }
+
+    public override bool CanRead => _inner.CanRead;
+
+    public override bool CanSeek => _inner.CanSeek;
+
+    public override bool CanWrite => _inner.CanWrite;
+
+    public override long Length => _inner.Length;
+
+    public override long Position
+    {
+        get => _inner.Position;
+        set => _inner.Position = value;
+    }
+
+    public override void Flush()
+    {
+        _ct.ThrowIfCancellationRequested();
+        _inner.Flush();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        _ct.ThrowIfCancellationRequested();
+        int bytesRead = _inner.Read(buffer, offset, count);
+        _ct.ThrowIfCancellationRequested();
+        return bytesRead;
+    }
+
+    public override int Read(Span<byte> buffer)
+    {
+        _ct.ThrowIfCancellationRequested();
+        int bytesRead = _inner.Read(buffer);
+        _ct.ThrowIfCancellationRequested();
+        return bytesRead;
+    }
+
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        _ct.ThrowIfCancellationRequested();
+        return _inner.Seek(offset, origin);
+    }
+
+    public override void SetLength(long value)
+    {
+        _ct.ThrowIfCancellationRequested();
+        _inner.SetLength(value);
+    }
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        _ct.ThrowIfCancellationRequested();
+        _inner.Write(buffer, offset, count);
+        _ct.ThrowIfCancellationRequested();
+    }
+
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        _ct.ThrowIfCancellationRequested();
+        _inner.Write(buffer);
+        _ct.ThrowIfCancellationRequested();
+    }
+}
