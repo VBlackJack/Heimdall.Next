@@ -96,9 +96,9 @@ public sealed class EmbeddedSftpViewModelHelpersTests
             "/var/log/oh's.log");
 
         Assert.Equal(
-            @"cat '/tmp/o'\''reilly' | sudo tee -- '/var/log/oh'\''s.log' > /dev/null",
+            @"cp -- '/tmp/o'\''reilly' '/var/log/oh'\''s.log'",
             write);
-        Assert.Equal(@"sudo rm -f '/tmp/o'\''reilly'", cleanup);
+        Assert.Equal(@"rm -f '/tmp/o'\''reilly'", cleanup);
     }
 
     [Fact]
