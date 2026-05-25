@@ -40,6 +40,65 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public void IsToolbarEnabled_RequiresConnectedAndNotLoading()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            IsConnected = true
+        };
+
+        Assert.True(viewModel.IsToolbarEnabled);
+
+        viewModel.IsLoading = true;
+
+        Assert.False(viewModel.IsToolbarEnabled);
+
+        viewModel.IsLoading = false;
+        viewModel.IsConnected = false;
+
+        Assert.False(viewModel.IsToolbarEnabled);
+    }
+
+    [Fact]
+    public void CanNavigateBack_RequiresToolbarStateAndBackHistory()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            IsConnected = true
+        };
+
+        Assert.False(viewModel.CanNavigateBack);
+
+        viewModel.CanGoBack = true;
+
+        Assert.True(viewModel.CanNavigateBack);
+
+        viewModel.IsLoading = true;
+
+        Assert.False(viewModel.CanNavigateBack);
+
+        viewModel.IsLoading = false;
+        viewModel.IsConnected = false;
+
+        Assert.False(viewModel.CanNavigateBack);
+    }
+
+    [Fact]
+    public void IsDisconnected_IsInverseOfIsConnected()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        Assert.True(viewModel.IsDisconnected);
+
+        viewModel.IsConnected = true;
+
+        Assert.False(viewModel.IsDisconnected);
+    }
+
+    [Fact]
     public void SetSelection_UpdatesSelectedFileSelectedFilesAndSelectionInfoText()
     {
         FakeUiDispatcher dispatcher = new();

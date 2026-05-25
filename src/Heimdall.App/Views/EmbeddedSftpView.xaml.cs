@@ -88,7 +88,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             ?? throw new InvalidOperationException("IHostKeyVerifier is not registered.");
         _viewModel = new EmbeddedSftpViewModel(uiDispatcher);
         DataContext = _viewModel;
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     /// <summary>
@@ -210,8 +209,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             CleanupEditTempDir(tempPath);
         }
-
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
         Core.Logging.FileLogger.Info("EmbeddedSFTP Dispose completed");
     }
@@ -853,8 +850,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
 
         Core.Logging.FileLogger.Info("EmbeddedSFTP Disconnect requested by user");
-        UpdateStatus(_localizer?["SftpStatusDisconnected"] ?? "Disconnected");
-
         try
         {
             _browser?.Disconnect();
@@ -864,7 +859,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             Core.Logging.FileLogger.Warn($"EmbeddedSFTP manual disconnect failed: {ex.Message}");
         }
 
-        ShowDisconnectedState();
+        UpdateStatus(_localizer?["SftpStatusDisconnected"] ?? "Disconnected");
     }
 
     private async void OnReconnectClick(object sender, RoutedEventArgs e)
@@ -933,10 +928,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 _sshParams);
             _viewModel.CurrentPath = reconnectPath;
 
-            // Restore connected UI state
-            DisconnectButton.Visibility = Visibility.Visible;
-            ReconnectButton.Visibility = Visibility.Collapsed;
-            SetToolbarEnabled(true);
             StartHealthTimer();
 
             UpdateStatus(_localizer?["SftpStatusConnected"] ?? "Connected");
@@ -958,7 +949,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             _browser = null;
             ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message)
                 ?? $"Reconnection failed: {ex.Message}");
-            ShowDisconnectedState();
         }
     }
 
@@ -985,16 +975,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             {
                 UpdateStatus(status);
             }
-
-            ShowDisconnectedState();
         });
-    }
-
-    private void ShowDisconnectedState()
-    {
-        SetToolbarEnabled(false);
-        DisconnectButton.Visibility = Visibility.Collapsed;
-        ReconnectButton.Visibility = Visibility.Visible;
     }
 
     // ------------------------------------------------------------------
@@ -1029,7 +1010,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 if (!_disposed)
                 {
                     UpdateStatus(_localizer?["SftpStatusHealthCheckFailed"] ?? "Connection lost");
-                    ShowDisconnectedState();
                 }
             });
 
@@ -1136,19 +1116,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _viewModel.SetErrorStatus(message);
     }
 
-    private void SetToolbarEnabled(bool enabled)
-    {
-        BtnBack.IsEnabled = enabled && _viewModel.CanGoBack;
-        BtnUp.IsEnabled = enabled;
-        BtnHome.IsEnabled = enabled;
-        BtnRefresh.IsEnabled = enabled;
-        BtnUpload.IsEnabled = enabled;
-        BtnNewFolder.IsEnabled = enabled;
-        BtnGoPath.IsEnabled = enabled;
-        BtnBookmarkMenu.IsEnabled = enabled;
-        PathTextBox.IsEnabled = enabled;
-    }
-
     private List<SftpFileInfo> GetSelectedFiles()
     {
         return FileListView.SelectedItems.Cast<SftpFileInfo>().ToList();
@@ -1162,29 +1129,5 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private Task RefreshRemoteAsync()
     {
         return _viewModel.Refresh();
-    }
-
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        _ = Dispatcher.BeginInvoke(() =>
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            switch (e.PropertyName)
-            {
-                case nameof(EmbeddedSftpViewModel.IsLoading):
-                case nameof(EmbeddedSftpViewModel.CanGoBack):
-                case nameof(EmbeddedSftpViewModel.IsConnected):
-                    SetToolbarEnabled(!_viewModel.IsLoading && _viewModel.IsConnected);
-                    break;
-                case nameof(EmbeddedSftpViewModel.SortColumn):
-                case nameof(EmbeddedSftpViewModel.SortDirection):
-                    UpdateColumnHeaders();
-                    break;
-            }
-        });
     }
 }

@@ -83,10 +83,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
     /// <summary>Whether backward navigation is available.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanNavigateBack))]
     private bool _canGoBack;
 
     /// <summary>Whether a remote directory listing is currently running.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsToolbarEnabled))]
+    [NotifyPropertyChangedFor(nameof(CanNavigateBack))]
     private bool _isLoading;
 
     /// <summary>The current status text displayed by the view.</summary>
@@ -143,6 +146,9 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
     /// <summary>Whether the remote browser is currently connected.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsToolbarEnabled))]
+    [NotifyPropertyChangedFor(nameof(CanNavigateBack))]
+    [NotifyPropertyChangedFor(nameof(IsDisconnected))]
     private bool _isConnected;
 
     /// <summary>The current text filter applied to file names.</summary>
@@ -150,6 +156,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private string _filterText = string.Empty;
 
     partial void OnCurrentPathChanged(string value) => PathBarText = value;
+
+    public bool IsToolbarEnabled => !IsLoading && IsConnected;
+
+    public bool CanNavigateBack => !IsLoading && IsConnected && CanGoBack;
+
+    public bool IsDisconnected => !IsConnected;
 
     partial void OnIsErrorStatusChanged(bool value)
     {
