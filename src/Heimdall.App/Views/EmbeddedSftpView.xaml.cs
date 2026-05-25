@@ -51,14 +51,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private IDialogService? _dialogService;
     private SshConnectionParams? _sshParams;
     private Heimdall.Ssh.HostKeyStore _hostKeyStore = null!;
-    private CancellationTokenSource? _transferCts;
     private readonly HashSet<string> _activeEditTempDirs =
         new(StringComparer.OrdinalIgnoreCase);
     private System.Threading.Timer? _healthTimer;
     private string? _pendingBrowserSecurityStatus;
 
     private bool _disposed;
-    private bool _transferInProgress;
 
     /// <summary>
     /// Raised when the user clicks the Split button in the header strip.
@@ -174,8 +172,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _viewModel.MarkDisposed();
 
         StopHealthTimer();
-        _transferCts?.Cancel();
-        _transferCts?.Dispose();
 
         if (_editor is not null)
         {
@@ -455,7 +451,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
-        var dialog = new OpenFileDialog
+        OpenFileDialog dialog = new()
         {
             Multiselect = true,
             Title = _localizer?["SftpBtnUpload"] ?? "Upload"
@@ -466,91 +462,24 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
-        await UploadFilesAsync(dialog.FileNames);
-    }
-
-    private async Task UploadFilesAsync(string[] localPaths)
-    {
-        if (_disposed || _browser is null)
-        {
-            return;
-        }
-
-        if (_transferInProgress)
-        {
-            UpdateStatus(_localizer?["SftpTransferInProgress"] ?? "A file transfer is already in progress.");
-            return;
-        }
-
-        _transferCts?.Cancel();
-        _transferCts?.Dispose();
-        _transferCts = new CancellationTokenSource();
-        CancellationToken ct = _transferCts.Token;
-
-        ShowTransferPanel(true);
-        _transferInProgress = true;
-
-        try
-        {
-            for (int i = 0; i < localPaths.Length; i++)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                string localPath = localPaths[i];
-                string fileName = Path.GetFileName(localPath);
-                string remotePath = EmbeddedSftpViewModel.CombineRemotePath(_viewModel.CurrentPath, fileName);
-
-                TransferText.Text = _localizer?.Format(
-                    "SftpStatusUploadingProgress", fileName,
-                    $"{i + 1}", $"{localPaths.Length}") ?? $"Uploading {fileName}...";
-
-                try
-                {
-                    await _browser.UploadFileAsync(localPath, remotePath, ct);
-                }
-                catch (Exception ex) when (_sshParams is not null && EmbeddedSftpViewModel.IsPermissionDenied(ex))
-                {
-                    Core.Logging.FileLogger.Info(
-                        $"EmbeddedSFTP upload permission denied, falling back to sudo for {fileName}");
-                    await _viewModel.UploadViaSudoAsync(localPath, remotePath, ct);
-                }
-            }
-
-            UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
-        }
-        catch (OperationCanceledException)
-        {
-            UpdateStatus(_localizer?["SftpStatusTransferCancelled"] ?? "Transfer cancelled");
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP upload failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
-            ShowTransferError(ex);
-        }
-        finally
-        {
-            _transferInProgress = false;
-            ShowTransferPanel(false);
-            _ = RefreshRemoteAsync();
-        }
+        await _viewModel.UploadFilesAsync(dialog.FileNames);
     }
 
     private async void OnCtxDownloadClick(object sender, RoutedEventArgs e)
     {
-        var selected = GetSelectedFiles();
+        List<SftpFileInfo> selected = GetSelectedFiles();
         if (selected.Count == 0 || _browser is null)
         {
             return;
         }
 
-        if (_transferInProgress)
+        if (_viewModel.IsTransferInProgress)
         {
             UpdateStatus(_localizer?["SftpTransferInProgress"] ?? "A file transfer is already in progress.");
             return;
         }
 
-        var dialog = new System.Windows.Forms.FolderBrowserDialog
+        System.Windows.Forms.FolderBrowserDialog dialog = new()
         {
             Description = _localizer?["SftpBtnDownload"] ?? "Download"
         };
@@ -560,61 +489,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
-        _transferCts?.Cancel();
-        _transferCts?.Dispose();
-        _transferCts = new CancellationTokenSource();
-        CancellationToken ct = _transferCts.Token;
-
-        ShowTransferPanel(true);
-        _transferInProgress = true;
-
-        try
-        {
-            for (int i = 0; i < selected.Count; i++)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                var file = selected[i];
-                if (file.IsDirectory)
-                {
-                    continue;
-                }
-
-                string localPath = Path.Combine(dialog.SelectedPath, file.Name);
-
-                TransferText.Text = _localizer?.Format(
-                    "SftpStatusDownloadingFile", file.Name,
-                    $"{i + 1}/{selected.Count}") ?? $"Downloading {file.Name}...";
-
-                try
-                {
-                    await _browser.DownloadFileAsync(file.FullPath, localPath, ct);
-                }
-                catch (Exception ex) when (_sshParams is not null && EmbeddedSftpViewModel.IsPermissionDenied(ex))
-                {
-                    Core.Logging.FileLogger.Info(
-                        $"EmbeddedSFTP download permission denied, falling back to sudo for {file.Name}");
-                    await _viewModel.DownloadViaSudoAsync(file.FullPath, localPath, ct);
-                }
-            }
-
-            UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
-        }
-        catch (OperationCanceledException)
-        {
-            UpdateStatus(_localizer?["SftpStatusTransferCancelled"] ?? "Transfer cancelled");
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP download failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
-            ShowTransferError(ex);
-        }
-        finally
-        {
-            _transferInProgress = false;
-            ShowTransferPanel(false);
-        }
+        await _viewModel.DownloadFilesAsync(selected, dialog.SelectedPath);
     }
 
     // ------------------------------------------------------------------
@@ -945,7 +820,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         if (files.Length > 0)
         {
-            await UploadFilesAsync(files);
+            await _viewModel.UploadFilesAsync(files);
         }
     }
 
@@ -962,28 +837,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 return;
             }
 
-            double percent = progress.TotalBytes > 0
-                ? (double)progress.BytesTransferred / progress.TotalBytes * 100
-                : 0;
-
-            TransferProgressBar.Value = percent;
-
-            string transferred = EmbeddedSftpViewModel.FormatSize(progress.BytesTransferred);
-            string total = EmbeddedSftpViewModel.FormatSize(progress.TotalBytes);
-            string direction = progress.IsUpload ? "\u2191" : "\u2193";
-            TransferText.Text = $"{direction} {progress.FileName} — {transferred} / {total} ({percent:F0}%)";
+            _viewModel.UpdateTransferProgress(progress);
         });
-    }
-
-    private void OnCancelTransferClick(object sender, RoutedEventArgs e)
-    {
-        _transferCts?.Cancel();
-    }
-
-    private void ShowTransferPanel(bool visible)
-    {
-        TransferPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        TransferProgressBar.Value = 0;
     }
 
     // ------------------------------------------------------------------
@@ -1279,11 +1134,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private void ShowError(string message)
     {
         _viewModel.SetErrorStatus(message);
-    }
-
-    private void ShowTransferError(Exception ex)
-    {
-        _viewModel.SetTransferError(ex);
     }
 
     private void SetToolbarEnabled(bool enabled)

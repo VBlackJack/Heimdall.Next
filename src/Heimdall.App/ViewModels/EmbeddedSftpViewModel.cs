@@ -34,7 +34,8 @@ namespace Heimdall.App.ViewModels;
 /// <summary>
 /// ViewModel for the embedded SFTP/FTP file browser. Manages directory state,
 /// navigation history, listing, filtering, sorting, and status display.
-/// File operations, transfers, and connection lifecycle remain in the code-behind.
+/// File operations and transfer orchestration live here; view-coupled dialogs
+/// and connection lifecycle remain in the code-behind.
 /// </summary>
 public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
@@ -57,6 +58,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private System.Threading.Timer? _errorHighlightTimer;
+    private CancellationTokenSource? _transferCts;
     private bool _disposed;
 
     /// <summary>
@@ -98,6 +100,18 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>Whether the current error status should be visually highlighted.</summary>
     [ObservableProperty]
     private bool _isErrorHighlighted;
+
+    /// <summary>Whether a file transfer is currently running.</summary>
+    [ObservableProperty]
+    private bool _isTransferInProgress;
+
+    /// <summary>The current transfer progress label.</summary>
+    [ObservableProperty]
+    private string _transferStatusText = string.Empty;
+
+    /// <summary>The current transfer progress percentage.</summary>
+    [ObservableProperty]
+    private double _transferProgressValue;
 
     /// <summary>Whether hidden entries should be shown.</summary>
     [ObservableProperty]
@@ -237,6 +251,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     {
         _disposed = true;
         DisposeErrorHighlightTimer();
+        _transferCts?.Cancel();
+        _transferCts?.Dispose();
         IsConnected = false;
     }
 
@@ -558,6 +574,168 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         Bookmarks.Add(CurrentPath);
         UpdateStatus(_localizer?.Format("SftpBookmarkAdded", CurrentPath)
             ?? $"Bookmarked: {CurrentPath}");
+    }
+
+    /// <summary>
+    /// Uploads local files to the current remote directory.
+    /// </summary>
+    /// <remarks>Must be invoked on the UI thread.</remarks>
+    public async Task UploadFilesAsync(IReadOnlyList<string> localPaths)
+    {
+        if (_disposed || _browser is null)
+        {
+            return;
+        }
+
+        if (IsTransferInProgress)
+        {
+            UpdateStatus(_localizer?["SftpTransferInProgress"] ?? "A file transfer is already in progress.");
+            return;
+        }
+
+        _transferCts?.Cancel();
+        _transferCts?.Dispose();
+        _transferCts = new CancellationTokenSource();
+        CancellationToken ct = _transferCts.Token;
+
+        TransferProgressValue = 0;
+        IsTransferInProgress = true;
+
+        try
+        {
+            for (int i = 0; i < localPaths.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                string localPath = localPaths[i];
+                string fileName = Path.GetFileName(localPath);
+                string remotePath = CombineRemotePath(CurrentPath, fileName);
+
+                TransferStatusText = _localizer?.Format(
+                    "SftpStatusUploadingProgress", fileName,
+                    $"{i + 1}", $"{localPaths.Count}") ?? $"Uploading {fileName}...";
+
+                try
+                {
+                    await _browser.UploadFileAsync(localPath, remotePath, ct);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSFTP upload permission denied, falling back to sudo for {fileName}");
+                    await UploadViaSudoAsync(localPath, remotePath, ct);
+                }
+            }
+
+            UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateStatus(_localizer?["SftpStatusTransferCancelled"] ?? "Transfer cancelled");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP upload failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
+            SetTransferError(ex);
+        }
+        finally
+        {
+            IsTransferInProgress = false;
+            TransferProgressValue = 0;
+            _ = Refresh();
+        }
+    }
+
+    /// <summary>
+    /// Downloads selected remote files into the target folder.
+    /// </summary>
+    /// <remarks>Must be invoked on the UI thread.</remarks>
+    public async Task DownloadFilesAsync(IReadOnlyList<SftpFileInfo> files, string targetFolder)
+    {
+        if (_disposed || _browser is null || IsTransferInProgress)
+        {
+            return;
+        }
+
+        _transferCts?.Cancel();
+        _transferCts?.Dispose();
+        _transferCts = new CancellationTokenSource();
+        CancellationToken ct = _transferCts.Token;
+
+        TransferProgressValue = 0;
+        IsTransferInProgress = true;
+
+        try
+        {
+            for (int i = 0; i < files.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                SftpFileInfo file = files[i];
+                if (file.IsDirectory)
+                {
+                    continue;
+                }
+
+                string localPath = Path.Combine(targetFolder, file.Name);
+
+                TransferStatusText = _localizer?.Format(
+                    "SftpStatusDownloadingFile", file.Name,
+                    $"{i + 1}/{files.Count}") ?? $"Downloading {file.Name}...";
+
+                try
+                {
+                    await _browser.DownloadFileAsync(file.FullPath, localPath, ct);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSFTP download permission denied, falling back to sudo for {file.Name}");
+                    await DownloadViaSudoAsync(file.FullPath, localPath, ct);
+                }
+            }
+
+            UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateStatus(_localizer?["SftpStatusTransferCancelled"] ?? "Transfer cancelled");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP download failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
+            SetTransferError(ex);
+        }
+        finally
+        {
+            IsTransferInProgress = false;
+            TransferProgressValue = 0;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelTransfer()
+    {
+        _transferCts?.Cancel();
+    }
+
+    /// <summary>
+    /// Updates transfer progress display state.
+    /// </summary>
+    public void UpdateTransferProgress(SftpTransferProgress progress)
+    {
+        double percent = progress.TotalBytes > 0
+            ? (double)progress.BytesTransferred / progress.TotalBytes * 100
+            : 0;
+
+        TransferProgressValue = percent;
+
+        string transferred = FormatSize(progress.BytesTransferred);
+        string total = FormatSize(progress.TotalBytes);
+        string direction = progress.IsUpload ? "\u2191" : "\u2193";
+        TransferStatusText = $"{direction} {progress.FileName} — {transferred} / {total} ({percent:F0}%)";
     }
 
     /// <summary>
