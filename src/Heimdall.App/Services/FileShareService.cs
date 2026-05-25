@@ -19,6 +19,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
+using Heimdall.Core.Models;
 
 namespace Heimdall.App.Services;
 
@@ -29,12 +30,15 @@ namespace Heimdall.App.Services;
 /// UI-agnostic: it does not resolve localization keys, show dialogs, or
 /// touch the clipboard. Consumers wire <see cref="SharingStarted"/>,
 /// <see cref="SharingStopped"/> and <see cref="FileServed"/> to drive the
-/// view from the payloads provided.
+/// view from the payloads provided. Enabling TFTP exposes the shared directory
+/// unauthenticated on the LAN because RFC 1350 has no authentication mechanism.
 /// </summary>
 public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
 {
     private EphemeralFileServer? _server;
+    private readonly object _startGate = new();
     private bool _disposed;
+    private bool _startInProgress;
 
     /// <summary>True while either the HTTP or TFTP listener is running.</summary>
     public bool IsSharing => _server is { IsHttpRunning: true } or { IsTftpRunning: true };
@@ -81,82 +85,100 @@ public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrEmpty(directory);
 
-        if (IsSharing)
+        lock (_startGate)
         {
-            throw new InvalidOperationException(
-                "FileShareService is already sharing. Call StopAsync before starting a new share.");
+            if (IsSharing || _startInProgress)
+            {
+                throw new InvalidOperationException(
+                    "FileShareService is already sharing. Call StopAsync before starting a new share.");
+            }
+
+            _startInProgress = true;
         }
-
-        var server = new EphemeralFileServer
-        {
-            ShutdownTimeoutMs = settings?.ServerShutdownTimeoutMs ?? 2000
-        };
-
-        var httpPort = settings?.EphemeralHttpPort ?? 8080;
-        var tftpPort = settings?.EphemeralTftpPort ?? 69;
-        var enableTftp = settings?.FileShareEnableTftp ?? false;
 
         try
         {
-            await server.StartHttpServerAsync(directory, httpPort).ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Error($"Failed to start HTTP server: {ex.Message}");
-        }
+            EphemeralFileServer server = new();
+            if (settings is not null)
+            {
+                server.ShutdownTimeoutMs = settings.ServerShutdownTimeoutMs;
+            }
 
-        if (enableTftp)
-        {
+            // Ports stay fixed and predictable for firewall-pinned enterprise and SecNumCloud
+            // networks; a collision fails the share cleanly instead of publishing an unreachable URL.
+            int httpPort = settings?.EphemeralHttpPort ?? DefaultPorts.Http;
+            int tftpPort = settings?.EphemeralTftpPort ?? DefaultPorts.Tftp;
+            bool enableTftp = settings?.FileShareEnableTftp ?? false;
+
             try
             {
-                await server.StartTftpServerAsync(directory, tftpPort).ConfigureAwait(true);
+                await server.StartHttpServerAsync(directory, httpPort).ConfigureAwait(true);
             }
             catch (Exception ex)
             {
-                FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
+                FileLogger.Error($"Failed to start HTTP server: {ex.Message}");
+            }
+
+            if (enableTftp)
+            {
+                try
+                {
+                    await server.StartTftpServerAsync(directory, tftpPort).ConfigureAwait(true);
+                }
+                catch (Exception ex)
+                {
+                    FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
+                }
+            }
+
+            if (!server.IsHttpRunning && !server.IsTftpRunning)
+            {
+                server.Dispose();
+                return false;
+            }
+
+            string localIp = EphemeralFileServer.GetLocalIpAddress();
+            string httpHost = server.IsHttpLocalOnly ? "localhost" : localIp;
+            string publishedBaseUrl = $"http://{httpHost}:{httpPort}";
+            string baseUrl = server.BuildUrl(publishedBaseUrl);
+            string folderName = Path.GetFileName(directory) ?? directory;
+            string wgetUrl = server.BuildUrl(publishedBaseUrl, "<filename>");
+            string curlUrl = $"{publishedBaseUrl}/<filename>";
+
+            server.FileServed += OnInnerFileServed;
+
+            _server = server;
+            CurrentDirectory = directory;
+            BaseUrl = baseUrl;
+            NotifyShareStateChanged();
+
+            FileLogger.Info(
+                $"[FileShareService] Sharing {directory} at {publishedBaseUrl}"
+                + (server.IsHttpLocalOnly ? " (localhost-only fallback)" : ""));
+
+            SharingStarted?.Invoke(this, new FileShareStartedEventArgs
+            {
+                BaseUrl = baseUrl,
+                Directory = directory,
+                FolderName = folderName,
+                LocalIpAddress = localIp,
+                HttpPort = httpPort,
+                TftpPort = tftpPort,
+                WgetCommand = $"wget \"{wgetUrl}\"",
+                CurlCommand = $"curl -H \"Authorization: Bearer {server.AccessToken}\" -O \"{curlUrl}\"",
+                TftpCommand = server.IsTftpRunning ? $"tftp {localIp} -c get <filename>" : null,
+                IsTftpEnabled = server.IsTftpRunning
+            });
+
+            return true;
+        }
+        finally
+        {
+            lock (_startGate)
+            {
+                _startInProgress = false;
             }
         }
-
-        if (!server.IsHttpRunning && !server.IsTftpRunning)
-        {
-            server.Dispose();
-            return false;
-        }
-
-        var localIp = EphemeralFileServer.GetLocalIpAddress();
-        var httpHost = server.IsHttpLocalOnly ? "localhost" : localIp;
-        var publishedBaseUrl = $"http://{httpHost}:{httpPort}";
-        var baseUrl = server.BuildUrl(publishedBaseUrl);
-        var folderName = Path.GetFileName(directory);
-        var wgetUrl = server.BuildUrl(publishedBaseUrl, "<filename>");
-        var curlUrl = $"{publishedBaseUrl}/<filename>";
-
-        server.FileServed += OnInnerFileServed;
-
-        _server = server;
-        CurrentDirectory = directory;
-        BaseUrl = baseUrl;
-        NotifyShareStateChanged();
-
-        FileLogger.Info(
-            $"[FileShareService] Sharing {directory} at {publishedBaseUrl}"
-            + (server.IsHttpLocalOnly ? " (localhost-only fallback)" : ""));
-
-        SharingStarted?.Invoke(this, new FileShareStartedEventArgs
-        {
-            BaseUrl = baseUrl,
-            Directory = directory,
-            FolderName = folderName,
-            LocalIpAddress = localIp,
-            HttpPort = httpPort,
-            TftpPort = tftpPort,
-            WgetCommand = $"wget \"{wgetUrl}\"",
-            CurlCommand = $"curl -H \"Authorization: Bearer {server.AccessToken}\" -O \"{curlUrl}\"",
-            TftpCommand = server.IsTftpRunning ? $"tftp {localIp} -c get <filename>" : null,
-            IsTftpEnabled = server.IsTftpRunning
-        });
-
-        return true;
     }
 
     /// <summary>

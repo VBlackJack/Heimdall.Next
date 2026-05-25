@@ -29,10 +29,15 @@ namespace Heimdall.App.Services;
 /// <summary>
 /// Ephemeral HTTP and TFTP file servers for quick file sharing with network devices.
 /// Both servers are read-only and run on background tasks while the application is open.
-/// HTTP serves files via GET with directory listing; TFTP implements minimal RFC 1350 (RRQ only).
+/// HTTP serves files via GET with directory listing and requires a per-instance
+/// bearer token on every request. TFTP implements minimal RFC 1350 (RRQ only)
+/// with no authentication and serves the directory to any host that can reach
+/// the UDP port because the protocol provides no authentication mechanism.
 /// </summary>
 public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 {
+    private const string OutboundProbeAddress = "8.8.8.8";
+    private const int OutboundProbePort = 80;
     private const int TftpBlockSize = 512;
     private const int TftpTimeout = 5000;
     private const int TftpMaxRetries = 3;
@@ -170,6 +175,8 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     /// <summary>
     /// Starts the TFTP server on the specified directory and port.
     /// Implements minimal TFTP (RFC 1350): read requests only, octet mode, 512-byte blocks.
+    /// The TFTP server has no authentication and serves the directory to any host that
+    /// can reach the UDP port, unlike the HTTP server which requires the bearer token.
     /// </summary>
     public async Task StartTftpServerAsync(string directory, int port = DefaultPorts.Tftp)
     {
@@ -250,7 +257,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         {
             using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             // Connect to a public address to determine the preferred outbound IP (no data is sent)
-            socket.Connect("8.8.8.8", 80);
+            socket.Connect(OutboundProbeAddress, OutboundProbePort);
             if (socket.LocalEndPoint is IPEndPoint endPoint)
                 return endPoint.Address.ToString();
         }
@@ -682,9 +689,16 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         return AppendTokenToUrl(relativeUrl);
     }
 
+    /// <summary>
+    /// Appends the per-instance token to browser-clickable URLs. Browser navigation cannot
+    /// send an Authorization header, so URL tokens trade convenience for possible exposure
+    /// through browser history, Referer headers, and proxy logs. The generated curl helper
+    /// uses the Authorization: Bearer header instead, and a fresh server instance regenerates
+    /// the token for each share to bound exposure.
+    /// </summary>
     private string AppendTokenToUrl(string url)
     {
-        var separator = url.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+        string separator = url.Contains('?', StringComparison.Ordinal) ? "&" : "?";
         return $"{url}{separator}token={AccessToken}";
     }
 
