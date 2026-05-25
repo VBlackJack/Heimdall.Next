@@ -1865,6 +1865,7 @@
   "FileBrowserNewFolderPrompt": "Entrez un nom pour le nouveau dossier :",
   "FileBrowserStatusItems": "{0} \u00e9l\u00e9ment(s)",
   "FileBrowserEmptyFolder": "Ce dossier est vide",
+  "FileBrowserLoadError": "Impossible d'ouvrir ce dossier \u2014 acc\u00e8s refus\u00e9 ou indisponible.",
   "FileBrowserDeleteError": "\u00c9chec de la suppression de \u00ab {0} \u00bb : {1}",
   "FileBrowserRenameError": "\u00c9chec du renommage de \u00ab {0} \u00bb : {1}",
   "FileBrowserNewFolderError": "\u00c9chec de la cr\u00e9ation du dossier : {0}",

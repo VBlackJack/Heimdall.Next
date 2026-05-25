@@ -69,7 +69,7 @@ public partial class LocalFileBrowserView : UserControl
     /// <summary>
     /// Refreshes the current directory listing.
     /// </summary>
-    public void RefreshCurrentDirectory() => _viewModel.Refresh();
+    public void RefreshCurrentDirectory() => _ = _viewModel.Refresh();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LocalFileBrowserView"/> class using the user profile as the start path.
@@ -163,7 +163,7 @@ public partial class LocalFileBrowserView : UserControl
         switch (e.Key)
         {
             case Key.F5:
-                _viewModel.Refresh();
+                _ = _viewModel.Refresh();
                 e.Handled = true;
                 break;
 
@@ -196,29 +196,29 @@ public partial class LocalFileBrowserView : UserControl
 
     private void OnBackClick(object sender, RoutedEventArgs e)
     {
-        _viewModel.NavigateBack();
+        _ = _viewModel.NavigateBack();
     }
 
     private void OnUpClick(object sender, RoutedEventArgs e)
     {
-        _viewModel.NavigateUp();
+        _ = _viewModel.NavigateUp();
     }
 
     private void OnHomeClick(object sender, RoutedEventArgs e)
     {
-        _viewModel.NavigateHome();
+        _ = _viewModel.NavigateHome();
     }
 
     private void OnRefreshClick(object sender, RoutedEventArgs e)
     {
-        _viewModel.Refresh();
+        _ = _viewModel.Refresh();
     }
 
     private void OnPathKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
-            _viewModel.NavigateToPath(PathTextBox.Text?.Trim());
+            _ = _viewModel.NavigateToPath(PathTextBox.Text?.Trim());
             e.Handled = true;
         }
     }
