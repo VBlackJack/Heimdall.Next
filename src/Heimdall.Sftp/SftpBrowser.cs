@@ -25,6 +25,12 @@ namespace Heimdall.Sftp;
 /// SFTP browser backed by SSH.NET's native <see cref="SftpClient"/>.
 /// Provides async file operations with progress reporting and cancellation support.
 /// </summary>
+/// <remarks>
+/// Operations wrap blocking SSH.NET calls in <see cref="Task.Run"/>. The
+/// <see cref="CancellationToken"/> is honoured at the operation boundary, not
+/// mid-call; a blocking transfer already in progress runs to completion or to
+/// its own timeout.
+/// </remarks>
 public sealed class SftpBrowser : IRemoteBrowser
 {
     private SftpClient? _client;
@@ -389,6 +395,10 @@ public sealed class SftpBrowser : IRemoteBrowser
     /// <param name="path">Full remote path.</param>
     /// <param name="mode">Permission mode as a short (e.g., 0x1ED for 755 octal).</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <remarks>
+    /// Only the nine standard rwx permission bits are applied; setuid, setgid
+    /// and sticky bits are not modified by this method.
+    /// </remarks>
     public async Task ChmodAsync(string path, short mode, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

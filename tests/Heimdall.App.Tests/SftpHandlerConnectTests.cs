@@ -72,6 +72,63 @@ public sealed class SftpHandlerConnectTests
         Assert.Equal(0, tunnelService.ReleaseCount);
     }
 
+    [Fact]
+    public async Task ConnectAsync_RejectsWhitespaceHost_BeforeTunnelSetup()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        SftpHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreateDirectServer(DefaultPorts.Ssh);
+        server.RemoteServer = "   ";
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("ErrorInvalidTargetHost", result.ErrorMessage);
+        Assert.Null(result.Session);
+        Assert.Equal(0, tunnelService.SetupCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_RejectsInvalidHost_BeforeTunnelSetup()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        SftpHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreateDirectServer(DefaultPorts.Ssh);
+        server.RemoteServer = "this is not a host";
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("ErrorInvalidTargetHost", result.ErrorMessage);
+        Assert.Null(result.Session);
+        Assert.Equal(0, tunnelService.SetupCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_RejectsOutOfRangePort_BeforeTunnelSetup()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        SftpHandler handler = CreateHandler(tunnelService);
+        ServerProfileDto server = CreateDirectServer(70_000);
+        server.RemoteServer = "sftp.example.com";
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("ErrorInvalidPort", result.ErrorMessage);
+        Assert.Null(result.Session);
+        Assert.Equal(0, tunnelService.SetupCallCount);
+    }
+
     private static SftpHandler CreateHandler(FakeTunnelService tunnelService)
     {
         return new SftpHandler(
@@ -131,6 +188,7 @@ public sealed class SftpHandlerConnectTests
         public bool UsesTunnel { get; init; }
         public string TargetHost { get; init; } = "";
         public int TargetPort { get; init; }
+        public int SetupCallCount { get; private set; }
         public int ReleaseCount { get; private set; }
         public int ReleasedLocalPort { get; private set; }
 
@@ -140,6 +198,7 @@ public sealed class SftpHandlerConnectTests
             AppSettings settings,
             CancellationToken ct)
         {
+            SetupCallCount++;
             string host = UsesTunnel ? TargetHost : server.RemoteServer;
             int port = UsesTunnel ? TargetPort : remotePort;
             return Task.FromResult((true, UsesTunnel, host, port, (string?)null));

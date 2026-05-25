@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+using System.Globalization;
+using System.Net;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
@@ -66,8 +69,31 @@ internal sealed class SftpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
+        if (string.IsNullOrWhiteSpace(server.RemoteServer))
+        {
+            var msg = _localizer["ErrorInvalidTargetHost"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        var host = server.RemoteServer;
+        if (!IsValidSftpHost(host))
+        {
+            var msg = _localizer["ErrorInvalidTargetHost"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        var port = server.SshPort > 0 ? server.SshPort : DefaultPorts.Ssh;
+        if (!InputValidator.ValidatePortRange(port))
+        {
+            var msg = _localizer.Format("ErrorInvalidPort", port.ToString(CultureInfo.InvariantCulture));
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
         (bool tunnelOk, bool usesTunnel, string targetHost, int targetPort, string? tunnelError) =
-            await _tunnelService.SetupTunnelIfNeededAsync(server, server.SshPort, settings, ct)
+            await _tunnelService.SetupTunnelIfNeededAsync(server, port, settings, ct)
                 .ConfigureAwait(false);
 
         if (!tunnelOk)
@@ -142,6 +168,12 @@ internal sealed class SftpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
         return new ConnectionResult(true, null, new SftpSessionBundle(browser, sshParams));
+    }
+
+    private static bool IsValidSftpHost(string host)
+    {
+        return !string.IsNullOrWhiteSpace(host)
+            && (InputValidator.ValidateDomain(host) || IPAddress.TryParse(host, out _));
     }
 
     private void ReleaseTunnelIfNeeded(bool usesTunnel, int tunnelLocalPort)
