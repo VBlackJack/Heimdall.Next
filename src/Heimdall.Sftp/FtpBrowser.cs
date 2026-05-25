@@ -30,6 +30,9 @@ public sealed partial class FtpBrowser : IRemoteBrowser
 {
     private const int DefaultBufferSize = 81920;
 
+    /// <summary>Hard cap on FTP recursive-delete depth (mirrors SftpBrowser.MaxDeleteDepth).</summary>
+    internal const int MaxFtpDeleteDepth = 256;
+
     private string? _host;
     private int _port;
     private NetworkCredential? _credential;
@@ -314,21 +317,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         {
             await Task.Run(() =>
             {
-                ct.ThrowIfCancellationRequested();
-
-                // Try deleting as file first; if that fails, try as directory
-                try
-                {
-                    var request = CreateRequest(path, WebRequestMethods.Ftp.DeleteFile);
-                    using var response = (FtpWebResponse)request.GetResponse();
-                    response.Close();
-                }
-                catch (WebException)
-                {
-                    var request = CreateRequest(path, WebRequestMethods.Ftp.RemoveDirectory);
-                    using var response = (FtpWebResponse)request.GetResponse();
-                    response.Close();
-                }
+                DeleteRecursive(NormalizePath(path), 0, ct);
             }, ct).ConfigureAwait(false);
         }
         finally
@@ -412,6 +401,10 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         var uri = new Uri($"ftp://{_host}:{_port}{normalizedPath}");
 
         // TODO(audit-A4): migrate to FluentFTP — see docs/audit/ftp-fluentftp-migration.md
+        // Known limitation (audit P3-1): remotePath is interpolated into the URI
+        // without escaping; filenames containing '#', '?', '%', spaces or non-ASCII
+        // produce wrong or failing requests. The fix rides with the FluentFTP
+        // migration rather than a fragile FtpWebRequest URI-escaping workaround.
 #pragma warning disable SYSLIB0014 // FtpWebRequest is obsolete but no built-in replacement exists
         var request = (FtpWebRequest)WebRequest.Create(uri);
 #pragma warning restore SYSLIB0014
@@ -491,6 +484,81 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         return result;
     }
 
+    private void DeleteRecursive(string path, int depth, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (depth > MaxFtpDeleteDepth)
+        {
+            throw new InvalidOperationException(
+                $"Refused to delete '{path}': remote directory depth exceeds {MaxFtpDeleteDepth}.");
+        }
+
+        // FTP has no stat. Probe by attempting a file delete first.
+        WebException? fileDeleteError = TryDeleteFile(path);
+        if (fileDeleteError is null)
+        {
+            return; // It was a regular file (or a symlink) and is now deleted.
+        }
+
+        // The file delete failed. If listing also fails, keep the original
+        // delete failure instead of masking a genuine file-delete error.
+        IReadOnlyList<SftpFileInfo> children;
+        try
+        {
+            children = ListDirectoryDetailed(path);
+        }
+        catch (WebException)
+        {
+            throw fileDeleteError;
+        }
+
+        foreach (SftpFileInfo entry in children)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (entry.IsDirectory)
+            {
+                DeleteRecursive(entry.FullPath, depth + 1, ct);
+            }
+            else
+            {
+                WebException? childError = TryDeleteFile(entry.FullPath);
+                if (childError is not null)
+                {
+                    throw childError;
+                }
+            }
+        }
+
+        RemoveDirectory(path);
+    }
+
+    /// <summary>
+    /// Attempts to delete a path as a regular file. Returns null on success,
+    /// or the <see cref="WebException"/> on failure.
+    /// </summary>
+    private WebException? TryDeleteFile(string remotePath)
+    {
+        try
+        {
+            var request = CreateRequest(remotePath, WebRequestMethods.Ftp.DeleteFile);
+            using var response = (FtpWebResponse)request.GetResponse();
+            response.Close();
+            return null;
+        }
+        catch (WebException ex)
+        {
+            return ex;
+        }
+    }
+
+    private void RemoveDirectory(string remotePath)
+    {
+        var request = CreateRequest(remotePath, WebRequestMethods.Ftp.RemoveDirectory);
+        using var response = (FtpWebResponse)request.GetResponse();
+        response.Close();
+    }
+
     /// <summary>
     /// Hard cap on the length of a filename extracted from an FTP LIST response.
     /// Defends against a hostile or buggy server padding entries with megabytes
@@ -513,6 +581,15 @@ public sealed partial class FtpBrowser : IRemoteBrowser
             long size = long.TryParse(unixMatch.Groups[4].Value, CultureInfo.InvariantCulture, out var s) ? s : 0;
             string dateStr = unixMatch.Groups[5].Value;
             string name = unixMatch.Groups[6].Value;
+
+            if (permissions.StartsWith('l'))
+            {
+                int arrowIndex = name.IndexOf(" -> ", StringComparison.Ordinal);
+                if (arrowIndex >= 0)
+                {
+                    name = name[..arrowIndex];
+                }
+            }
 
             if (name.Length > MaxFtpFilenameLength)
             {
@@ -554,6 +631,9 @@ public sealed partial class FtpBrowser : IRemoteBrowser
 
             DateTime.TryParse(dateStr, CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var lastModified);
+            // FTP LIST dates carry no timezone. Tag UTC for consistency with
+            // SftpBrowser; the true offset is unknowable over FTP.
+            lastModified = DateTime.SpecifyKind(lastModified, DateTimeKind.Utc);
 
             string fullPath = parentPath.TrimEnd('/') + "/" + name;
 
@@ -577,16 +657,19 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         if (DateTime.TryParseExact(dateStr.Trim(), new[] { "MMM dd HH:mm", "MMM dd  yyyy", "MMM  d HH:mm", "MMM  d  yyyy" },
             CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
         {
+            var now = DateTime.UtcNow;
             // If the parsed date has no year component and is in the future, subtract a year
-            if (result.Year == DateTime.Now.Year && result > DateTime.Now)
+            if (result.Year == now.Year && result > now)
             {
                 result = result.AddYears(-1);
             }
 
-            return result;
+            // FTP LIST dates carry no timezone. Tag UTC for consistency with
+            // SftpBrowser; the true offset is unknowable over FTP.
+            return DateTime.SpecifyKind(result, DateTimeKind.Utc);
         }
 
-        return DateTime.MinValue;
+        return DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
     }
 
     [GeneratedRegex(@"^([drwxstSTlL\-]{10})\s+\d+\s+(\S+)\s+(\S+)\s+(\d+)\s+(\w{3}\s+\d{1,2}\s+[\d:]+)\s+(.+)$")]
