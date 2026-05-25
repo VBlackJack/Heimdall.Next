@@ -1289,8 +1289,20 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Error($"EmbeddedSFTP reconnection failed: {ex.Message}");
+
+            if (_editor is not null)
+            {
+                _editor.FileUploaded -= OnEditorFileUploaded;
+                _editor.HostKeyRotatedDuringUpload -= OnHostKeyRotatedDuringUpload;
+                try { _editor.Dispose(); }
+                catch (ObjectDisposedException) { /* already disposed */ }
+                _editor = null;
+            }
+
+            _browser = null;
             ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message)
                 ?? $"Reconnection failed: {ex.Message}");
+            ShowDisconnectedState();
         }
     }
 
@@ -1531,13 +1543,19 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                     {
                         StatusTextBlock.Foreground = GetBrush("ErrorBrush", Brushes.IndianRed);
                         _errorResetTimer?.Dispose();
-                        _errorResetTimer = new System.Threading.Timer(_ =>
+                        System.Threading.Timer? errorResetTimer = null;
+                        errorResetTimer = new System.Threading.Timer(_ =>
                         {
+                            errorResetTimer?.Dispose();
                             _ = Dispatcher.BeginInvoke(() =>
                             {
-                                StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
+                                if (!_disposed)
+                                {
+                                    StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
+                                }
                             });
                         }, null, StatusResetDelay, Timeout.InfiniteTimeSpan);
+                        _errorResetTimer = errorResetTimer;
                     }
                     else
                     {
