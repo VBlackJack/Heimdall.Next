@@ -23,21 +23,21 @@ public sealed class SudoUploadCommandsTests
     [Fact]
     public void Build_ProducesTwoSeparateCommands_NoLogicalAnd()
     {
-        var (write, cleanup) = SudoUploadCommands.Build(
+        (string write, string cleanup) = SudoUploadCommands.Build(
             "/tmp/.heimdall_upload_xyz",
             "/etc/hosts");
 
         Assert.DoesNotContain("&&", write);
         Assert.DoesNotContain(";", write);
         Assert.DoesNotContain("&&", cleanup);
-        Assert.Equal("cat '/tmp/.heimdall_upload_xyz' | sudo tee -- '/etc/hosts' > /dev/null", write);
-        Assert.Equal("sudo rm -f '/tmp/.heimdall_upload_xyz'", cleanup);
+        Assert.Equal("cp -- '/tmp/.heimdall_upload_xyz' '/etc/hosts'", write);
+        Assert.Equal("rm -f '/tmp/.heimdall_upload_xyz'", cleanup);
     }
 
     [Fact]
     public void Build_EscapesPathsContainingSingleQuotes()
     {
-        var (write, cleanup) = SudoUploadCommands.Build(
+        (string write, string cleanup) = SudoUploadCommands.Build(
             "/tmp/o'reilly",
             "/var/log/oh's.log");
 

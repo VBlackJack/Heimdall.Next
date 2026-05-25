@@ -18,6 +18,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
@@ -482,14 +483,19 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Executes a single sudo command over SSH (chmod, mv, rm, mkdir, etc.).
+    /// Executes a single sudo privileged body over SSH (chmod, mv, rm, mkdir, etc.).
     /// </summary>
-    internal async Task RunSudoCommandAsync(string command, CancellationToken ct = default)
+    internal async Task RunSudoCommandAsync(string privilegedBody, CancellationToken ct = default)
     {
-        using var ssh = await CreateSudoSshClientAsync(ct);
+        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
         try
         {
-            using var cmd = await Task.Run(() => ssh.RunCommand(command), ct).ConfigureAwait(false);
+            using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(
+                    ssh,
+                    privilegedBody,
+                    ct)
+                .ConfigureAwait(false);
+
             if (cmd.ExitStatus != 0)
             {
                 throw new InvalidOperationException($"Command failed (exit {cmd.ExitStatus}): {cmd.Error}");
@@ -501,18 +507,72 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
     }
 
+    private async Task<Renci.SshNet.SshCommand> ExecuteSudoBodyAsync(
+        Renci.SshNet.SshClient ssh,
+        string privilegedBody,
+        CancellationToken ct = default)
+    {
+        string? password = _sshParams?.Password;
+        bool authenticateViaStdin = !string.IsNullOrEmpty(password);
+        string commandText = BuildSudoInvocation(privilegedBody, authenticateViaStdin);
+
+        if (!authenticateViaStdin)
+        {
+            return await Task.Run(() => ssh.RunCommand(commandText), ct).ConfigureAwait(false);
+        }
+
+        return await ExecuteSudoBodyWithPasswordAsync(
+                ssh,
+                commandText,
+                password!,
+                ct)
+            .ConfigureAwait(false);
+    }
+
+    private static async Task<Renci.SshNet.SshCommand> ExecuteSudoBodyWithPasswordAsync(
+        Renci.SshNet.SshClient ssh,
+        string commandText,
+        string password,
+        CancellationToken ct)
+    {
+        Renci.SshNet.SshCommand? command = null;
+        try
+        {
+            command = ssh.CreateCommand(commandText);
+            Task executeTask = command.ExecuteAsync(ct);
+            byte[] passwordBytes = Encoding.UTF8.GetBytes(password + "\n");
+
+            using (Stream inputStream = command.CreateInputStream())
+            {
+                await inputStream.WriteAsync(passwordBytes, 0, passwordBytes.Length, ct)
+                    .ConfigureAwait(false);
+            }
+
+            await executeTask.ConfigureAwait(false);
+
+            Renci.SshNet.SshCommand completedCommand = command;
+            command = null;
+            return completedCommand;
+        }
+        catch
+        {
+            command?.Dispose();
+            throw;
+        }
+    }
+
     /// <summary>
     /// Downloads a file via <c>sudo base64</c> over a direct SSH exec channel,
     /// bypassing SFTP permission restrictions.
     /// </summary>
     internal async Task DownloadViaSudoAsync(string remotePath, string localPath, CancellationToken ct)
     {
-        string command = BuildSudoBase64DownloadCommand(remotePath);
+        string privilegedBody = BuildSudoBase64DownloadBody(remotePath);
         using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
 
         try
         {
-            using Renci.SshNet.SshCommand cmd = await Task.Run(() => ssh.RunCommand(command), ct)
+            using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody, ct)
                 .ConfigureAwait(false);
 
             if (cmd.ExitStatus != 0)
@@ -531,7 +591,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
     /// <summary>
     /// Uploads a file via SFTP to a temp path, then moves it to the target
-    /// location using <c>sudo tee</c> over SSH.
+    /// location using <c>sudo cp</c> over SSH.
     /// </summary>
     internal async Task UploadViaSudoAsync(string localPath, string remotePath, CancellationToken ct)
     {
@@ -541,28 +601,27 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
 
         string tempRemote = $"{RemoteTempPrefix}upload_{Guid.NewGuid():N}";
-        var commands = SudoUploadCommands.Build(tempRemote, remotePath);
+        (string write, string cleanup) = SudoUploadCommands.Build(tempRemote, remotePath);
 
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
 
-        using var ssh = await CreateSudoSshClientAsync(ct);
+        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
         try
         {
             try
             {
-                using var cmd = await Task.Run(
-                    () => ssh.RunCommand(commands.Write),
-                    ct).ConfigureAwait(false);
+                using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, write, ct)
+                    .ConfigureAwait(false);
 
                 if (cmd.ExitStatus != 0)
                 {
                     throw new InvalidOperationException(
-                        $"sudo tee failed (exit {cmd.ExitStatus}): {cmd.Error}");
+                        $"sudo cp failed (exit {cmd.ExitStatus}): {cmd.Error}");
                 }
             }
             finally
             {
-                await TryRemoveSudoTempAsync(ssh, commands.Cleanup, tempRemote).ConfigureAwait(false);
+                await TryRemoveSudoTempAsync(ssh, cleanup, tempRemote).ConfigureAwait(false);
             }
         }
         finally
@@ -584,14 +643,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
     }
 
-    private static async Task TryRemoveSudoTempAsync(
+    private async Task TryRemoveSudoTempAsync(
         Renci.SshNet.SshClient ssh,
-        string cleanupCommand,
+        string cleanupBody,
         string tempPathForLog)
     {
         try
         {
-            using var rmCmd = await Task.Run(() => ssh.RunCommand(cleanupCommand)).ConfigureAwait(false);
+            using Renci.SshNet.SshCommand rmCmd = await ExecuteSudoBodyAsync(ssh, cleanupBody)
+                .ConfigureAwait(false);
+
             if (rmCmd.ExitStatus != 0)
             {
                 Heimdall.Core.Logging.FileLogger.Warn(
@@ -635,7 +696,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
             {
                 Core.Logging.FileLogger.Info("EmbeddedSFTP mkdir permission denied, falling back to sudo");
-                await RunSudoCommandAsync($"sudo mkdir -p {PathEscaper.EscapeForShell(remotePath)}");
+                await RunSudoCommandAsync($"mkdir -p {PathEscaper.EscapeForShell(remotePath)}");
             }
 
             await RunOnUiAsync(() => UpdateStatus(L10n("SftpSuccessMkdir")));
@@ -680,7 +741,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             {
                 Core.Logging.FileLogger.Info("EmbeddedSFTP rename permission denied, falling back to sudo");
                 await RunSudoCommandAsync(
-                    $"sudo mv {PathEscaper.EscapeForShell(file.FullPath)} {PathEscaper.EscapeForShell(newPath)}");
+                    $"mv {PathEscaper.EscapeForShell(file.FullPath)} {PathEscaper.EscapeForShell(newPath)}");
             }
 
             await RunOnUiAsync(() => UpdateStatus(L10n("SftpSuccessRename")));
@@ -733,7 +794,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                         $"EmbeddedSFTP delete permission denied, falling back to sudo for {file.Name}");
                     string flag = file.IsDirectory ? "-rf" : "-f";
                     await RunSudoCommandAsync(
-                        $"sudo rm {flag} {PathEscaper.EscapeForShell(file.FullPath)}");
+                        $"rm {flag} {PathEscaper.EscapeForShell(file.FullPath)}");
                 }
             }
 
@@ -788,7 +849,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             {
                 Core.Logging.FileLogger.Info("EmbeddedSFTP chmod permission denied, falling back to sudo");
                 await RunSudoCommandAsync(
-                    $"sudo chmod {newPerms} {PathEscaper.EscapeForShell(file.FullPath)}");
+                    $"chmod {newPerms} {PathEscaper.EscapeForShell(file.FullPath)}");
             }
 
             await RunOnUiAsync(() => UpdateStatus(L10n("SftpChmodSuccess")));
@@ -874,9 +935,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         return $"{owner}{group}{other}";
     }
 
-    internal static string BuildSudoBase64DownloadCommand(string remotePath)
+    internal static string BuildSudoInvocation(string privilegedBody, bool authenticateViaStdin)
     {
-        return $"sudo base64 -- {PathEscaper.EscapeForShell(remotePath)}";
+        return authenticateViaStdin
+            ? $"sudo -S -p '' {privilegedBody}"
+            : $"sudo {privilegedBody}";
+    }
+
+    internal static string BuildSudoBase64DownloadBody(string remotePath)
+    {
+        return $"base64 -- {PathEscaper.EscapeForShell(remotePath)}";
     }
 
     internal static byte[] DecodeSudoBase64(string commandOutput)
@@ -962,12 +1030,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private async Task<IReadOnlyList<SftpFileInfo>> ListDirectoryViaSudoAsync(string path)
     {
         string escaped = PathEscaper.EscapeForShell(path);
-        using var ssh = await CreateSudoSshClientAsync().ConfigureAwait(false);
+        string privilegedBody = $"ls -la --time-style=long-iso {escaped}";
+        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync().ConfigureAwait(false);
 
         try
         {
-            using var cmd = await Task.Run(() =>
-                ssh.RunCommand($"sudo ls -la --time-style=long-iso {escaped}")).ConfigureAwait(false);
+            using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody)
+                .ConfigureAwait(false);
 
             if (cmd.ExitStatus != 0)
             {
@@ -1074,11 +1143,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 internal static class SudoUploadCommands
 {
     /// <summary>
-    /// Builds the sudo write command and its independent cleanup command.
+    /// Builds the privileged write body and its independent cleanup body.
     /// </summary>
     /// <param name="tempRemotePath">Temporary remote file path uploaded via SFTP.</param>
-    /// <param name="targetRemotePath">Privileged target path to write via sudo tee.</param>
-    /// <returns>The write command and cleanup command.</returns>
+    /// <param name="targetRemotePath">Privileged target path to write via sudo cp.</param>
+    /// <returns>The write body and cleanup body.</returns>
     internal static (string Write, string Cleanup) Build(
         string tempRemotePath,
         string targetRemotePath)
@@ -1086,10 +1155,10 @@ internal static class SudoUploadCommands
         ArgumentException.ThrowIfNullOrWhiteSpace(tempRemotePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetRemotePath);
 
-        var escapedTemp = PathEscaper.EscapeForShell(tempRemotePath);
-        var escapedTarget = PathEscaper.EscapeForShell(targetRemotePath);
+        string escapedTemp = PathEscaper.EscapeForShell(tempRemotePath);
+        string escapedTarget = PathEscaper.EscapeForShell(targetRemotePath);
         return (
-            Write: $"cat {escapedTemp} | sudo tee -- {escapedTarget} > /dev/null",
-            Cleanup: $"sudo rm -f {escapedTemp}");
+            Write: $"cp -- {escapedTemp} {escapedTarget}",
+            Cleanup: $"rm -f {escapedTemp}");
     }
 }

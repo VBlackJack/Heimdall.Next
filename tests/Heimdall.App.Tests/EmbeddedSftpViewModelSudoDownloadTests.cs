@@ -22,12 +22,32 @@ namespace Heimdall.App.Tests;
 public sealed class EmbeddedSftpViewModelSudoDownloadTests
 {
     [Fact]
-    public void BuildSudoBase64DownloadCommand_EscapesRemotePath()
+    public void BuildSudoInvocation_WithoutStdinPassword_UsesPlainSudo()
     {
-        string command = EmbeddedSftpViewModel.BuildSudoBase64DownloadCommand("/etc/ssh/it's config");
+        string command = EmbeddedSftpViewModel.BuildSudoInvocation(
+            "base64 -- '/etc/ssh/config'",
+            false);
 
-        Assert.StartsWith("sudo base64 -- ", command, StringComparison.Ordinal);
-        Assert.Equal(@"sudo base64 -- '/etc/ssh/it'\''s config'", command);
+        Assert.Equal("sudo base64 -- '/etc/ssh/config'", command);
+    }
+
+    [Fact]
+    public void BuildSudoInvocation_WithStdinPassword_UsesSudoStdinMode()
+    {
+        string command = EmbeddedSftpViewModel.BuildSudoInvocation(
+            "base64 -- '/etc/ssh/config'",
+            true);
+
+        Assert.Equal("sudo -S -p '' base64 -- '/etc/ssh/config'", command);
+    }
+
+    [Fact]
+    public void BuildSudoBase64DownloadBody_EscapesRemotePath()
+    {
+        string command = EmbeddedSftpViewModel.BuildSudoBase64DownloadBody("/etc/ssh/it's config");
+
+        Assert.StartsWith("base64 -- ", command, StringComparison.Ordinal);
+        Assert.Equal(@"base64 -- '/etc/ssh/it'\''s config'", command);
     }
 
     [Fact]
