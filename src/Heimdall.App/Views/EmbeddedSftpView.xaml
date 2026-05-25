@@ -87,8 +87,18 @@
                     <TextBlock x:Name="StatusTextBlock"
                                Text="{Binding StatusText}"
                                FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsErrorHighlighted}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -192,6 +202,7 @@
 
                     <ToggleButton x:Name="BtnSudoMode"
                                   Command="{Binding ToggleSudoModeCommand}"
+                                  IsChecked="{Binding SudoMode, Mode=OneWay}"
                                   ToolTip="{loc:Translate SftpSudoModeTooltip}"
                                   Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -203,7 +214,18 @@
                             <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="BtnSudoModeText" Text="{loc:Translate SftpSudoModeLabel}" VerticalAlignment="Center"
-                                       FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"/>
+                                       FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SudoMode}" Value="True">
+                                                <Setter Property="Foreground" Value="OrangeRed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                     </ToggleButton>
 
@@ -550,8 +572,18 @@
                 <Ellipse x:Name="HealthDot"
                          Width="8" Height="8"
                          Margin="0,0,6,0"
-                         Fill="{DynamicResource SuccessBrush}"
-                         VerticalAlignment="Center"/>
+                         VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsConnected}" Value="False">
+                                    <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
                 <TextBlock x:Name="StatusBarText"
                            Text="{Binding StatusText}"
                            FontSize="{StaticResource FontSizeCaption}"

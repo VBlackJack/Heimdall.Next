@@ -46,6 +46,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private const string SudoStderrIncorrectPasswordAttempt = "incorrect password attempt";
     private const string SudoStderrSorryTryAgain = "sorry, try again";
     private const string SudoStderrNoPasswordProvided = "no password was provided";
+    private static readonly TimeSpan ErrorHighlightDuration = TimeSpan.FromSeconds(5);
 
     private readonly Stack<string> _navigationHistory = new();
     private readonly IUiDispatcher _uiDispatcher;
@@ -55,6 +56,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private IHostKeyVerifier _hostKeyVerifier = null!;
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
+    private System.Threading.Timer? _errorHighlightTimer;
     private bool _disposed;
 
     /// <summary>
@@ -93,6 +95,10 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     [ObservableProperty]
     private bool _isErrorStatus;
 
+    /// <summary>Whether the current error status should be visually highlighted.</summary>
+    [ObservableProperty]
+    private bool _isErrorHighlighted;
+
     /// <summary>Whether hidden entries should be shown.</summary>
     [ObservableProperty]
     private bool _showHidden = true;
@@ -130,6 +136,20 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private string _filterText = string.Empty;
 
     partial void OnCurrentPathChanged(string value) => PathBarText = value;
+
+    partial void OnIsErrorStatusChanged(bool value)
+    {
+        if (value)
+        {
+            IsErrorHighlighted = true;
+            ArmErrorHighlightTimer();
+        }
+        else
+        {
+            DisposeErrorHighlightTimer();
+            IsErrorHighlighted = false;
+        }
+    }
 
     /// <summary>The currently visible remote entries.</summary>
     public ObservableCollection<SftpFileInfo> Files { get; }
@@ -216,6 +236,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     internal void MarkDisposed()
     {
         _disposed = true;
+        DisposeErrorHighlightTimer();
         IsConnected = false;
     }
 
@@ -1280,6 +1301,27 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(action);
         return _uiDispatcher.InvokeAsync(action);
+    }
+
+    private void ArmErrorHighlightTimer()
+    {
+        DisposeErrorHighlightTimer();
+        _errorHighlightTimer = new System.Threading.Timer(_ =>
+        {
+            _ = _uiDispatcher.InvokeAsync(() =>
+            {
+                if (!_disposed)
+                {
+                    IsErrorHighlighted = false;
+                }
+            });
+        }, null, ErrorHighlightDuration, System.Threading.Timeout.InfiniteTimeSpan);
+    }
+
+    private void DisposeErrorHighlightTimer()
+    {
+        _errorHighlightTimer?.Dispose();
+        _errorHighlightTimer = null;
     }
 
     private string L10n(string key) => _localizer?.GetString(key) ?? key;
