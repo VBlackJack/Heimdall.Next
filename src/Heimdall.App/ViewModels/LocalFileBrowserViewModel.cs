@@ -507,7 +507,6 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
 
     partial void OnFilterTextChanged(string value)
     {
-        _ = value;
         ApplyFilter();
         UpdateStatusText();
     }
