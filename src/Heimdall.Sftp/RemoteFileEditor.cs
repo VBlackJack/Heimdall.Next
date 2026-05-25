@@ -95,7 +95,15 @@ public sealed class RemoteFileEditor : IDisposable
 
         string localPath = CreateTempFilePath(remotePath);
 
-        await _browser.DownloadFileAsync(remotePath, localPath, ct).ConfigureAwait(false);
+        try
+        {
+            await _browser.DownloadFileAsync(remotePath, localPath, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            CleanupTempFile(localPath);
+            throw;
+        }
 
         var session = new EditSession
         {
@@ -109,6 +117,7 @@ public sealed class RemoteFileEditor : IDisposable
         {
             session.Dispose();
             CleanupTempFile(localPath);
+            return;
         }
 
         StartWatcher(session);
@@ -117,7 +126,7 @@ public sealed class RemoteFileEditor : IDisposable
 
     /// <summary>
     /// Opens a privileged (sudo) remote file for editing. The file is downloaded
-    /// via <c>sudo cat</c> over SSH and uploaded back via <c>sudo tee</c>.
+    /// via <c>sudo base64</c> over SSH and uploaded back via <c>sudo tee</c>.
     /// </summary>
     /// <param name="remotePath">Full remote path to the privileged file.</param>
     /// <param name="sshParams">SSH connection parameters for the sudo SSH session.</param>
@@ -136,49 +145,59 @@ public sealed class RemoteFileEditor : IDisposable
 
         string localPath = CreateTempFilePath(remotePath);
 
-        var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
-                sshParams,
-                _hostKeyStore,
-                _hostKeyVerifier,
-                ct)
-            .ConfigureAwait(false);
-
-        // Download with sudo via SSH command
-        var connectionInfo = SshConnectionFactory.Create(sshParams);
-        using var sshClient = new SshClient(connectionInfo);
-
-        SshConnectionFactory.AttachPinnedHostKeyVerification(
-            sshClient,
-            sshParams.Host,
-            sshParams.Port,
-            pinnedVerifier);
-
-        await Task.Run(() =>
-        {
-            ct.ThrowIfCancellationRequested();
-            sshClient.Connect();
-        }, ct).ConfigureAwait(false);
+        PinnedFingerprintVerifier pinnedVerifier;
 
         try
         {
-            using var downloadCmd = await Task.Run(() =>
-                sshClient.RunCommand(BuildSudoDownloadCommand(remotePath)),
-                ct).ConfigureAwait(false);
+            pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
+                    sshParams,
+                    _hostKeyStore,
+                    _hostKeyVerifier,
+                    ct)
+                .ConfigureAwait(false);
 
-            if (downloadCmd.ExitStatus != 0)
+            // Download with sudo via SSH command
+            var connectionInfo = SshConnectionFactory.Create(sshParams);
+            using var sshClient = new SshClient(connectionInfo);
+
+            SshConnectionFactory.AttachPinnedHostKeyVerification(
+                sshClient,
+                sshParams.Host,
+                sshParams.Port,
+                pinnedVerifier);
+
+            await Task.Run(() =>
             {
-                throw new InvalidOperationException(
-                    $"sudo base64 failed (exit {downloadCmd.ExitStatus}): {downloadCmd.Error}");
-            }
+                ct.ThrowIfCancellationRequested();
+                sshClient.Connect();
+            }, ct).ConfigureAwait(false);
 
-            await WriteBase64DecodedFileAsync(
-                localPath,
-                downloadCmd.Result,
-                ct).ConfigureAwait(false);
+            try
+            {
+                using var downloadCmd = await Task.Run(() =>
+                    sshClient.RunCommand(BuildSudoDownloadCommand(remotePath)),
+                    ct).ConfigureAwait(false);
+
+                if (downloadCmd.ExitStatus != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"sudo base64 failed (exit {downloadCmd.ExitStatus}): {downloadCmd.Error}");
+                }
+
+                await WriteBase64DecodedFileAsync(
+                    localPath,
+                    downloadCmd.Result,
+                    ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                sshClient.Disconnect();
+            }
         }
-        finally
+        catch
         {
-            sshClient.Disconnect();
+            CleanupTempFile(localPath);
+            throw;
         }
 
         var session = new EditSession
@@ -195,6 +214,7 @@ public sealed class RemoteFileEditor : IDisposable
         {
             session.Dispose();
             CleanupTempFile(localPath);
+            return;
         }
 
         StartWatcher(session);
