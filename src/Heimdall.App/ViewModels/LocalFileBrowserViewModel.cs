@@ -32,6 +32,8 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public sealed partial class LocalFileBrowserViewModel : ObservableObject
 {
+    private const int MaxCopyDepth = 256;
+
     private static readonly HashSet<string> RunnableExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".ps1", ".bat", ".cmd", ".sh"
@@ -329,9 +331,14 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
 
         try
         {
-            var parentDir = Path.GetDirectoryName(entry.FullPath)!;
-            var newPath = Path.GetFullPath(Path.Combine(parentDir, newName));
-            if (!newPath.StartsWith(parentDir, StringComparison.OrdinalIgnoreCase))
+            string parentDir = Path.GetDirectoryName(entry.FullPath)!;
+            string newPath = Path.GetFullPath(Path.Combine(parentDir, newName));
+            string safeParentDir = parentDir.EndsWith(Path.DirectorySeparatorChar)
+                ? parentDir
+                : parentDir + Path.DirectorySeparatorChar;
+
+            if (!newPath.StartsWith(safeParentDir, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(newPath, parentDir, StringComparison.OrdinalIgnoreCase))
             {
                 dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
                 return;
@@ -382,8 +389,13 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
 
         try
         {
-            var newPath = Path.GetFullPath(Path.Combine(CurrentPath, folderName));
-            if (!newPath.StartsWith(CurrentPath, StringComparison.OrdinalIgnoreCase))
+            string newPath = Path.GetFullPath(Path.Combine(CurrentPath, folderName));
+            string safeCurrentPath = CurrentPath.EndsWith(Path.DirectorySeparatorChar)
+                ? CurrentPath
+                : CurrentPath + Path.DirectorySeparatorChar;
+
+            if (!newPath.StartsWith(safeCurrentPath, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(newPath, CurrentPath, StringComparison.OrdinalIgnoreCase))
             {
                 dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
                 return;
@@ -594,20 +606,30 @@ public sealed partial class LocalFileBrowserViewModel : ObservableObject
         return builder.ToString();
     }
 
-    private static void CopyDirectoryRecursive(string sourceDir, string destDir)
+    private static void CopyDirectoryRecursive(string sourceDir, string destDir, int depth = 0)
     {
+        if (depth >= MaxCopyDepth)
+        {
+            throw new IOException("Directory copy aborted: nesting exceeds 256 levels (possible junction loop).");
+        }
+
         Directory.CreateDirectory(destDir);
 
-        foreach (var file in Directory.EnumerateFiles(sourceDir))
+        foreach (string file in Directory.EnumerateFiles(sourceDir))
         {
-            var destFile = Path.Combine(destDir, Path.GetFileName(file));
+            string destFile = Path.Combine(destDir, Path.GetFileName(file));
             File.Copy(file, destFile, overwrite: true);
         }
 
-        foreach (var dir in Directory.EnumerateDirectories(sourceDir))
+        foreach (string dir in Directory.EnumerateDirectories(sourceDir))
         {
-            var destSubDir = Path.Combine(destDir, Path.GetFileName(dir));
-            CopyDirectoryRecursive(dir, destSubDir);
+            if ((File.GetAttributes(dir) & FileAttributes.ReparsePoint) != 0)
+            {
+                continue;
+            }
+
+            string destSubDir = Path.Combine(destDir, Path.GetFileName(dir));
+            CopyDirectoryRecursive(dir, destSubDir, depth + 1);
         }
     }
 
