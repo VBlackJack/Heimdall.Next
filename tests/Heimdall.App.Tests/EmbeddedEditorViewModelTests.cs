@@ -24,7 +24,7 @@ public sealed class EmbeddedEditorViewModelTests
     public async Task SaveAsync_RemoteFile_LeavesModifiedUntilSaveIsConfirmed()
     {
         EmbeddedEditorViewModel viewModel = new();
-        viewModel.LoadContent("remote.txt", "original");
+        viewModel.LoadContent("remote.txt");
         viewModel.NotifyTextChanged();
 
         bool result = await viewModel.SaveAsync("changed");
@@ -37,7 +37,7 @@ public sealed class EmbeddedEditorViewModelTests
     public async Task ConfirmRemoteSaved_RemoteFile_ClearsModifiedState()
     {
         EmbeddedEditorViewModel viewModel = new();
-        viewModel.LoadContent("remote.txt", "original");
+        viewModel.LoadContent("remote.txt");
         viewModel.NotifyTextChanged();
         await viewModel.SaveAsync("changed");
 

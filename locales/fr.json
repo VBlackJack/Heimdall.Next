@@ -2575,6 +2575,9 @@
 
   "EditorBtnSave": "Enregistrer",
   "EditorBtnClose": "Fermer",
+  "EditorCursorPosition": "Lig. {0}, Col. {1}",
+  "EditorUntitled": "Sans titre",
+  "EditorLoadErrorBody": "Erreur lors du chargement du fichier : {0}",
   "EditorSaveErrorTitle": "Erreur de sauvegarde",
   "EditorSaveErrorMessage": "\u00c9chec de la sauvegarde : {0}",
   "EditorUnsavedTitle": "Modifications non enregistr\u00e9es",
