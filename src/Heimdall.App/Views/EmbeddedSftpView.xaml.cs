@@ -661,7 +661,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Warn(
                 $"EmbeddedSFTP upload failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
-            ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            ShowTransferError(ex);
         }
         finally
         {
@@ -743,7 +743,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Warn(
                 $"EmbeddedSFTP download failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
-            ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
+            ShowTransferError(ex);
         }
         finally
         {
@@ -1514,6 +1514,11 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private void ShowError(string message)
     {
         _viewModel.SetErrorStatus(message);
+    }
+
+    private void ShowTransferError(Exception ex)
+    {
+        _viewModel.SetTransferError(ex);
     }
 
     private void SetToolbarEnabled(bool enabled)

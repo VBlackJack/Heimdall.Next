@@ -42,6 +42,8 @@
   "ErrorSshPassphraseRequired": "SSH key requires a passphrase. Configure the key passphrase or load the key in an SSH agent.",
   "ErrorSshPassphraseRejected": "SSH key passphrase was rejected.",
   "ErrorSshPasswordRejected": "SSH password was rejected by the server.",
+  "ErrorSudoPasswordUnavailable": "The server requires a password for sudo, but this session authenticates with an SSH key. Enable passwordless sudo (NOPASSWD) for your account on this host, or reconnect with a password-based session.",
+  "ErrorSudoPasswordRejected": "sudo rejected the password. The server's sudo password differs from this session's SSH password.",
   "DialogSshPasswordPromptTitle": "SSH password required",
   "DialogSshPasswordPromptMessage": "Enter the SSH password for {0}.",
   "ErrorSshProtocolError": "SSH protocol error. The server may use an incompatible protocol version.",
