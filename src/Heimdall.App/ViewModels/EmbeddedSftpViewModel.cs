@@ -32,10 +32,11 @@ using Renci.SshNet.Common;
 namespace Heimdall.App.ViewModels;
 
 /// <summary>
-/// ViewModel for the embedded SFTP/FTP file browser. Manages directory state,
-/// navigation history, listing, filtering, sorting, and status display.
-/// File operations and transfer orchestration live here; view-coupled dialogs
-/// and connection lifecycle remain in the code-behind.
+/// ViewModel for the embedded SFTP/FTP file browser. Owns directory and
+/// navigation state, the listing, filtering and sorting, file operations
+/// (create / rename / delete / chmod), transfer orchestration with sudo
+/// fallbacks, and status. The partner view <c>EmbeddedSftpView</c> retains only
+/// view-coupled wiring (see its remarks).
 /// </summary>
 public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
