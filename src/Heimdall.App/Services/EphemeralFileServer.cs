@@ -36,6 +36,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     private const int TftpBlockSize = 512;
     private const int TftpTimeout = 5000;
     private const int TftpMaxRetries = 3;
+    private const int MaxConcurrentTftpTransfers = 8;
 
     // TFTP opcodes (RFC 1350)
     private const ushort OpcodeRrq = 1;
@@ -50,6 +51,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     private UdpClient? _tftpListener;
     private CancellationTokenSource? _tftpCts;
     private Task? _tftpTask;
+    private int _activeTftpTransfers;
 
     private readonly byte[] _accessTokenComparisonBytes;
     private string _servingDirectory = string.Empty;
@@ -221,9 +223,12 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
         // Cancellation tokens ensure tasks finish quickly after cancel
         _httpCts?.Cancel();
         _tftpCts?.Cancel();
-        try { _httpListener?.Stop(); } catch { /* already stopped */ }
-        try { _httpListener?.Close(); } catch { /* already closed */ }
-        try { _tftpListener?.Close(); } catch { /* already closed */ }
+        try { _httpListener?.Stop(); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn("[EphemeralFileServer] HTTP stop: " + ex.Message); }
+        try { _httpListener?.Close(); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn("[EphemeralFileServer] HTTP close: " + ex.Message); }
+        try { _tftpListener?.Close(); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn("[EphemeralFileServer] TFTP close: " + ex.Message); }
         _httpListener = null;
         _tftpListener = null;
         _httpCts?.Dispose();
@@ -396,6 +401,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
         var html = Encoding.UTF8.GetBytes(sb.ToString());
         response.ContentType = "text/html; charset=utf-8";
+        response.AddHeader("Cache-Control", "no-store");
         response.ContentLength64 = html.Length;
         await response.OutputStream.WriteAsync(html);
         response.Close();
@@ -404,11 +410,16 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     private static async Task ServeFile(HttpListenerResponse response, string filePath)
     {
         response.ContentType = GetMimeType(filePath);
-        var fileInfo = new FileInfo(filePath);
+        response.AddHeader("Cache-Control", "no-store");
+        FileInfo fileInfo = new(filePath);
         response.ContentLength64 = fileInfo.Length;
-        response.AddHeader("Content-Disposition", $"inline; filename=\"{Path.GetFileName(filePath)}\"");
+        string sanitizedFileName = (Path.GetFileName(filePath) ?? string.Empty)
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal)
+            .Replace("\"", string.Empty, StringComparison.Ordinal);
+        response.AddHeader("Content-Disposition", $"inline; filename=\"{sanitizedFileName}\"");
 
-        await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await fileStream.CopyToAsync(response.OutputStream);
         response.Close();
     }
@@ -428,16 +439,34 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
             catch (ObjectDisposedException) { break; }
             catch (SocketException) { break; }
 
-            var data = result.Buffer;
+            byte[] data = result.Buffer;
             if (data.Length < 4) continue;
 
-            var opcode = (ushort)((data[0] << 8) | data[1]);
+            ushort opcode = (ushort)((data[0] << 8) | data[1]);
 
             if (opcode == OpcodeRrq)
             {
-                var clientEndpoint = result.RemoteEndPoint;
+                IPEndPoint clientEndpoint = result.RemoteEndPoint;
+                if (Interlocked.Increment(ref _activeTftpTransfers) > MaxConcurrentTftpTransfers)
+                {
+                    Interlocked.Decrement(ref _activeTftpTransfers);
+                    Core.Logging.FileLogger.Warn(
+                        $"[EphemeralFileServer] TFTP transfer rejected (concurrency limit reached): {clientEndpoint}");
+                    continue;
+                }
+
                 // Fire and forget the transfer on a separate UDP socket (per RFC 1350, each transfer uses a new TID)
-                _ = Task.Run(() => HandleTftpReadRequest(data, clientEndpoint, token), token);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await HandleTftpReadRequest(data, clientEndpoint, token);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref _activeTftpTransfers);
+                    }
+                }, token);
             }
             // Ignore WRQ (opcode 2) and anything else for security — read-only server
         }
@@ -445,116 +474,129 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
     private async Task HandleTftpReadRequest(byte[] data, IPEndPoint clientEndpoint, CancellationToken token)
     {
-        // Parse RRQ: opcode (2 bytes) | filename (null-terminated) | mode (null-terminated)
-        var filename = ReadNullTerminatedString(data, 2, out var nextOffset);
-        var mode = ReadNullTerminatedString(data, nextOffset, out _);
-
-        if (!string.Equals(mode, "octet", StringComparison.OrdinalIgnoreCase))
-        {
-            // Only octet (binary) mode is supported
-            using var errorClient = new UdpClient();
-            await SendTftpError(errorClient, clientEndpoint, 0, "Only octet mode is supported");
-            return;
-        }
-
-        // Sanitize filename: prevent directory traversal
-        var safeName = Path.GetFileName(filename);
-        var filePath = Path.GetFullPath(Path.Combine(_servingDirectory, safeName));
-
-        // Ensure trailing separator to prevent sibling-prefix bypass (same as HTTP handler)
-        var tftpSafeBase = _servingDirectory.EndsWith(Path.DirectorySeparatorChar)
-            ? _servingDirectory
-            : _servingDirectory + Path.DirectorySeparatorChar;
-
-        if ((!filePath.StartsWith(tftpSafeBase, StringComparison.OrdinalIgnoreCase)
-             && !string.Equals(filePath, _servingDirectory, StringComparison.OrdinalIgnoreCase))
-            || !File.Exists(filePath))
-        {
-            using var errorClient = new UdpClient();
-            await SendTftpError(errorClient, clientEndpoint, 1, "File not found");
-            return;
-        }
-
-        Core.Logging.FileLogger.Info($"TFTP RRQ from {clientEndpoint}: {safeName}");
-
-        // Transfer the file using a new UDP socket (unique transfer ID per RFC 1350)
-        using var transferClient = new UdpClient();
         try
         {
-            await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var buffer = new byte[TftpBlockSize];
-            ushort blockNumber = 1;
+            // Parse RRQ: opcode (2 bytes) | filename (null-terminated) | mode (null-terminated)
+            string filename = ReadNullTerminatedString(data, 2, out int nextOffset);
+            string mode = ReadNullTerminatedString(data, nextOffset, out _);
 
-            while (!token.IsCancellationRequested)
+            if (!string.Equals(mode, "octet", StringComparison.OrdinalIgnoreCase))
             {
-                var bytesRead = await fileStream.ReadAsync(buffer.AsMemory(0, TftpBlockSize), token);
+                // Only octet (binary) mode is supported
+                using UdpClient errorClient = new();
+                await SendTftpError(errorClient, clientEndpoint, 0, "Only octet mode is supported");
+                return;
+            }
 
-                // Build DATA packet: opcode (2) | block# (2) | data (0-512)
-                var dataPacket = new byte[4 + bytesRead];
-                dataPacket[0] = 0;
-                dataPacket[1] = (byte)OpcodeData;
-                dataPacket[2] = (byte)(blockNumber >> 8);
-                dataPacket[3] = (byte)(blockNumber & 0xFF);
-                Array.Copy(buffer, 0, dataPacket, 4, bytesRead);
+            // Sanitize filename: prevent directory traversal
+            string safeName = Path.GetFileName(filename) ?? string.Empty;
+            string filePath = Path.GetFullPath(Path.Combine(_servingDirectory, safeName));
 
-                // Send DATA and wait for ACK with retries
-                var acked = false;
-                for (var retry = 0; retry < TftpMaxRetries && !token.IsCancellationRequested; retry++)
+            // Ensure trailing separator to prevent sibling-prefix bypass (same as HTTP handler)
+            string tftpSafeBase = _servingDirectory.EndsWith(Path.DirectorySeparatorChar)
+                ? _servingDirectory
+                : _servingDirectory + Path.DirectorySeparatorChar;
+
+            if ((!filePath.StartsWith(tftpSafeBase, StringComparison.OrdinalIgnoreCase)
+                 && !string.Equals(filePath, _servingDirectory, StringComparison.OrdinalIgnoreCase))
+                || !File.Exists(filePath))
+            {
+                using UdpClient errorClient = new();
+                await SendTftpError(errorClient, clientEndpoint, 1, "File not found");
+                return;
+            }
+
+            Core.Logging.FileLogger.Info($"TFTP RRQ from {clientEndpoint}: {safeName}");
+
+            // Transfer the file using a new UDP socket (unique transfer ID per RFC 1350)
+            using UdpClient transferClient = new();
+            try
+            {
+                await using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                byte[] buffer = new byte[TftpBlockSize];
+                ushort blockNumber = 1;
+
+                while (!token.IsCancellationRequested)
                 {
-                    await transferClient.SendAsync(dataPacket, dataPacket.Length, clientEndpoint);
+                    int bytesRead = await fileStream.ReadAsync(buffer.AsMemory(0, TftpBlockSize), token);
 
-                    try
+                    // Build DATA packet: opcode (2) | block# (2) | data (0-512)
+                    byte[] dataPacket = new byte[4 + bytesRead];
+                    dataPacket[0] = 0;
+                    dataPacket[1] = (byte)OpcodeData;
+                    dataPacket[2] = (byte)(blockNumber >> 8);
+                    dataPacket[3] = (byte)(blockNumber & 0xFF);
+                    Array.Copy(buffer, 0, dataPacket, 4, bytesRead);
+
+                    // Send DATA and wait for ACK with retries
+                    bool acked = false;
+                    for (int retry = 0; retry < TftpMaxRetries && !token.IsCancellationRequested; retry++)
                     {
-                        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                        timeoutCts.CancelAfter(TftpTimeout);
-                        var ackResult = await transferClient.ReceiveAsync(timeoutCts.Token);
-                        var ack = ackResult.Buffer;
+                        await transferClient.SendAsync(dataPacket, dataPacket.Length, clientEndpoint);
 
-                        if (ack.Length >= 4)
+                        try
                         {
-                            var ackOpcode = (ushort)((ack[0] << 8) | ack[1]);
-                            var ackBlock = (ushort)((ack[2] << 8) | ack[3]);
+                            using CancellationTokenSource timeoutCts =
+                                CancellationTokenSource.CreateLinkedTokenSource(token);
+                            timeoutCts.CancelAfter(TftpTimeout);
+                            UdpReceiveResult ackResult = await transferClient.ReceiveAsync(timeoutCts.Token);
+                            byte[] ack = ackResult.Buffer;
 
-                            if (ackOpcode == OpcodeAck && ackBlock == blockNumber)
+                            if (ack.Length >= 4)
                             {
-                                // Update client endpoint to the actual TID used by client
-                                clientEndpoint = ackResult.RemoteEndPoint;
-                                acked = true;
-                                break;
+                                ushort ackOpcode = (ushort)((ack[0] << 8) | ack[1]);
+                                ushort ackBlock = (ushort)((ack[2] << 8) | ack[3]);
+
+                                if (ackOpcode == OpcodeAck && ackBlock == blockNumber)
+                                {
+                                    // Update client endpoint to the actual TID used by client
+                                    clientEndpoint = ackResult.RemoteEndPoint;
+                                    acked = true;
+                                    break;
+                                }
                             }
                         }
+                        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                        {
+                            // Timeout — retry
+                        }
                     }
-                    catch (OperationCanceledException) when (!token.IsCancellationRequested)
+
+                    if (!acked)
                     {
-                        // Timeout — retry
+                        Core.Logging.FileLogger.Warn($"TFTP transfer timeout for {safeName} at block {blockNumber}");
+                        return;
                     }
-                }
 
-                if (!acked)
+                    // Last block: data < 512 bytes signals end of transfer
+                    if (bytesRead < TftpBlockSize)
+                    {
+                        FileServed?.Invoke($"TFTP: {safeName}");
+                        Core.Logging.FileLogger.Info($"TFTP transfer complete: {safeName}");
+                        return;
+                    }
+
+                    blockNumber++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Error($"TFTP transfer error for {safeName}: {ex.Message}");
+                try
                 {
-                    Core.Logging.FileLogger.Warn($"TFTP transfer timeout for {safeName} at block {blockNumber}");
-                    return;
+                    await SendTftpError(transferClient, clientEndpoint, 0, "Internal server error");
                 }
-
-                // Last block: data < 512 bytes signals end of transfer
-                if (bytesRead < TftpBlockSize)
+                catch (Exception sendEx)
                 {
-                    FileServed?.Invoke($"TFTP: {safeName}");
-                    Core.Logging.FileLogger.Info($"TFTP transfer complete: {safeName}");
-                    return;
+                    Core.Logging.FileLogger.Warn(
+                        $"[EphemeralFileServer] TFTP error send: {sendEx.Message}");
                 }
-
-                blockNumber++;
             }
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Error($"TFTP transfer error for {safeName}: {ex.Message}");
-            try
-            {
-                await SendTftpError(transferClient, clientEndpoint, 0, "Internal server error");
-            }
-            catch (Exception sendEx) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP error send: {sendEx.Message}"); }
+            Core.Logging.FileLogger.Warn(
+                "[EphemeralFileServer] TFTP read request handling failed: " + ex.Message);
         }
     }
 
@@ -573,7 +615,13 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
     private static string ReadNullTerminatedString(byte[] data, int offset, out int nextOffset)
     {
-        var end = Array.IndexOf(data, (byte)0, offset);
+        if (offset >= data.Length)
+        {
+            nextOffset = data.Length;
+            return string.Empty;
+        }
+
+        int end = Array.IndexOf(data, (byte)0, offset);
         if (end < 0) end = data.Length;
         nextOffset = end + 1;
         return Encoding.ASCII.GetString(data, offset, end - offset);
