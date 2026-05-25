@@ -228,7 +228,7 @@ public sealed class RdpDisplayResolverTests
     }
 
     [Fact]
-    public void Resolve_DpiScale_KeepsDeviceScaleAt100For125DesktopScale()
+    public void Resolve_DpiScale_125_MapsDeviceScaleTo140()
     {
         var result = Resolve(
             RdpResolutionMode.FitWindow,
@@ -236,7 +236,31 @@ public sealed class RdpDisplayResolverTests
             []);
 
         Assert.Equal(125u, result.DesktopScaleFactor);
-        Assert.Equal(100u, result.DeviceScaleFactor);
+        Assert.Equal(140u, result.DeviceScaleFactor);
+    }
+
+    [Fact]
+    public void Resolve_DpiScale_175_MapsDeviceScaleTo180()
+    {
+        var result = Resolve(
+            RdpResolutionMode.FitWindow,
+            Host(dpiScale: 1.75),
+            []);
+
+        Assert.Equal(175u, result.DesktopScaleFactor);
+        Assert.Equal(180u, result.DeviceScaleFactor);
+    }
+
+    [Fact]
+    public void Resolve_DpiScale_250_MapsDesktopScaleAboveLegacyCap()
+    {
+        var result = Resolve(
+            RdpResolutionMode.FitWindow,
+            Host(dpiScale: 2.5),
+            []);
+
+        Assert.Equal(250u, result.DesktopScaleFactor);
+        Assert.Equal(180u, result.DeviceScaleFactor);
     }
 
     [Fact]
