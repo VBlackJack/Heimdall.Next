@@ -26,6 +26,12 @@ namespace Heimdall.Sftp;
 /// Provides the same <see cref="IRemoteBrowser"/> surface as <see cref="SftpBrowser"/>
 /// so the embedded file browser view can work with both SFTP and FTP.
 /// </summary>
+/// <remarks>
+/// Operations wrap blocking <see cref="FtpWebRequest"/> calls in
+/// <see cref="Task.Run"/>. The <see cref="CancellationToken"/> is honoured at
+/// the operation boundary, not mid-call; a blocking transfer already in
+/// progress runs to completion or to its own timeout.
+/// </remarks>
 public sealed partial class FtpBrowser : IRemoteBrowser
 {
     private const int DefaultBufferSize = 81920;

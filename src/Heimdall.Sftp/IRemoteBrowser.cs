@@ -20,6 +20,12 @@ namespace Heimdall.Sftp;
 /// Common interface for remote file browser implementations (SFTP, FTP).
 /// Allows the embedded file browser view to work with any transport protocol.
 /// </summary>
+/// <remarks>
+/// This interface is the deliberate common subset shared by the SFTP and FTP
+/// implementations. Protocol-specific signals, such as SSH security events on
+/// <see cref="SftpBrowser"/> and TLS state on <see cref="FtpBrowser"/>, are
+/// exposed on the concrete types rather than on this interface.
+/// </remarks>
 public interface IRemoteBrowser : IDisposable
 {
     /// <summary>Raised when the current working directory changes.</summary>

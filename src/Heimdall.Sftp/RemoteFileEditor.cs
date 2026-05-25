@@ -29,7 +29,15 @@ namespace Heimdall.Sftp;
 /// </summary>
 public sealed class RemoteFileEditor : IDisposable
 {
-    /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
+    /// <summary>
+    /// Process-wide minimum interval between consecutive auto-uploads for the
+    /// same file.
+    /// </summary>
+    /// <remarks>
+    /// This is a process-wide setting applied once at application startup from
+    /// AppSettings.SftpUploadDebounceMs (see App.xaml.cs). It is not intended
+    /// to change at runtime.
+    /// </remarks>
     public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private static readonly TimeSpan UploadDrainTimeout = TimeSpan.FromSeconds(2);
