@@ -135,7 +135,6 @@ public sealed class RemoteFileEditor : IDisposable
         CloseEdit(remotePath);
 
         string localPath = CreateTempFilePath(remotePath);
-        string escapedPath = PathEscaper.EscapeForShell(remotePath);
 
         var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
                 sshParams,
@@ -163,21 +162,18 @@ public sealed class RemoteFileEditor : IDisposable
         try
         {
             using var downloadCmd = await Task.Run(() =>
-                sshClient.RunCommand($"sudo cat {escapedPath}"),
+                sshClient.RunCommand(BuildSudoDownloadCommand(remotePath)),
                 ct).ConfigureAwait(false);
 
             if (downloadCmd.ExitStatus != 0)
             {
                 throw new InvalidOperationException(
-                    $"sudo cat failed (exit {downloadCmd.ExitStatus}): {downloadCmd.Error}");
+                    $"sudo base64 failed (exit {downloadCmd.ExitStatus}): {downloadCmd.Error}");
             }
 
-            // Write downloaded content to local temp file
-            var result = downloadCmd.Result ?? "";
-            await File.WriteAllTextAsync(
+            await WriteBase64DecodedFileAsync(
                 localPath,
-                result,
-                System.Text.Encoding.UTF8,
+                downloadCmd.Result,
                 ct).ConfigureAwait(false);
         }
         finally
@@ -457,6 +453,34 @@ public sealed class RemoteFileEditor : IDisposable
         }
 
         FileUploaded?.Invoke(session.RemotePath, success);
+    }
+
+    internal static string BuildSudoDownloadCommand(string remotePath)
+    {
+        string escapedPath = PathEscaper.EscapeForShell(remotePath);
+        return $"sudo base64 -- {escapedPath}";
+    }
+
+    internal static async Task WriteBase64DecodedFileAsync(
+        string localPath,
+        string? base64Content,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(base64Content ?? "");
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidOperationException(
+                "sudo base64 returned invalid base64 output.",
+                ex);
+        }
+
+        await File.WriteAllBytesAsync(localPath, bytes, ct).ConfigureAwait(false);
     }
 
     internal static async Task UploadWithSudoAsync(EditSession session, CancellationToken ct = default)
