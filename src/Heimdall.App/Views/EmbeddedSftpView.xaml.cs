@@ -38,6 +38,9 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedSftpView : UserControl, IDisposable
 {
+    private const double FileListWidthPadding = 10;
+    private const double MinimumNameColumnWidth = 200;
+
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan StatusResetDelay = TimeSpan.FromSeconds(5);
     private readonly EmbeddedSftpViewModel _viewModel;
@@ -378,25 +381,24 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
-        string? columnName = header.Column.Header?.ToString();
-        if (string.IsNullOrEmpty(columnName))
+        if (FileListView.View is not GridView gridView)
         {
             return;
         }
 
-        // Map localized headers back to property names
-        if (FileListView.View is GridView gridView)
+        int colIndex = gridView.Columns.IndexOf(header.Column);
+        string? columnName = colIndex switch
         {
-            int colIndex = gridView.Columns.IndexOf(header.Column);
-            columnName = colIndex switch
-            {
-                0 => "Name",
-                1 => "Size",
-                2 => "Modified",
-                3 => "Permissions",
-                4 => "Owner",
-                _ => columnName
-            };
+            0 => "Name",
+            1 => "Size",
+            2 => "Modified",
+            3 => "Permissions",
+            4 => "Owner",
+            _ => null
+        };
+        if (columnName is null)
+        {
+            return;
         }
 
         _viewModel.ToggleSortColumn(columnName);
@@ -521,9 +523,9 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         double available = FileListView.ActualWidth
             - fixedWidth
             - SystemParameters.VerticalScrollBarWidth
-            - 10;
+            - FileListWidthPadding;
 
-        if (available > 200)
+        if (available > MinimumNameColumnWidth)
         {
             gv.Columns[0].Width = available;
         }
@@ -752,23 +754,47 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
     private async void OnNewFolderClick(object sender, RoutedEventArgs e)
     {
-        await _viewModel.CreateFolderAsync();
+        try
+        {
+            await _viewModel.CreateFolderAsync();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP new folder handler failed: {ex.Message}");
+        }
     }
 
     private async void OnCtxRenameClick(object sender, RoutedEventArgs e)
     {
-        if (FileListView.SelectedItem is SftpFileInfo file)
+        try
         {
-            await _viewModel.RenameEntryAsync(file);
+            if (FileListView.SelectedItem is SftpFileInfo file)
+            {
+                await _viewModel.RenameEntryAsync(file);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP rename handler failed: {ex.Message}");
         }
     }
 
     private async void OnCtxDeleteClick(object sender, RoutedEventArgs e)
     {
-        var selected = GetSelectedFiles();
-        if (selected.Count > 0)
+        try
         {
-            await _viewModel.DeleteEntriesAsync(selected);
+            List<SftpFileInfo> selected = GetSelectedFiles();
+            if (selected.Count > 0)
+            {
+                await _viewModel.DeleteEntriesAsync(selected);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP delete handler failed: {ex.Message}");
         }
     }
 
@@ -778,9 +804,17 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
     private async void OnCtxChmodClick(object sender, RoutedEventArgs e)
     {
-        if (FileListView.SelectedItem is SftpFileInfo file)
+        try
         {
-            await _viewModel.ChmodAsync(file);
+            if (FileListView.SelectedItem is SftpFileInfo file)
+            {
+                await _viewModel.ChmodAsync(file);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP chmod handler failed: {ex.Message}");
         }
     }
 

@@ -171,7 +171,7 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>
     /// Applies the editor chrome colors (background, line numbers, selection,
     /// current-line highlight) from the active theme's <see cref="ResourceDictionary"/>.
-    /// All 7 themes are Dracula variants and share the same syntax palette, so the
+    /// All ThemeForge themes are Dracula variants and share the same syntax palette, so the
     /// token-level highlighting is fixed Dracula while the outer chrome follows the
     /// theme swap.
     /// </summary>

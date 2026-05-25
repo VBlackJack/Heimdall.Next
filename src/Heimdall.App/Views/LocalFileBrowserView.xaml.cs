@@ -34,6 +34,10 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class LocalFileBrowserView : UserControl
 {
+    private const double FileListWidthPadding = 10;
+    private const double MinimumNameColumnWidth = 200;
+    private const string DefaultEditorPath = @"%windir%\system32\notepad.exe";
+
     private readonly LocalizationManager? _localizer;
     private readonly LocalFileBrowserViewModel _viewModel;
 
@@ -145,9 +149,9 @@ public partial class LocalFileBrowserView : UserControl
         double available = FileListView.ActualWidth
             - fixedWidth
             - SystemParameters.VerticalScrollBarWidth
-            - 10;
+            - FileListWidthPadding;
 
-        if (available > 200)
+        if (available > MinimumNameColumnWidth)
         {
             gridView.Columns[0].Width = available;
         }
@@ -178,7 +182,7 @@ public partial class LocalFileBrowserView : UserControl
                 break;
 
             case Key.Enter:
-                OnCtxOpen(sender, e);
+                OpenSelectedEntry();
                 e.Handled = true;
                 break;
 
@@ -225,6 +229,11 @@ public partial class LocalFileBrowserView : UserControl
 
     private void OnFileDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        OpenSelectedEntry();
+    }
+
+    private void OpenSelectedEntry()
+    {
         if (FileListView.SelectedItem is not LocalFileEntry entry)
         {
             return;
@@ -251,7 +260,7 @@ public partial class LocalFileBrowserView : UserControl
 
     private void OnCtxOpen(object sender, RoutedEventArgs e)
     {
-        OnFileDoubleClick(sender, null!);
+        OpenSelectedEntry();
     }
 
     private void OnCtxOpenWith(object sender, RoutedEventArgs e)
@@ -263,6 +272,7 @@ public partial class LocalFileBrowserView : UserControl
 
         try
         {
+            // Windows paths cannot contain double quotes, CR, or LF, so literal quoting is safe here.
             Process.Start(new ProcessStartInfo
             {
                 FileName = "rundll32.exe",
@@ -282,6 +292,7 @@ public partial class LocalFileBrowserView : UserControl
         {
             try
             {
+                // Windows paths cannot contain double quotes, CR, or LF, so literal quoting is safe here.
                 if (!entry.IsDirectory)
                 {
                     Process.Start(new ProcessStartInfo
@@ -308,6 +319,7 @@ public partial class LocalFileBrowserView : UserControl
         {
             try
             {
+                // Windows paths cannot contain double quotes, CR, or LF, so literal quoting is safe here.
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
@@ -381,18 +393,26 @@ public partial class LocalFileBrowserView : UserControl
 
     private async void OnCtxPaste(object sender, RoutedEventArgs e)
     {
-        if (!Clipboard.ContainsFileDropList())
+        try
         {
-            return;
-        }
+            if (!Clipboard.ContainsFileDropList())
+            {
+                return;
+            }
 
-        var fileList = Clipboard.GetFileDropList();
-        if (fileList is null)
+            StringCollection fileList = Clipboard.GetFileDropList();
+            if (fileList is null)
+            {
+                return;
+            }
+
+            await _viewModel.PasteFilesAsync(fileList.Cast<string>().ToList());
+        }
+        catch (Exception ex)
         {
-            return;
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[LocalFileBrowser] paste handler failed: {ex.Message}");
         }
-
-        await _viewModel.PasteFilesAsync(fileList.Cast<string>().ToList());
     }
 
     internal static bool TryCreateEditorStartInfo(
@@ -418,8 +438,8 @@ public partial class LocalFileBrowserView : UserControl
 
     internal static string ResolveEditorPath(string? configuredEditorPath)
     {
-        var editorPath = string.IsNullOrWhiteSpace(configuredEditorPath)
-            ? @"%windir%\system32\notepad.exe"
+        string editorPath = string.IsNullOrWhiteSpace(configuredEditorPath)
+            ? DefaultEditorPath
             : configuredEditorPath;
         return Environment.ExpandEnvironmentVariables(editorPath);
     }
@@ -488,28 +508,52 @@ public partial class LocalFileBrowserView : UserControl
 
     private async void OnCtxDelete(object sender, RoutedEventArgs e)
     {
-        var selected = FileListView.SelectedItems.Cast<LocalFileEntry>().ToList();
-        if (selected.Count == 0)
+        try
         {
-            return;
-        }
+            List<LocalFileEntry> selected = FileListView.SelectedItems.Cast<LocalFileEntry>().ToList();
+            if (selected.Count == 0)
+            {
+                return;
+            }
 
-        await _viewModel.DeleteEntriesAsync(selected);
+            await _viewModel.DeleteEntriesAsync(selected);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[LocalFileBrowser] delete handler failed: {ex.Message}");
+        }
     }
 
     private async void OnCtxRename(object sender, RoutedEventArgs e)
     {
-        if (FileListView.SelectedItem is not LocalFileEntry entry)
+        try
         {
-            return;
-        }
+            if (FileListView.SelectedItem is not LocalFileEntry entry)
+            {
+                return;
+            }
 
-        await _viewModel.RenameEntryAsync(entry);
+            await _viewModel.RenameEntryAsync(entry);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[LocalFileBrowser] rename handler failed: {ex.Message}");
+        }
     }
 
     private async void OnCtxNewFolder(object sender, RoutedEventArgs e)
     {
-        await _viewModel.CreateFolderAsync();
+        try
+        {
+            await _viewModel.CreateFolderAsync();
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[LocalFileBrowser] new folder handler failed: {ex.Message}");
+        }
     }
 
     private void OnCtxProperties(object sender, RoutedEventArgs e)
