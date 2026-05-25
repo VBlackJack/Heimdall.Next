@@ -113,6 +113,36 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public void SetErrorStatus_SetsIsErrorHighlighted()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        try
+        {
+            viewModel.SetErrorStatus("Connection failed");
+
+            Assert.True(viewModel.IsErrorHighlighted);
+        }
+        finally
+        {
+            viewModel.MarkDisposed();
+        }
+    }
+
+    [Fact]
+    public void UpdateStatus_AfterErrorStatus_ClearsIsErrorHighlighted()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        viewModel.SetErrorStatus("Connection failed");
+        viewModel.UpdateStatus("Ready");
+
+        Assert.False(viewModel.IsErrorHighlighted);
+    }
+
+    [Fact]
     public async Task RunOnUiAsync_OffUiThread_PostsToDispatcher()
     {
         var dispatcher = new FakeUiDispatcher(checkAccess: false);

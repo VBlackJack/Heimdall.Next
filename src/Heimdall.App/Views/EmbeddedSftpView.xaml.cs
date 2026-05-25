@@ -18,7 +18,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
@@ -42,7 +41,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private const double MinimumNameColumnWidth = 200;
 
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan StatusResetDelay = TimeSpan.FromSeconds(5);
     private readonly EmbeddedSftpViewModel _viewModel;
     private readonly IHostKeyVerifier _hostKeyVerifier;
 
@@ -57,7 +55,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private readonly HashSet<string> _activeEditTempDirs =
         new(StringComparer.OrdinalIgnoreCase);
     private System.Threading.Timer? _healthTimer;
-    private System.Threading.Timer? _errorResetTimer;
     private string? _pendingBrowserSecurityStatus;
 
     private bool _disposed;
@@ -177,7 +174,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _viewModel.MarkDisposed();
 
         StopHealthTimer();
-        _errorResetTimer?.Dispose();
         _transferCts?.Cancel();
         _transferCts?.Dispose();
 
@@ -1278,7 +1274,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private void UpdateStatus(string text)
     {
         _viewModel.UpdateStatus(text);
-        UpdateHealthDot();
     }
 
     private void ShowError(string message)
@@ -1309,11 +1304,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         return FileListView.SelectedItems.Cast<SftpFileInfo>().ToList();
     }
 
-    private Brush GetBrush(string resourceKey, Brush fallback)
-    {
-        return TryFindResource(resourceKey) as Brush ?? fallback;
-    }
-
     private Task NavigateRemoteAsync(string path)
     {
         return _viewModel.NavigateToPath(path);
@@ -1339,55 +1329,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 case nameof(EmbeddedSftpViewModel.CanGoBack):
                 case nameof(EmbeddedSftpViewModel.IsConnected):
                     SetToolbarEnabled(!_viewModel.IsLoading && _viewModel.IsConnected);
-                    UpdateHealthDot();
-                    break;
-                case nameof(EmbeddedSftpViewModel.SudoMode):
-                    UpdateSudoModeVisuals();
                     break;
                 case nameof(EmbeddedSftpViewModel.SortColumn):
                 case nameof(EmbeddedSftpViewModel.SortDirection):
                     UpdateColumnHeaders();
                     break;
-                case nameof(EmbeddedSftpViewModel.IsErrorStatus):
-                    if (_viewModel.IsErrorStatus)
-                    {
-                        StatusTextBlock.Foreground = GetBrush("ErrorBrush", Brushes.IndianRed);
-                        _errorResetTimer?.Dispose();
-                        System.Threading.Timer? errorResetTimer = null;
-                        errorResetTimer = new System.Threading.Timer(_ =>
-                        {
-                            errorResetTimer?.Dispose();
-                            _ = Dispatcher.BeginInvoke(() =>
-                            {
-                                if (!_disposed)
-                                {
-                                    StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
-                                }
-                            });
-                        }, null, StatusResetDelay, Timeout.InfiniteTimeSpan);
-                        _errorResetTimer = errorResetTimer;
-                    }
-                    else
-                    {
-                        StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
-                    }
-                    break;
             }
         });
-    }
-
-    private void UpdateHealthDot()
-    {
-        HealthDot.Fill = GetBrush(
-            _viewModel.IsConnected ? "SuccessBrush" : "ErrorBrush",
-            _viewModel.IsConnected ? Brushes.Green : Brushes.Red);
-    }
-
-    private void UpdateSudoModeVisuals()
-    {
-        BtnSudoMode.IsChecked = _viewModel.SudoMode;
-        BtnSudoModeText.Foreground = _viewModel.SudoMode
-            ? Brushes.OrangeRed
-            : GetBrush("TextPrimaryBrush", Brushes.White);
     }
 }
