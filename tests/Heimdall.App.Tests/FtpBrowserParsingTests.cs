@@ -79,6 +79,20 @@ public sealed class FtpBrowserParsingTests
     }
 
     [Fact]
+    public void ParseListLine_UnixSymlink_StripsLinkTargetFromName()
+    {
+        const string line = "lrwxrwxrwx 1 user group 7 Jan 01 12:00 link -> /target";
+
+        var entry = FtpBrowser.ParseListLine(line, "/srv");
+
+        Assert.NotNull(entry);
+        Assert.False(entry!.IsDirectory);
+        Assert.Equal("link", entry.Name);
+        Assert.Equal("/srv/link", entry.FullPath);
+        Assert.Equal("rwxrwxrwx", entry.Permissions);
+    }
+
+    [Fact]
     public void ParseListLine_DosFile_ParsedCorrectly()
     {
         const string line = "01-15-26  12:34PM             1024 readme.txt";
@@ -131,6 +145,7 @@ public sealed class FtpBrowserParsingTests
         var result = FtpBrowser.ParseUnixDate("Mar 15 09:00");
 
         Assert.NotEqual(DateTime.MinValue, result);
+        Assert.Equal(DateTimeKind.Utc, result.Kind);
         Assert.Equal(3, result.Month);
         Assert.Equal(15, result.Day);
         Assert.Equal(9, result.Hour);
@@ -151,7 +166,7 @@ public sealed class FtpBrowserParsingTests
     public void ParseUnixDate_FutureDateInTimeFormat_RollsBackOneYear()
     {
         var result = FtpBrowser.ParseUnixDate("Dec 31 23:59");
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var currentYearCandidate = new DateTime(now.Year, 12, 31, 23, 59, 0);
 
         Assert.Equal(currentYearCandidate > now ? now.Year - 1 : now.Year, result.Year);
