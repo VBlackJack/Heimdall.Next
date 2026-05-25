@@ -172,6 +172,55 @@ public sealed class RemoteFileEditorTaskTrackingTests
         Assert.DoesNotContain(session.RemotePath, editor.ActiveSessionsForTesting.Keys);
     }
 
+    [Fact]
+    public async Task OnFileChanged_DroppedByDebounce_IsUploadedByTrailingEdge()
+    {
+        var previousInterval = RemoteFileEditor.UploadDebounceInterval;
+        RemoteFileEditor.UploadDebounceInterval = TimeSpan.FromMilliseconds(50);
+
+        try
+        {
+            var browser = new FakeRemoteBrowser();
+            using var editor = CreateEditor(browser);
+            using var session = CreateSession();
+            session.LastUploadTime = DateTime.UtcNow;
+            session.DebounceTimer = new System.Threading.Timer(
+                _ => editor.TriggerOnFileChangedForTesting(session),
+                null,
+                Timeout.InfiniteTimeSpan,
+                Timeout.InfiniteTimeSpan);
+
+            editor.TriggerOnFileChangedForTesting(session);
+
+            await WaitUntilAsync(() => browser.UploadCallCount == 1, timeoutMs: 5000);
+        }
+        finally
+        {
+            RemoteFileEditor.UploadDebounceInterval = previousInterval;
+        }
+    }
+
+    [Fact]
+    public async Task OnFileChanged_DroppedWhileUploadInFlight_DoesNotReplaceCurrentUpload()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var browser = new FakeRemoteBrowser((_, _, _) => gate.Task);
+        using var editor = CreateEditor(browser);
+        using var session = CreateSession();
+
+        editor.TriggerOnFileChangedForTesting(session);
+        await WaitUntilAsync(() => browser.UploadCallCount == 1 && session.CurrentUpload is not null);
+        var inFlightUpload = session.CurrentUpload!;
+        Assert.False(inFlightUpload.IsCompleted);
+
+        editor.TriggerOnFileChangedForTesting(session);
+
+        Assert.Same(inFlightUpload, session.CurrentUpload);
+
+        gate.SetResult();
+        await WaitForTaskAsync(inFlightUpload);
+    }
+
     private static RemoteFileEditor CreateEditor(FakeRemoteBrowser browser)
     {
         return new RemoteFileEditor(

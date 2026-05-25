@@ -346,9 +346,8 @@ public sealed class RemoteFileEditor : IDisposable
             // Atomic-save editors (VS Code, Notepad++, Sublime) write to a temp file
             // then rename, so we need FileName and Size in addition to LastWrite.
             NotifyFilter = NotifyFilters.LastWrite
-                         | NotifyFilters.FileName
-                         | NotifyFilters.Size,
-            EnableRaisingEvents = true
+                          | NotifyFilters.FileName
+                          | NotifyFilters.Size
         };
 
         watcher.Changed += (_, _) => OnFileChanged(session);
@@ -356,6 +355,12 @@ public sealed class RemoteFileEditor : IDisposable
         watcher.Renamed += (_, _) => OnFileChanged(session);
 
         session.Watcher = watcher;
+        session.DebounceTimer = new System.Threading.Timer(
+            _ => OnFileChanged(session),
+            null,
+            Timeout.InfiniteTimeSpan,
+            Timeout.InfiniteTimeSpan);
+        watcher.EnableRaisingEvents = true;
     }
 
     private void OnFileChanged(EditSession session)
@@ -376,7 +381,11 @@ public sealed class RemoteFileEditor : IDisposable
         }
 
         var upload = OnFileChangedAsync(session, ct);
-        session.CurrentUpload = upload;
+        if (session.CurrentUpload is null || session.CurrentUpload.IsCompleted)
+        {
+            session.CurrentUpload = upload;
+        }
+
         _ = upload.ContinueWith(
             static task =>
             {
@@ -397,6 +406,7 @@ public sealed class RemoteFileEditor : IDisposable
 
         if (!session.ShouldUpload)
         {
+            ArmDebounceTimer(session);
             return;
         }
 
@@ -406,6 +416,7 @@ public sealed class RemoteFileEditor : IDisposable
             // Serialize uploads per file — prevents concurrent saves from overlapping
             if (!await session.UploadSemaphore.WaitAsync(0, ct).ConfigureAwait(false))
             {
+                ArmDebounceTimer(session);
                 return; // Another upload is in progress, skip (debounce will catch the next one)
             }
 
@@ -473,6 +484,20 @@ public sealed class RemoteFileEditor : IDisposable
         }
 
         FileUploaded?.Invoke(session.RemotePath, success);
+    }
+
+    private static void ArmDebounceTimer(EditSession session)
+    {
+        try
+        {
+            session.DebounceTimer?.Change(
+                UploadDebounceInterval,
+                Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The session was torn down while a drop path was unwinding.
+        }
     }
 
     internal static string BuildSudoDownloadCommand(string remotePath)
@@ -598,6 +623,16 @@ public sealed class RemoteFileEditor : IDisposable
         {
         }
 
+        try
+        {
+            session.DebounceTimer?.Change(
+                Timeout.InfiniteTimeSpan,
+                Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
         var pendingUpload = session.CurrentUpload;
         if (pendingUpload is not null && !pendingUpload.IsCompleted)
         {
@@ -707,6 +742,12 @@ internal sealed class EditSession : IDisposable
     /// <summary>File system watcher for auto-upload on save.</summary>
     public FileSystemWatcher? Watcher { get; set; }
 
+    /// <summary>
+    /// One-shot timer that re-checks for a pending upload after the debounce
+    /// interval elapses (trailing-edge debounce).
+    /// </summary>
+    public System.Threading.Timer? DebounceTimer { get; set; }
+
     /// <summary>Serializes upload operations per file to prevent concurrent save races.</summary>
     public SemaphoreSlim UploadSemaphore { get; } = new(1, 1);
 
@@ -730,6 +771,7 @@ internal sealed class EditSession : IDisposable
     public void Dispose()
     {
         Watcher?.Dispose();
+        DebounceTimer?.Dispose();
         UploadSemaphore.Dispose();
         UploadCts.Dispose();
         GC.SuppressFinalize(this);
