@@ -3428,6 +3428,13 @@
                                        FontSize="{StaticResource FontSizeSmallCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
+                        <TextBlock x:Name="Mw_TftpUnauthenticatedWarning"
+                                   Margin="0,2,0,0"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource WarningTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="{loc:Translate LblTftpNoAuthWarning}"
+                                   Visibility="Collapsed"/>
                         <TextBlock x:Name="Mw_TftpDisabledHint"
                                    Margin="0,2,0,0"
                                    FontSize="{StaticResource FontSizeSmallCaption}"

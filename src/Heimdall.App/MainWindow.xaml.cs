@@ -2636,7 +2636,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Mw_SharingStatus.Text = e.BaseUrl;
         Mw_SharingStatusPanel.Visibility = Visibility.Visible;
         Mw_TftpCommandText.Text = e.TftpCommand ?? string.Empty;
-        Mw_TftpTemplatePanel.Visibility = e.IsTftpEnabled && !string.IsNullOrWhiteSpace(e.TftpCommand)
+        bool showTftpCommand = e.IsTftpEnabled && !string.IsNullOrWhiteSpace(e.TftpCommand);
+        Mw_TftpTemplatePanel.Visibility = showTftpCommand
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        Mw_TftpUnauthenticatedWarning.Visibility = showTftpCommand
             ? Visibility.Visible
             : Visibility.Collapsed;
         Mw_TftpDisabledHint.Visibility = !e.IsTftpEnabled
@@ -2649,12 +2653,16 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             catch { /* clipboard may fail in some RDP sessions */ }
         }
 
-        var helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
+        string helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
             e.FolderName,
             e.BaseUrl,
             e.WgetCommand,
             e.CurlCommand,
             e.TftpCommand ?? vm.Localize("LblTftpDisabledHint"));
+        if (e.IsTftpEnabled)
+        {
+            helpMessage += Environment.NewLine + Environment.NewLine + vm.Localize("LblTftpNoAuthWarning");
+        }
 
         vm.StatusText = string.Format(vm.Localize("ToolsSharingReady"), e.BaseUrl);
 
@@ -2673,6 +2681,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Mw_SharingStatus.Text = string.Empty;
         Mw_TftpCommandText.Text = string.Empty;
         Mw_TftpTemplatePanel.Visibility = Visibility.Collapsed;
+        Mw_TftpUnauthenticatedWarning.Visibility = Visibility.Collapsed;
         Mw_TftpDisabledHint.Visibility = Visibility.Collapsed;
 
         if (DataContext is MainViewModel vm)
