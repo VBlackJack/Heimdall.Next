@@ -137,7 +137,11 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
     /// Saves the current content and raises the save event used by existing consumers.
     /// </summary>
     /// <param name="currentText">The current editor text to persist.</param>
-    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
+    /// <returns>
+    /// <see langword="true"/> on success; otherwise <see langword="false"/>. For remote files,
+    /// <see langword="true"/> means the save was dispatched; the modified state is cleared
+    /// by <see cref="ConfirmRemoteSaved"/> when the upload is confirmed.
+    /// </returns>
     public async Task<bool> SaveAsync(string currentText)
     {
         if (string.IsNullOrEmpty(FilePath))
@@ -150,16 +154,16 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
             if (!IsRemote)
             {
                 await File.WriteAllTextAsync(FilePath, currentText);
+                IsModified = false;
             }
 
-            IsModified = false;
             FileSaved?.Invoke(FilePath, currentText);
             return true;
         }
         catch (Exception ex)
         {
-            var title = L("EditorSaveErrorTitle");
-            var message = string.Format(L("EditorSaveErrorMessage"), ex.Message);
+            string title = L("EditorSaveErrorTitle");
+            string message = string.Format(L("EditorSaveErrorMessage"), ex.Message);
 
             if (_dialogService is not null)
             {
@@ -172,6 +176,15 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
 
             return false;
         }
+    }
+
+    /// <summary>
+    /// Clears the modified state after a remote save has been confirmed by the
+    /// consumer that performed the upload.
+    /// </summary>
+    public void ConfirmRemoteSaved()
+    {
+        IsModified = false;
     }
 
     /// <summary>
