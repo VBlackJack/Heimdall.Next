@@ -318,7 +318,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         switch (e.Key)
         {
             case Key.F5:
-                OnRefreshClick(this, new RoutedEventArgs());
+                _ = _viewModel.Refresh();
                 e.Handled = true;
                 break;
 
@@ -350,7 +350,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 break;
 
             case Key.Back:
-                OnBackClick(this, new RoutedEventArgs());
+                _ = _viewModel.NavigateBack();
                 e.Handled = true;
                 break;
 
@@ -450,46 +450,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         });
     }
 
-    private void OnBackClick(object sender, RoutedEventArgs e)
-    {
-        _ = _viewModel.NavigateBack();
-    }
-
-    private void OnUpClick(object sender, RoutedEventArgs e)
-    {
-        _ = _viewModel.NavigateUp();
-    }
-
-    private void OnHomeClick(object sender, RoutedEventArgs e)
-    {
-        _ = _viewModel.NavigateHome();
-    }
-
-    private void OnRefreshClick(object sender, RoutedEventArgs e)
-    {
-        _ = _viewModel.Refresh();
-    }
-
-    private void OnGoPathClick(object sender, RoutedEventArgs e) => NavigateToPathBar();
-
-    private void OnPathKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            NavigateToPathBar();
-            e.Handled = true;
-        }
-    }
-
-    private void NavigateToPathBar()
-    {
-        var path = PathTextBox.Text?.Trim();
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            _ = _viewModel.NavigateToPath(path);
-        }
-    }
-
     private void OnFileDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (FileListView.SelectedItem is not SftpFileInfo file)
@@ -538,11 +498,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             btn.ContextMenu.PlacementTarget = btn;
             btn.ContextMenu.IsOpen = true;
         }
-    }
-
-    private void OnBookmarkClick(object sender, RoutedEventArgs e)
-    {
-        _viewModel.AddBookmark();
     }
 
     private void OnBookmarksClick(object sender, RoutedEventArgs e)
@@ -749,19 +704,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             _transferInProgress = false;
             ShowTransferPanel(false);
-        }
-    }
-
-    private async void OnNewFolderClick(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await _viewModel.CreateFolderAsync();
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSFTP new folder handler failed: {ex.Message}");
         }
     }
 
@@ -1091,11 +1033,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
     }
 
-    private void OnSudoModeToggle(object sender, RoutedEventArgs e)
-    {
-        _ = _viewModel.ToggleSudoMode();
-    }
-
     // ------------------------------------------------------------------
     // Drag and drop
     // ------------------------------------------------------------------
@@ -1239,11 +1176,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
 
         ShowDisconnectedState();
-    }
-
-    private void OnSplitClick(object sender, RoutedEventArgs e)
-    {
-        _viewModel.RequestSplit();
     }
 
     private async void OnReconnectClick(object sender, RoutedEventArgs e)

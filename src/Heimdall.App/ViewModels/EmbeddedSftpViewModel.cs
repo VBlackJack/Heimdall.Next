@@ -20,6 +20,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Ssh;
@@ -72,6 +73,10 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     [ObservableProperty]
     private string _currentPath = "/";
 
+    /// <summary>The editable path bar text mirrored from the current path.</summary>
+    [ObservableProperty]
+    private string _pathBarText = "/";
+
     /// <summary>Whether backward navigation is available.</summary>
     [ObservableProperty]
     private bool _canGoBack;
@@ -123,6 +128,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>The current text filter applied to file names.</summary>
     [ObservableProperty]
     private string _filterText = string.Empty;
+
+    partial void OnCurrentPathChanged(string value) => PathBarText = value;
 
     /// <summary>The currently visible remote entries.</summary>
     public ObservableCollection<SftpFileInfo> Files { get; }
@@ -272,6 +279,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Navigates to the previous directory in history.
     /// </summary>
+    [RelayCommand]
     public Task NavigateBack()
     {
         return _navigationHistory.TryPop(out var previousPath)
@@ -282,6 +290,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Navigates to the parent directory of the current path.
     /// </summary>
+    [RelayCommand]
     public Task NavigateUp()
     {
         string parent = GetParentPath(CurrentPath);
@@ -293,6 +302,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Navigates to the captured home directory.
     /// </summary>
+    [RelayCommand]
     public Task NavigateHome()
     {
         return LoadDirectoryCoreAsync(HomeDirectory, pushToHistory: true);
@@ -301,6 +311,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Reloads the current directory without pushing navigation history.
     /// </summary>
+    [RelayCommand]
     public Task Refresh()
     {
         return LoadDirectoryCoreAsync(CurrentPath, pushToHistory: false);
@@ -315,6 +326,9 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             ? Task.CompletedTask
             : LoadDirectoryCoreAsync(path.Trim(), pushToHistory: true);
     }
+
+    [RelayCommand]
+    private Task GoToPath() => NavigateToPath(PathBarText);
 
     /// <summary>
     /// Handles double-click behavior for a listed remote entry.
@@ -377,6 +391,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Toggles sudo listing mode and refreshes the current directory.
     /// </summary>
+    [RelayCommand]
     public async Task ToggleSudoMode()
     {
         await RunOnUiAsync(() =>
@@ -439,6 +454,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Raises the split request event.
     /// </summary>
+    [RelayCommand]
     public void RequestSplit()
     {
         SplitRequested?.Invoke();
@@ -454,19 +470,18 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
     /// <summary>
     /// Adds the current path to bookmarks if not already present.
-    /// Returns true if the bookmark was added.
     /// </summary>
-    public bool AddBookmark()
+    [RelayCommand]
+    public void AddBookmark()
     {
         if (Bookmarks.Contains(CurrentPath))
         {
-            return false;
+            return;
         }
 
         Bookmarks.Add(CurrentPath);
         UpdateStatus(_localizer?.Format("SftpBookmarkAdded", CurrentPath)
             ?? $"Bookmarked: {CurrentPath}");
-        return true;
     }
 
     /// <summary>
@@ -717,6 +732,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>
     /// Prompts for a folder name and creates it in the current remote directory.
     /// </summary>
+    [RelayCommand]
     public async Task CreateFolderAsync()
     {
         if (_disposed || _browser is null || _dialogService is null)

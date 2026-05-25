@@ -28,6 +28,17 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public void CurrentPath_Set_UpdatesPathBarText()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        viewModel.CurrentPath = "/var/log";
+
+        Assert.Equal("/var/log", viewModel.PathBarText);
+    }
+
+    [Fact]
     public async Task RunOnUiAsync_OffUiThread_PostsToDispatcher()
     {
         var dispatcher = new FakeUiDispatcher(checkAccess: false);

@@ -57,7 +57,7 @@
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
-                        Click="OnSplitClick"
+                        Command="{Binding RequestSplitCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         AutomationProperties.Name="{loc:Translate A11ySplitSession}"/>
@@ -122,7 +122,7 @@
                     <Button x:Name="BtnBack"
                             Content="&#xE72B;"
                             FontFamily="Segoe MDL2 Assets"
-                            Click="OnBackClick"
+                            Command="{Binding NavigateBackCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                             IsEnabled="False"
@@ -130,21 +130,21 @@
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
                             FontFamily="Segoe MDL2 Assets"
-                            Click="OnUpClick"
+                            Command="{Binding NavigateUpCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             AutomationProperties.Name="{loc:Translate SftpTooltipUp}"/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
                             FontFamily="Segoe MDL2 Assets"
-                            Click="OnHomeClick"
+                            Command="{Binding NavigateHomeCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             AutomationProperties.Name="{loc:Translate SftpTooltipHome}"/>
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
                             FontFamily="Segoe MDL2 Assets"
-                            Click="OnRefreshClick"
+                            Command="{Binding RefreshCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             AutomationProperties.Name="{loc:Translate SftpTooltipRefresh}"/>
@@ -164,7 +164,7 @@
                         </StackPanel>
                     </Button>
                     <Button x:Name="BtnNewFolder"
-                            Click="OnNewFolderClick"
+                            Command="{Binding CreateFolderCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
                             AutomationProperties.Name="{Binding Text, ElementName=BtnNewFolderText}">
@@ -179,7 +179,7 @@
                             AutomationProperties.AutomationId="Toolbar.Sftp.ActionsPrivilegeSeparator"/>
 
                     <ToggleButton x:Name="BtnSudoMode"
-                                  Click="OnSudoModeToggle"
+                                  Command="{Binding ToggleSudoModeCommand}"
                                   Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   Background="Transparent"
@@ -206,8 +206,10 @@
                             Click="OnBookmarkMenuClick"
                             AutomationProperties.Name="{loc:Translate SftpBtnBookmarks}">
                         <Button.ContextMenu>
-                            <ContextMenu x:Name="BookmarkContextMenu">
-                                <MenuItem x:Name="MnuBookmarkAdd" Click="OnBookmarkClick"
+                            <ContextMenu x:Name="BookmarkContextMenu"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem x:Name="MnuBookmarkAdd"
+                                          Command="{Binding AddBookmarkCommand}"
                                           AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                                     <MenuItem.Icon>
                                         <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
@@ -237,7 +239,7 @@
                         DockPanel.Dock="Right"
                         Content="&#xE76C;"
                         FontFamily="Segoe MDL2 Assets"
-                        Click="OnGoPathClick"
+                        Command="{Binding GoToPathCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                         Margin="4,0,0,0"
@@ -247,9 +249,12 @@
                          FontSize="{StaticResource FontSizeBody}"
                          FontFamily="{StaticResource FontFamilyMonospace}"
                          VerticalContentAlignment="Center"
-                         Text="{Binding CurrentPath, Mode=OneWay}"
-                         KeyDown="OnPathKeyDown"
-                         AutomationProperties.Name="{loc:Translate A11yTxtPath}"/>
+                         Text="{Binding PathBarText, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{loc:Translate A11yTxtPath}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding GoToPathCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
             </DockPanel>
         </Border>
 
