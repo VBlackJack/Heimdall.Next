@@ -81,12 +81,20 @@ public sealed class TelnetSession : ITerminalSession
         _cts = new CancellationTokenSource();
 
         _client = new TcpClient();
-        using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-        connectTimeout.CancelAfter(TimeSpan.FromMilliseconds(_connectTimeoutMs));
-        await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
-        _stream = _client.GetStream();
+        try
+        {
+            using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            connectTimeout.CancelAfter(TimeSpan.FromMilliseconds(_connectTimeoutMs));
+            await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
+            _stream = _client.GetStream();
 
-        _readLoop = Task.Run(() => ReadLoop(_cts.Token), _cts.Token);
+            _readLoop = Task.Run(() => ReadLoop(_cts.Token), _cts.Token);
+        }
+        catch
+        {
+            CleanupFailedStart();
+            throw;
+        }
     }
 
     public void Write(ReadOnlySpan<byte> data)
@@ -126,12 +134,7 @@ public sealed class TelnetSession : ITerminalSession
     public void Kill()
     {
         if (_disposed) return;
-        try
-        {
-            _stream?.Close();
-            _client?.Close();
-        }
-        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Kill: {ex.Message}"); }
+        CloseConnection();
     }
 
     public void Dispose()
@@ -140,7 +143,7 @@ public sealed class TelnetSession : ITerminalSession
         _disposed = true;
 
         _cts?.Cancel();
-        Kill();
+        CloseConnection();
 
         try { _stream?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Dispose stream: {ex.Message}"); }
         try { _client?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Dispose client: {ex.Message}"); }
@@ -148,6 +151,30 @@ public sealed class TelnetSession : ITerminalSession
         _client = null;
         _cts?.Dispose();
         _cts = null;
+    }
+
+    private void CleanupFailedStart()
+    {
+        _cts?.Cancel();
+        CloseConnection();
+
+        try { _stream?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] CleanupFailedStart stream: {ex.Message}"); }
+        try { _client?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] CleanupFailedStart client: {ex.Message}"); }
+        _stream = null;
+        _client = null;
+        _cts?.Dispose();
+        _cts = null;
+        _readLoop = null;
+    }
+
+    private void CloseConnection()
+    {
+        try
+        {
+            _stream?.Close();
+            _client?.Close();
+        }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Kill: {ex.Message}"); }
     }
 
     /// <summary>

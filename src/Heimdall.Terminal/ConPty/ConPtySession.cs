@@ -37,8 +37,12 @@ public sealed class ConPtySession : ITerminalSession
     // Pipe endpoints owned by this session:
     // - _pipeInputRead / _pipeOutputWrite are the child-side ends passed to ConPTY,
     //   kept alive for the console's lifetime.
+    // - _pipeInputWrite / _pipeOutputRead own parent-side pipe handles until
+    //   FileStream construction succeeds and takes ownership.
     // - _outputReader / _inputWriter are the parent-side FileStreams.
     private SafeFileHandle? _pipeInputRead;
+    private SafeFileHandle? _pipeInputWrite;
+    private SafeFileHandle? _pipeOutputRead;
     private SafeFileHandle? _pipeOutputWrite;
     private FileStream? _outputReader;
     private FileStream? _inputWriter;
@@ -109,8 +113,11 @@ public sealed class ConPtySession : ITerminalSession
         CreatePipes(out SafeFileHandle inputRead, out SafeFileHandle inputWrite,
                     out SafeFileHandle outputRead, out SafeFileHandle outputWrite);
 
-        // Keep child-side handles alive — ConPTY needs them for the console's lifetime.
+        // Keep all handles owned from this point; parent-side ownership is
+        // transferred to FileStream after pseudo console setup succeeds.
         _pipeInputRead = inputRead;
+        _pipeInputWrite = inputWrite;
+        _pipeOutputRead = outputRead;
         _pipeOutputWrite = outputWrite;
 
         try
@@ -121,7 +128,9 @@ public sealed class ConPtySession : ITerminalSession
             // Wrap parent-side pipe ends in FileStreams for managed I/O.
             const int bufferSize = 4096;
             _inputWriter = new FileStream(inputWrite, FileAccess.Write, bufferSize);
+            _pipeInputWrite = null;
             _outputReader = new FileStream(outputRead, FileAccess.Read, bufferSize);
+            _pipeOutputRead = null;
 
             LaunchProcess(executable, arguments, workingDirectory);
             StartReadLoop();
@@ -216,6 +225,13 @@ public sealed class ConPtySession : ITerminalSession
         // Close managed streams (parent-side pipe ends).
         DisposeStream(ref _inputWriter);
         DisposeStream(ref _outputReader);
+
+        // Close parent-side pipe handles if startup failed before FileStream
+        // construction transferred ownership.
+        _pipeInputWrite?.Dispose();
+        _pipeInputWrite = null;
+        _pipeOutputRead?.Dispose();
+        _pipeOutputRead = null;
 
         // Close child-side pipe ends kept alive for the console.
         _pipeInputRead?.Dispose();
