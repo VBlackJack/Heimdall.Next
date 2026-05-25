@@ -761,6 +761,7 @@
   "SftpStatusTransferCancelled": "Transfert annul\u00e9",
   "SftpStatusTransferComplete": "Transfert termin\u00e9",
   "SftpStatusTransferFailed": "\u00c9chec du transfert : {0}",
+  "SftpTransferInProgress": "Un transfert de fichier est d\u00e9j\u00e0 en cours.",
   "SftpStatusConnected": "Connect\u00e9",
   "SftpStatusDisconnected": "D\u00e9connect\u00e9",
   "SftpNewFolderTitle": "Nouveau dossier",
