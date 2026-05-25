@@ -146,6 +146,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// <summary>The full unfiltered listing for the current directory.</summary>
     public List<SftpFileInfo> UnfilteredEntries { get; internal set; }
 
+    /// <summary>The primary selected remote entry.</summary>
+    public SftpFileInfo? SelectedFile { get; private set; }
+
+    /// <summary>The selected remote entries.</summary>
+    public IReadOnlyList<SftpFileInfo> SelectedFiles { get; private set; } = [];
+
     /// <summary>
     /// Raised when the user requests a split action from the embedded view.
     /// </summary>
@@ -366,6 +372,55 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             SelectionInfoText += $" ({FormatSize(totalSize)})";
         }
+    }
+
+    /// <summary>
+    /// Stores the current file-list selection and updates its summary text.
+    /// </summary>
+    public void SetSelection(IReadOnlyList<SftpFileInfo> selected, SftpFileInfo? primary)
+    {
+        SelectedFiles = selected;
+        SelectedFile = primary;
+        UpdateSelectionInfo(selected);
+    }
+
+    [RelayCommand]
+    private Task RenameSelected()
+    {
+        return SelectedFile is { } file ? RenameEntryAsync(file) : Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task DeleteSelected()
+    {
+        return DeleteEntriesAsync(SelectedFiles);
+    }
+
+    [RelayCommand]
+    private Task ChmodSelected()
+    {
+        return SelectedFile is { } file ? ChmodAsync(file) : Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private void ShowSelectedProperties()
+    {
+        if (SelectedFile is { } file)
+        {
+            ShowProperties(file);
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSelectedInTerminal()
+    {
+        string targetDir = CurrentPath;
+        if (SelectedFile is { IsDirectory: true } directory)
+        {
+            targetDir = directory.FullPath;
+        }
+
+        RequestOpenInTerminal(targetDir);
     }
 
     /// <summary>

@@ -16,6 +16,7 @@
 
 using System.Reflection;
 using Heimdall.App.ViewModels;
+using Heimdall.Sftp;
 
 namespace Heimdall.App.Tests;
 
@@ -36,6 +37,79 @@ public sealed class EmbeddedSftpViewModelTests
         viewModel.CurrentPath = "/var/log";
 
         Assert.Equal("/var/log", viewModel.PathBarText);
+    }
+
+    [Fact]
+    public void SetSelection_UpdatesSelectedFileSelectedFilesAndSelectionInfoText()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SftpFileInfo file = new(
+            "app.log",
+            "/var/log/app.log",
+            false,
+            1,
+            DateTime.UnixEpoch,
+            "rw-r--r--",
+            "1000",
+            "1000");
+        SftpFileInfo directory = new(
+            "archive",
+            "/var/log/archive",
+            true,
+            0,
+            DateTime.UnixEpoch,
+            "rwxr-xr-x",
+            "1000",
+            "1000");
+        IReadOnlyList<SftpFileInfo> selectedFiles = [file, directory];
+
+        viewModel.SetSelection(selectedFiles, file);
+
+        Assert.Same(file, viewModel.SelectedFile);
+        Assert.Same(selectedFiles, viewModel.SelectedFiles);
+        Assert.Equal("2 selected (1 B)", viewModel.SelectionInfoText);
+    }
+
+    [Fact]
+    public void OpenSelectedInTerminalCommand_RaisesDirectoryPathOrCurrentPath()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            CurrentPath = "/home/admin"
+        };
+        SftpFileInfo directory = new(
+            "logs",
+            "/home/admin/logs",
+            true,
+            0,
+            DateTime.UnixEpoch,
+            "rwxr-xr-x",
+            "1000",
+            "1000");
+        SftpFileInfo file = new(
+            "app.log",
+            "/home/admin/app.log",
+            false,
+            10,
+            DateTime.UnixEpoch,
+            "rw-r--r--",
+            "1000",
+            "1000");
+        string? requestedPath = null;
+        viewModel.OpenInTerminalRequested += path => requestedPath = path;
+
+        viewModel.SetSelection([directory], directory);
+        viewModel.OpenSelectedInTerminalCommand.Execute(null);
+
+        Assert.Equal("/home/admin/logs", requestedPath);
+
+        requestedPath = null;
+        viewModel.SetSelection([file], file);
+        viewModel.OpenSelectedInTerminalCommand.Execute(null);
+
+        Assert.Equal("/home/admin", requestedPath);
     }
 
     [Fact]
