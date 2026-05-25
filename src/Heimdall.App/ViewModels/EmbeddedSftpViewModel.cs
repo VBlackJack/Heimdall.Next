@@ -986,7 +986,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// Expects GNU coreutils <c>ls -la --time-style=long-iso</c> output with
     /// eight whitespace-separated fields; BusyBox or non-GNU <c>ls</c> layouts may differ.
     /// </remarks>
-    private static IReadOnlyList<SftpFileInfo> ParseLsOutput(string output, string parentPath)
+    internal static IReadOnlyList<SftpFileInfo> ParseLsOutput(string output, string parentPath)
     {
         var results = new List<SftpFileInfo>();
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
