@@ -56,11 +56,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         Files = [];
         Bookmarks = [];
         UnfilteredEntries = [];
-        CurrentPath = "/";
         HomeDirectory = "/";
-        SortColumn = "Name";
-        SortDirection = ListSortDirection.Ascending;
-        ShowHidden = true;
     }
 
     /// <summary>The current remote directory path.</summary>
@@ -257,8 +253,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         int totalCount = UnfilteredEntries.Count;
         int visibleCount = Files.Count;
         ItemCountText = visibleCount == totalCount
-            ? $"{totalCount} items"
-            : $"{visibleCount}/{totalCount} items";
+            ? _localizer?.Format("SftpItemCount", totalCount.ToString()) ?? $"{totalCount} items"
+            : _localizer?.Format(
+                "SftpItemCountFiltered",
+                visibleCount.ToString(),
+                totalCount.ToString()) ?? $"{visibleCount}/{totalCount} items";
     }
 
     /// <summary>
@@ -498,7 +497,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
         finally
         {
-            ssh.Disconnect();
+            SafeDisconnect(ssh);
         }
     }
 
@@ -526,7 +525,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
         finally
         {
-            ssh.Disconnect();
+            SafeDisconnect(ssh);
         }
     }
 
@@ -568,7 +567,20 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
         finally
         {
+            SafeDisconnect(ssh);
+        }
+    }
+
+    private static void SafeDisconnect(Renci.SshNet.SshClient ssh)
+    {
+        try
+        {
             ssh.Disconnect();
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"EmbeddedSftpViewModel: sudo SSH disconnect failed: {ex.Message}");
         }
     }
 
@@ -691,7 +703,9 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             return;
         }
 
-        string itemName = entries.Count == 1 ? entries[0].Name : $"{entries.Count} items";
+        string itemName = entries.Count == 1
+            ? entries[0].Name
+            : _localizer?.Format("SftpItemCount", entries.Count.ToString()) ?? $"{entries.Count} items";
         string message = _localizer?.Format("SftpConfirmDelete", itemName)
             ?? $"Delete \"{itemName}\"?";
 
@@ -809,8 +823,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                       $"{L10n("SftpPropertiesSize")} {sizeText}\n" +
                       $"{L10n("SftpPropertiesModified")} {file.LastModified:yyyy-MM-dd HH:mm:ss}\n" +
                       $"{L10n("SftpPropertiesPermissions")} {file.Permissions} ({octal})\n" +
-                      $"Owner: {file.Owner}  Group: {file.Group}\n" +
-                      $"Path: {file.FullPath}";
+                      $"{L10n("SftpPropertiesOwner")} {file.Owner}  {L10n("SftpPropertiesGroup")} {file.Group}\n" +
+                      $"{L10n("SftpPropertiesPath")} {file.FullPath}";
 
         _dialogService.ShowInfo(
             _localizer?.Format("SftpPropertiesTitle", file.Name) ?? $"Properties — {file.Name}",
@@ -964,10 +978,14 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
         finally
         {
-            ssh.Disconnect();
+            SafeDisconnect(ssh);
         }
     }
 
+    /// <remarks>
+    /// Expects GNU coreutils <c>ls -la --time-style=long-iso</c> output with
+    /// eight whitespace-separated fields; BusyBox or non-GNU <c>ls</c> layouts may differ.
+    /// </remarks>
     private static IReadOnlyList<SftpFileInfo> ParseLsOutput(string output, string parentPath)
     {
         var results = new List<SftpFileInfo>();
@@ -983,12 +1001,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             var parts = line.Split((char[]?)null, 8, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 8)
             {
+                Heimdall.Core.Logging.FileLogger.Debug(
+                    $"EmbeddedSftpViewModel: skipped malformed sudo ls line: {line}");
                 continue;
             }
 
             string permissions = parts[0];
             if (permissions.Length < 2 || !"dl-cbps".Contains(permissions[0]))
             {
+                Heimdall.Core.Logging.FileLogger.Debug(
+                    $"EmbeddedSftpViewModel: skipped sudo ls line with unsupported permissions: {line}");
                 continue;
             }
 
