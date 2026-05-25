@@ -119,12 +119,9 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
     /// Loads provided content for remote editing and updates the editor state.
     /// </summary>
     /// <param name="fileName">The displayed file name or remote path.</param>
-    /// <param name="content">The current file content.</param>
     /// <param name="syntaxOverride">Optional explicit syntax name.</param>
-    public void LoadContent(string fileName, string content, string? syntaxOverride = null)
+    public void LoadContent(string fileName, string? syntaxOverride = null)
     {
-        _ = content;
-
         FilePath = fileName;
         IsRemote = true;
         IsModified = false;
@@ -190,11 +187,8 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
     /// <summary>
     /// Requests to close the editor, prompting for confirmation when unsaved changes exist.
     /// </summary>
-    /// <param name="currentText">The current editor text.</param>
-    public async Task RequestClose(string currentText)
+    public async Task RequestClose()
     {
-        _ = currentText;
-
         if (IsModified)
         {
             if (_dialogService is null)
@@ -202,7 +196,7 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
                 return;
             }
 
-            var confirmed = await _dialogService.ShowConfirmAsync(
+            bool confirmed = await _dialogService.ShowConfirmAsync(
                 L("EditorUnsavedTitle"),
                 L("EditorUnsavedMessage"),
                 "warning");
@@ -223,7 +217,8 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
     /// <param name="column">The current caret column number.</param>
     public void UpdateCursorPosition(int line, int column)
     {
-        CursorPositionText = $"Ln {line}, Col {column}";
+        CursorPositionText = _localizer?.Format("EditorCursorPosition", line.ToString(), column.ToString())
+            ?? $"Ln {line}, Col {column}";
     }
 
     /// <summary>
@@ -245,7 +240,7 @@ public sealed partial class EmbeddedEditorViewModel : ObservableObject
 
     private void UpdateDisplayTitle()
     {
-        string name = Path.GetFileName(FilePath) ?? "Untitled";
+        string name = Path.GetFileName(FilePath) ?? (_localizer?["EditorUntitled"] ?? "Untitled");
         DisplayTitle = IsModified ? $"{name} *" : name;
     }
     private string L(string key) => _localizer?[key] ?? key;

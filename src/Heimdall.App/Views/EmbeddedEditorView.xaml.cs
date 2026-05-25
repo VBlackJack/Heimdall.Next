@@ -34,6 +34,7 @@ namespace Heimdall.App.Views;
 public partial class EmbeddedEditorView : UserControl
 {
     private readonly EmbeddedEditorViewModel _viewModel;
+    private readonly LocalizationManager? _localizer;
     private HeimdallThemeService? _themeService;
     private bool _suppressTextChangeNotifications;
 
@@ -57,6 +58,7 @@ public partial class EmbeddedEditorView : UserControl
     /// <param name="localizer">Optional localization manager passed through to the view model.</param>
     public EmbeddedEditorView(LocalizationManager? localizer = null)
     {
+        _localizer = localizer;
         _viewModel = new EmbeddedEditorViewModel(localizer);
         InitializeComponent();
         DataContext = _viewModel;
@@ -126,7 +128,7 @@ public partial class EmbeddedEditorView : UserControl
     /// </summary>
     public void OpenContent(string fileName, string content, string? syntaxName = null)
     {
-        _viewModel.LoadContent(fileName, content, ResolveSyntaxName(Path.GetExtension(fileName), syntaxName));
+        _viewModel.LoadContent(fileName, ResolveSyntaxName(Path.GetExtension(fileName), syntaxName));
         SetEditorText(content);
         ApplySyntaxHighlighting();
         _viewModel.UpdateCursorPosition(Editor.TextArea.Caret.Line, Editor.TextArea.Caret.Column);
@@ -142,12 +144,28 @@ public partial class EmbeddedEditorView : UserControl
 
     private async void OnSaveClick(object sender, RoutedEventArgs e)
     {
-        await _viewModel.SaveAsync(Editor.Text);
+        try
+        {
+            await _viewModel.SaveAsync(Editor.Text);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"EmbeddedEditor save handler failed: {ex.Message}");
+        }
     }
 
     private async void OnCloseClick(object sender, RoutedEventArgs e)
     {
-        await _viewModel.RequestClose(Editor.Text);
+        try
+        {
+            await _viewModel.RequestClose();
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"EmbeddedEditor close handler failed: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -218,7 +236,8 @@ public partial class EmbeddedEditorView : UserControl
     {
         return string.IsNullOrEmpty(_viewModel.LoadErrorMessage)
             ? string.Empty
-            : $"Error loading file: {_viewModel.LoadErrorMessage}";
+            : (_localizer?.Format("EditorLoadErrorBody", _viewModel.LoadErrorMessage)
+                ?? $"Error loading file: {_viewModel.LoadErrorMessage}");
     }
 
     private static IHighlightingDefinition? ResolveHighlighting(string syntaxName)

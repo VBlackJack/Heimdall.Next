@@ -2578,6 +2578,9 @@
 
   "EditorBtnSave": "Save",
   "EditorBtnClose": "Close",
+  "EditorCursorPosition": "Ln {0}, Col {1}",
+  "EditorUntitled": "Untitled",
+  "EditorLoadErrorBody": "Error loading file: {0}",
   "EditorSaveErrorTitle": "Save Error",
   "EditorSaveErrorMessage": "Failed to save: {0}",
   "EditorUnsavedTitle": "Unsaved Changes",
