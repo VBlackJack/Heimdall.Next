@@ -143,6 +143,50 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            IsTransferInProgress = true
+        };
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+
+        await viewModel.UploadFilesAsync(["C:\\temp\\app.log"]);
+
+        Assert.Equal(0, browser.UploadCallCount);
+        Assert.True(viewModel.IsTransferInProgress);
+        Assert.Equal("A file transfer is already in progress.", viewModel.StatusText);
+    }
+
+    [Fact]
+    public void CancelTransferCommand_NoTransferRunning_DoesNotThrow()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        Exception? exception = Record.Exception(() => viewModel.CancelTransferCommand.Execute(null));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void UpdateTransferProgress_UpdatesProgressValueAndStatusText()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SftpTransferProgress progress = new("app.log", 512, 1024, true);
+
+        viewModel.UpdateTransferProgress(progress);
+
+        Assert.Equal(50, viewModel.TransferProgressValue);
+        string transferred = EmbeddedSftpViewModel.FormatSize(512);
+        string total = EmbeddedSftpViewModel.FormatSize(1024);
+        Assert.Equal($"\u2191 app.log \u2014 {transferred} / {total} (50%)", viewModel.TransferStatusText);
+    }
+
+    [Fact]
     public async Task RunOnUiAsync_OffUiThread_PostsToDispatcher()
     {
         var dispatcher = new FakeUiDispatcher(checkAccess: false);
@@ -161,5 +205,105 @@ public sealed class EmbeddedSftpViewModelTests
         Assert.NotNull(method);
         var task = method!.Invoke(viewModel, [action]) as Task;
         return task ?? throw new InvalidOperationException("RunOnUiAsync did not return a Task.");
+    }
+
+    private static void SetBrowser(EmbeddedSftpViewModel viewModel, IRemoteBrowser browser)
+    {
+        FieldInfo? field = typeof(EmbeddedSftpViewModel).GetField(
+            "_browser",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field!.SetValue(viewModel, browser);
+    }
+
+    private sealed class FakeRemoteBrowser : IRemoteBrowser
+    {
+        private int _uploadCallCount;
+
+        public event Action<string>? DirectoryChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<SftpTransferProgress>? TransferProgress
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<string?>? Disconnected
+        {
+            add { }
+            remove { }
+        }
+
+        public string CurrentDirectory => "/";
+
+        public bool IsConnected => true;
+
+        public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
+
+        public Task<IReadOnlyList<SftpFileInfo>> ListDirectoryAsync(
+            string? path = null,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
+        }
+
+        public Task<string> GetCurrentDirectoryAsync(CancellationToken ct = default)
+        {
+            return Task.FromResult(CurrentDirectory);
+        }
+
+        public Task ChangeDirectoryAsync(string path, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DownloadFileAsync(
+            string remotePath,
+            string localPath,
+            CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task UploadFileAsync(
+            string localPath,
+            string remotePath,
+            CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref _uploadCallCount);
+            return Task.CompletedTask;
+        }
+
+        public Task CreateDirectoryAsync(string path, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(string path, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ChmodAsync(string path, short mode, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RenameAsync(string oldPath, string newPath, CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public void Disconnect()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

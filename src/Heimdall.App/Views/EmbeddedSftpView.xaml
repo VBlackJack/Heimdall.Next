@@ -524,23 +524,25 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
-                Visibility="Collapsed">
+                Visibility="{Binding IsTransferInProgress, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
                 <Button x:Name="BtnCancelTransfer"
                         DockPanel.Dock="Right"
                         Content="&#xE711;"
                         ToolTip="{loc:Translate TooltipCancelTransfer}"
                         FontFamily="Segoe MDL2 Assets"
-                        Click="OnCancelTransferClick"
+                        Command="{Binding CancelTransferCommand}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}"
                         Margin="8,0,0,0"
                         AutomationProperties.Name="{loc:Translate A11yCancelTransfer}"/>
                 <StackPanel>
                     <TextBlock x:Name="TransferText"
+                               Text="{Binding TransferStatusText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <ProgressBar x:Name="TransferProgressBar"
+                                 Value="{Binding TransferProgressValue}"
                                  Height="6" Margin="0,4,0,0"
                                  Minimum="0" Maximum="100"
                                   Foreground="{DynamicResource AccentBrush}"
