@@ -51,11 +51,14 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private SshConnectionParams? _sshParams;
     private Heimdall.Ssh.HostKeyStore _hostKeyStore = null!;
     private CancellationTokenSource? _transferCts;
+    private readonly HashSet<string> _activeEditTempDirs =
+        new(StringComparer.OrdinalIgnoreCase);
     private System.Threading.Timer? _healthTimer;
     private System.Threading.Timer? _errorResetTimer;
     private string? _pendingBrowserSecurityStatus;
 
     private bool _disposed;
+    private bool _transferInProgress;
 
     /// <summary>
     /// Raised when the user clicks the Split button in the header strip.
@@ -206,6 +209,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             catch (ObjectDisposedException) { /* Expected when disposing already-closed browser */ }
 
             _browser = null;
+        }
+
+        List<string> activeEditTempDirs = _activeEditTempDirs.ToList();
+        foreach (string tempPath in activeEditTempDirs)
+        {
+            CleanupEditTempDir(tempPath);
         }
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
@@ -600,12 +609,19 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
+        if (_transferInProgress)
+        {
+            UpdateStatus(_localizer?["SftpTransferInProgress"] ?? "A file transfer is already in progress.");
+            return;
+        }
+
         _transferCts?.Cancel();
         _transferCts?.Dispose();
         _transferCts = new CancellationTokenSource();
-        var ct = _transferCts.Token;
+        CancellationToken ct = _transferCts.Token;
 
         ShowTransferPanel(true);
+        _transferInProgress = true;
 
         try
         {
@@ -647,6 +663,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
         finally
         {
+            _transferInProgress = false;
             ShowTransferPanel(false);
             _ = RefreshRemoteAsync();
         }
@@ -657,6 +674,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         var selected = GetSelectedFiles();
         if (selected.Count == 0 || _browser is null)
         {
+            return;
+        }
+
+        if (_transferInProgress)
+        {
+            UpdateStatus(_localizer?["SftpTransferInProgress"] ?? "A file transfer is already in progress.");
             return;
         }
 
@@ -673,9 +696,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _transferCts?.Cancel();
         _transferCts?.Dispose();
         _transferCts = new CancellationTokenSource();
-        var ct = _transferCts.Token;
+        CancellationToken ct = _transferCts.Token;
 
         ShowTransferPanel(true);
+        _transferInProgress = true;
 
         try
         {
@@ -721,6 +745,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
         finally
         {
+            _transferInProgress = false;
             ShowTransferPanel(false);
         }
     }
@@ -884,14 +909,17 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             return;
         }
 
+        string? tempPath = null;
+
         try
         {
             UpdateStatus(_localizer?.Format("SftpStatusEditing", file.Name)
                 ?? $"Editing: {file.Name}");
 
             // Download file content for embedded editing
-            string tempPath = Path.Combine(Path.GetTempPath(), "Heimdall", "edit", Guid.NewGuid().ToString("N"));
+            tempPath = Path.Combine(Path.GetTempPath(), "Heimdall", "edit", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempPath);
+            _activeEditTempDirs.Add(tempPath);
             string localPath = Path.Combine(tempPath, Path.GetFileName(file.Name));
 
             bool useSudo = false;
@@ -909,6 +937,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 if (_editor is not null)
                 {
                     await _editor.EditFileSudoAsync(file.FullPath, _sshParams);
+                    CleanupEditTempDir(tempPath);
                     return;
                 }
             }
@@ -987,13 +1016,43 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 editorView.CloseRequested += () =>
                 {
                     if (isSaving) return;
-                    try { File.Delete(localPath); Directory.Delete(tempPath); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedSftpView] temp file cleanup: {ex.Message}"); }
+                    CleanupEditTempDir(tempPath);
                 };
+            }
+            else
+            {
+                CleanupEditTempDir(tempPath);
             }
         }
         catch (Exception ex)
         {
             ShowError(_localizer?.Format("SftpStatusEditOpenFailed", ex.Message) ?? ex.Message);
+            if (tempPath is not null)
+            {
+                CleanupEditTempDir(tempPath);
+            }
+        }
+    }
+
+    private void CleanupEditTempDir(string tempPath)
+    {
+        if (!_activeEditTempDirs.Contains(tempPath))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.Delete(tempPath, recursive: true);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[EmbeddedSftpView] edit temp directory cleanup failed: {ex.Message}");
+        }
+        finally
+        {
+            _activeEditTempDirs.Remove(tempPath);
         }
     }
 
