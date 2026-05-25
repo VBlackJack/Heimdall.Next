@@ -10,6 +10,7 @@
              d:DesignWidth="400">
     <UserControl.Resources>
         <converters:SessionFailureStageToLabelConverter x:Key="SessionFailureStageToLabelConverter"/>
+        <converters:SessionStatusToDisplayConverter x:Key="SessionStatusToDisplayConverter"/>
     </UserControl.Resources>
     <Grid x:Name="RootGrid" ClipToBounds="True">
         <Border x:Name="PaneBorder" ClipToBounds="True"
@@ -44,7 +45,7 @@
                            FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"/>
-                <TextBlock Text="{Binding Status}"
+                <TextBlock Text="{Binding Status, Converter={StaticResource SessionStatusToDisplayConverter}}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextDisabledBrush}"
                            HorizontalAlignment="Center"
@@ -70,7 +71,7 @@
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            HorizontalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
-                <TextBlock Text="{Binding Status}"
+                <TextBlock Text="{Binding Status, Converter={StaticResource SessionStatusToDisplayConverter}}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
@@ -136,6 +137,7 @@
                 </Expander>
                 <WrapPanel HorizontalAlignment="Center">
                     <Button x:Name="ReconnectButton"
+                            Style="{DynamicResource PrimaryButtonStyle}"
                             AutomationProperties.Name="{loc:Translate SplitReconnectSecondary}"
                             Content="{loc:Translate SessionPaneBtnReconnectShort}"
                             ToolTip="{loc:Translate SplitReconnectSecondary}"
@@ -143,6 +145,7 @@
                             MinWidth="108"
                             Padding="10,5"/>
                     <Button x:Name="ClosePaneButton"
+                            Style="{DynamicResource SecondaryButtonStyle}"
                             AutomationProperties.Name="{loc:Translate SplitCloseSecondary}"
                             Content="{loc:Translate SessionPaneBtnCloseShort}"
                             ToolTip="{loc:Translate SplitCloseSecondary}"

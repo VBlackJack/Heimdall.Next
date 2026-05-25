@@ -105,11 +105,13 @@
         </Border>
 
         <!-- Row 1: Toolbar -->
-        <Border Grid.Row="1"
+        <Border x:Name="ToolbarBar"
+                Grid.Row="1"
                 Padding="8,4"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1">
+                BorderThickness="0,0,0,1"
+                SizeChanged="OnToolbarSizeChanged">
             <DockPanel LastChildFill="True">
                 <!-- Right side: filter + hidden toggle -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -203,18 +205,16 @@
                         </StackPanel>
                     </Button>
 
-                    <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                    <Border x:Name="ActionsPrivilegeSeparator"
+                            Style="{StaticResource ToolbarVerticalSeparatorStyle}"
                             AutomationProperties.AutomationId="Toolbar.Sftp.ActionsPrivilegeSeparator"/>
 
                     <ToggleButton x:Name="BtnSudoMode"
                                   Command="{Binding ToggleSudoModeCommand}"
                                   IsChecked="{Binding SudoMode, Mode=OneWay}"
                                   ToolTip="{loc:Translate SftpSudoModeTooltip}"
-                                  Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
-                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                  Background="Transparent"
-                                  BorderThickness="1"
-                                  BorderBrush="{DynamicResource BorderBrush}"
+                                  Style="{DynamicResource ToolbarToggleButtonStyle}"
+                                  FontSize="{StaticResource FontSizeCaption}"
                                   AutomationProperties.Name="{loc:Translate SftpSudoModeTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
@@ -235,7 +235,8 @@
                         </StackPanel>
                     </ToggleButton>
 
-                    <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
+                    <Border x:Name="PrivilegeBookmarksSeparator"
+                            Style="{StaticResource ToolbarVerticalSeparatorStyle}"
                             AutomationProperties.AutomationId="Toolbar.Sftp.PrivilegeBookmarksSeparator"/>
 
                     <!-- Bookmarks overflow menu -->
@@ -245,11 +246,12 @@
                             FontFamily="Segoe MDL2 Assets"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
-                            Click="OnBookmarkMenuClick"
+                            Click="OnToolbarMenuButtonClick"
                             IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate SftpBtnBookmark}">
                         <Button.ContextMenu>
                             <ContextMenu x:Name="BookmarkContextMenu"
+                                         FontFamily="Segoe UI"
                                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                 <MenuItem x:Name="MnuBookmarkAdd"
                                           Header="{loc:Translate SftpBtnBookmark}"
@@ -260,6 +262,55 @@
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <MenuItem x:Name="MnuBookmarkManage" Header="{loc:Translate SftpBtnBookmarks}" Click="OnBookmarksClick"
+                                          AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <!-- Overflow menu: hosts the labelled actions when the toolbar is too
+                         narrow to show them inline (compact mode, e.g. split panes). -->
+                    <Button x:Name="BtnOverflowMenu"
+                            Content="&#xE712;"
+                            ToolTip="{loc:Translate SftpBtnMoreActions}"
+                            FontFamily="Segoe MDL2 Assets"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
+                            Visibility="Collapsed"
+                            Click="OnToolbarMenuButtonClick"
+                            IsEnabled="{Binding IsToolbarEnabled}"
+                            AutomationProperties.Name="{loc:Translate SftpBtnMoreActions}">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="OverflowContextMenu"
+                                         FontFamily="Segoe UI"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="{loc:Translate SftpBtnUpload}"
+                                          Click="OnUploadClick"
+                                          AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{loc:Translate SftpBtnNewFolder}"
+                                          Command="{Binding CreateFolderCommand}"
+                                          AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="{loc:Translate SftpBtnBookmark}"
+                                          Command="{Binding AddBookmarkCommand}"
+                                          AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{loc:Translate SftpBtnBookmarks}"
+                                          Click="OnBookmarksClick"
                                           AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource Self}}">
                                     <MenuItem.Icon>
                                         <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>

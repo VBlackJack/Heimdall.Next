@@ -51,6 +51,9 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 {
     private const double FileListWidthPadding = 10;
     private const double MinimumNameColumnWidth = 200;
+    // Toolbar width (px) below which the labelled actions collapse into the
+    // overflow menu. First estimate — tune against split-pane screenshots.
+    private const double ToolbarCompactThresholdPx = 780;
 
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
     private readonly EmbeddedSftpViewModel _viewModel;
@@ -69,6 +72,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private string? _pendingBrowserSecurityStatus;
 
     private bool _disposed;
+    private bool _toolbarCompact;
 
     /// <summary>
     /// Raised when the user clicks the Split button in the header strip.
@@ -406,7 +410,33 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
     }
 
-    private void OnBookmarkMenuClick(object sender, RoutedEventArgs e)
+    private void OnToolbarSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        bool compact = e.NewSize.Width < ToolbarCompactThresholdPx;
+        if (compact == _toolbarCompact)
+        {
+            return;
+        }
+
+        _toolbarCompact = compact;
+        ApplyToolbarLayout(compact);
+    }
+
+    private void ApplyToolbarLayout(bool compact)
+    {
+        Visibility inlineActions = compact ? Visibility.Collapsed : Visibility.Visible;
+        Visibility overflow = compact ? Visibility.Visible : Visibility.Collapsed;
+
+        BtnUpload.Visibility = inlineActions;
+        BtnNewFolder.Visibility = inlineActions;
+        ActionsPrivilegeSeparator.Visibility = inlineActions;
+        PrivilegeBookmarksSeparator.Visibility = inlineActions;
+        BtnBookmarkMenu.Visibility = inlineActions;
+        BtnSudoModeText.Visibility = inlineActions;
+        BtnOverflowMenu.Visibility = overflow;
+    }
+
+    private void OnToolbarMenuButtonClick(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button btn && btn.ContextMenu is not null)
         {
@@ -425,7 +455,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         var menu = new ContextMenu
         {
-            PlacementTarget = BtnBookmarkMenu,
+            PlacementTarget = _toolbarCompact ? BtnOverflowMenu : BtnBookmarkMenu,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
         };
 
