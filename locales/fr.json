@@ -42,6 +42,8 @@
   "ErrorSshPassphraseRequired": "La cl\u00e9 SSH n\u00e9cessite une passphrase. Configurez la passphrase de cl\u00e9 ou chargez-la dans un agent SSH.",
   "ErrorSshPassphraseRejected": "La passphrase de la cl\u00e9 SSH a \u00e9t\u00e9 rejet\u00e9e.",
   "ErrorSshPasswordRejected": "Le mot de passe SSH a \u00e9t\u00e9 rejet\u00e9 par le serveur.",
+  "ErrorSudoPasswordUnavailable": "Le serveur exige un mot de passe pour sudo, mais cette session s'authentifie par cl\u00e9 SSH. Active le sudo sans mot de passe (NOPASSWD) pour ton compte sur cet h\u00f4te, ou reconnecte-toi avec une session par mot de passe.",
+  "ErrorSudoPasswordRejected": "sudo a refus\u00e9 le mot de passe. Le mot de passe sudo du serveur diff\u00e8re du mot de passe SSH de cette session.",
   "DialogSshPasswordPromptTitle": "Mot de passe SSH requis",
   "DialogSshPasswordPromptMessage": "Saisissez le mot de passe SSH pour {0}.",
   "ErrorSshProtocolError": "Erreur de protocole SSH. Le serveur utilise peut-\u00eatre une version de protocole incompatible.",

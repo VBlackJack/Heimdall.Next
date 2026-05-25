@@ -38,6 +38,14 @@ namespace Heimdall.App.ViewModels;
 public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
+    private const string SudoStderrTerminalRequired = "a terminal is required";
+    private const string SudoStderrNoTtyPresent = "no tty present";
+    private const string SudoStderrNoAskpass = "no askpass";
+    private const string SudoStderrPasswordRequired = "a password is required";
+    private const string SudoStderrIncorrectPasswordAttempt = "incorrect password attempt";
+    private const string SudoStderrSorryTryAgain = "sorry, try again";
+    private const string SudoStderrNoPasswordProvided = "no password was provided";
+
     private readonly Stack<string> _navigationHistory = new();
     private readonly IUiDispatcher _uiDispatcher;
     private IRemoteBrowser? _browser;
@@ -415,6 +423,20 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Sets a localized transfer error status, including typed sudo authentication failures.
+    /// </summary>
+    public string SetTransferError(Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(ex);
+
+        string message = ex is SudoAuthenticationException sudoException
+            ? GetSudoAuthenticationErrorMessage(sudoException.Kind)
+            : _localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message;
+
+        return SetErrorStatus(message);
+    }
+
+    /// <summary>
     /// Raises the split request event.
     /// </summary>
     public void RequestSplit()
@@ -496,10 +518,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                     ct)
                 .ConfigureAwait(false);
 
-            if (cmd.ExitStatus != 0)
-            {
-                throw new InvalidOperationException($"Command failed (exit {cmd.ExitStatus}): {cmd.Error}");
-            }
+            EnsureSudoSucceeded(cmd, "command");
         }
         finally
         {
@@ -536,10 +555,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         CancellationToken ct)
     {
         Renci.SshNet.SshCommand? command = null;
+        Task? executeTask = null;
         try
         {
             command = ssh.CreateCommand(commandText);
-            Task executeTask = command.ExecuteAsync(ct);
+            executeTask = command.ExecuteAsync(ct);
             byte[] passwordBytes = Encoding.UTF8.GetBytes(password + "\n");
 
             using (Stream inputStream = command.CreateInputStream())
@@ -557,6 +577,19 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         catch
         {
             command?.Dispose();
+
+            if (executeTask is not null)
+            {
+                try
+                {
+                    await executeTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Preserve the original exception from the stdin write path.
+                }
+            }
+
             throw;
         }
     }
@@ -575,10 +608,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody, ct)
                 .ConfigureAwait(false);
 
-            if (cmd.ExitStatus != 0)
-            {
-                throw new InvalidOperationException($"sudo base64 failed (exit {cmd.ExitStatus}): {cmd.Error}");
-            }
+            EnsureSudoSucceeded(cmd, "base64");
 
             byte[] bytes = DecodeSudoBase64(cmd.Result ?? string.Empty);
             await File.WriteAllBytesAsync(localPath, bytes, ct).ConfigureAwait(false);
@@ -613,11 +643,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, write, ct)
                     .ConfigureAwait(false);
 
-                if (cmd.ExitStatus != 0)
-                {
-                    throw new InvalidOperationException(
-                        $"sudo cp failed (exit {cmd.ExitStatus}): {cmd.Error}");
-                }
+                EnsureSudoSucceeded(cmd, "cp");
             }
             finally
             {
@@ -628,6 +654,27 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             SafeDisconnect(ssh);
         }
+    }
+
+    private static void EnsureSudoSucceeded(Renci.SshNet.SshCommand cmd, string operationLabel)
+    {
+        ArgumentNullException.ThrowIfNull(cmd);
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationLabel);
+
+        if (cmd.ExitStatus == 0)
+        {
+            return;
+        }
+
+        string stderr = cmd.Error ?? string.Empty;
+        SudoFailureKind failureKind = ClassifySudoStderr(stderr);
+        if (failureKind is SudoFailureKind.PasswordUnavailable or SudoFailureKind.PasswordRejected)
+        {
+            throw new SudoAuthenticationException(failureKind, stderr);
+        }
+
+        throw new InvalidOperationException(
+            $"sudo {operationLabel} failed (exit {cmd.ExitStatus}): {stderr}");
     }
 
     private static void SafeDisconnect(Renci.SshNet.SshClient ssh)
@@ -705,7 +752,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         catch (Exception ex)
         {
             await RunOnUiAsync(() =>
-                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
+                SetTransferError(ex));
         }
     }
 
@@ -750,7 +797,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         catch (Exception ex)
         {
             await RunOnUiAsync(() =>
-                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
+                SetTransferError(ex));
         }
     }
 
@@ -804,7 +851,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         catch (Exception ex)
         {
             await RunOnUiAsync(() =>
-                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
+                SetTransferError(ex));
         }
     }
 
@@ -858,7 +905,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         catch (Exception ex)
         {
             await RunOnUiAsync(() =>
-                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
+                SetTransferError(ex));
         }
     }
 
@@ -942,6 +989,36 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             : $"sudo {privilegedBody}";
     }
 
+    internal static SudoFailureKind ClassifySudoStderr(string? stderr)
+    {
+        if (string.IsNullOrEmpty(stderr))
+        {
+            return SudoFailureKind.None;
+        }
+
+        if (ContainsSudoStderr(stderr, SudoStderrTerminalRequired)
+            || ContainsSudoStderr(stderr, SudoStderrNoTtyPresent)
+            || ContainsSudoStderr(stderr, SudoStderrNoAskpass)
+            || ContainsSudoStderr(stderr, SudoStderrPasswordRequired))
+        {
+            return SudoFailureKind.PasswordUnavailable;
+        }
+
+        if (ContainsSudoStderr(stderr, SudoStderrIncorrectPasswordAttempt)
+            || ContainsSudoStderr(stderr, SudoStderrSorryTryAgain)
+            || ContainsSudoStderr(stderr, SudoStderrNoPasswordProvided))
+        {
+            return SudoFailureKind.PasswordRejected;
+        }
+
+        return SudoFailureKind.None;
+    }
+
+    private static bool ContainsSudoStderr(string stderr, string match)
+    {
+        return stderr.Contains(match, StringComparison.OrdinalIgnoreCase);
+    }
+
     internal static string BuildSudoBase64DownloadBody(string remotePath)
     {
         return $"base64 -- {PathEscaper.EscapeForShell(remotePath)}";
@@ -1019,7 +1096,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             Core.Logging.FileLogger.Warn($"EmbeddedSFTP LoadDirectory failed: {ex.Message}");
             await RunOnUiAsync(() =>
-                SetErrorStatus(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message));
+                SetTransferError(ex));
         }
         finally
         {
@@ -1038,10 +1115,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody)
                 .ConfigureAwait(false);
 
-            if (cmd.ExitStatus != 0)
-            {
-                throw new InvalidOperationException($"sudo ls failed (exit {cmd.ExitStatus}): {cmd.Error}");
-            }
+            EnsureSudoSucceeded(cmd, "ls");
 
             return ParseLsOutput(cmd.Result ?? string.Empty, path);
         }
@@ -1138,6 +1212,24 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     private string L10n(string key) => _localizer?.GetString(key) ?? key;
+
+    private string GetSudoAuthenticationErrorMessage(SudoFailureKind kind)
+    {
+        return kind switch
+        {
+            SudoFailureKind.PasswordUnavailable => L10n("ErrorSudoPasswordUnavailable"),
+            SudoFailureKind.PasswordRejected => L10n("ErrorSudoPasswordRejected"),
+            _ => _localizer?.Format("SftpStatusTransferFailed", "sudo authentication failed")
+                ?? "sudo authentication failed",
+        };
+    }
+}
+
+internal enum SudoFailureKind
+{
+    None,
+    PasswordUnavailable,
+    PasswordRejected,
 }
 
 internal static class SudoUploadCommands

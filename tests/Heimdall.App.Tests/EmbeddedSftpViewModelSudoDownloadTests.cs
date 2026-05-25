@@ -50,6 +50,26 @@ public sealed class EmbeddedSftpViewModelSudoDownloadTests
         Assert.Equal(@"base64 -- '/etc/ssh/it'\''s config'", command);
     }
 
+    [Theory]
+    [InlineData("sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper", nameof(SudoFailureKind.PasswordUnavailable))]
+    [InlineData("sudo: no tty present and no askpass program specified", nameof(SudoFailureKind.PasswordUnavailable))]
+    [InlineData("sudo: a password is required", nameof(SudoFailureKind.PasswordUnavailable))]
+    [InlineData("Sorry, try again.", nameof(SudoFailureKind.PasswordRejected))]
+    [InlineData("sudo: 3 incorrect password attempts", nameof(SudoFailureKind.PasswordRejected))]
+    [InlineData("sudo: no password was provided", nameof(SudoFailureKind.PasswordRejected))]
+    [InlineData("sudo: unable to resolve host labbox", nameof(SudoFailureKind.None))]
+    [InlineData("", nameof(SudoFailureKind.None))]
+    [InlineData(null, nameof(SudoFailureKind.None))]
+    public void ClassifySudoStderr_ProducerClassifiesAuthenticationFailures(
+        string? stderr,
+        string expectedName)
+    {
+        SudoFailureKind expected = Enum.Parse<SudoFailureKind>(expectedName);
+        SudoFailureKind actual = EmbeddedSftpViewModel.ClassifySudoStderr(stderr);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void DecodeSudoBase64_RoundTripsBinaryBytes()
     {
