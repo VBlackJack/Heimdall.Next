@@ -45,6 +45,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
+                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.Name="{loc:Translate A11yDisconnectSession}"/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
@@ -55,7 +56,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        Visibility="Collapsed"
+                        Visibility="{Binding IsDisconnected, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.Name="{loc:Translate A11yReconnectSession}"/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -142,7 +143,7 @@
                             Command="{Binding NavigateBackCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
-                            IsEnabled="False"
+                            IsEnabled="{Binding CanNavigateBack}"
                             AutomationProperties.Name="{loc:Translate A11yNavigateBack}"/>
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
@@ -151,6 +152,7 @@
                             Command="{Binding NavigateUpCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate A11yNavigateUp}"/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
@@ -159,6 +161,7 @@
                             Command="{Binding NavigateHomeCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate A11yNavigateHome}"/>
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
@@ -167,6 +170,7 @@
                             Command="{Binding RefreshCommand}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate A11yRefreshDirectory}"/>
 
                     <Border Style="{StaticResource ToolbarVerticalSeparatorStyle}"
@@ -177,6 +181,7 @@
                             ToolTip="{loc:Translate TooltipUploadFiles}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate A11yUploadFiles}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
@@ -189,6 +194,7 @@
                             ToolTip="{loc:Translate TooltipCreateFolder}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate A11yCreateFolder}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
@@ -240,6 +246,7 @@
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                             Click="OnBookmarkMenuClick"
+                            IsEnabled="{Binding IsToolbarEnabled}"
                             AutomationProperties.Name="{loc:Translate SftpBtnBookmark}">
                         <Button.ContextMenu>
                             <ContextMenu x:Name="BookmarkContextMenu"
@@ -281,6 +288,7 @@
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                         Margin="4,0,0,0"
+                        IsEnabled="{Binding IsToolbarEnabled}"
                         AutomationProperties.Name="{loc:Translate SftpBtnGoPath}"/>
                 <TextBox x:Name="PathTextBox"
                          Style="{DynamicResource ThemedTextBoxStyle}"
@@ -288,6 +296,7 @@
                          FontFamily="{StaticResource FontFamilyMonospace}"
                          VerticalContentAlignment="Center"
                          Text="{Binding PathBarText, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding IsToolbarEnabled}"
                          AutomationProperties.Name="{loc:Translate A11yTxtPath}">
                     <TextBox.InputBindings>
                         <KeyBinding Key="Enter" Command="{Binding GoToPathCommand}"/>
