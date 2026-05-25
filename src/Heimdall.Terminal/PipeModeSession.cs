@@ -185,17 +185,17 @@ public sealed class PipeModeSession : ITerminalSession
 
     private async Task ReadStreamLoop(System.IO.Stream stream, CancellationToken ct)
     {
-        var buffer = new byte[4096];
+        byte[] buffer = new byte[4096];
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                var bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false);
+                int bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false);
                 if (bytesRead <= 0) break;
 
-                var copy = new byte[bytesRead];
+                byte[] copy = new byte[bytesRead];
                 Buffer.BlockCopy(buffer, 0, copy, 0, bytesRead);
-                DataReceived?.Invoke(new ReadOnlyMemory<byte>(copy, 0, bytesRead));
+                SafeInvokeDataReceived(new ReadOnlyMemory<byte>(copy, 0, bytesRead));
             }
         }
         catch (OperationCanceledException) { /* Expected when session is disposed or cancelled */ }
@@ -204,8 +204,32 @@ public sealed class PipeModeSession : ITerminalSession
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
-        var exitCode = 0;
+        int exitCode = 0;
         try { exitCode = _process?.ExitCode ?? -1; } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] OnProcessExited: {ex.Message}"); }
-        ProcessExited?.Invoke(exitCode);
+        SafeInvokeProcessExited(exitCode);
+    }
+
+    private void SafeInvokeDataReceived(ReadOnlyMemory<byte> data)
+    {
+        try
+        {
+            DataReceived?.Invoke(data);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] DataReceived subscriber: {ex.Message}");
+        }
+    }
+
+    private void SafeInvokeProcessExited(int exitCode)
+    {
+        try
+        {
+            ProcessExited?.Invoke(exitCode);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] ProcessExited subscriber: {ex.Message}");
+        }
     }
 }

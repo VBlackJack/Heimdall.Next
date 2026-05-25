@@ -174,7 +174,7 @@ public sealed class TelnetSession : ITerminalSession
             _stream?.Close();
             _client?.Close();
         }
-        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Kill: {ex.Message}"); }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] CloseConnection: {ex.Message}"); }
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ public sealed class TelnetSession : ITerminalSession
         catch (OperationCanceledException) { /* Expected on session dispose */ }
         catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] ReadLoop: {ex.Message}"); }
 
-        ProcessExited?.Invoke(0);
+        SafeInvokeProcessExited(0);
     }
 
     /// <summary>
@@ -350,6 +350,31 @@ public sealed class TelnetSession : ITerminalSession
     private void EmitData(ReadOnlySpan<byte> data)
     {
         if (data.IsEmpty) return;
-        DataReceived?.Invoke(data.ToArray());
+        byte[] copy = data.ToArray();
+        SafeInvokeDataReceived(copy);
+    }
+
+    private void SafeInvokeDataReceived(ReadOnlyMemory<byte> data)
+    {
+        try
+        {
+            DataReceived?.Invoke(data);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] DataReceived subscriber: {ex.Message}");
+        }
+    }
+
+    private void SafeInvokeProcessExited(int exitCode)
+    {
+        try
+        {
+            ProcessExited?.Invoke(exitCode);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] ProcessExited subscriber: {ex.Message}");
+        }
     }
 }

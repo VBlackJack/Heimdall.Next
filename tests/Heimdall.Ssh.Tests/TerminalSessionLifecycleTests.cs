@@ -16,6 +16,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using Heimdall.Terminal;
 
 namespace Heimdall.Ssh.Tests;
@@ -75,6 +76,88 @@ public sealed class TerminalSessionLifecycleTests
         }
     }
 
+    [Fact]
+    public async Task PipeModeSession_DataReceivedSubscriberException_DoesNotStopReadLoop()
+    {
+        PipeModeSession session = new();
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callbackCount = 0;
+
+        session.DataReceived += _ =>
+        {
+            Interlocked.Increment(ref callbackCount);
+            throw new InvalidOperationException("Test subscriber failure.");
+        };
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+
+        await session.StartAsync(
+            ResolvePowerShellExecutable(),
+            "-NoLogo -NoProfile -NonInteractive -Command \"Write-Output 'first'; Start-Sleep -Milliseconds 300; Write-Output 'second'; exit 0\"");
+
+        int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        session.Dispose();
+
+        Assert.Equal(0, exitCode);
+        Assert.True(callbackCount >= 2, $"Expected the read loop to survive the first subscriber exception, got {callbackCount} callback(s).");
+    }
+
+    [Fact]
+    public async Task PipeModeSession_ProcessExitedSubscriberException_DoesNotSurfaceToCaller()
+    {
+        PipeModeSession session = new();
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+        session.ProcessExited += _ => throw new InvalidOperationException("Test subscriber failure.");
+
+        Exception? observedException = await Record.ExceptionAsync(async () =>
+        {
+            await session.StartAsync(
+                ResolvePowerShellExecutable(),
+                "-NoLogo -NoProfile -NonInteractive -Command \"exit 12\"");
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(12, exitCode);
+            session.Dispose();
+        });
+
+        Assert.Null(observedException);
+    }
+
+    [Fact]
+    public async Task TelnetSession_DataReceivedSubscriberException_DoesNotStopReadLoop()
+    {
+        int port = ReserveLoopbackPort();
+        TcpListener listener = new(IPAddress.Loopback, port);
+        TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callbackCount = 0;
+
+        listener.Start();
+        Task serverTask = SendTwoTelnetChunksAsync(listener);
+
+        session.DataReceived += _ =>
+        {
+            Interlocked.Increment(ref callbackCount);
+            throw new InvalidOperationException("Test subscriber failure.");
+        };
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+
+        try
+        {
+            await session.StartAsync(string.Empty, string.Empty);
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(10));
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(0, exitCode);
+            Assert.True(callbackCount >= 2, $"Expected the read loop to survive the first subscriber exception, got {callbackCount} callback(s).");
+        }
+        finally
+        {
+            session.Dispose();
+            listener.Stop();
+        }
+    }
+
     private static string ResolvePowerShellExecutable()
     {
         string windowsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -94,6 +177,21 @@ public sealed class TerminalSessionLifecycleTests
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    private static async Task SendTwoTelnetChunksAsync(TcpListener listener)
+    {
+        using TcpClient client = await listener.AcceptTcpClientAsync();
+        await using NetworkStream stream = client.GetStream();
+
+        byte[] first = Encoding.ASCII.GetBytes("first");
+        byte[] second = Encoding.ASCII.GetBytes("second");
+
+        await stream.WriteAsync(first);
+        await stream.FlushAsync();
+        await Task.Delay(300);
+        await stream.WriteAsync(second);
+        await stream.FlushAsync();
     }
 
     private static void AssertProcessHasExited(int processId)

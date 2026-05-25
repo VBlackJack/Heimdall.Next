@@ -420,9 +420,9 @@ public sealed class ConPtySession : ITerminalSession
                         break;
 
                     // Deliver a copy to subscribers so the buffer can be reused.
-                    var copy = new byte[bytesRead];
+                    byte[] copy = new byte[bytesRead];
                     Buffer.BlockCopy(buffer, 0, copy, 0, bytesRead);
-                    DataReceived?.Invoke(copy.AsMemory());
+                    SafeInvokeDataReceived(copy.AsMemory());
                 }
             }
             catch (OperationCanceledException) { /* Expected when session is disposed */ }
@@ -440,9 +440,33 @@ public sealed class ConPtySession : ITerminalSession
                     if (NativeMethods.GetExitCodeProcess(_processHandle, out uint ec))
                         exitCode = (int)ec;
                 }
-                ProcessExited?.Invoke(exitCode);
+                SafeInvokeProcessExited(exitCode);
             }
         }, token);
+    }
+
+    private void SafeInvokeDataReceived(ReadOnlyMemory<byte> data)
+    {
+        try
+        {
+            DataReceived?.Invoke(data);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] DataReceived subscriber: {ex.Message}");
+        }
+    }
+
+    private void SafeInvokeProcessExited(int exitCode)
+    {
+        try
+        {
+            ProcessExited?.Invoke(exitCode);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] ProcessExited subscriber: {ex.Message}");
+        }
     }
 
     private void TerminateAndCloseProcess()
