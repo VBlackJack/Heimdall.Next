@@ -24,11 +24,7 @@ public static class RdpDisplayResolver
 {
     private const int MinDesktopWidthPx = 640;
     private const int WidthSnapMultiplePx = 4;
-    private const uint HighDeviceScaleThresholdPercent = 140;
-    private const uint StandardDeviceScaleFactor = 100u;
-    private const uint HighDeviceScaleFactor = 140u;
 
-    private static readonly uint[] DesktopScaleFactors = [100, 125, 150, 175, 200];
     private static readonly Size DefaultSize = new(1024, 768);
 
     public static EffectiveDisplayContext Resolve(
@@ -41,10 +37,9 @@ public static class RdpDisplayResolver
         ArgumentNullException.ThrowIfNull(hostContext);
         ArgumentNullException.ThrowIfNull(presets);
 
-        var desktopScaleFactor = ResolveDesktopScaleFactor(hostContext.DesktopDpiScale);
-        var deviceScaleFactor = desktopScaleFactor <= HighDeviceScaleThresholdPercent
-            ? StandardDeviceScaleFactor
-            : HighDeviceScaleFactor;
+        // Desktop/device scale factors map onto the canonical RDP API tables.
+        var desktopScaleFactor = RdpDisplayHelper.MapDpiToDesktopScaleFactor(hostContext.DesktopDpiScale);
+        var deviceScaleFactor = RdpDisplayHelper.MapDpiToDeviceScaleFactor(hostContext.DesktopDpiScale);
 
         return configuredMode switch
         {
@@ -287,27 +282,5 @@ public static class RdpDisplayResolver
         return floorToDesktopMinimum && snapped < MinDesktopWidthPx
             ? MinDesktopWidthPx
             : snapped;
-    }
-
-    private static uint ResolveDesktopScaleFactor(double dpiScale)
-    {
-        var percent = double.IsNaN(dpiScale) || double.IsInfinity(dpiScale) || dpiScale <= 0
-            ? 100
-            : dpiScale * 100;
-        var nearest = DesktopScaleFactors[0];
-        var nearestDistance = Math.Abs(percent - nearest);
-
-        for (var i = 1; i < DesktopScaleFactors.Length; i++)
-        {
-            var candidate = DesktopScaleFactors[i];
-            var distance = Math.Abs(percent - candidate);
-            if (distance < nearestDistance)
-            {
-                nearest = candidate;
-                nearestDistance = distance;
-            }
-        }
-
-        return nearest;
     }
 }
