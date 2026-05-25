@@ -160,7 +160,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             sftpBrowser.SecurityEventOccurred += OnBrowserSecurityEvent;
         }
 
-        ApplyLocalization();
         UpdateStatus(_localizer["SftpStatusConnected"]);
         StartHealthTimer();
 
@@ -223,85 +222,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
         Core.Logging.FileLogger.Info("EmbeddedSFTP Dispose completed");
-    }
-
-    // ------------------------------------------------------------------
-    // Localization
-    // ------------------------------------------------------------------
-
-    private void ApplyLocalization()
-    {
-        if (_localizer is null)
-        {
-            return;
-        }
-
-        DisconnectButton.Content = _localizer["SftpBtnClose"];
-        ReconnectButton.Content = _localizer["SftpBtnReconnect"];
-        BtnUploadText.Text = _localizer["SftpBtnUpload"];
-        BtnNewFolderText.Text = _localizer["SftpBtnNewFolder"];
-        BtnCancelTransfer.ToolTip = _localizer["TooltipCancelTransfer"];
-        System.Windows.Automation.AutomationProperties.SetName(BtnCancelTransfer, _localizer["A11yCancelTransfer"]);
-        BtnBookmarkMenu.ToolTip = _localizer["SftpBtnBookmark"];
-        MnuBookmarkAdd.Header = _localizer["SftpBtnBookmark"];
-        MnuBookmarkManage.Header = _localizer["SftpBtnBookmarks"];
-        ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
-        BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
-        BtnSudoModeText.Text = _localizer["SftpSudoModeLabel"];
-
-        // Tooltips
-        BtnBack.ToolTip = _localizer["TooltipNavigateBack"];
-        BtnUp.ToolTip = _localizer["TooltipNavigateUp"];
-        BtnHome.ToolTip = _localizer["TooltipNavigateHome"];
-        BtnRefresh.ToolTip = _localizer["TooltipRefreshDirectory"];
-        BtnUpload.ToolTip = _localizer["TooltipUploadFiles"];
-        BtnNewFolder.ToolTip = _localizer["TooltipCreateFolder"];
-        DisconnectButton.ToolTip = _localizer["TooltipDisconnectSession"];
-        ReconnectButton.ToolTip = _localizer["TooltipReconnectSession"];
-        SplitButton.ToolTip = _localizer["TooltipSplitSession"];
-
-        BtnGoPath.ToolTip = _localizer["SftpBtnGoPath"];
-        System.Windows.Automation.AutomationProperties.SetName(BtnGoPath, _localizer["SftpBtnGoPath"]);
-
-        FilterTextBox.Tag = _localizer["SftpFilterPlaceholder"];
-
-        CtxOpen.Header = _localizer["SftpCtxOpen"];
-        CtxEdit.Header = _localizer["SftpCtxEdit"];
-        CtxEditExternal.Header = _localizer["SftpCtxEditExternal"];
-        CtxDownload.Header = _localizer["SftpBtnDownload"];
-        CtxRename.Header = _localizer["SftpBtnRename"];
-        CtxDelete.Header = _localizer["SftpBtnDelete"];
-        CtxChmod.Header = _localizer["SftpCtxChmod"];
-        CtxCopyPath.Header = _localizer["SftpCopyPath"];
-        CtxProperties.Header = _localizer["SftpCtxProperties"];
-        CtxUploadHere.Header = _localizer["SftpCtxUploadHere"];
-        CtxOpenInTerminal.Header = _localizer["SftpCtxOpenInTerminal"];
-
-        EmptyDirectoryText.Text = _localizer["SftpEmptyDirectory"];
-        DragDropOverlayText.Text = _localizer["SftpDragDropOverlay"];
-
-        // Accessibility: automation names for toolbar buttons
-        System.Windows.Automation.AutomationProperties.SetName(BtnBack, _localizer["A11yNavigateBack"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnUp, _localizer["A11yNavigateUp"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnHome, _localizer["A11yNavigateHome"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, _localizer["A11yRefreshDirectory"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnUpload, _localizer["A11yUploadFiles"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnNewFolder, _localizer["A11yCreateFolder"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnBookmarkMenu, _localizer["SftpBtnBookmark"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnSudoMode, _localizer["SftpSudoModeTooltip"]);
-        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["A11yDisconnectSession"]);
-        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, _localizer["A11yReconnectSession"]);
-        System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["A11ySplitSession"]);
-        System.Windows.Automation.AutomationProperties.SetName(ToggleHiddenCheckBox, _localizer["SftpToggleHidden"]);
-
-        if (FileListView.View is GridView gridView)
-        {
-            if (gridView.Columns.Count > 0) gridView.Columns[0].Header = _localizer["SftpColName"];
-            if (gridView.Columns.Count > 1) gridView.Columns[1].Header = _localizer["SftpColSize"];
-            if (gridView.Columns.Count > 2) gridView.Columns[2].Header = _localizer["SftpColModified"];
-            if (gridView.Columns.Count > 3) gridView.Columns[3].Header = _localizer["SftpColPermissions"];
-            if (gridView.Columns.Count > 4) gridView.Columns[4].Header = _localizer["SftpColOwner"];
-        }
     }
 
     // ------------------------------------------------------------------
