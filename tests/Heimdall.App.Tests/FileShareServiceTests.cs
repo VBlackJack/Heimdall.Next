@@ -157,6 +157,45 @@ public sealed class FileShareServiceTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task StartAsync_AfterDispose_ThrowsObjectDisposedException()
+    {
+        FileShareService service = new();
+        await service.DisposeAsync();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.StartAsync(_testDir, null));
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenNeverStarted_IsIdempotent()
+    {
+        await using FileShareService service = new();
+
+        await service.StopAsync();
+        await service.StopAsync();
+    }
+
+    [Fact]
+    public async Task StartAsync_WhileSharing_ThrowsInvalidOperationException()
+    {
+        await using FileShareService service = new();
+        bool started = await service.StartAsync(_testDir, CreateSettings(enableTftp: false));
+        if (!started)
+        {
+            return; // skip — listeners unavailable in this environment
+        }
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.StartAsync(_testDir, CreateSettings(enableTftp: false)));
+        }
+        finally
+        {
+            await service.StopAsync();
+        }
+    }
+
     private static AppSettings CreateSettings(bool enableTftp)
     {
         return new AppSettings

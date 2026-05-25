@@ -15,11 +15,13 @@
  */
 
 using System.IO;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using Heimdall.App.Services;
 
@@ -93,6 +95,39 @@ public class EphemeralFileServerTests : IDisposable
         Assert.NotNull(redactToken);
 
         return (string)redactToken!.Invoke(null, [url])!;
+    }
+
+    private static async Task<(HttpStatusCode StatusCode, string Body)> SendRawAuthenticatedGetAsync(
+        int port,
+        string path,
+        string accessToken)
+    {
+        using TcpClient client = new();
+        await client.ConnectAsync(IPAddress.Loopback, port);
+
+        await using NetworkStream stream = client.GetStream();
+        string request =
+            $"GET {path} HTTP/1.1\r\n" +
+            $"Host: localhost:{port}\r\n" +
+            $"Authorization: Bearer {accessToken}\r\n" +
+            "Connection: close\r\n\r\n";
+        byte[] requestBytes = Encoding.ASCII.GetBytes(request);
+        await stream.WriteAsync(requestBytes);
+
+        using MemoryStream responseBuffer = new();
+        await stream.CopyToAsync(responseBuffer);
+        string responseText = Encoding.UTF8.GetString(responseBuffer.ToArray());
+
+        int statusLineEnd = responseText.IndexOf("\r\n", StringComparison.Ordinal);
+        Assert.True(statusLineEnd > 0);
+        string statusLine = responseText[..statusLineEnd];
+        string[] statusParts = statusLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+        Assert.True(statusParts.Length >= 2);
+        HttpStatusCode statusCode = (HttpStatusCode)int.Parse(statusParts[1], CultureInfo.InvariantCulture);
+
+        int bodyStart = responseText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        string body = bodyStart >= 0 ? responseText[(bodyStart + 4)..] : string.Empty;
+        return (statusCode, body);
     }
 
     // ── Initial state ─────────────────────────────────────────────────
@@ -335,6 +370,63 @@ public class EphemeralFileServerTests : IDisposable
         using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/../{0}")]
+    [InlineData("/%2e%2e/{0}")]
+    [InlineData("/../../{0}")]
+    public async Task Http_Request_With_Valid_Token_Does_Not_Return_Path_Traversal_Target(
+        string traversalPathTemplate)
+    {
+        int httpPort = GetFreeTcpPort();
+        string allowedContent = "allowed-content";
+        string secretContent = $"secret-content-{Guid.NewGuid():N}";
+        string allowedPath = Path.Combine(_testDir, "allowed.txt");
+        DirectoryInfo parentDirectory = Directory.GetParent(_testDir)
+            ?? throw new InvalidOperationException("Test directory has no parent.");
+        string secretFileName = $"secret-{Guid.NewGuid():N}.txt";
+        string secretPath = Path.Combine(parentDirectory.FullName, secretFileName);
+        await File.WriteAllTextAsync(allowedPath, allowedContent);
+        await File.WriteAllTextAsync(secretPath, secretContent);
+
+        try
+        {
+            try
+            {
+                await _server.StartHttpServerAsync(_testDir, httpPort);
+            }
+            catch (Exception ex) when (IsPortException(ex))
+            {
+                return; // skip — port unavailable in this environment
+            }
+
+            await Task.Delay(50);
+
+            (HttpStatusCode StatusCode, string Body) allowedResponse =
+                await SendRawAuthenticatedGetAsync(httpPort, "/allowed.txt", _server.AccessToken);
+
+            Assert.Equal(HttpStatusCode.OK, allowedResponse.StatusCode);
+            Assert.Equal(allowedContent, allowedResponse.Body);
+
+            string traversalPath = string.Format(
+                CultureInfo.InvariantCulture,
+                traversalPathTemplate,
+                secretFileName);
+            (HttpStatusCode StatusCode, string Body) traversalResponse =
+                await SendRawAuthenticatedGetAsync(httpPort, traversalPath, _server.AccessToken);
+
+            Assert.True(
+                traversalResponse.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound,
+                $"Expected 403 or 404, got {(int)traversalResponse.StatusCode}.");
+            Assert.DoesNotContain(secretContent, traversalResponse.Body, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { File.Delete(secretPath); }
+            catch { /* test cleanup */ }
+            await _server.StopHttpServerAsync();
+        }
     }
 
     // ── TFTP lifecycle ────────────────────────────────────────────────
