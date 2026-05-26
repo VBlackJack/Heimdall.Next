@@ -23,6 +23,12 @@ namespace Heimdall.Ssh.Tests;
 
 public sealed class TerminalSessionLifecycleTests
 {
+    private const byte Iac = 255;
+    private const byte Do = 253;
+    private const byte Sb = 250;
+    private const byte Se = 240;
+    private const byte Naws = 31;
+
     [Fact]
     public async Task PipeModeSession_Dispose_TerminatesRunningProcess()
     {
@@ -158,6 +164,90 @@ public sealed class TerminalSessionLifecycleTests
         }
     }
 
+    [Fact]
+    public async Task TelnetSession_Parser_EscapedIacSplitByteByByte_EmitsSingleLiteralIac()
+    {
+        await AssertTelnetByteByByteAsync(
+            new byte[] { Iac, Iac },
+            new byte[] { Iac });
+    }
+
+    [Fact]
+    public async Task TelnetSession_Parser_DoNawsSplitByteByByte_DoesNotLeakNegotiationBytes()
+    {
+        await AssertTelnetByteByByteAsync(
+            new byte[] { Iac, Do, Naws, (byte)'X' },
+            new byte[] { (byte)'X' });
+    }
+
+    [Fact]
+    public async Task TelnetSession_Parser_BareTrailingIacThenData_DropsOnlyIac()
+    {
+        await AssertTelnetByteByByteAsync(
+            new byte[] { Iac, (byte)'X' },
+            new byte[] { (byte)'X' });
+    }
+
+    [Fact]
+    public async Task TelnetSession_Parser_NawsSubnegotiationSplitByteByByte_DoesNotLeakSubnegotiationBytes()
+    {
+        await AssertTelnetByteByByteAsync(
+            new byte[]
+            {
+                Iac,
+                Sb,
+                Naws,
+                0x00,
+                0x50,
+                0x00,
+                0x18,
+                Iac,
+                Se,
+                (byte)'X'
+            },
+            new byte[] { (byte)'X' });
+    }
+
+    [Fact]
+    public async Task TelnetSession_Parser_AsciiSplitByteByByte_EmitsBytesInOrder()
+    {
+        await AssertTelnetByteByByteAsync(
+            Encoding.ASCII.GetBytes("hello"),
+            Encoding.ASCII.GetBytes("hello"));
+    }
+
+    [Fact]
+    public async Task TelnetSession_IsRunning_TracksReadLoopExit()
+    {
+        TcpListener listener = new(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+
+        Task serverTask = SendBytesOneAtATimeAsync(
+            listener,
+            Encoding.ASCII.GetBytes("X"),
+            delayBetweenBytes: TimeSpan.FromMilliseconds(10));
+
+        try
+        {
+            await session.StartAsync(string.Empty, string.Empty);
+            Assert.True(session.IsRunning);
+
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(10));
+            await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.False(session.IsRunning);
+        }
+        finally
+        {
+            session.Dispose();
+            listener.Stop();
+        }
+    }
+
     private static string ResolvePowerShellExecutable()
     {
         string windowsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -192,6 +282,68 @@ public sealed class TerminalSessionLifecycleTests
         await Task.Delay(300);
         await stream.WriteAsync(second);
         await stream.FlushAsync();
+    }
+
+    private static async Task AssertTelnetByteByByteAsync(byte[] serverBytes, byte[] expectedBytes)
+    {
+        TcpListener listener = new(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
+        List<byte> observed = new List<byte>();
+        object observedLock = new object();
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        session.DataReceived += data =>
+        {
+            lock (observedLock)
+            {
+                observed.AddRange(data.ToArray());
+            }
+        };
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+
+        Task serverTask = SendBytesOneAtATimeAsync(listener, serverBytes);
+
+        try
+        {
+            await session.StartAsync(string.Empty, string.Empty);
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(10));
+            await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            byte[] actual;
+            lock (observedLock)
+            {
+                actual = observed.ToArray();
+            }
+
+            Assert.Equal(expectedBytes, actual);
+        }
+        finally
+        {
+            session.Dispose();
+            listener.Stop();
+        }
+    }
+
+    private static async Task SendBytesOneAtATimeAsync(
+        TcpListener listener,
+        byte[] bytes,
+        TimeSpan? delayBetweenBytes = null)
+    {
+        using TcpClient client = await listener.AcceptTcpClientAsync();
+        client.NoDelay = true;
+        await using NetworkStream stream = client.GetStream();
+        TimeSpan delay = delayBetweenBytes ?? TimeSpan.FromMilliseconds(25);
+        byte[] singleByte = new byte[1];
+
+        foreach (byte value in bytes)
+        {
+            singleByte[0] = value;
+            await stream.WriteAsync(singleByte);
+            await stream.FlushAsync();
+            await Task.Delay(delay);
+        }
     }
 
     private static void AssertProcessHasExited(int processId)
