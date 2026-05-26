@@ -202,6 +202,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private ServerHealthMonitor? _healthMonitor;
     private readonly List<MacroEntry> _macroEntries = [];
     private readonly Stopwatch _macroStopwatch = new();
+    private readonly StreamingUtf8Decoder _transcriptDecoder = new StreamingUtf8Decoder();
 
     private bool _healthPanelVisible;
     private bool _disposed;
@@ -1041,6 +1042,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             try
             {
                 string base64 = message[MsgClipboardWrite.Length..];
+                // Safe: the JS host posts a single complete UTF-8 message in one chunk;
+                // boundaries cannot fall mid-character. No stateful decoder needed.
                 string text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -1314,6 +1317,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             _macroEntries.Add(new MacroEntry
             {
+                // Safe: data is a single complete xterm.js onData message posted in one chunk;
+                // boundaries cannot fall mid-character. No stateful decoder needed.
                 Input = Encoding.UTF8.GetString(data),
                 DelayMs = delayMs
             });
@@ -1382,6 +1387,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         lock (_logLock)
         {
+            _transcriptDecoder.Reset();
             StopTranscriptInternal();
 
             var dir = Path.GetDirectoryName(logFilePath);
@@ -1413,10 +1419,30 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     {
         if (_logStream is not null)
         {
+            StreamWriter logStream = _logStream;
+            string residue = _transcriptDecoder.Flush();
+            if (residue.Length > 0)
+            {
+                string cleanResidue = AnsiEscapeRegex.Replace(residue, string.Empty);
+                if (cleanResidue.Length > 0)
+                {
+                    try
+                    {
+                        logStream.Write(cleanResidue);
+                    }
+                    catch (Exception ex)
+                    {
+                        Core.Logging.FileLogger.Warn($"Transcript flush error: {ex.Message}");
+                    }
+                }
+            }
+
+            _transcriptDecoder.Reset();
+
             try
             {
-                _logStream.Flush();
-                _logStream.Dispose();
+                logStream.Flush();
+                logStream.Dispose();
             }
             catch (Exception ex)
             {
@@ -1441,8 +1467,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             try
             {
-                var text = Encoding.UTF8.GetString(data);
-                var clean = AnsiEscapeRegex.Replace(text, string.Empty);
+                string text = _transcriptDecoder.DecodeChunk(data);
+                string clean = AnsiEscapeRegex.Replace(text, string.Empty);
                 if (clean.Length > 0)
                 {
                     _logStream.Write(clean);
