@@ -14,8 +14,8 @@ error — the `12152` surfaces downstream, inside the PowerShell terminal, not i
 the Heimdall logger. An RDP profile through the *same* bastion and host works, so
 the Heimdall tunnel machinery itself is sound.
 
-Reference setup: WinRM target `frpsnc001gw:5985` (HTTP) via SSH bastion
-`snca2fa01d.sys.meshcore.net:22`.
+Reference setup: WinRM target `winrm-target.example.internal:5985` (HTTP) via SSH bastion
+`bastion.example.internal:22`.
 
 ## Manual isolation test
 
@@ -24,7 +24,7 @@ outside Heimdall, and WinRM was exercised directly against it.
 
 ```
 # Pageant loaded with the bastion key, in a real console (not ISE):
-plink -ssh -N -L 59850:frpsnc001gw:5985 <user>@snca2fa01d.sys.meshcore.net
+plink -ssh -N -L 59850:winrm-target.example.internal:5985 <user>@bastion.example.internal
 ```
 
 ```powershell
@@ -54,7 +54,7 @@ unexpectedly.
 
 The failure reproduces **outside Heimdall**, with a hand-built tunnel. Heimdall
 is not in the path of the fault. The cause is environmental: the WinRM service on
-the target, or an application-layer device along the `bastion → frpsnc001gw:5985`
+the target, or an application-layer device along the `bastion → winrm-target.example.internal:5985`
 path, terminates the HTTP session.
 
 ## Reading the `plink` console
@@ -67,7 +67,7 @@ between the two links of the chain:
 | `administratively prohibited` | The bastion SSH server refuses forwarding to the target (`AllowTcpForwarding` / ACL). Failure is at the SSH layer. |
 | `connection refused` | The bastion reaches the target but port 5985 returns a RST — service not bound to that interface, or a firewall. |
 | `remote host closed` / `remote side closed connection` | The forward opens, then the target closes the connection mid-exchange — points to the WinRM service or an application-layer IPS/proxy. |
-| *(no line)* | The SSH forward is healthy; the fault is purely the `frpsnc001gw:5985` service. |
+| *(no line)* | The SSH forward is healthy; the fault is purely the `winrm-target.example.internal:5985` service. |
 
 In every case the "outside Heimdall" conclusion stands — this line only
 attributes the fault, it does not change the verdict.
