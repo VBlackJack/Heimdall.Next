@@ -53,6 +53,15 @@ public static partial class SmartPasteGuard
         ("dd if=",     DdIfRegex()),
         ("format",     FormatRegex()),
         ("shutdown",   ShutdownRegex()),
+        ("Remove-Item -Recurse -Force", RemoveItemRecursiveForceRegex()),
+        ("Stop-Computer", StopComputerRegex()),
+        ("Restart-Computer", RestartComputerRegex()),
+        ("Format-Volume", FormatVolumeRegex()),
+        ("Clear-Disk", ClearDiskRegex()),
+        ("Remove-Partition", RemovePartitionRegex()),
+        ("reg delete", RegDeleteRegex()),
+        ("bcdedit", BcdeditRegex()),
+        ("diskpart", DiskpartRegex()),
         ("reboot",     RebootRegex()),
         ("init 0/6",   InitRegex()),
         ("halt",       HaltRegex()),
@@ -81,9 +90,9 @@ public static partial class SmartPasteGuard
 
         // Check for dangerous commands first (highest priority).
         string normalized = text.Trim();
-        foreach (var (_, pattern) in DangerousPatterns)
+        foreach ((string Label, Regex Pattern) dangerousPattern in DangerousPatterns)
         {
-            if (pattern.IsMatch(normalized))
+            if (dangerousPattern.Pattern.IsMatch(normalized))
                 return PasteRisk.Dangerous;
         }
 
@@ -91,9 +100,9 @@ public static partial class SmartPasteGuard
         if (SudoPrefixRegex().IsMatch(normalized))
         {
             string afterSudo = SudoPrefixRegex().Replace(normalized, string.Empty).TrimStart();
-            foreach (var (_, pattern) in DangerousPatterns)
+            foreach ((string Label, Regex Pattern) dangerousPattern in DangerousPatterns)
             {
-                if (pattern.IsMatch(afterSudo))
+                if (dangerousPattern.Pattern.IsMatch(afterSudo))
                     return PasteRisk.Dangerous;
             }
         }
@@ -134,6 +143,33 @@ public static partial class SmartPasteGuard
 
     [GeneratedRegex(@"\bshutdown\b", RegexOptions.IgnoreCase)]
     private static partial Regex ShutdownRegex();
+
+    [GeneratedRegex(@"\bRemove-Item\b(?=[^\r\n]*\s-Recurse\b)(?=[^\r\n]*\s-Force\b)", RegexOptions.IgnoreCase)]
+    private static partial Regex RemoveItemRecursiveForceRegex();
+
+    [GeneratedRegex(@"\bStop-Computer\b", RegexOptions.IgnoreCase)]
+    private static partial Regex StopComputerRegex();
+
+    [GeneratedRegex(@"\bRestart-Computer\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RestartComputerRegex();
+
+    [GeneratedRegex(@"\bFormat-Volume\b", RegexOptions.IgnoreCase)]
+    private static partial Regex FormatVolumeRegex();
+
+    [GeneratedRegex(@"\bClear-Disk\b", RegexOptions.IgnoreCase)]
+    private static partial Regex ClearDiskRegex();
+
+    [GeneratedRegex(@"\bRemove-Partition\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RemovePartitionRegex();
+
+    [GeneratedRegex(@"\breg(?:\.exe)?\s+delete\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RegDeleteRegex();
+
+    [GeneratedRegex(@"\bbcdedit(?:\.exe)?\b", RegexOptions.IgnoreCase)]
+    private static partial Regex BcdeditRegex();
+
+    [GeneratedRegex(@"\bdiskpart(?:\.exe)?\b", RegexOptions.IgnoreCase)]
+    private static partial Regex DiskpartRegex();
 
     [GeneratedRegex(@"\breboot\b", RegexOptions.IgnoreCase)]
     private static partial Regex RebootRegex();
