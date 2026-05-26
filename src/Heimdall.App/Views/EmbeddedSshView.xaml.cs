@@ -57,6 +57,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private const string MsgInput = "input:";
     private const string MsgClipboardWrite = "clipboard-write:";
     private const string MsgClipboardRead = "clipboard-read:";
+    private const string TerminalPageMessageSource = "about:blank";
+    private const int LoggedWebViewTextLimit = 256;
 
     /// <summary>Outbound message: sets the xterm.js convertEol option at runtime.</summary>
     private const string MsgSetConvertEol = "set-convert-eol:";
@@ -201,6 +203,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _disposed;
     private bool _webViewInitializationStarted;
     private bool _webViewInitialized;
+    private bool _terminalPageNavigationPending;
+    private bool _terminalPageLoaded;
     private bool _terminalReady;
     private bool _webViewUnavailable;
     private bool _initialTerminalFocusApplied;
@@ -444,12 +448,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _localeChangeSubscribed = false;
         }
 
-        if (_webViewInitialized && TryGetCoreWebView2(out var core, allowDuringDispose: true))
+        if (_webViewInitialized && TryGetCoreWebView2(out CoreWebView2? core, allowDuringDispose: true))
         {
             core.WebMessageReceived -= OnWebMessageReceived;
             core.ProcessFailed -= OnWebViewProcessFailed;
             // Detach to prevent handler leak identified by audit-2026-04-22 (PERF-01).
             core.NavigationStarting -= OnWebViewNavigationStarting;
+            core.NavigationCompleted -= OnWebViewNavigationCompleted;
         }
 
         if (_session is not null)
@@ -523,12 +528,12 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             // Re-focus terminal when tab becomes visible (tab switch),
             // but only if no other focusable control currently has keyboard focus
-            _ = Dispatcher.BeginInvoke(() =>
+            BeginInvokeIfAvailable(() =>
             {
                 if (_disposed || !_terminalReady) return;
 
-                var currentFocus = System.Windows.Input.Keyboard.FocusedElement;
-                var focusIsElsewhere = currentFocus is not null
+                IInputElement? currentFocus = System.Windows.Input.Keyboard.FocusedElement;
+                bool focusIsElsewhere = currentFocus is not null
                     && currentFocus is not System.Windows.Window
                     && !IsKeyboardFocusWithin;
 
@@ -643,7 +648,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnHealthDataReceived(ServerHealthData data)
     {
-        _ = Dispatcher.BeginInvoke(() =>
+        BeginInvokeIfAvailable(() =>
         {
             if (_disposed || !_healthPanelVisible)
             {
@@ -745,7 +750,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (!Dispatcher.CheckAccess())
         {
-            _ = Dispatcher.BeginInvoke(() =>
+            BeginInvokeIfAvailable(() =>
                 StartAutoReconnectCountdown(delaySeconds, attempt, maxAttempts));
             return;
         }
@@ -764,7 +769,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         AutoReconnectOverlay.Visibility = Visibility.Visible;
 
         _autoReconnectTimer = new System.Threading.Timer(
-            _ => Dispatcher.BeginInvoke((Action)OnAutoReconnectTick),
+            _ => BeginInvokeIfAvailable(OnAutoReconnectTick),
             null,
             TimeSpan.FromSeconds(1),
             TimeSpan.FromSeconds(1));
@@ -817,7 +822,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (!Dispatcher.CheckAccess())
         {
-            _ = Dispatcher.BeginInvoke(HideConnectingOverlay);
+            BeginInvokeIfAvailable(HideConnectingOverlay);
             return;
         }
 
@@ -857,9 +862,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             Core.Logging.FileLogger.Info("EmbeddedSSH initializing WebView2 terminal surface");
 
-            var env = await Services.WebView2Helper.CreateEnvironmentAsync("SSH");
+            CoreWebView2Environment env = await Services.WebView2Helper.CreateEnvironmentAsync("SSH");
             await TerminalWebView.EnsureCoreWebView2Async(env);
-            if (_disposed || !TryGetCoreWebView2(out var core))
+            if (_disposed || !TryGetCoreWebView2(out CoreWebView2? core))
             {
                 return;
             }
@@ -876,7 +881,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             // Block all navigation away from the inline terminal page
             core.NavigationStarting += OnWebViewNavigationStarting;
+            core.NavigationCompleted += OnWebViewNavigationCompleted;
 
+            _terminalPageLoaded = false;
+            _terminalPageNavigationPending = true;
             core.NavigateToString(GetTerminalHtml());
             _webViewInitialized = true;
 
@@ -897,27 +905,38 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnWebViewNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs navArgs)
     {
-        // Allow the initial NavigateToString (about:blank origin)
-        if (navArgs.Uri is not null
-            && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
-            && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        if (_terminalPageNavigationPending && !_terminalPageLoaded)
         {
-            navArgs.Cancel = true;
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSSH blocked navigation to: {navArgs.Uri}");
+            _terminalPageNavigationPending = false;
+            return;
         }
+
+        navArgs.Cancel = true;
+        Core.Logging.FileLogger.Warn(
+            $"EmbeddedSSH blocked terminal WebView navigation to: {DescribeWebViewText(navArgs.Uri)}");
+    }
+
+    private void OnWebViewNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs navArgs)
+    {
+        _terminalPageNavigationPending = false;
+
+        if (!navArgs.IsSuccess)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSSH terminal page navigation completed with status: {navArgs.WebErrorStatus}");
+            return;
+        }
+
+        _terminalPageLoaded = true;
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
-        // Validate message source — only accept messages from our inline terminal page
-        var source = args.Source;
-        if (!string.IsNullOrEmpty(source)
-            && !source.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
-            && !source.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        string source = args.Source;
+        if (!IsTrustedTerminalMessageSource(source))
         {
             Core.Logging.FileLogger.Warn(
-                $"EmbeddedSSH rejected WebMessage from unexpected source: {source}");
+                $"EmbeddedSSH rejected WebMessage from unexpected source: {DescribeWebViewText(source)}");
             return;
         }
 
@@ -941,8 +960,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         // Open URL: terminal requests to open a link in the default browser
         if (message.StartsWith(MsgOpenUrl, StringComparison.Ordinal))
         {
-            var url = message["open-url:".Length..];
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            string url = message[MsgOpenUrl.Length..];
+            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
             {
                 try
@@ -966,7 +985,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _terminalReady = true;
             Core.Logging.FileLogger.Info($"EmbeddedSSH terminal ready: {message}");
 
-            if (TryParseSize(message.AsSpan("ready:".Length), out var readyCols, out var readyRows))
+            if (TryParseSize(message.AsSpan(MsgReady.Length), out int readyCols, out int readyRows))
             {
                 ResizeSession(readyCols, readyRows);
             }
@@ -979,7 +998,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (message.StartsWith(MsgResize, StringComparison.Ordinal))
         {
-            if (TryParseSize(message.AsSpan("resize:".Length), out var cols, out var rows))
+            if (TryParseSize(message.AsSpan(MsgResize.Length), out int cols, out int rows))
             {
                 ResizeSession(cols, rows);
             }
@@ -988,15 +1007,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (message.StartsWith(MsgInput, StringComparison.Ordinal))
         {
-            var base64 = message["input:".Length..];
+            string base64 = message[MsgInput.Length..];
 
             try
             {
-                var bytes = Convert.FromBase64String(base64);
+                byte[] bytes = Convert.FromBase64String(base64);
                 WriteToSession(bytes);
 
                 // Broadcast to other terminals when broadcast mode is active
-                BroadcastInput?.Invoke(bytes);
+                try
+                {
+                    BroadcastInput?.Invoke(bytes);
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"EmbeddedSSH BroadcastInput subscriber failed: {ex.Message}");
+                }
             }
             catch (FormatException ex)
             {
@@ -1010,8 +1036,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             try
             {
-                var base64 = message["clipboard-write:".Length..];
-                var text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                string base64 = message[MsgClipboardWrite.Length..];
+                string text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
                 if (!string.IsNullOrEmpty(text))
                 {
                     Clipboard.SetText(text);
@@ -1032,10 +1058,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             {
                 if (Clipboard.ContainsText())
                 {
-                    var text = Clipboard.GetText();
+                    string text = Clipboard.GetText();
                     if (!string.IsNullOrEmpty(text))
                     {
-                        var risk = Heimdall.Terminal.SmartPasteGuard.Evaluate(text);
+                        Heimdall.Terminal.SmartPasteGuard.PasteRisk risk =
+                            Heimdall.Terminal.SmartPasteGuard.Evaluate(text);
 
                         if (risk == Heimdall.Terminal.SmartPasteGuard.PasteRisk.Dangerous)
                         {
@@ -1056,7 +1083,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                             }
                         }
 
-                        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+                        string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
                         PostTerminalMessage("clipboard-paste:" + base64);
                     }
                 }
@@ -1068,7 +1095,33 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
-        WriteToSession(message);
+        Core.Logging.FileLogger.Warn(
+            $"EmbeddedSSH dropped unknown WebView2 terminal message: {DescribeWebViewText(message)}");
+    }
+
+    private static bool IsTrustedTerminalMessageSource(string? source)
+    {
+        return string.Equals(source, TerminalPageMessageSource, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string DescribeWebViewText(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return "<empty>";
+        }
+
+        if (text.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return "data:";
+        }
+
+        if (text.Length <= LoggedWebViewTextLimit)
+        {
+            return text;
+        }
+
+        return text[..LoggedWebViewTextLimit] + "...";
     }
 
     private bool ConfirmPaste(string text, AppDialogViewModels.PasteRisk risk)
@@ -1124,7 +1177,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnDisconnected(string? errorMessage)
     {
-        _ = Dispatcher.BeginInvoke(() =>
+        BeginInvokeIfAvailable(() =>
         {
             if (_disposed)
             {
@@ -1133,16 +1186,16 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             if (!string.IsNullOrWhiteSpace(errorMessage))
             {
-                var template = L("SshTerminalDisconnectMarker");
-                var marker = string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                string template = L("SshTerminalDisconnectMarker");
+                string marker = string.Format(System.Globalization.CultureInfo.CurrentCulture,
                     template, errorMessage);
-                var disconnectText = $"\r\n\x1b[90m{marker}\x1b[0m\r\n";
+                string disconnectText = $"\r\n\x1b[90m{marker}\x1b[0m\r\n";
                 QueueOutput(Encoding.UTF8.GetBytes(disconnectText));
             }
 
             PostTerminalMessage("session-ended:");
 
-            var securityDisconnectMessage = _pendingSecurityDisconnectMessage;
+            string? securityDisconnectMessage = _pendingSecurityDisconnectMessage;
             _pendingSecurityDisconnectMessage = null;
             if (!string.IsNullOrWhiteSpace(securityDisconnectMessage))
             {
@@ -1159,12 +1212,12 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 return;
             }
 
-            var maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
+            int maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
             if (TerminalSettings?.SshAutoReconnect == true
                 && _autoReconnectAttempt < maxAttempts)
             {
                 _autoReconnectAttempt++;
-                var delay = ComputeAutoReconnectDelaySeconds(_autoReconnectAttempt);
+                int delay = ComputeAutoReconnectDelaySeconds(_autoReconnectAttempt);
                 StartAutoReconnectCountdown(delay, _autoReconnectAttempt, maxAttempts);
                 return;
             }
@@ -1180,10 +1233,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
-        var message = FormatHostKeyMismatchMidSession(evt);
+        string message = FormatHostKeyMismatchMidSession(evt);
         _pendingSecurityDisconnectMessage = message;
 
-        _ = Dispatcher.BeginInvoke(() =>
+        BeginInvokeIfAvailable(() =>
         {
             if (_disposed)
             {
@@ -1191,7 +1244,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             }
 
             ReconnectMessageText.Text = message;
-            var securityText = $"\r\n\x1b[91m{message}\x1b[0m\r\n";
+            string securityText = $"\r\n\x1b[91m{message}\x1b[0m\r\n";
             QueueOutput(Encoding.UTF8.GetBytes(securityText));
         });
     }
@@ -1279,7 +1332,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (!Dispatcher.CheckAccess())
         {
-            _ = Dispatcher.BeginInvoke(() => SetBroadcastIndicator(active));
+            BeginInvokeIfAvailable(() => SetBroadcastIndicator(active));
             return;
         }
 
@@ -1509,7 +1562,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (!Dispatcher.CheckAccess())
         {
-            _ = Dispatcher.BeginInvoke(() => OnLocaleChanged(locale));
+            BeginInvokeIfAvailable(() => OnLocaleChanged(locale));
             return;
         }
 
@@ -1522,7 +1575,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (AutoReconnectOverlay.Visibility == Visibility.Visible)
         {
-            var maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
+            int maxAttempts = Math.Clamp(TerminalSettings?.SshAutoReconnectAttempts ?? 3, 1, 10);
             AutoReconnectMessageText.Text = string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 L("SshAutoReconnectMessage"),
@@ -1643,7 +1696,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool IsDispatcherShuttingDown() =>
         Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished;
 
-    private void BeginInvokeIfAvailable(Action action)
+    private void BeginInvokeIfAvailable(
+        Action action,
+        System.Windows.Threading.DispatcherPriority priority =
+            System.Windows.Threading.DispatcherPriority.Normal)
     {
         if (_disposed || IsDispatcherShuttingDown())
         {
@@ -1652,7 +1708,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         try
         {
-            _ = Dispatcher.BeginInvoke(action);
+            _ = Dispatcher.BeginInvoke(action, priority);
         }
         catch (InvalidOperationException)
         {
