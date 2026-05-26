@@ -16,7 +16,7 @@
 
 using Heimdall.Terminal;
 
-namespace Heimdall.Ssh.Tests;
+namespace Heimdall.Terminal.Tests;
 
 public class SmartPasteGuardTests
 {
