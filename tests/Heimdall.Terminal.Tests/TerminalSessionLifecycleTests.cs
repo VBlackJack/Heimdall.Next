@@ -19,7 +19,7 @@ using System.Net;
 using System.Text;
 using Heimdall.Terminal;
 
-namespace Heimdall.Ssh.Tests;
+namespace Heimdall.Terminal.Tests;
 
 public sealed class TerminalSessionLifecycleTests
 {

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -22,9 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Heimdall.Ssh\Heimdall.Ssh.csproj" />
-    <ProjectReference Include="..\..\src\Heimdall.Sftp\Heimdall.Sftp.csproj" />
-    <ProjectReference Include="..\..\src\Heimdall.Core\Heimdall.Core.csproj" />
+    <ProjectReference Include="..\..\src\Heimdall.Terminal\Heimdall.Terminal.csproj" />
   </ItemGroup>
 
 </Project>
