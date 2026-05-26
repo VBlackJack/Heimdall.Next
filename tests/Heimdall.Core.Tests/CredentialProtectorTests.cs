@@ -15,6 +15,8 @@
  */
 
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
+using System.Text;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
@@ -184,6 +186,73 @@ public class CredentialProtectorTests
         var result = CredentialProtector.Unprotect(input);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void UnprotectToBytes_NullInput_ReturnsNull()
+    {
+        byte[]? result = CredentialProtector.UnprotectToBytes(null);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void UnprotectToBytes_WhitespaceInput_ReturnsNull()
+    {
+        byte[]? result = CredentialProtector.UnprotectToBytes("   ");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void UnprotectToBytes_HmacRoundTrip_PreservesPlaintext()
+    {
+        string key = GenerateTestKey();
+        string plaintext = "hmac-mot-de-passe-é-✓-Ω";
+        byte[]? result = null;
+
+        CredentialProtector.Initialize(key);
+
+        try
+        {
+            string protectedValue = CredentialProtector.Protect(plaintext);
+            result = CredentialProtector.UnprotectToBytes(protectedValue);
+
+            Assert.NotNull(result);
+            Assert.Equal(plaintext, Encoding.UTF8.GetString(result));
+        }
+        finally
+        {
+            if (result is not null)
+            {
+                CryptographicOperations.ZeroMemory(result);
+            }
+        }
+    }
+
+    [Fact]
+    public void UnprotectToBytes_LegacyDpapiRoundTrip_PreservesPlaintext()
+    {
+        string plaintext = "legacy-mot-de-passe-é-✓-Ω";
+        byte[]? result = null;
+
+        CredentialProtector.Initialize(null);
+
+        try
+        {
+            string protectedValue = CredentialProtector.Protect(plaintext);
+            result = CredentialProtector.UnprotectToBytes(protectedValue);
+
+            Assert.NotNull(result);
+            Assert.Equal(plaintext, Encoding.UTF8.GetString(result));
+        }
+        finally
+        {
+            if (result is not null)
+            {
+                CryptographicOperations.ZeroMemory(result);
+            }
+        }
     }
 
     // ── Initialize modes ────────────────────────────────────────────────

@@ -15,6 +15,7 @@
  */
 
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
 
 namespace Heimdall.Core.Security;
 
@@ -83,6 +84,41 @@ public static class CredentialProtector
 
             // Legacy DPAPI-only blob — decrypt without HMAC verification
             return DpapiProvider.Unprotect(protectedValue);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Decrypt a protected credential directly to UTF-8 bytes, without ever
+    /// materialising the plaintext as a managed string. Mirrors
+    /// <see cref="Unprotect(string?)"/> but returns bytes; supports both HMAC-protected
+    /// and legacy DPAPI-only formats.
+    /// </summary>
+    /// <param name="protectedValue">The protected string to decrypt.</param>
+    /// <returns>
+    /// UTF-8 plaintext bytes, or <c>null</c> on failure or empty input. The caller
+    /// is responsible for zeroing the buffer with
+    /// <see cref="CryptographicOperations.ZeroMemory(Span{byte})"/> once it is no
+    /// longer needed.
+    /// </returns>
+    public static byte[]? UnprotectToBytes(string? protectedValue)
+    {
+        if (string.IsNullOrWhiteSpace(protectedValue))
+        {
+            return null;
+        }
+
+        try
+        {
+            if (HmacIntegrity.IsHmacProtected(protectedValue) && _hmacKeyRaw is not null)
+            {
+                return HmacIntegrity.UnprotectToBytesWithHmac(protectedValue, _hmacKeyRaw);
+            }
+
+            return DpapiProvider.UnprotectToBytes(protectedValue);
         }
         catch
         {

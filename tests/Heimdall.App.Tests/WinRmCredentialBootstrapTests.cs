@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using System.Text;
 using Heimdall.App.Services.WinRm;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
@@ -35,8 +36,10 @@ public sealed class WinRmCredentialBootstrapTests
                 writtenPath = path;
                 writtenContent = content;
             },
-            unprotectStoredPassword: encrypted => encrypted == "stored-password" ? "p@ss'word!" : null,
-            protectBootstrapPassword: plaintext => plaintext == "p@ss'word!" ? "dpapi-bootstrap-blob" : "unexpected");
+            unprotectStoredPasswordBytes: encrypted =>
+                encrypted == "stored-password" ? Encoding.UTF8.GetBytes("p@ss'word!") : null,
+            protectBootstrapPasswordBytes: bytes =>
+                Encoding.UTF8.GetString(bytes) == "p@ss'word!" ? "dpapi-bootstrap-blob" : "unexpected");
 
         WinRmCredentialBootstrapResult result = bootstrap.Write(CreateCredentialServer());
 
@@ -79,8 +82,8 @@ public sealed class WinRmCredentialBootstrapTests
         WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap(
             createScriptPath: () => @"C:\Temp\unused.ps1",
             writeAndProtect: (_, _) => throw new InvalidOperationException("should not write"),
-            unprotectStoredPassword: _ => null,
-            protectBootstrapPassword: plaintext => plaintext);
+            unprotectStoredPasswordBytes: _ => null,
+            protectBootstrapPasswordBytes: bytes => Encoding.UTF8.GetString(bytes));
 
         Assert.Throws<InvalidOperationException>(() => bootstrap.Write(CreateCredentialServer()));
     }
@@ -91,12 +94,27 @@ public sealed class WinRmCredentialBootstrapTests
         WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap(
             createScriptPath: () => @"C:\Temp\unused.ps1",
             writeAndProtect: (_, _) => throw new InvalidOperationException("should not write"),
-            unprotectStoredPassword: _ => "secret",
-            protectBootstrapPassword: plaintext => plaintext);
+            unprotectStoredPasswordBytes: _ => Encoding.UTF8.GetBytes("secret"),
+            protectBootstrapPasswordBytes: bytes => Encoding.UTF8.GetString(bytes));
         ServerProfileDto server = CreateCredentialServer();
         server.WinRmIdentityMode = WinRmIdentityMode.CurrentUser;
 
         Assert.Throws<ArgumentException>(() => bootstrap.Write(server));
+    }
+
+    [Fact]
+    public void Write_ZeroesPlaintextBytesAfterReturning()
+    {
+        byte[] capturedBytes = Encoding.UTF8.GetBytes("p@ss'word!");
+        WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap(
+            createScriptPath: () => @"C:\Temp\heimdall_winrm_zero_test.ps1",
+            writeAndProtect: (_, _) => { },
+            unprotectStoredPasswordBytes: _ => capturedBytes,
+            protectBootstrapPasswordBytes: _ => "dpapi-blob");
+
+        bootstrap.Write(CreateCredentialServer());
+
+        Assert.All(capturedBytes, b => Assert.Equal(0, b));
     }
 
     [Fact]

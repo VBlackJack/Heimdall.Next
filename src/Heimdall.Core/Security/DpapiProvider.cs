@@ -52,8 +52,8 @@ public static class DpapiProvider
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (bytes is not null) Array.Clear(bytes);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (bytes is not null) CryptographicOperations.ZeroMemory(bytes);
         }
     }
 
@@ -80,8 +80,65 @@ public static class DpapiProvider
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (decrypted is not null) Array.Clear(decrypted);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (decrypted is not null) CryptographicOperations.ZeroMemory(decrypted);
+        }
+    }
+
+    /// <summary>
+    /// Decrypt a DPAPI-encrypted Base64 string directly to UTF-8 bytes,
+    /// without ever materialising the plaintext as a managed string.
+    /// </summary>
+    /// <param name="encryptedBase64">Base64-encoded DPAPI ciphertext.</param>
+    /// <returns>
+    /// A new byte array containing UTF-8 plaintext. The caller is responsible
+    /// for zeroing the buffer with <see cref="CryptographicOperations.ZeroMemory(Span{byte})"/>
+    /// once it is no longer needed.
+    /// </returns>
+    public static byte[] UnprotectToBytes(string encryptedBase64)
+    {
+        ArgumentNullException.ThrowIfNull(encryptedBase64);
+
+        byte[]? encrypted = null;
+
+        try
+        {
+            encrypted = Convert.FromBase64String(encryptedBase64);
+            return ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+        }
+        finally
+        {
+            if (encrypted is not null)
+            {
+                CryptographicOperations.ZeroMemory(encrypted);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Encrypt UTF-8 plaintext bytes with DPAPI (CurrentUser scope).
+    /// Does not mutate the source buffer; callers should zero it themselves
+    /// after the call.
+    /// </summary>
+    /// <param name="plainBytes">UTF-8 plaintext bytes.</param>
+    /// <returns>Base64-encoded DPAPI-encrypted ciphertext.</returns>
+    public static string ProtectBytes(byte[] plainBytes)
+    {
+        ArgumentNullException.ThrowIfNull(plainBytes);
+
+        byte[]? encrypted = null;
+
+        try
+        {
+            encrypted = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
+            return Convert.ToBase64String(encrypted);
+        }
+        finally
+        {
+            if (encrypted is not null)
+            {
+                CryptographicOperations.ZeroMemory(encrypted);
+            }
         }
     }
 
@@ -107,8 +164,8 @@ public static class DpapiProvider
             decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
             chars = Encoding.UTF8.GetChars(decrypted);
 
-            var secureString = new SecureString();
-            foreach (var c in chars)
+            SecureString secureString = new SecureString();
+            foreach (char c in chars)
             {
                 secureString.AppendChar(c);
             }
@@ -117,9 +174,9 @@ public static class DpapiProvider
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (decrypted is not null) Array.Clear(decrypted);
-            if (chars is not null) Array.Clear(chars);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (decrypted is not null) CryptographicOperations.ZeroMemory(decrypted);
+            if (chars is not null) CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(chars.AsSpan()));
         }
     }
 

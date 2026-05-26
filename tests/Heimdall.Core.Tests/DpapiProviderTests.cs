@@ -16,6 +16,7 @@
 
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
+using System.Text;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
@@ -101,6 +102,66 @@ public class DpapiProviderTests
     {
         Assert.Throws<ArgumentNullException>(() =>
             DpapiProvider.Unprotect(null!));
+    }
+
+    [Fact]
+    public void UnprotectToBytes_NullInput_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            DpapiProvider.UnprotectToBytes(null!));
+    }
+
+    [Fact]
+    public void ProtectBytes_NullInput_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            DpapiProvider.ProtectBytes(null!));
+    }
+
+    [Fact]
+    public void RoundTripBytes_PreservesPlaintext()
+    {
+        string plaintext = "P@ss-mot-de-passe-é-✓-Ω";
+        byte[] plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
+        byte[]? decryptedBytes = null;
+
+        try
+        {
+            string encrypted = DpapiProvider.ProtectBytes(plaintextBytes);
+            decryptedBytes = DpapiProvider.UnprotectToBytes(encrypted);
+            string decrypted = Encoding.UTF8.GetString(decryptedBytes);
+
+            Assert.Equal(plaintext, decrypted);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintextBytes);
+            if (decryptedBytes is not null)
+            {
+                CryptographicOperations.ZeroMemory(decryptedBytes);
+            }
+        }
+    }
+
+    [Fact]
+    public void ProtectBytes_DoesNotMutateSourceBuffer()
+    {
+        string plaintext = "source-buffer-é-✓-Ω";
+        byte[] expectedBytes = Encoding.UTF8.GetBytes(plaintext);
+        byte[] sourceBytes = new byte[expectedBytes.Length];
+        Buffer.BlockCopy(expectedBytes, 0, sourceBytes, 0, expectedBytes.Length);
+
+        try
+        {
+            _ = DpapiProvider.ProtectBytes(sourceBytes);
+
+            Assert.Equal(expectedBytes, sourceBytes);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(expectedBytes);
+            CryptographicOperations.ZeroMemory(sourceBytes);
+        }
     }
 
     // ── Protect empty string succeeds ──────────────────────────────────

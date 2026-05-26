@@ -15,6 +15,7 @@
  */
 
 using System.IO;
+using System.Security.Cryptography;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Security;
@@ -33,19 +34,19 @@ internal sealed class WinRmCredentialBootstrap
 {
     private readonly Func<string> _createScriptPath;
     private readonly Action<string, string> _writeAndProtect;
-    private readonly Func<string?, string?> _unprotectStoredPassword;
-    private readonly Func<string, string> _protectBootstrapPassword;
+    private readonly Func<string?, byte[]?> _unprotectStoredPasswordBytes;
+    private readonly Func<byte[], string> _protectBootstrapPasswordBytes;
 
     public WinRmCredentialBootstrap(
         Func<string>? createScriptPath = null,
         Action<string, string>? writeAndProtect = null,
-        Func<string?, string?>? unprotectStoredPassword = null,
-        Func<string, string>? protectBootstrapPassword = null)
+        Func<string?, byte[]?>? unprotectStoredPasswordBytes = null,
+        Func<byte[], string>? protectBootstrapPasswordBytes = null)
     {
         _createScriptPath = createScriptPath ?? CreateDefaultScriptPath;
         _writeAndProtect = writeAndProtect ?? SecureFileWriter.WriteAndProtect;
-        _unprotectStoredPassword = unprotectStoredPassword ?? CredentialProtector.Unprotect;
-        _protectBootstrapPassword = protectBootstrapPassword ?? DpapiProvider.Protect;
+        _unprotectStoredPasswordBytes = unprotectStoredPasswordBytes ?? CredentialProtector.UnprotectToBytes;
+        _protectBootstrapPasswordBytes = protectBootstrapPasswordBytes ?? DpapiProvider.ProtectBytes;
     }
 
     public WinRmCredentialBootstrapResult Write(ServerProfileDto server)
@@ -64,15 +65,15 @@ internal sealed class WinRmCredentialBootstrap
     {
         ValidateCredentialProfile(server);
 
-        string? plaintextPassword = _unprotectStoredPassword(server.WinRmPasswordEncrypted);
-        if (plaintextPassword is null)
+        byte[]? plaintextBytes = _unprotectStoredPasswordBytes(server.WinRmPasswordEncrypted);
+        if (plaintextBytes is null)
         {
             throw new InvalidOperationException("WinRM stored credential could not be decrypted.");
         }
 
         try
         {
-            string dpapiPasswordBlob = _protectBootstrapPassword(plaintextPassword);
+            string dpapiPasswordBlob = _protectBootstrapPasswordBytes(plaintextBytes);
             string script = BuildScript(server, dpapiPasswordBlob, computerName, port);
             string scriptPath = _createScriptPath();
 
@@ -81,7 +82,7 @@ internal sealed class WinRmCredentialBootstrap
         }
         finally
         {
-            plaintextPassword = null;
+            CryptographicOperations.ZeroMemory(plaintextBytes);
         }
     }
 

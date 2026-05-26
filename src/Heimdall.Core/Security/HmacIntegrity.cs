@@ -59,7 +59,7 @@ public static class HmacIntegrity
         }
         finally
         {
-            Array.Clear(keyBytes);
+            CryptographicOperations.ZeroMemory(keyBytes);
         }
     }
 
@@ -79,7 +79,7 @@ public static class HmacIntegrity
         }
         finally
         {
-            Array.Clear(keyBytes);
+            CryptographicOperations.ZeroMemory(keyBytes);
         }
     }
 
@@ -101,6 +101,7 @@ public static class HmacIntegrity
         byte[]? plainBytes = null;
         byte[]? hmacKeyBytes = null;
         byte[]? encrypted = null;
+        byte[]? hmacHash = null;
 
         try
         {
@@ -110,23 +111,23 @@ public static class HmacIntegrity
             // DPAPI encrypt
             plainBytes = Encoding.UTF8.GetBytes(plainText);
             encrypted = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
-            var encryptedBase64 = Convert.ToBase64String(encrypted);
+            string encryptedBase64 = Convert.ToBase64String(encrypted);
 
             // HMAC-SHA256 over the raw encrypted bytes
-            byte[] hmacHash;
-            using (var hmac = new HMACSHA256(hmacKeyBytes))
+            using (HMACSHA256 hmac = new HMACSHA256(hmacKeyBytes))
             {
                 hmacHash = hmac.ComputeHash(encrypted);
             }
-            var hmacBase64 = Convert.ToBase64String(hmacHash);
+            string hmacBase64 = Convert.ToBase64String(hmacHash);
 
             return $"{encryptedBase64}{HmacSeparator}{hmacBase64}";
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (plainBytes is not null) Array.Clear(plainBytes);
-            if (hmacKeyBytes is not null) Array.Clear(hmacKeyBytes);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (plainBytes is not null) CryptographicOperations.ZeroMemory(plainBytes);
+            if (hmacHash is not null) CryptographicOperations.ZeroMemory(hmacHash);
+            if (hmacKeyBytes is not null) CryptographicOperations.ZeroMemory(hmacKeyBytes);
         }
     }
 
@@ -155,7 +156,7 @@ public static class HmacIntegrity
 
         try
         {
-            var parts = protectedJson.Split(HmacSeparator);
+            string[] parts = protectedJson.Split(HmacSeparator);
             if (parts.Length != 2)
             {
                 throw new FormatException(
@@ -169,7 +170,7 @@ public static class HmacIntegrity
             ValidateKeyLength(hmacKeyBytes.Length);
 
             // Compute HMAC and compare with constant-time comparison
-            using (var hmac = new HMACSHA256(hmacKeyBytes))
+            using (HMACSHA256 hmac = new HMACSHA256(hmacKeyBytes))
             {
                 computedHmac = hmac.ComputeHash(encrypted);
             }
@@ -186,11 +187,78 @@ public static class HmacIntegrity
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (storedHmac is not null) Array.Clear(storedHmac);
-            if (computedHmac is not null) Array.Clear(computedHmac);
-            if (hmacKeyBytes is not null) Array.Clear(hmacKeyBytes);
-            if (decrypted is not null) Array.Clear(decrypted);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (storedHmac is not null) CryptographicOperations.ZeroMemory(storedHmac);
+            if (computedHmac is not null) CryptographicOperations.ZeroMemory(computedHmac);
+            if (hmacKeyBytes is not null) CryptographicOperations.ZeroMemory(hmacKeyBytes);
+            if (decrypted is not null) CryptographicOperations.ZeroMemory(decrypted);
+        }
+    }
+
+    /// <summary>
+    /// Verify the HMAC signature and decrypt the protected data directly to
+    /// UTF-8 bytes, without ever materialising the plaintext as a managed string.
+    /// </summary>
+    /// <param name="protectedJson">
+    /// The protected string in format <c>base64_encrypted|HMAC|base64_hmac</c>.
+    /// </param>
+    /// <param name="hmacKeyBase64">Base64-encoded raw HMAC key (256-bit).</param>
+    /// <returns>
+    /// A new byte array containing UTF-8 plaintext. The caller is responsible
+    /// for zeroing the buffer with <see cref="CryptographicOperations.ZeroMemory(Span{byte})"/>
+    /// once it is no longer needed.
+    /// </returns>
+    /// <exception cref="CryptographicException">Thrown when HMAC verification fails.</exception>
+    /// <exception cref="FormatException">Thrown when the input format is invalid.</exception>
+    public static byte[] UnprotectToBytesWithHmac(string protectedJson, string hmacKeyBase64)
+    {
+        ArgumentNullException.ThrowIfNull(protectedJson);
+        ArgumentNullException.ThrowIfNull(hmacKeyBase64);
+
+        byte[]? hmacKeyBytes = null;
+        byte[]? encrypted = null;
+        byte[]? storedHmac = null;
+        byte[]? computedHmac = null;
+        byte[]? decrypted = null;
+
+        try
+        {
+            string[] parts = protectedJson.Split(HmacSeparator);
+            if (parts.Length != 2)
+            {
+                throw new FormatException(
+                    "Invalid HMAC-protected format: expected 'encrypted|HMAC|hmac_b64' separator.");
+            }
+
+            encrypted = Convert.FromBase64String(parts[0]);
+            storedHmac = Convert.FromBase64String(parts[1]);
+
+            hmacKeyBytes = Convert.FromBase64String(hmacKeyBase64);
+            ValidateKeyLength(hmacKeyBytes.Length);
+
+            using (HMACSHA256 hmac = new HMACSHA256(hmacKeyBytes))
+            {
+                computedHmac = hmac.ComputeHash(encrypted);
+            }
+
+            if (!CryptographicOperations.FixedTimeEquals(computedHmac, storedHmac))
+            {
+                throw new CryptographicException(
+                    "HMAC verification failed: data integrity compromised.");
+            }
+
+            decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+            byte[] result = new byte[decrypted.Length];
+            Buffer.BlockCopy(decrypted, 0, result, 0, decrypted.Length);
+            return result;
+        }
+        finally
+        {
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (storedHmac is not null) CryptographicOperations.ZeroMemory(storedHmac);
+            if (computedHmac is not null) CryptographicOperations.ZeroMemory(computedHmac);
+            if (hmacKeyBytes is not null) CryptographicOperations.ZeroMemory(hmacKeyBytes);
+            if (decrypted is not null) CryptographicOperations.ZeroMemory(decrypted);
         }
     }
 
@@ -214,7 +282,7 @@ public static class HmacIntegrity
 
         try
         {
-            var parts = protectedJson.Split(HmacSeparator);
+            string[] parts = protectedJson.Split(HmacSeparator);
             if (parts.Length != 2)
                 return false;
 
@@ -225,7 +293,7 @@ public static class HmacIntegrity
             if (hmacKeyBytes.Length != HmacKeyLengthBytes)
                 return false;
 
-            using (var hmac = new HMACSHA256(hmacKeyBytes))
+            using (HMACSHA256 hmac = new HMACSHA256(hmacKeyBytes))
             {
                 computedHmac = hmac.ComputeHash(encrypted);
             }
@@ -238,10 +306,10 @@ public static class HmacIntegrity
         }
         finally
         {
-            if (encrypted is not null) Array.Clear(encrypted);
-            if (storedHmac is not null) Array.Clear(storedHmac);
-            if (computedHmac is not null) Array.Clear(computedHmac);
-            if (hmacKeyBytes is not null) Array.Clear(hmacKeyBytes);
+            if (encrypted is not null) CryptographicOperations.ZeroMemory(encrypted);
+            if (storedHmac is not null) CryptographicOperations.ZeroMemory(storedHmac);
+            if (computedHmac is not null) CryptographicOperations.ZeroMemory(computedHmac);
+            if (hmacKeyBytes is not null) CryptographicOperations.ZeroMemory(hmacKeyBytes);
         }
     }
 

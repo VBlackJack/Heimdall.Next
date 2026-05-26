@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Text;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
 using Heimdall.App.Services.WinRm;
@@ -183,8 +184,9 @@ public sealed class WinRmHandlerGatewayTests
         return new WinRmCredentialBootstrap(
             createScriptPath: () => @"C:\Temp\heimdall_winrm_test.ps1",
             writeAndProtect: (string path, string content) => { },
-            unprotectStoredPassword: encrypted => encrypted == "encrypted" ? "secret" : null,
-            protectBootstrapPassword: plaintext => "dpapi-bootstrap-blob");
+            unprotectStoredPasswordBytes: encrypted =>
+                encrypted == "encrypted" ? Encoding.UTF8.GetBytes("secret") : null,
+            protectBootstrapPasswordBytes: _ => "dpapi-bootstrap-blob");
     }
 
     private static ServerProfileDto CreateGatewayServer()
