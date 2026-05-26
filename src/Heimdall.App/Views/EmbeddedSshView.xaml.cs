@@ -1901,11 +1901,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private string GetTerminalHtml()
     {
-        var html = TerminalAssetsLoader.TerminalHtml;
+        string html = TerminalAssetsLoader.TerminalHtml;
 
-        foreach (var asset in InlineAssets)
+        foreach ((string Tag, Func<string> ContentFactory, string WrapperStart, string WrapperEnd) asset in InlineAssets)
         {
-            var content = asset.ContentFactory();
+            string content = asset.ContentFactory();
             html = html.Replace(
                 asset.Tag,
                 asset.WrapperStart + content + asset.WrapperEnd,
@@ -1913,34 +1913,36 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         // Inject terminal appearance settings from AppSettings
-        var fontFamily = TerminalSettings?.TerminalFontFamily ?? "Consolas";
-        var fontSize = TerminalSettings?.TerminalFontSize ?? 14;
-        var schemeName = TerminalSettings?.TerminalColorScheme ?? "Dracula";
-        var convertEol = _terminalSession is Heimdall.Terminal.PipeModeSession
+        string fontFamily = TerminalSettings?.TerminalFontFamily ?? "Consolas";
+        int fontSize = TerminalSettings?.TerminalFontSize ?? 14;
+        string schemeName = TerminalSettings?.TerminalColorScheme ?? "Dracula";
+        string convertEol = _terminalSession is Heimdall.Terminal.PipeModeSession
             ? "true"
             : "false";
 
-        if (!ColorSchemes.TryGetValue(schemeName, out var themeJson))
-        {
-            themeJson = ColorSchemes["Dracula"];
-        }
+        string themeJson = ColorSchemes.TryGetValue(schemeName, out string? configuredThemeJson)
+            && configuredThemeJson is not null
+            ? configuredThemeJson
+            : ColorSchemes["Dracula"];
 
         // Sanitize font family to prevent injection (allow alphanumeric, spaces, commas, quotes, hyphens)
-        var safeFontFamily = System.Text.RegularExpressions.Regex.Replace(
+        string safeFontFamily = System.Text.RegularExpressions.Regex.Replace(
             fontFamily, @"[^a-zA-Z0-9\s,'""\-]", "");
 
-        var safeFontSize = Math.Clamp(fontSize, 8, 28);
+        int safeFontSize = Math.Clamp(fontSize, 8, 28);
 
+        // The offline NavigateToString page requires inline script/style. Keep
+        // placeholder values constrained to known constants or sanitized data.
         html = html.Replace("/*{{TERMINAL_FONT_FAMILY}}*/", safeFontFamily, StringComparison.Ordinal);
         html = html.Replace("/*{{TERMINAL_FONT_SIZE}}*/", safeFontSize.ToString(), StringComparison.Ordinal);
         html = html.Replace("/*{{TERMINAL_THEME}}*/", themeJson, StringComparison.Ordinal);
         html = html.Replace("/*{{TERMINAL_CONVERT_EOL}}*/", convertEol, StringComparison.Ordinal);
 
         // Extract background color from the theme for CSS variables
-        var bgColor = ExtractThemeColor(themeJson, "background", "#282A36");
-        var fgColor = ExtractThemeColor(themeJson, "foreground", "#F8F8F2");
-        var cursorColor = ExtractThemeColor(themeJson, "cursor", "#BD93F9");
-        var selectionColor = ExtractThemeColor(themeJson, "selectionBackground", "rgba(68, 71, 90, 0.7)");
+        string bgColor = ExtractThemeColor(themeJson, "background", "#282A36");
+        string fgColor = ExtractThemeColor(themeJson, "foreground", "#F8F8F2");
+        string cursorColor = ExtractThemeColor(themeJson, "cursor", "#BD93F9");
+        string selectionColor = ExtractThemeColor(themeJson, "selectionBackground", "rgba(68, 71, 90, 0.7)");
 
         html = html.Replace("/*{{CSS_BG}}*/", bgColor, StringComparison.Ordinal);
         html = html.Replace("/*{{CSS_FG}}*/", fgColor, StringComparison.Ordinal);
@@ -1954,7 +1956,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private static string ExtractThemeColor(string themeJson, string key, string fallback)
     {
         // Match pattern like: background: '#282A36' or background: 'rgba(...)'
-        var match = Regex.Match(themeJson, $@"{key}:\s*'([^']+)'");
+        Match match = Regex.Match(themeJson, $@"{key}:\s*'([^']+)'");
         return match.Success ? match.Groups[1].Value : fallback;
     }
 }

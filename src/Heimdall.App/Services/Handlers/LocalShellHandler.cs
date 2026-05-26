@@ -50,41 +50,40 @@ internal sealed class LocalShellHandler : IProtocolHandler
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingLocal);
 
-        var executable = server.LocalShellExecutable ?? "powershell.exe";
-        var arguments = server.LocalShellArguments ?? string.Empty;
+        string executable = server.LocalShellExecutable ?? "powershell.exe";
+        string arguments = server.LocalShellArguments ?? string.Empty;
 
-        if (executable.Contains("powershell", StringComparison.OrdinalIgnoreCase) ||
-            executable.Contains("pwsh", StringComparison.OrdinalIgnoreCase))
+        if (IsPowerShellExecutable(executable))
         {
-            var policyPrefix = string.Empty;
+            string policyPrefix = string.Empty;
             if (!string.Equals(settings.PowerShellExecutionPolicy, "Default", StringComparison.OrdinalIgnoreCase) &&
                 InputValidator.IsValidExecutionPolicy(settings.PowerShellExecutionPolicy))
             {
                 policyPrefix = $"-ExecutionPolicy {settings.PowerShellExecutionPolicy}";
             }
 
-            var noLogo = string.Empty;
+            string noLogo = string.Empty;
             if (!arguments.Contains("-NoLogo", StringComparison.OrdinalIgnoreCase))
             {
                 noLogo = "-NoLogo";
             }
 
-            var prefix = string.Join(" ", new[] { policyPrefix, noLogo }.Where(s => !string.IsNullOrEmpty(s)));
+            string prefix = string.Join(" ", new[] { policyPrefix, noLogo }.Where(s => !string.IsNullOrEmpty(s)));
             if (!string.IsNullOrEmpty(prefix))
             {
                 arguments = string.IsNullOrWhiteSpace(arguments) ? prefix : $"{prefix} {arguments}";
             }
         }
 
-        var workingDir = !string.IsNullOrWhiteSpace(server.LocalShellWorkingDirectory) &&
+        string workingDir = !string.IsNullOrWhiteSpace(server.LocalShellWorkingDirectory) &&
                          Directory.Exists(server.LocalShellWorkingDirectory)
             ? server.LocalShellWorkingDirectory
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-        var elevationMode = server.EffectiveElevationMode;
-        var originalExe = executable;
-        var originalArgs = arguments;
-        var usedGsudo = false;
+        ElevationMode elevationMode = server.EffectiveElevationMode;
+        string originalExe = executable;
+        string originalArgs = arguments;
+        bool usedGsudo = false;
 
         if (elevationMode == ElevationMode.Runas)
         {
@@ -93,19 +92,19 @@ internal sealed class LocalShellHandler : IProtocolHandler
 
         if (elevationMode is ElevationMode.Auto or ElevationMode.Gsudo)
         {
-            var elevationWrapper = ResolveElevationWrapper();
+            string? elevationWrapper = ResolveElevationWrapper();
             if (elevationWrapper is not null)
             {
-                var directFlag = Path.GetFileNameWithoutExtension(elevationWrapper)
+                string directFlag = Path.GetFileNameWithoutExtension(elevationWrapper)
                     .Equals("gsudo", StringComparison.OrdinalIgnoreCase) ? "--direct " : string.Empty;
-                var quotedExe = $"\"{executable}\"";
+                string quotedExe = $"\"{executable}\"";
                 arguments = string.IsNullOrWhiteSpace(arguments)
                     ? $"{directFlag}{quotedExe}"
                     : $"{directFlag}{quotedExe} {arguments}";
                 executable = elevationWrapper;
                 usedGsudo = true;
                 Core.Logging.FileLogger.Info(
-                    $"Elevation via {Path.GetFileName(elevationWrapper)}: {executable} {arguments}");
+                    $"Elevation via {Path.GetFileName(elevationWrapper)}: executable={executable}; mode=elevated");
             }
             else if (elevationMode == ElevationMode.Gsudo)
             {
@@ -123,7 +122,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
             }
         }
 
-        Core.Logging.FileLogger.Info($"Launching local shell: {executable} {arguments} (cwd={workingDir})");
+        Core.Logging.FileLogger.Info($"Launching local shell: executable={executable}; mode=local-shell; cwd={workingDir}");
 
         Heimdall.Terminal.ITerminalSession session;
         if (Heimdall.Terminal.ConPty.ConPtySession.IsAvailable)
@@ -176,11 +175,11 @@ internal sealed class LocalShellHandler : IProtocolHandler
         string workingDir)
     {
         Core.Logging.FileLogger.Info(
-            $"Launching external elevated shell via runas: {executable} {arguments} (cwd={workingDir})");
+            $"Launching external elevated shell via runas: executable={executable}; mode=elevated; cwd={workingDir}");
 
         try
         {
-            var psi = new System.Diagnostics.ProcessStartInfo
+            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = executable,
                 Arguments = arguments,
@@ -189,7 +188,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
                 WorkingDirectory = workingDir
             };
 
-            var process = System.Diagnostics.Process.Start(psi);
+            System.Diagnostics.Process? process = System.Diagnostics.Process.Start(psi);
             if (process is null)
             {
                 _connectionSm.SetError(server.Id, "Failed to start elevated process");
@@ -223,7 +222,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
     /// </summary>
     private static string? ResolveElevationWrapper()
     {
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "gsudo.exe");
+        string bundledPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "gsudo.exe");
         if (File.Exists(bundledPath))
         {
             return bundledPath;
@@ -231,7 +230,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
 
         try
         {
-            var gsudoPath = ConnectionHelpers.FindInPath("gsudo.exe");
+            string? gsudoPath = ConnectionHelpers.FindInPath("gsudo.exe");
             if (gsudoPath is not null)
             {
                 return gsudoPath;
@@ -244,7 +243,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
 
         try
         {
-            var sudoPath = ConnectionHelpers.FindInPath("sudo.exe");
+            string? sudoPath = ConnectionHelpers.FindInPath("sudo.exe");
             if (sudoPath is not null)
             {
                 return sudoPath;
@@ -258,12 +257,19 @@ internal sealed class LocalShellHandler : IProtocolHandler
         return null;
     }
 
+    private static bool IsPowerShellExecutable(string executable)
+    {
+        string executableName = Path.GetFileNameWithoutExtension(executable);
+        return string.Equals(executableName, "powershell", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executableName, "pwsh", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Builds a dictionary of HEIMDALL_* environment variables from the server profile.
     /// </summary>
     private static Dictionary<string, string>? BuildContextEnvironment(ServerProfileDto server)
     {
-        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         if (!string.IsNullOrWhiteSpace(server.RemoteServer))
         {

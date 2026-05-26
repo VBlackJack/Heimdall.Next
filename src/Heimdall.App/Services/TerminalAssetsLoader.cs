@@ -21,7 +21,7 @@ namespace Heimdall.App.Services;
 
 /// <summary>
 /// Provides process-wide cached access to the static terminal HTML, JavaScript,
-/// and stylesheet assets used by the embedded SSH terminal.
+/// and stylesheet assets used by the embedded terminal.
 /// </summary>
 internal static class TerminalAssetsLoader
 {
@@ -59,15 +59,33 @@ internal static class TerminalAssetsLoader
     internal static Lazy<string> CreateLazyAsset(string relativePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+        ValidateRelativeAssetPath(relativePath);
 
         return new Lazy<string>(
             () => LoadAsset(relativePath),
             LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
+    private static void ValidateRelativeAssetPath(string relativePath)
+    {
+        if (Path.IsPathRooted(relativePath))
+        {
+            throw new ArgumentException(
+                "Terminal asset path must be relative.",
+                nameof(relativePath));
+        }
+
+        if (relativePath.Contains("..", StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Terminal asset path cannot contain parent-directory traversal.",
+                nameof(relativePath));
+        }
+    }
+
     private static string LoadAsset(string relativePath)
     {
-        var fullPath = Path.Combine(AppContext.BaseDirectory, "Assets", relativePath);
+        string fullPath = Path.Combine(AppContext.BaseDirectory, "Assets", relativePath);
         if (!File.Exists(fullPath))
         {
             throw new FileNotFoundException(

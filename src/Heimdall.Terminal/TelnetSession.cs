@@ -128,6 +128,11 @@ public sealed class TelnetSession : ITerminalSession
         }
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Encodes <paramref name="text"/> as UTF-8. Prefer the byte overload for
+    /// escape sequences and binary payloads.
+    /// </remarks>
     public void Write(string text)
     {
         if (string.IsNullOrEmpty(text)) return;

@@ -121,6 +121,35 @@ public sealed class ConPtySessionTests
         }
     }
 
+    [Fact]
+    public async Task Resize_OversizeDimensions_DoesNotThrow()
+    {
+        if (!ConPtySession.IsAvailable)
+        {
+            return;
+        }
+
+        ConPtySession session = new();
+
+        try
+        {
+            await session.StartAsync(
+                TerminalTestHelpers.ResolvePowerShellExecutable(),
+                BuildEncodedPowerShellArguments("Start-Sleep -Seconds 60"));
+
+            Exception? exception = Record.Exception(() =>
+            {
+                session.Resize(int.MaxValue, int.MaxValue);
+            });
+
+            Assert.Null(exception);
+        }
+        finally
+        {
+            session.Dispose();
+        }
+    }
+
     private static string BuildEncodedPowerShellArguments(string command)
     {
         string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
