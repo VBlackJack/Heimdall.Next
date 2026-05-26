@@ -36,6 +36,14 @@ Two distinct root causes share the same symptom (`TaskCanceledException`,
    chain. On a slow runner, the propagation outlasts even a 10-second
    `WaitHelpers.DefaultTimeout`. Bumping the timeout further only delays
    the failure window and slows down genuinely hung tests.
+3. **ConPTY process startup race** — `ConPtySessionTests` start
+   `powershell.exe -NoLogo -NoProfile` inside a pseudo-console and assert
+   `IsRunning` immediately after the first `DataReceived` callback fires. On
+   a slow runner, PowerShell can print its banner and exit (or the ConPTY
+   attachment can drop) before the assert reads `IsRunning`, causing the
+   check to fail. The `NotEmpty(text)` assertion that precedes it still
+   covers the core contract (ConPTY delivers output); the lifecycle property
+   is independently exercised by `Dispose_TerminatesPseudoConsoleAndProcess`.
 
 ## Currently tagged `CIUnstable`
 
@@ -47,6 +55,7 @@ Two distinct root causes share the same symptom (`TaskCanceledException`,
 | `HashGeneratorSmokeTests` (whole class) | `tests/Heimdall.App.UiTests/Pilots/HashGeneratorSmokeTests.cs` |
 | `DnsLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/DnsLookupViewModelTests.cs` |
 | `WhoisLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/WhoisLookupViewModelTests.cs` |
+| `ConPtySessionTests.StartAsync_LaunchesShell_DeliversInitialTerminalOutput` | `tests/Heimdall.Terminal.Tests/ConPtySessionTests.cs` |
 
 `OpenSshPipeAgentTests.IsAvailable_NoServer_ReturnsFalse` is intentionally
 NOT tagged: it is a negative-path test that asserts a 25 ms

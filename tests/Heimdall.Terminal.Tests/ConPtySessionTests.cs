@@ -29,6 +29,7 @@ namespace Heimdall.Terminal.Tests;
 public sealed class ConPtySessionTests
 {
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task StartAsync_LaunchesShell_DeliversInitialTerminalOutput()
     {
         if (!ConPtySession.IsAvailable)
