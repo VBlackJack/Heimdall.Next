@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Diagnostics;
 using System.Net;
 using System.Text;
 using Heimdall.Terminal;
@@ -34,13 +33,13 @@ public sealed class TerminalSessionLifecycleTests
     {
         PipeModeSession session = new();
         await session.StartAsync(
-            ResolvePowerShellExecutable(),
+            TerminalTestHelpers.ResolvePowerShellExecutable(),
             "-NoLogo -NoProfile -NonInteractive -Command \"Start-Sleep -Seconds 60\"");
         int processId = Assert.IsType<int>(session.ProcessId);
 
         session.Dispose();
 
-        AssertProcessHasExited(processId);
+        TerminalTestHelpers.AssertProcessHasExited(processId);
     }
 
     [Fact]
@@ -53,7 +52,7 @@ public sealed class TerminalSessionLifecycleTests
             string.Empty));
 
         await session.StartAsync(
-            ResolvePowerShellExecutable(),
+            TerminalTestHelpers.ResolvePowerShellExecutable(),
             "-NoLogo -NoProfile -NonInteractive -Command \"exit 0\"");
         session.Dispose();
     }
@@ -61,7 +60,7 @@ public sealed class TerminalSessionLifecycleTests
     [Fact]
     public async Task TelnetSession_StartAsync_AfterFailedConnect_CanBeRetried()
     {
-        int port = ReserveLoopbackPort();
+        int port = TerminalTestHelpers.ReserveLoopbackPort();
         TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 250);
 
         await Assert.ThrowsAnyAsync<Exception>(() => session.StartAsync(string.Empty, string.Empty));
@@ -97,7 +96,7 @@ public sealed class TerminalSessionLifecycleTests
         session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
 
         await session.StartAsync(
-            ResolvePowerShellExecutable(),
+            TerminalTestHelpers.ResolvePowerShellExecutable(),
             "-NoLogo -NoProfile -NonInteractive -Command \"Write-Output 'first'; Start-Sleep -Milliseconds 300; Write-Output 'second'; exit 0\"");
 
         int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -119,7 +118,7 @@ public sealed class TerminalSessionLifecycleTests
         Exception? observedException = await Record.ExceptionAsync(async () =>
         {
             await session.StartAsync(
-                ResolvePowerShellExecutable(),
+                TerminalTestHelpers.ResolvePowerShellExecutable(),
                 "-NoLogo -NoProfile -NonInteractive -Command \"exit 12\"");
             int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(12, exitCode);
@@ -132,7 +131,7 @@ public sealed class TerminalSessionLifecycleTests
     [Fact]
     public async Task TelnetSession_DataReceivedSubscriberException_DoesNotStopReadLoop()
     {
-        int port = ReserveLoopbackPort();
+        int port = TerminalTestHelpers.ReserveLoopbackPort();
         TcpListener listener = new(IPAddress.Loopback, port);
         TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
         TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -226,7 +225,7 @@ public sealed class TerminalSessionLifecycleTests
         TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
         session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
 
-        Task serverTask = SendBytesOneAtATimeAsync(
+        Task serverTask = TerminalTestHelpers.SendBytesOneAtATimeAsync(
             listener,
             Encoding.ASCII.GetBytes("X"),
             delayBetweenBytes: TimeSpan.FromMilliseconds(10));
@@ -246,27 +245,6 @@ public sealed class TerminalSessionLifecycleTests
             session.Dispose();
             listener.Stop();
         }
-    }
-
-    private static string ResolvePowerShellExecutable()
-    {
-        string windowsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        string systemPowerShell = Path.Combine(
-            windowsDirectory,
-            "System32",
-            "WindowsPowerShell",
-            "v1.0",
-            "powershell.exe");
-        return File.Exists(systemPowerShell) ? systemPowerShell : "powershell.exe";
-    }
-
-    private static int ReserveLoopbackPort()
-    {
-        TcpListener listener = new(IPAddress.Loopback, 0);
-        listener.Start();
-        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
     }
 
     private static async Task SendTwoTelnetChunksAsync(TcpListener listener)
@@ -303,7 +281,7 @@ public sealed class TerminalSessionLifecycleTests
         };
         session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
 
-        Task serverTask = SendBytesOneAtATimeAsync(listener, serverBytes);
+        Task serverTask = TerminalTestHelpers.SendBytesOneAtATimeAsync(listener, serverBytes);
 
         try
         {
@@ -326,45 +304,4 @@ public sealed class TerminalSessionLifecycleTests
         }
     }
 
-    private static async Task SendBytesOneAtATimeAsync(
-        TcpListener listener,
-        byte[] bytes,
-        TimeSpan? delayBetweenBytes = null)
-    {
-        using TcpClient client = await listener.AcceptTcpClientAsync();
-        client.NoDelay = true;
-        await using NetworkStream stream = client.GetStream();
-        TimeSpan delay = delayBetweenBytes ?? TimeSpan.FromMilliseconds(25);
-        byte[] singleByte = new byte[1];
-
-        foreach (byte value in bytes)
-        {
-            singleByte[0] = value;
-            await stream.WriteAsync(singleByte);
-            await stream.FlushAsync();
-            await Task.Delay(delay);
-        }
-    }
-
-    private static void AssertProcessHasExited(int processId)
-    {
-        DateTime deadline = DateTime.UtcNow.AddSeconds(5);
-        while (DateTime.UtcNow < deadline)
-        {
-            try
-            {
-                using Process process = Process.GetProcessById(processId);
-                if (process.HasExited || process.WaitForExit(100))
-                {
-                    return;
-                }
-            }
-            catch (ArgumentException)
-            {
-                return;
-            }
-        }
-
-        Assert.Fail($"Process {processId} was still running after PipeModeSession.Dispose().");
-    }
 }
