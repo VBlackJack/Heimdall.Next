@@ -4800,6 +4800,9 @@
   "A11yTxtSearchFiles": "Search files",
 
   "_comment_ux_combobox": "",
+  "TerminalLoadingLabel": "Initializing terminal\u2026",
+  "TerminalSearchPlaceholder": "Search...",
+  "TerminalSessionEnded": "--- Session ended ---",
   "TerminalSchemeDefault": "Default",
   "TerminalSchemeDracula": "Dracula",
   "TerminalSchemeSolarizedDark": "Solarized Dark",

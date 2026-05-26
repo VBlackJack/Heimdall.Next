@@ -268,7 +268,7 @@
                 }
 
                 if (message.indexOf('session-ended:') === 0) {
-                    term.write('\r\n\x1b[90m--- Session ended ---\x1b[0m\r\n');
+                    term.write('\r\n\x1b[90m' + /*{{TERMINAL_SESSION_ENDED_LITERAL}}*/ + '\x1b[0m\r\n');
                     term.options.disableStdin = true;
                     return;
                 }

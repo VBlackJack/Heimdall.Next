@@ -4799,6 +4799,9 @@
   "A11yTxtSearchFiles": "Rechercher des fichiers",
 
   "_comment_ux_combobox": "",
+  "TerminalLoadingLabel": "Initialisation du terminal\u2026",
+  "TerminalSearchPlaceholder": "Rechercher...",
+  "TerminalSessionEnded": "--- Session termin\u00e9e ---",
   "TerminalSchemeDefault": "Par d\u00e9faut",
   "TerminalSchemeDracula": "Dracula",
   "TerminalSchemeSolarizedDark": "Solarized Dark",

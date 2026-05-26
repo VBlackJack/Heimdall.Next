@@ -1970,6 +1970,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         html = html.Replace("/*{{CSS_CURSOR}}*/", cursorColor, StringComparison.Ordinal);
         html = html.Replace("/*{{CSS_SELECTION}}*/", selectionColor, StringComparison.Ordinal);
 
+        html = TerminalHtmlLocalizer.Localize(html, key => _localizer?[key]);
         return html;
     }
 
