@@ -35,15 +35,30 @@ public sealed class TelnetSession : ITerminalSession
     private const byte SE = 240;
     private const byte NAWS = 31;
 
+    private enum TelnetParserState
+    {
+        Data,
+        Iac,
+        IacVerb,
+        IacSb,
+        IacSbData,
+        IacSbIac
+    }
+
     private readonly string _host;
     private readonly int _port;
     private readonly int _connectTimeoutMs;
+    private readonly List<byte> _sbBuffer = new List<byte>();
 
     private TcpClient? _client;
     private NetworkStream? _stream;
     private Task? _readLoop;
     private CancellationTokenSource? _cts;
+    private TelnetParserState _parserState;
+    private byte _pendingVerb;
+    private byte _sbOption;
     private bool _disposed;
+    private bool _isRunning;
     private bool _nawsNegotiated;
     private int _columns;
     private int _rows;
@@ -51,7 +66,7 @@ public sealed class TelnetSession : ITerminalSession
     public event Action<ReadOnlyMemory<byte>>? DataReceived;
     public event Action<int>? ProcessExited;
 
-    public bool IsRunning => _client?.Connected == true && !_disposed;
+    public bool IsRunning => !_disposed && _isRunning;
     public int? ProcessId => null;
     public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
@@ -78,16 +93,18 @@ public sealed class TelnetSession : ITerminalSession
 
         _columns = columns;
         _rows = rows;
+        ResetParser();
         _cts = new CancellationTokenSource();
 
         _client = new TcpClient();
         try
         {
-            using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            using CancellationTokenSource connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
             connectTimeout.CancelAfter(TimeSpan.FromMilliseconds(_connectTimeoutMs));
             await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
             _stream = _client.GetStream();
 
+            _isRunning = true;
             _readLoop = Task.Run(() => ReadLoop(_cts.Token), _cts.Token);
         }
         catch
@@ -149,6 +166,7 @@ public sealed class TelnetSession : ITerminalSession
         try { _client?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] Dispose client: {ex.Message}"); }
         _stream = null;
         _client = null;
+        ResetParser();
         _cts?.Dispose();
         _cts = null;
     }
@@ -162,6 +180,8 @@ public sealed class TelnetSession : ITerminalSession
         try { _client?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] CleanupFailedStart client: {ex.Message}"); }
         _stream = null;
         _client = null;
+        _isRunning = false;
+        ResetParser();
         _cts?.Dispose();
         _cts = null;
         _readLoop = null;
@@ -171,6 +191,7 @@ public sealed class TelnetSession : ITerminalSession
     {
         try
         {
+            _isRunning = false;
             _stream?.Close();
             _client?.Close();
         }
@@ -184,12 +205,12 @@ public sealed class TelnetSession : ITerminalSession
     /// </summary>
     private async Task ReadLoop(CancellationToken ct)
     {
-        var buffer = new byte[4096];
+        byte[] buffer = new byte[4096];
         try
         {
             while (!ct.IsCancellationRequested && _stream is not null)
             {
-                var bytesRead = await _stream.ReadAsync(buffer, ct).ConfigureAwait(false);
+                int bytesRead = await _stream.ReadAsync(buffer, ct).ConfigureAwait(false);
                 if (bytesRead <= 0) break;
 
                 ProcessIncoming(buffer.AsSpan(0, bytesRead));
@@ -198,6 +219,7 @@ public sealed class TelnetSession : ITerminalSession
         catch (OperationCanceledException) { /* Expected on session dispose */ }
         catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] ReadLoop: {ex.Message}"); }
 
+        _isRunning = false;
         SafeInvokeProcessExited(0);
     }
 
@@ -207,70 +229,165 @@ public sealed class TelnetSession : ITerminalSession
     /// </summary>
     private void ProcessIncoming(ReadOnlySpan<byte> data)
     {
-        var appDataStart = 0;
+        List<byte> appData = new List<byte>(data.Length);
 
-        for (var i = 0; i < data.Length; i++)
+        for (int i = 0; i < data.Length; i++)
         {
-            if (data[i] != IAC) continue;
+            byte value = data[i];
 
-            // Flush any application data before this IAC
-            if (i > appDataStart)
+            switch (_parserState)
             {
-                EmitData(data.Slice(appDataStart, i - appDataStart));
-            }
-
-            if (i + 1 >= data.Length) break;
-
-            var command = data[i + 1];
-            switch (command)
-            {
-                case DO:
-                    if (i + 2 < data.Length)
-                    {
-                        HandleDo(data[i + 2]);
-                        i += 2;
-                    }
+                case TelnetParserState.Data:
+                    ProcessDataByte(value, appData);
                     break;
 
-                case WILL:
-                    if (i + 2 < data.Length)
-                    {
-                        HandleWill(data[i + 2]);
-                        i += 2;
-                    }
+                case TelnetParserState.Iac:
+                    ProcessIacByte(value, appData);
                     break;
 
-                case WONT:
-                case DONT:
-                    // Acknowledge — no action needed
-                    if (i + 2 < data.Length) i += 2;
+                case TelnetParserState.IacVerb:
+                    ProcessIacVerbOption(value);
                     break;
 
-                case SB:
-                    // Skip subnegotiation until IAC SE
-                    i = SkipSubnegotiation(data, i + 2);
+                case TelnetParserState.IacSb:
+                    _sbOption = value;
+                    _sbBuffer.Clear();
+                    _parserState = TelnetParserState.IacSbData;
                     break;
 
-                case IAC:
-                    // Escaped 0xFF — emit a single 0xFF byte
-                    EmitData(data.Slice(i, 1));
-                    i += 1;
+                case TelnetParserState.IacSbData:
+                    ProcessSubnegotiationDataByte(value);
                     break;
 
-                default:
-                    // Unknown two-byte command — skip
-                    i += 1;
+                case TelnetParserState.IacSbIac:
+                    ProcessSubnegotiationIacByte(value);
                     break;
             }
-
-            appDataStart = i + 1;
         }
 
-        // Flush remaining application data
-        if (appDataStart < data.Length)
+        EmitBufferedData(appData);
+    }
+
+    private void ProcessDataByte(byte value, List<byte> appData)
+    {
+        if (value == IAC)
         {
-            EmitData(data[appDataStart..]);
+            EmitBufferedData(appData);
+            _parserState = TelnetParserState.Iac;
+            return;
         }
+
+        appData.Add(value);
+    }
+
+    private void ProcessIacByte(byte value, List<byte> appData)
+    {
+        switch (value)
+        {
+            case IAC:
+                appData.Add(IAC);
+                _parserState = TelnetParserState.Data;
+                break;
+
+            case DO:
+            case DONT:
+            case WILL:
+            case WONT:
+                _pendingVerb = value;
+                _parserState = TelnetParserState.IacVerb;
+                break;
+
+            case SB:
+                _parserState = TelnetParserState.IacSb;
+                break;
+
+            default:
+                if (IsTelnetCommand(value))
+                {
+                    _parserState = TelnetParserState.Data;
+                    return;
+                }
+
+                appData.Add(value);
+                _parserState = TelnetParserState.Data;
+                break;
+        }
+    }
+
+    private void ProcessIacVerbOption(byte option)
+    {
+        switch (_pendingVerb)
+        {
+            case DO:
+                HandleDo(option);
+                break;
+
+            case WILL:
+                HandleWill(option);
+                break;
+
+            case WONT:
+            case DONT:
+                break;
+        }
+
+        _pendingVerb = 0;
+        _parserState = TelnetParserState.Data;
+    }
+
+    private void ProcessSubnegotiationDataByte(byte value)
+    {
+        if (value == IAC)
+        {
+            _parserState = TelnetParserState.IacSbIac;
+            return;
+        }
+
+        _sbBuffer.Add(value);
+    }
+
+    private void ProcessSubnegotiationIacByte(byte value)
+    {
+        if (value == SE)
+        {
+            CompleteSubnegotiation();
+            _parserState = TelnetParserState.Data;
+            return;
+        }
+
+        if (value == IAC)
+        {
+            _sbBuffer.Add(IAC);
+        }
+
+        _parserState = TelnetParserState.IacSbData;
+    }
+
+    private static bool IsTelnetCommand(byte value)
+    {
+        return value is >= SE and <= DONT;
+    }
+
+    private void CompleteSubnegotiation()
+    {
+        _sbOption = 0;
+        _sbBuffer.Clear();
+    }
+
+    private void ResetParser()
+    {
+        _parserState = TelnetParserState.Data;
+        _pendingVerb = 0;
+        _sbOption = 0;
+        _sbBuffer.Clear();
+    }
+
+    private void EmitBufferedData(List<byte> data)
+    {
+        if (data.Count == 0) return;
+
+        EmitData(data.ToArray());
+        data.Clear();
     }
 
     private void HandleDo(byte option)
@@ -328,23 +445,6 @@ public sealed class TelnetSession : ITerminalSession
             _stream.Write(buf);
         }
         catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] SendNawsSubnegotiation: {ex.Message}"); }
-    }
-
-    /// <summary>
-    /// Skips past a subnegotiation block (SB ... IAC SE).
-    /// Returns the index of the SE byte, or end-of-data if truncated.
-    /// </summary>
-    private static int SkipSubnegotiation(ReadOnlySpan<byte> data, int start)
-    {
-        for (var i = start; i < data.Length - 1; i++)
-        {
-            if (data[i] == IAC && data[i + 1] == SE)
-            {
-                return i + 1;
-            }
-        }
-
-        return data.Length - 1;
     }
 
     private void EmitData(ReadOnlySpan<byte> data)
