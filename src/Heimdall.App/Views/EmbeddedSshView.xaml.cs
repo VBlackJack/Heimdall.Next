@@ -29,6 +29,7 @@ using Heimdall.App.ViewModels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 using Heimdall.Ssh;
+using Heimdall.Terminal.Logging;
 using Microsoft.Web.WebView2.Core;
 using AppDialogs = Heimdall.App.Views.Dialogs;
 using AppDialogViewModels = Heimdall.App.ViewModels.Dialogs;
@@ -59,6 +60,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private const string MsgClipboardRead = "clipboard-read:";
     private const string TerminalPageMessageSource = "about:blank";
     private const int LoggedWebViewTextLimit = 256;
+    private const int MaxResizeColumns = 999;
+    private const int MaxResizeRows = 999;
 
     /// <summary>Outbound message: sets the xterm.js convertEol option at runtime.</summary>
     private const string MsgSetConvertEol = "set-convert-eol:";
@@ -184,6 +187,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
     private readonly object _logLock = new();
+    private readonly ResizeFailureLogThrottle _resizeLogThrottle = new ResizeFailureLogThrottle();
 
     private StreamWriter? _logStream;
     private string? _logFilePath;
@@ -1261,21 +1265,38 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        int clampedColumns = Math.Clamp(columns, 1, MaxResizeColumns);
+        int clampedRows = Math.Clamp(rows, 1, MaxResizeRows);
+
         try
         {
             if (_session is not null)
             {
-                _session.Resize(columns, rows);
+                _session.Resize(clampedColumns, clampedRows);
             }
             else
             {
-                _terminalSession?.Resize(columns, rows);
+                _terminalSession?.Resize(clampedColumns, clampedRows);
             }
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Warn(
-                $"EmbeddedSSH resize failed for {columns}x{rows}: {ex.Message}");
+            ResizeFailureLogDecision decision = _resizeLogThrottle.RecordFailure(ex);
+            switch (decision.Action)
+            {
+                case ResizeFailureLogAction.Skip:
+                    break;
+                case ResizeFailureLogAction.LogCurrent:
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedSSH resize failed for {clampedColumns}x{clampedRows}: {ex.Message}");
+                    break;
+                case ResizeFailureLogAction.LogRepeatSummaryThenCurrent:
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedSSH previous resize failure repeated {decision.PreviousRepeatCount} times before changing.");
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedSSH resize failed for {clampedColumns}x{clampedRows}: {ex.Message}");
+                    break;
+            }
         }
     }
 
