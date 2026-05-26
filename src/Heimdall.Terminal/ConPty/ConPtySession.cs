@@ -160,6 +160,10 @@ public sealed class ConPtySession : ITerminalSession
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Encodes <paramref name="text"/> as UTF-8. Prefer the byte overload for
+    /// escape sequences and binary payloads.
+    /// </remarks>
     public void Write(string text)
     {
         if (_disposed || _inputWriter is null || string.IsNullOrEmpty(text))
@@ -180,12 +184,9 @@ public sealed class ConPtySession : ITerminalSession
         if (_disposed || _pseudoConsole is null || _pseudoConsole.IsInvalid)
             return;
 
-        if (columns <= 0 || rows <= 0)
-            throw new ArgumentOutOfRangeException(
-                columns <= 0 ? nameof(columns) : nameof(rows),
-                "Terminal dimensions must be positive.");
-
-        var size = new NativeMethods.COORD((short)columns, (short)rows);
+        NativeMethods.COORD size = new NativeMethods.COORD(
+            (short)ClampDimension(columns),
+            (short)ClampDimension(rows));
         int hr = NativeMethods.ResizePseudoConsole(_pseudoConsole.DangerousGetHandle(), size);
         if (hr != 0)
             Marshal.ThrowExceptionForHR(hr);
@@ -284,13 +285,18 @@ public sealed class ConPtySession : ITerminalSession
     private void CreatePseudoConsole(
         int columns, int rows, SafeFileHandle inputRead, SafeFileHandle outputWrite)
     {
-        var size = new NativeMethods.COORD((short)columns, (short)rows);
+        NativeMethods.COORD size = new NativeMethods.COORD(
+            (short)ClampDimension(columns),
+            (short)ClampDimension(rows));
         int hr = NativeMethods.CreatePseudoConsole(size, inputRead, outputWrite, 0, out IntPtr hPC);
         if (hr != 0)
             Marshal.ThrowExceptionForHR(hr);
 
         _pseudoConsole = new SafePseudoConsoleHandle(hPC);
     }
+
+    private static int ClampDimension(int value)
+        => Math.Clamp(value, 1, short.MaxValue);
 
     private void SetupProcessAttributeList()
     {

@@ -16,6 +16,7 @@
 
 using System.IO;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Security;
 
 namespace Heimdall.App.Services.WinRm;
@@ -95,11 +96,13 @@ internal sealed class WinRmCredentialBootstrap
         {
             File.Delete(scriptPath);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
+            FileLogger.Warn($"[WinRmCredentialBootstrap] Delete bootstrap script failed: {ex.Message}");
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            FileLogger.Warn($"[WinRmCredentialBootstrap] Delete bootstrap script unauthorized: {ex.Message}");
         }
     }
 

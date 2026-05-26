@@ -44,13 +44,35 @@ public sealed class TerminalAssetsLoaderTests
     [Fact]
     public async Task CreateLazyAsset_Concurrent_First_Access_Returns_Consistent_Instance()
     {
-        var lazyAsset = TerminalAssetsLoader.CreateLazyAsset(Path.Combine("Terminal", "xterm.min.js"));
+        Lazy<string> lazyAsset = TerminalAssetsLoader.CreateLazyAsset(Path.Combine("Terminal", "xterm.min.js"));
 
-        var results = await Task.WhenAll(
+        string[] results = await Task.WhenAll(
             Enumerable.Range(0, 10)
                 .Select(_ => Task.Run(() => lazyAsset.Value)));
 
         Assert.All(results, result => Assert.Equal(results[0], result));
         Assert.All(results, result => Assert.Same(results[0], result));
+    }
+
+    [Fact]
+    public void CreateLazyAsset_RootedPath_ThrowsArgumentException()
+    {
+        string rootedPath = Path.GetFullPath("terminal.html");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(
+            () => TerminalAssetsLoader.CreateLazyAsset(rootedPath));
+
+        Assert.Equal("relativePath", exception.ParamName);
+    }
+
+    [Fact]
+    public void CreateLazyAsset_ParentTraversal_ThrowsArgumentException()
+    {
+        string traversalPath = Path.Combine("Terminal", "..", "terminal.html");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(
+            () => TerminalAssetsLoader.CreateLazyAsset(traversalPath));
+
+        Assert.Equal("relativePath", exception.ParamName);
     }
 }
