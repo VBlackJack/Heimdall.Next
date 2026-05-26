@@ -102,13 +102,21 @@ public sealed class ConPtySession : ITerminalSession
     }
 
     /// <inheritdoc />
-    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null)
+    public Task StartAsync(
+        string executable,
+        string arguments,
+        int columns = 80,
+        int rows = 24,
+        string? workingDirectory = null,
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
 
         if (_processHandle != IntPtr.Zero)
             throw new InvalidOperationException("Session already started. Dispose and create a new instance.");
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         CreatePipes(out SafeFileHandle inputRead, out SafeFileHandle inputWrite,
                     out SafeFileHandle outputRead, out SafeFileHandle outputWrite);

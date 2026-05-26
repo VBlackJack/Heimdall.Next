@@ -494,7 +494,8 @@ public sealed class SessionCoordinatorPreMountTests
             string arguments,
             int columns = 80,
             int rows = 24,
-            string? workingDirectory = null)
+            string? workingDirectory = null,
+            CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

@@ -51,9 +51,17 @@ public interface ITerminalSession : IDisposable
 
     /// <summary>
     /// Launches the child process inside a pseudo-console with the given
-    /// initial terminal dimensions.
+    /// initial terminal dimensions. The cancellation token can abort a session
+    /// start that is in progress; synchronous implementations observe it
+    /// cooperatively before starting work.
     /// </summary>
-    Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null);
+    Task StartAsync(
+        string executable,
+        string arguments,
+        int columns = 80,
+        int rows = 24,
+        string? workingDirectory = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes raw bytes to the process stdin (keyboard input, escape sequences).

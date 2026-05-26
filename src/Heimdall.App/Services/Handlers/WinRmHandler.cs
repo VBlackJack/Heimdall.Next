@@ -133,7 +133,11 @@ internal sealed class WinRmHandler : IProtocolHandler
             Core.Logging.FileLogger.Info($"Launching WinRM session for host '{server.RemoteServer}'");
             _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingLocal);
 
-            await session.StartAsync(spec.Executable, spec.Arguments, workingDirectory: null)
+            await session.StartAsync(
+                    spec.Executable,
+                    spec.Arguments,
+                    workingDirectory: null,
+                    cancellationToken: ct)
                 .ConfigureAwait(false);
 
             Core.Logging.FileLogger.Info(

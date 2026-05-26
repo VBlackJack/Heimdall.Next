@@ -40,10 +40,18 @@ public sealed class PipeModeSession : ITerminalSession
     public int? ProcessId => _process?.Id;
     public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
-    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null)
+    public Task StartAsync(
+        string executable,
+        string arguments,
+        int columns = 80,
+        int rows = 24,
+        string? workingDirectory = null,
+        CancellationToken cancellationToken = default)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(PipeModeSession));
         if (_process is not null) throw new InvalidOperationException("Session already started.");
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         _cts = new CancellationTokenSource();
         bool processStarted = false;

@@ -138,7 +138,11 @@ internal sealed class LocalShellHandler : IProtocolHandler
 
         try
         {
-            await session.StartAsync(executable, arguments, workingDirectory: workingDir)
+            await session.StartAsync(
+                    executable,
+                    arguments,
+                    workingDirectory: workingDir,
+                    cancellationToken: ct)
                 .ConfigureAwait(false);
             Core.Logging.FileLogger.Info(
                 $"Local shell started: PID={session.ProcessId} via {(session is Heimdall.Terminal.ConPty.ConPtySession ? "ConPTY" : "PipeMode")}");

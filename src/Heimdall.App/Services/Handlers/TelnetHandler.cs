@@ -72,7 +72,8 @@ internal sealed class TelnetHandler : IProtocolHandler
 
         try
         {
-            await session.StartAsync(string.Empty, string.Empty).ConfigureAwait(false);
+            await session.StartAsync(string.Empty, string.Empty, cancellationToken: ct)
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {

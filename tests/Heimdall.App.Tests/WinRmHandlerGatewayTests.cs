@@ -298,7 +298,8 @@ public sealed class WinRmHandlerGatewayTests
             string arguments,
             int columns = 80,
             int rows = 24,
-            string? workingDirectory = null)
+            string? workingDirectory = null,
+            CancellationToken cancellationToken = default)
         {
             if (StartException is not null)
             {

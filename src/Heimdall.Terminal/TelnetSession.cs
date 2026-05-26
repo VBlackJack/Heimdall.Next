@@ -86,10 +86,13 @@ public sealed class TelnetSession : ITerminalSession
     public async Task StartAsync(
         string executable, string arguments,
         int columns = 80, int rows = 24,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        CancellationToken cancellationToken = default)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(TelnetSession));
         if (_client is not null) throw new InvalidOperationException("Session already started.");
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         _columns = columns;
         _rows = rows;
@@ -99,7 +102,8 @@ public sealed class TelnetSession : ITerminalSession
         _client = new TcpClient();
         try
         {
-            using CancellationTokenSource connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            using CancellationTokenSource connectTimeout =
+                CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
             connectTimeout.CancelAfter(TimeSpan.FromMilliseconds(_connectTimeoutMs));
             await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
             _stream = _client.GetStream();

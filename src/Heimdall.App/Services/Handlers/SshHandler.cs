@@ -548,7 +548,8 @@ internal sealed class SshHandler : IProtocolHandler
 
             try
             {
-                await terminalSession.StartAsync(plinkPath, args).ConfigureAwait(false);
+                await terminalSession.StartAsync(plinkPath, args, cancellationToken: ct)
+                    .ConfigureAwait(false);
                 Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminalSession.ProcessId}");
                 passwordFilePath = null;
             }
