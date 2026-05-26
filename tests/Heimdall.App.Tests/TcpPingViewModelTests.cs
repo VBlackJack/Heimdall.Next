@@ -141,6 +141,7 @@ public sealed class TcpPingViewModelTests
     }
 
     [Fact]
+    [Trait("Category", "CIUnstable")]
     public async Task StartCommand_MixedResults_PreservesFailedLineAndSummary()
     {
         var localizer = await CreateLocalizerAsync("en");

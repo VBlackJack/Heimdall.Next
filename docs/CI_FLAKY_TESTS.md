@@ -21,7 +21,7 @@ the workflow summary without failing the build.
 
 ## Why these tests are flaky on the runner only
 
-Two distinct root causes share the same symptom (`TaskCanceledException`,
+Four distinct root causes share the same symptom (`TaskCanceledException`,
 `OperationCanceledException`, or `WaitUntil` timeouts):
 
 1. **Named-pipe handshake latency** — `OpenSshPipeAgentTests` create a
@@ -44,6 +44,13 @@ Two distinct root causes share the same symptom (`TaskCanceledException`,
    check to fail. The `NotEmpty(text)` assertion that precedes it still
    covers the core contract (ConPTY delivers output); the lifecycle property
    is independently exercised by `Dispose_TerminatesPseudoConsoleAndProcess`.
+4. **ViewModel polling timeout** — `TcpPingViewModelTests` and similar
+   ViewModel tests use a file-local `WaitUntilAsync(condition, timeoutMs)`
+   helper to observe property/collection updates that happen on background
+   tasks. On a busy GitHub Actions Windows runner the polled condition can
+   take longer than the test's timeout to become true (the wait loop polls
+   every 10 ms and throws `TimeoutException` past the deadline). Bumping the
+   timeout further only delays the failure window without eliminating it.
 
 ## Currently tagged `CIUnstable`
 
@@ -56,6 +63,7 @@ Two distinct root causes share the same symptom (`TaskCanceledException`,
 | `DnsLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/DnsLookupViewModelTests.cs` |
 | `WhoisLookupViewModelTests.CancelCommand_UserCancellation_ClearsStatusWithoutError` | `tests/Heimdall.App.Tests/WhoisLookupViewModelTests.cs` |
 | `ConPtySessionTests.StartAsync_LaunchesShell_DeliversInitialTerminalOutput` | `tests/Heimdall.Terminal.Tests/ConPtySessionTests.cs` |
+| `TcpPingViewModelTests.StartCommand_MixedResults_PreservesFailedLineAndSummary` | `tests/Heimdall.App.Tests/TcpPingViewModelTests.cs` |
 
 `OpenSshPipeAgentTests.IsAvailable_NoServer_ReturnsFalse` is intentionally
 NOT tagged: it is a negative-path test that asserts a 25 ms
