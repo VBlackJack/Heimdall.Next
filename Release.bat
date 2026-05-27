@@ -1,7 +1,7 @@
 @echo off
-:: Heimdall.Next — One-click release
-:: Builds, tests, packages, commits version bump, pushes, and publishes to GitHub.
-:: Usage: double-click or run from terminal.
+REM Heimdall.Next - One-click release
+REM Builds, tests, packages, commits version bump, pushes, and publishes to GitHub.
+REM Usage: double-click or run from terminal.
 
 cd /d "%~dp0"
 powershell -ExecutionPolicy Bypass -File Build.ps1 -Mode Release -Publish
