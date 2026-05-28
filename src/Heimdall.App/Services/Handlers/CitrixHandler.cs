@@ -175,20 +175,11 @@ internal sealed class CitrixHandler : IProtocolHandler
     /// </summary>
     private static string? ResolveCitrixLauncher()
     {
-        var paths = new[]
-        {
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                "Citrix", "ICA Client", "storebrowse.exe"),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "Citrix", "ICA Client", "storebrowse.exe"),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                "Citrix", "ICA Client", "SelfService.exe"),
-        };
+        string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        IReadOnlyList<string> paths = BuildCitrixLauncherCandidates(programFilesX86, programFiles);
 
-        foreach (var path in paths)
+        foreach (string path in paths)
         {
             if (File.Exists(path))
             {
@@ -198,6 +189,30 @@ internal sealed class CitrixHandler : IProtocolHandler
 
         return ConnectionHelpers.FindInPath("storebrowse.exe") ??
                ConnectionHelpers.FindInPath("SelfService.exe");
+    }
+
+    /// <summary>
+    /// Builds Citrix Workspace launcher candidate paths in probe order.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildCitrixLauncherCandidates(
+        string programFilesX86,
+        string programFiles)
+    {
+        // storebrowse.exe is preferred for StoreFront launches (-L / -S). On Citrix Workspace
+        // App 2507+ it ships under "ICA Client\AuthManager"; older layouts kept it directly in
+        // "ICA Client". SelfService.exe lives under "ICA Client\SelfServicePlugin" on current
+        // builds. Probe the modern subfolders first, then the legacy flat layout.
+        return new[]
+        {
+            Path.Combine(programFilesX86, "Citrix", "ICA Client", "AuthManager", "storebrowse.exe"),
+            Path.Combine(programFiles, "Citrix", "ICA Client", "AuthManager", "storebrowse.exe"),
+            Path.Combine(programFilesX86, "Citrix", "ICA Client", "storebrowse.exe"),
+            Path.Combine(programFiles, "Citrix", "ICA Client", "storebrowse.exe"),
+            Path.Combine(programFilesX86, "Citrix", "ICA Client", "SelfServicePlugin", "SelfService.exe"),
+            Path.Combine(programFiles, "Citrix", "ICA Client", "SelfServicePlugin", "SelfService.exe"),
+            Path.Combine(programFilesX86, "Citrix", "ICA Client", "SelfService.exe"),
+            Path.Combine(programFiles, "Citrix", "ICA Client", "SelfService.exe"),
+        };
     }
 
     /// <summary>
