@@ -16,6 +16,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -38,6 +39,18 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     private const int WindowCaptureMaxAttempts = 60;
     private const int WindowCapturePollIntervalMs = 500;
 
+    // 360 * 500ms gives users roughly three minutes for MFA-backed sign-in.
+    private const int AuthWatchMaxAttempts = 360;
+    private const int AuthWatchShutdownTimeoutMs = 500;
+    private const int WindowClassNameCapacity = 256;
+    private const string WorkspaceShellProcessName = "SelfService";
+
+    // Large enough to exclude tray and splash popups, small enough to tolerate DPI variance.
+    private const int WorkspaceAuthMinAreaPx = 50_000;
+
+    // Skips tiny helper windows while keeping seamless published-app windows eligible.
+    private const int SessionMinAreaPx = 10_000;
+
     // Win32 window style flags
     private const int GwlStyle = -16;
     private const uint WsChild = 0x40000000;
@@ -55,12 +68,17 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     private DispatcherTimer? _healthTimer;
     private WinForms.Panel? _hostPanel;
     private IntPtr _capturedHwnd;
+    private CancellationTokenSource? _authWatchCts;
+    private Task? _authWatchTask;
     private bool _embedded;
     private bool _captureInProgress;
     private bool _disposed;
 
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -171,7 +189,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
     // Citrix process names to scan (covers different Workspace versions)
     private static readonly string[] CitrixProcessNames =
-        ["wfica32", "wfcrun32", "CDViewer", "Receiver", "SelfService"];
+        ["wfica32", "wfcrun32", "CDViewer", "Receiver", WorkspaceShellProcessName];
 
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
@@ -200,19 +218,14 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         _captureInProgress = true;
         Core.Logging.FileLogger.Info("Citrix: attempting to capture Citrix session window...");
 
-        // Record existing Citrix PIDs before our launch
-        var existingPids = new HashSet<int>();
-        foreach (var name in CitrixProcessNames)
-        {
-            foreach (var p in Process.GetProcessesByName(name))
-            {
-                existingPids.Add(p.Id);
-            }
-        }
+        // Snapshot visible top-level windows before our launch so we can detect the new
+        // one. Tracking window handles (not just PIDs) also captures apps that open inside
+        // an already-running ICA session (Citrix session sharing), where no new process
+        // appears and a PID-only scan would never see the window.
+        HashSet<IntPtr> preLaunchWindows = SnapshotVisibleWindows();
+        Core.Logging.FileLogger.Info($"Citrix: {preLaunchWindows.Count} visible window(s) before launch");
 
-        Core.Logging.FileLogger.Info($"Citrix: {existingPids.Count} existing Citrix process(es) before launch");
-
-        var extendedMessageShown = false;
+        bool extendedMessageShown = false;
         for (int attempt = 1; attempt <= WindowCaptureMaxAttempts; attempt++)
         {
             if (_disposed || !_captureInProgress) return;
@@ -230,75 +243,12 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 });
             }
 
-            // Scan for new Citrix processes
-            var newPids = new HashSet<int>();
-            foreach (var name in CitrixProcessNames)
-            {
-                foreach (var p in Process.GetProcessesByName(name))
-                {
-                    if (!existingPids.Contains(p.Id) && !p.HasExited)
-                    {
-                        newPids.Add(p.Id);
-                    }
-                }
-            }
-
-            if (newPids.Count == 0) continue;
-
-            if (attempt % 5 == 0)
-            {
-                Core.Logging.FileLogger.Info(
-                    $"Citrix: scan {attempt}/{WindowCaptureMaxAttempts}, {newPids.Count} new Citrix process(es)");
-            }
-
-            // Use EnumWindows to find visible windows belonging to new Citrix processes
-            IntPtr bestHwnd = IntPtr.Zero;
-            int bestArea = 0;
-
-            EnumWindows((hwnd, _) =>
-            {
-                if (!IsWindowVisible(hwnd)) return true;
-
-                GetWindowThreadProcessId(hwnd, out var pid);
-                if (!newPids.Contains((int)pid)) return true;
-
-                var className = new System.Text.StringBuilder(256);
-                GetClassName(hwnd, className, 256);
-                var cName = className.ToString();
-
-                // Accept Citrix session windows by class name (seamless windows have no title)
-                // Also accept any window with a title as fallback
-                bool isCitrixClass = cName.StartsWith("Transparent Windows Client", StringComparison.OrdinalIgnoreCase)
-                    || cName.StartsWith("CtxSeamless", StringComparison.OrdinalIgnoreCase)
-                    || cName.Contains("CDViewer", StringComparison.OrdinalIgnoreCase)
-                    || cName.StartsWith("TUIWindowClass", StringComparison.OrdinalIgnoreCase)
-                    || cName.StartsWith("IHWindow", StringComparison.OrdinalIgnoreCase);
-
-                if (!isCitrixClass && GetWindowTextLength(hwnd) == 0)
-                    return true; // Skip unknown windows without titles
-
-                GetWindowRect(hwnd, out var rect);
-                int area = (rect.Right - rect.Left) * (rect.Bottom - rect.Top);
-
-                // Skip tiny windows (toolbars, tray icons, etc.)
-                if (area < 10000) return true;
-
-                if (area > bestArea)
-                {
-                    bestArea = area;
-                    bestHwnd = hwnd;
-                    Core.Logging.FileLogger.Info(
-                        $"Citrix: candidate hwnd=0x{hwnd.ToInt64():X} class='{cName}' pid={pid} size={rect.Right - rect.Left}x{rect.Bottom - rect.Top}");
-                }
-
-                return true;
-            }, IntPtr.Zero);
-
+            IntPtr bestHwnd = FindNewSessionWindow(preLaunchWindows);
             if (bestHwnd != IntPtr.Zero)
             {
                 _captureInProgress = false;
                 Core.Logging.FileLogger.Info(
-                    $"Citrix: capturing hwnd=0x{bestHwnd.ToInt64():X} (area={bestArea}px)");
+                    $"Citrix: capturing session window hwnd=0x{bestHwnd.ToInt64():X}");
                 await Dispatcher.InvokeAsync(() =>
                 {
                     CaptureLoadingPanel.Visibility = Visibility.Collapsed;
@@ -308,13 +258,274 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
             }
         }
 
-        // Timeout — fall back to external mode
+        // Timeout — no seamless session window appeared. This commonly means Citrix
+        // Workspace needs the user to (re)authenticate before the app can launch.
+        // Try to embed Workspace's own sign-in window inline (Option 2b spike) so the
+        // user authenticates without leaving Heimdall; Citrix keeps ownership of the
+        // token. Fall back to external mode if no auth window is present.
         _captureInProgress = false;
+
+        // Only treat this as a sign-in situation when Workspace's own window is actually
+        // in the foreground — Citrix surfaces its login front-and-centre. A bare timeout
+        // otherwise just means the app opened into a shared session or as an unseen
+        // seamless window, so fall through to external mode instead of grabbing the shell.
+        IntPtr authHwnd = TryFindCitrixAuthWindow();
+        if (authHwnd != IntPtr.Zero && authHwnd == GetForegroundWindow())
+        {
+            Core.Logging.FileLogger.Info(
+                $"Citrix: Workspace sign-in window is foreground; embedding it inline hwnd=0x{authHwnd.ToInt64():X}");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                CaptureLoadingText.Text = _localizer?["CitrixAuthSignInHint"] ?? "Sign in to Citrix…";
+                EmbedWindow(authHwnd);
+            });
+
+            // After the user signs in, Citrix launches the published app. Swap the embedded
+            // auth window for the real session window when it appears.
+            StartAuthWatch(preLaunchWindows, authHwnd);
+            return;
+        }
+
         Core.Logging.FileLogger.Info("Citrix: window capture timed out after 30s, using external mode");
         await Dispatcher.InvokeAsync(() =>
         {
             ShowExternalFallback();
         });
+    }
+
+    private void StartAuthWatch(HashSet<IntPtr> preLaunchWindows, IntPtr authHwnd)
+    {
+        StopAuthWatch();
+
+        CancellationTokenSource authWatchCts = new();
+        _authWatchCts = authWatchCts;
+        _authWatchTask = WatchForSessionAfterAuthAsync(preLaunchWindows, authHwnd, authWatchCts.Token)
+            .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Core.Logging.FileLogger.Error(
+                            "Citrix: auth-watch task faulted: " + t.Exception?.GetBaseException());
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.Default);
+    }
+
+    private void StopAuthWatch()
+    {
+        CancellationTokenSource? authWatchCts = _authWatchCts;
+        Task? authWatchTask = _authWatchTask;
+        _authWatchCts = null;
+        _authWatchTask = null;
+
+        if (authWatchCts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            authWatchCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        // Dispose is synchronous; wait asynchronously so UI teardown is not blocked.
+        _ = AwaitAuthWatchShutdownAsync(authWatchTask, authWatchCts);
+    }
+
+    private static async Task AwaitAuthWatchShutdownAsync(
+        Task? authWatchTask,
+        CancellationTokenSource authWatchCts)
+    {
+        try
+        {
+            if (authWatchTask is not null)
+            {
+                Task shutdownTimeoutTask = Task.Delay(AuthWatchShutdownTimeoutMs);
+                await Task.WhenAny(authWatchTask, shutdownTimeoutTask).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Citrix: auth-watch shutdown wait failed: {ex.Message}");
+        }
+        finally
+        {
+            authWatchCts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Locates Citrix Workspace's own sign-in window so it can be embedded inline.
+    /// The Workspace UI is a top-level WPF window (class "HwndWrapper[SelfService;main;...]")
+    /// that hosts the federated login in an embedded WebView2; reparenting the top-level
+    /// window carries the WebView2 child windows with it. Returns IntPtr.Zero if not found.
+    /// </summary>
+    private static IntPtr TryFindCitrixAuthWindow()
+    {
+        HashSet<int> selfServicePids = new();
+        foreach (Process process in Process.GetProcessesByName(WorkspaceShellProcessName))
+        {
+            selfServicePids.Add(process.Id);
+        }
+
+        if (selfServicePids.Count == 0) return IntPtr.Zero;
+
+        IntPtr best = IntPtr.Zero;
+        int bestArea = 0;
+
+        EnumWindows((hwnd, _) =>
+        {
+            if (!IsWindowVisible(hwnd)) return true;
+
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            if (!selfServicePids.Contains((int)pid)) return true;
+
+            StringBuilder className = new(WindowClassNameCapacity);
+            GetClassName(hwnd, className, WindowClassNameCapacity);
+            if (!className.ToString().StartsWith("HwndWrapper[SelfService;main", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            GetWindowRect(hwnd, out RECT rect);
+            int area = (rect.Right - rect.Left) * (rect.Bottom - rect.Top);
+            if (area < WorkspaceAuthMinAreaPx) return true;
+
+            if (area > bestArea)
+            {
+                bestArea = area;
+                best = hwnd;
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        return best;
+    }
+
+    /// <summary>
+    /// Scans for a visible published-app session window owned by a Citrix process that
+    /// did not exist at launch time. Excludes the Workspace UI / sign-in window
+    /// (class "HwndWrapper[SelfService;...]"), which is never the app session.
+    /// Returns IntPtr.Zero if no session window is present yet.
+    /// </summary>
+    private static IntPtr FindNewSessionWindow(HashSet<IntPtr> preLaunchWindows)
+    {
+        // The session window must belong to a live Citrix process.
+        HashSet<int> citrixPids = new();
+        foreach (string name in CitrixProcessNames)
+        {
+            foreach (Process process in Process.GetProcessesByName(name))
+            {
+                if (!process.HasExited) citrixPids.Add(process.Id);
+            }
+        }
+
+        if (citrixPids.Count == 0) return IntPtr.Zero;
+
+        IntPtr bestHwnd = IntPtr.Zero;
+        int bestArea = 0;
+
+        EnumWindows((hwnd, _) =>
+        {
+            if (!IsWindowVisible(hwnd)) return true;
+
+            // Only windows that appeared after our launch — covers both a fresh ICA
+            // process and a new window opened inside an already-running (shared) session.
+            if (preLaunchWindows.Contains(hwnd)) return true;
+
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            if (!citrixPids.Contains((int)pid)) return true;
+
+            StringBuilder className = new(WindowClassNameCapacity);
+            GetClassName(hwnd, className, WindowClassNameCapacity);
+            string cName = className.ToString();
+
+            // The Workspace shell / sign-in window is not a published-app session.
+            if (cName.StartsWith("HwndWrapper[SelfService", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Accept Citrix session windows by class name (seamless windows have no title),
+            // and any titled window as a fallback.
+            bool isCitrixClass = cName.StartsWith("Transparent Windows Client", StringComparison.OrdinalIgnoreCase)
+                || cName.StartsWith("CtxSeamless", StringComparison.OrdinalIgnoreCase)
+                || cName.Contains("CDViewer", StringComparison.OrdinalIgnoreCase)
+                || cName.StartsWith("TUIWindowClass", StringComparison.OrdinalIgnoreCase)
+                || cName.StartsWith("IHWindow", StringComparison.OrdinalIgnoreCase);
+
+            if (!isCitrixClass && GetWindowTextLength(hwnd) == 0)
+                return true; // Skip unknown windows without titles
+
+            GetWindowRect(hwnd, out RECT rect);
+            int area = (rect.Right - rect.Left) * (rect.Bottom - rect.Top);
+
+            // Skip tiny windows (toolbars, tray icons, etc.)
+            if (area < SessionMinAreaPx) return true;
+
+            if (area > bestArea)
+            {
+                bestArea = area;
+                bestHwnd = hwnd;
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        return bestHwnd;
+    }
+
+    /// <summary>Snapshots the handles of all currently-visible top-level windows.</summary>
+    private static HashSet<IntPtr> SnapshotVisibleWindows()
+    {
+        HashSet<IntPtr> set = new();
+        EnumWindows((hwnd, _) =>
+        {
+            if (IsWindowVisible(hwnd)) set.Add(hwnd);
+            return true;
+        }, IntPtr.Zero);
+        return set;
+    }
+
+    /// <summary>
+    /// After the Workspace sign-in window has been embedded, waits for the user to
+    /// authenticate and for Citrix to launch the published app, then swaps the embedded
+    /// auth window for the real session window. Leaves the auth window in place if no
+    /// session appears within the timeout.
+    /// </summary>
+    private async Task WatchForSessionAfterAuthAsync(
+        HashSet<IntPtr> preLaunchWindows,
+        IntPtr authHwnd,
+        CancellationToken cancellationToken = default)
+    {
+        // Allow generous time for interactive (possibly MFA) sign-in plus app launch.
+        for (int attempt = 1; attempt <= AuthWatchMaxAttempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed) return;
+            await Task.Delay(WindowCapturePollIntervalMs, cancellationToken);
+            if (_disposed) return;
+
+            IntPtr sessionHwnd = FindNewSessionWindow(preLaunchWindows);
+            if (sessionHwnd == IntPtr.Zero || sessionHwnd == authHwnd) continue;
+            if (!IsWindow(sessionHwnd)) continue;
+
+            Core.Logging.FileLogger.Info(
+                $"Citrix: post-auth session window hwnd=0x{sessionHwnd.ToInt64():X} appeared; swapping out auth window");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                // Hand the sign-in window back to Citrix, then embed the app session.
+                ReleaseEmbeddedWindow();
+                EmbedWindow(sessionHwnd);
+            });
+            return;
+        }
+
+        Core.Logging.FileLogger.Info(
+            "Citrix: no session window appeared after auth within timeout; leaving auth window embedded");
     }
 
     private void OnCancelCaptureClick(object sender, RoutedEventArgs e)
@@ -523,6 +734,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        StopAuthWatch();
 
         if (_healthTimer is not null)
         {

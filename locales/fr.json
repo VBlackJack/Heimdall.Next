@@ -2404,6 +2404,7 @@
   "CitrixScanSuccess": "{0} application(s) Citrix import\u00e9e(s) avec succ\u00e8s.",
   "BtnImportCitrix": "Importer apps Citrix",
   "TooltipImportCitrix": "Scanner le cache Citrix Workspace local pour les applications publi\u00e9es",
+  "CitrixAuthSignInHint": "Connecte-toi \u00e0 Citrix pour lancer l'application\u2026",
   "CitrixBringToFront": "Mettre au premier plan",
   "CitrixCancelCapture": "Annuler",
   "CitrixCaptureSearching": "Recherche de la fen\u00eatre Citrix...",
