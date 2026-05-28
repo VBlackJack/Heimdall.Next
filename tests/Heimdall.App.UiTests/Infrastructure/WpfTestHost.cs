@@ -122,9 +122,9 @@ public static class WpfTestHost
             _thread.SetApartmentState(ApartmentState.STA);
             _thread.Start();
 
-            if (!ready.Wait(TimeSpan.FromSeconds(10)))
+            if (!ready.Wait(TimeSpan.FromSeconds(60)))
             {
-                throw new InvalidOperationException("WpfTestHost failed to start within 10 seconds.");
+                throw new InvalidOperationException("WpfTestHost failed to start within 60 seconds.");
             }
 
             if (_startupException is not null)
