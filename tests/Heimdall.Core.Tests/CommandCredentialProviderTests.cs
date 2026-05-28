@@ -285,7 +285,7 @@ public class CommandCredentialProviderTests
     public async Task GetCredentialAsync_MultiPlaceholders_AllSubstituted()
     {
         var provider = new CommandCredentialProvider(
-            "cmd.exe /c echo {User}@{Host}:{Port}", null);
+            "cmd.exe /c echo {User}@{Host}:{Port}", null, timeoutMs: 60000);
         var result = await provider.GetCredentialAsync("server1", 3306, "dbadmin", "title");
 
         Assert.NotNull(result);
