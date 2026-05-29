@@ -27,6 +27,8 @@ namespace Heimdall.Terminal.Logging;
 public sealed class StreamingAnsiStripper
 {
     private const char Escape = '\u001B';
+    private const char Bel = '\u0007';
+    private const char StringTerminator = '\u005C';
 
     private readonly StringBuilder _pending = new StringBuilder();
     private AnsiStripState _state;
@@ -94,7 +96,21 @@ public sealed class StreamingAnsiStripper
                     return true;
                 }
 
-                if (IsFeEscape(current))
+                if (IsStringOpener(current))
+                {
+                    _pending.Append(current);
+                    _state = AnsiStripState.Str;
+                    return true;
+                }
+
+                if (IsNfIntermediate(current))
+                {
+                    _pending.Append(current);
+                    _state = AnsiStripState.Nf;
+                    return true;
+                }
+
+                if (IsAfterEscFinal(current))
                 {
                     ClearPendingSequence();
                     return true;
@@ -126,6 +142,49 @@ public sealed class StreamingAnsiStripper
                 EmitPending(output);
                 return false;
 
+            case AnsiStripState.Nf:
+                if (IsNfIntermediate(current))
+                {
+                    _pending.Append(current);
+                    return true;
+                }
+
+                if (IsAfterEscFinal(current))
+                {
+                    ClearPendingSequence();
+                    return true;
+                }
+
+                EmitPending(output);
+                return false;
+
+            case AnsiStripState.Str:
+                if (current == Bel)
+                {
+                    ClearPendingSequence();
+                    return true;
+                }
+
+                _pending.Append(current);
+                if (current == Escape)
+                {
+                    _state = AnsiStripState.StrAfterEsc;
+                }
+
+                return true;
+
+            case AnsiStripState.StrAfterEsc:
+                if (current == StringTerminator)
+                {
+                    ClearPendingSequence();
+                    return true;
+                }
+
+                _pending.Clear();
+                _pending.Append(Escape);
+                _state = AnsiStripState.AfterEsc;
+                return false;
+
             default:
                 throw new InvalidOperationException($"Unknown ANSI strip state: {_state}");
         }
@@ -144,10 +203,23 @@ public sealed class StreamingAnsiStripper
         _csiSeenIntermediate = false;
     }
 
-    private static bool IsFeEscape(char value)
+    private static bool IsStringOpener(char value)
     {
-        return (value >= '\u0040' && value <= '\u005A')
-            || (value >= '\u005C' && value <= '\u005F');
+        return value == '\u0050'
+            || value == '\u005D'
+            || value == '\u0058'
+            || value == '\u005E'
+            || value == '\u005F';
+    }
+
+    private static bool IsNfIntermediate(char value)
+    {
+        return value >= '\u0020' && value <= '\u002F';
+    }
+
+    private static bool IsAfterEscFinal(char value)
+    {
+        return value >= '\u0030' && value <= '\u007E';
     }
 
     private static bool IsCsiParameter(char value)
@@ -169,6 +241,9 @@ public sealed class StreamingAnsiStripper
     {
         Normal,
         AfterEsc,
-        Csi
+        Csi,
+        Nf,
+        Str,
+        StrAfterEsc
     }
 }
