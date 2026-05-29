@@ -26,6 +26,7 @@ using TwinShell.Core.Services;
 using TwinShell.Infrastructure.Services;
 using TwinShell.Persistence;
 using TwinShell.Persistence.Repositories;
+using TwinShell.Persistence.Schema;
 using ActionModel = TwinShell.Core.Models.Action;
 
 namespace Heimdall.App.Services;
@@ -105,7 +106,7 @@ internal static class TwinShellBootstrapper
         var context = scope.ServiceProvider.GetRequiredService<TwinShellDbContext>();
 
         await context.Database.EnsureCreatedAsync();
-        await context.EnsureGitOpsSchemaMigrationAsync();
+        await SchemaUpgrader.UpgradeAsync(context, TwinShellSchema.Steps);
 
         // Seed only if the database is empty
         var repo = scope.ServiceProvider.GetRequiredService<IActionRepository>();
