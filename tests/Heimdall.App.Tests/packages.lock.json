@@ -449,6 +449,7 @@
       "twinshell.persistence": {
         "type": "Project",
         "dependencies": {
+          "Heimdall.Core": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[8.0.11, )",
           "Microsoft.Extensions.Caching.Memory": "[8.0.1, )",
           "TwinShell.Core": "[1.0.0, )"
