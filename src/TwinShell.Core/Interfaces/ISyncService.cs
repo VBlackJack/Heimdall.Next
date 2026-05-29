@@ -11,24 +11,27 @@ public interface ISyncService
     /// Creates an organized folder structure suitable for Git versioning.
     /// </summary>
     /// <param name="rootFolderPath">Root folder path where YAML files will be created</param>
+    /// <param name="cancellationToken">Token used to cancel the export operation</param>
     /// <returns>Export result with statistics and any errors encountered</returns>
-    Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath);
+    Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Import data from YAML files into the local database.
     /// Uses PublicId for matching existing records (upsert logic).
     /// </summary>
     /// <param name="rootFolderPath">Root folder path containing YAML files to import</param>
+    /// <param name="cancellationToken">Token used to cancel the import operation</param>
     /// <returns>Import result with statistics and any errors encountered</returns>
-    Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath);
+    Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validate YAML files in a folder without importing.
     /// Useful for pre-flight checks before synchronization.
     /// </summary>
     /// <param name="rootFolderPath">Root folder path to validate</param>
+    /// <param name="cancellationToken">Token used to cancel the validation operation</param>
     /// <returns>Validation result with details about found files and any issues</returns>
-    Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath);
+    Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

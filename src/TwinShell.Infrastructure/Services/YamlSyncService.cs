@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using TwinShell.Core.Enums;
 using TwinShell.Core.Helpers;
 using TwinShell.Core.Interfaces;
@@ -49,12 +50,14 @@ public sealed class YamlSyncService : ISyncService
 
     #region Export
 
-    public async Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath)
+    public async Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncExportResult { Success = true };
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Create folder structure
             EnsureDirectoryExists(rootFolderPath);
             EnsureDirectoryExists(Path.Combine(rootFolderPath, ActionsFolderName));
@@ -63,16 +66,24 @@ public sealed class YamlSyncService : ISyncService
             EnsureDirectoryExists(Path.Combine(rootFolderPath, CategoriesFolderName));
 
             // Export categories first (they may be referenced by actions)
-            result.CategoriesExported = await ExportCategoriesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.CategoriesExported = await ExportCategoriesAsync(rootFolderPath, result, cancellationToken);
 
             // Export templates (they may be referenced by actions)
-            result.TemplatesExported = await ExportTemplatesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.TemplatesExported = await ExportTemplatesAsync(rootFolderPath, result, cancellationToken);
 
             // Export actions (organized by category)
-            result.ActionsExported = await ExportActionsAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.ActionsExported = await ExportActionsAsync(rootFolderPath, result, cancellationToken);
 
             // Export batches
-            result.BatchesExported = await ExportBatchesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.BatchesExported = await ExportBatchesAsync(rootFolderPath, result, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -83,14 +94,16 @@ public sealed class YamlSyncService : ISyncService
         return result;
     }
 
-    private async Task<int> ExportCategoriesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportCategoriesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
-        var categories = await _dbContext.CustomCategories.ToListAsync();
+        var categories = await _dbContext.CustomCategories.ToListAsync(cancellationToken);
         int count = 0;
 
         foreach (var category in categories)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var yamlModel = new CategoryYamlModel
@@ -108,8 +121,12 @@ public sealed class YamlSyncService : ISyncService
                 var fileName = SanitizeFileName(category.Name) + ".yaml";
                 var filePath = Path.Combine(categoriesPath, fileName);
 
-                await WriteYamlFileAsync(filePath, yamlModel);
+                await WriteYamlFileAsync(filePath, yamlModel, cancellationToken);
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -120,14 +137,16 @@ public sealed class YamlSyncService : ISyncService
         return count;
     }
 
-    private async Task<int> ExportTemplatesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportTemplatesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
-        var templates = await _dbContext.CommandTemplates.ToListAsync();
+        var templates = await _dbContext.CommandTemplates.ToListAsync(cancellationToken);
         int count = 0;
 
         foreach (var template in templates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var parameters = DeserializeJson<List<TemplateParameterYaml>>(template.ParametersJson) ?? new();
@@ -144,8 +163,12 @@ public sealed class YamlSyncService : ISyncService
                 var fileName = SanitizeFileName(template.Name) + ".yaml";
                 var filePath = Path.Combine(templatesPath, fileName);
 
-                await WriteYamlFileAsync(filePath, yamlModel);
+                await WriteYamlFileAsync(filePath, yamlModel, cancellationToken);
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -156,18 +179,20 @@ public sealed class YamlSyncService : ISyncService
         return count;
     }
 
-    private async Task<int> ExportActionsAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportActionsAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
         var actions = await _dbContext.Actions
             .Include(a => a.WindowsCommandTemplate)
             .Include(a => a.LinuxCommandTemplate)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         int count = 0;
 
         foreach (var action in actions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 // Create category subfolder
@@ -211,8 +236,12 @@ public sealed class YamlSyncService : ISyncService
                 var fileName = SanitizeFileName(action.Title) + ".yaml";
                 var filePath = Path.Combine(categoryPath, fileName);
 
-                await WriteYamlFileAsync(filePath, yamlModel);
+                await WriteYamlFileAsync(filePath, yamlModel, cancellationToken);
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -223,14 +252,16 @@ public sealed class YamlSyncService : ISyncService
         return count;
     }
 
-    private async Task<int> ExportBatchesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportBatchesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
-        var batches = await _dbContext.CommandBatches.ToListAsync();
+        var batches = await _dbContext.CommandBatches.ToListAsync(cancellationToken);
         int count = 0;
 
         foreach (var batch in batches)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var commands = DeserializeJson<List<BatchCommandYaml>>(batch.CommandsJson) ?? new();
@@ -249,8 +280,12 @@ public sealed class YamlSyncService : ISyncService
                 var fileName = SanitizeFileName(batch.Name) + ".yaml";
                 var filePath = Path.Combine(batchesPath, fileName);
 
-                await WriteYamlFileAsync(filePath, yamlModel);
+                await WriteYamlFileAsync(filePath, yamlModel, cancellationToken);
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -265,56 +300,102 @@ public sealed class YamlSyncService : ISyncService
 
     #region Import
 
-    public async Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath)
+    public async Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncImportResult { Success = true };
+        IDbContextTransaction? transaction = null;
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
             // Import in order: categories, templates, actions, batches
             // (respecting dependencies)
 
             var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(categoriesPath))
             {
-                await ImportCategoriesAsync(categoriesPath, result);
+                await ImportCategoriesAsync(categoriesPath, result, cancellationToken);
             }
 
             var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(templatesPath))
             {
-                await ImportTemplatesAsync(templatesPath, result);
+                await ImportTemplatesAsync(templatesPath, result, cancellationToken);
             }
 
             var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(actionsPath))
             {
-                await ImportActionsAsync(actionsPath, result);
+                await ImportActionsAsync(actionsPath, result, cancellationToken);
             }
 
             var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(batchesPath))
             {
-                await ImportBatchesAsync(batchesPath, result);
+                await ImportBatchesAsync(batchesPath, result, cancellationToken);
             }
 
-            await _dbContext.SaveChangesAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            if (transaction != null)
+            {
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch
+                {
+                }
+            }
+
+            throw;
         }
         catch (Exception ex)
         {
             result.Success = false;
             result.Errors.Add($"Import failed: {ex.Message}");
+
+            if (transaction != null)
+            {
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch (Exception rollbackEx)
+                {
+                    result.Errors.Add($"Rollback failed: {rollbackEx.Message}");
+                }
+            }
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
         }
 
         return result;
     }
 
-    private async Task ImportCategoriesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportCategoriesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.yaml", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -323,7 +404,7 @@ public sealed class YamlSyncService : ISyncService
                     continue;
                 }
 
-                var yaml = await File.ReadAllTextAsync(filePath);
+                var yaml = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = _yamlDeserializer.Deserialize<CategoryYamlModel>(yaml);
 
                 if (model == null || model.Id == Guid.Empty)
@@ -333,7 +414,7 @@ public sealed class YamlSyncService : ISyncService
                 }
 
                 var existing = await _dbContext.CustomCategories
-                    .FirstOrDefaultAsync(c => c.PublicId == model.Id);
+                    .FirstOrDefaultAsync(c => c.PublicId == model.Id, cancellationToken);
 
                 if (existing != null)
                 {
@@ -368,6 +449,10 @@ public sealed class YamlSyncService : ISyncService
                     result.CategoriesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import category from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -375,12 +460,14 @@ public sealed class YamlSyncService : ISyncService
         }
     }
 
-    private async Task ImportTemplatesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportTemplatesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.yaml", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -389,7 +476,7 @@ public sealed class YamlSyncService : ISyncService
                     continue;
                 }
 
-                var yaml = await File.ReadAllTextAsync(filePath);
+                var yaml = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = _yamlDeserializer.Deserialize<TemplateYamlModel>(yaml);
 
                 if (model == null || model.Id == Guid.Empty)
@@ -406,7 +493,7 @@ public sealed class YamlSyncService : ISyncService
                 var parametersJson = SerializeJson(model.Parameters ?? new List<TemplateParameterYaml>());
 
                 var existing = await _dbContext.CommandTemplates
-                    .FirstOrDefaultAsync(t => t.PublicId == model.Id);
+                    .FirstOrDefaultAsync(t => t.PublicId == model.Id, cancellationToken);
 
                 if (existing != null)
                 {
@@ -433,6 +520,10 @@ public sealed class YamlSyncService : ISyncService
                     result.TemplatesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import template from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -440,13 +531,15 @@ public sealed class YamlSyncService : ISyncService
         }
     }
 
-    private async Task ImportActionsAsync(string folderPath, SyncImportResult result)
+    private async Task ImportActionsAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         // Recursively find all YAML files (organized by category subfolders)
         var files = Directory.GetFiles(folderPath, "*.yaml", SearchOption.AllDirectories);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -455,7 +548,7 @@ public sealed class YamlSyncService : ISyncService
                     continue;
                 }
 
-                var yaml = await File.ReadAllTextAsync(filePath);
+                var yaml = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = _yamlDeserializer.Deserialize<ActionYamlModel>(yaml);
 
                 if (model == null || model.Id == Guid.Empty)
@@ -481,14 +574,14 @@ public sealed class YamlSyncService : ISyncService
                 if (model.WindowsTemplateId.HasValue)
                 {
                     var template = await _dbContext.CommandTemplates
-                        .FirstOrDefaultAsync(t => t.PublicId == model.WindowsTemplateId.Value);
+                        .FirstOrDefaultAsync(t => t.PublicId == model.WindowsTemplateId.Value, cancellationToken);
                     windowsTemplateId = template?.Id;
                 }
 
                 if (model.LinuxTemplateId.HasValue)
                 {
                     var template = await _dbContext.CommandTemplates
-                        .FirstOrDefaultAsync(t => t.PublicId == model.LinuxTemplateId.Value);
+                        .FirstOrDefaultAsync(t => t.PublicId == model.LinuxTemplateId.Value, cancellationToken);
                     linuxTemplateId = template?.Id;
                 }
 
@@ -499,7 +592,7 @@ public sealed class YamlSyncService : ISyncService
                 var linksJson = SerializeJson(model.Links ?? new List<LinkYaml>());
 
                 var existing = await _dbContext.Actions
-                    .FirstOrDefaultAsync(a => a.PublicId == model.Id);
+                    .FirstOrDefaultAsync(a => a.PublicId == model.Id, cancellationToken);
 
                 if (existing != null)
                 {
@@ -549,6 +642,10 @@ public sealed class YamlSyncService : ISyncService
                     result.ActionsCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import action from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -556,12 +653,14 @@ public sealed class YamlSyncService : ISyncService
         }
     }
 
-    private async Task ImportBatchesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportBatchesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.yaml", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -570,7 +669,7 @@ public sealed class YamlSyncService : ISyncService
                     continue;
                 }
 
-                var yaml = await File.ReadAllTextAsync(filePath);
+                var yaml = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = _yamlDeserializer.Deserialize<BatchYamlModel>(yaml);
 
                 if (model == null || model.Id == Guid.Empty)
@@ -588,7 +687,7 @@ public sealed class YamlSyncService : ISyncService
                 var tagsJson = SerializeJson(model.Tags ?? new List<string>());
 
                 var existing = await _dbContext.CommandBatches
-                    .FirstOrDefaultAsync(b => b.PublicId == model.Id);
+                    .FirstOrDefaultAsync(b => b.PublicId == model.Id, cancellationToken);
 
                 if (existing != null)
                 {
@@ -622,6 +721,10 @@ public sealed class YamlSyncService : ISyncService
                     result.BatchesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import batch from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -633,12 +736,14 @@ public sealed class YamlSyncService : ISyncService
 
     #region Validation
 
-    public async Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath)
+    public async Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncValidationResult { IsValid = true };
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!Directory.Exists(rootFolderPath))
             {
                 result.IsValid = false;
@@ -648,36 +753,61 @@ public sealed class YamlSyncService : ISyncService
 
             // Check categories
             var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(categoriesPath))
             {
-                result.CategoryFilesFound = await ValidateYamlFilesAsync<CategoryYamlModel>(categoriesPath, result, "category");
+                result.CategoryFilesFound = await ValidateYamlFilesAsync<CategoryYamlModel>(
+                    categoriesPath,
+                    result,
+                    "category",
+                    cancellationToken);
             }
 
             // Check templates
             var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(templatesPath))
             {
-                result.TemplateFilesFound = await ValidateYamlFilesAsync<TemplateYamlModel>(templatesPath, result, "template");
+                result.TemplateFilesFound = await ValidateYamlFilesAsync<TemplateYamlModel>(
+                    templatesPath,
+                    result,
+                    "template",
+                    cancellationToken);
             }
 
             // Check actions (recursive)
             var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(actionsPath))
             {
-                result.ActionFilesFound = await ValidateYamlFilesAsync<ActionYamlModel>(actionsPath, result, "action", SearchOption.AllDirectories);
+                result.ActionFilesFound = await ValidateYamlFilesAsync<ActionYamlModel>(
+                    actionsPath,
+                    result,
+                    "action",
+                    cancellationToken,
+                    SearchOption.AllDirectories);
             }
 
             // Check batches
             var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(batchesPath))
             {
-                result.BatchFilesFound = await ValidateYamlFilesAsync<BatchYamlModel>(batchesPath, result, "batch");
+                result.BatchFilesFound = await ValidateYamlFilesAsync<BatchYamlModel>(
+                    batchesPath,
+                    result,
+                    "batch",
+                    cancellationToken);
             }
 
             if (result.TotalFilesFound == 0)
             {
                 result.Warnings.Add("No YAML files found in the folder structure.");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -688,13 +818,20 @@ public sealed class YamlSyncService : ISyncService
         return result;
     }
 
-    private async Task<int> ValidateYamlFilesAsync<T>(string folderPath, SyncValidationResult result, string entityType, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    private async Task<int> ValidateYamlFilesAsync<T>(
+        string folderPath,
+        SyncValidationResult result,
+        string entityType,
+        CancellationToken cancellationToken,
+        SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
         var files = Directory.GetFiles(folderPath, "*.yaml", searchOption);
         int validCount = 0;
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -703,7 +840,7 @@ public sealed class YamlSyncService : ISyncService
                     continue;
                 }
 
-                var yaml = await File.ReadAllTextAsync(filePath);
+                var yaml = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = _yamlDeserializer.Deserialize<T>(yaml);
 
                 if (model != null)
@@ -714,6 +851,10 @@ public sealed class YamlSyncService : ISyncService
                 {
                     result.Warnings.Add($"Invalid {entityType} file: {Path.GetFileName(filePath)}");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -736,10 +877,10 @@ public sealed class YamlSyncService : ISyncService
         }
     }
 
-    private async Task WriteYamlFileAsync<T>(string filePath, T model)
+    private async Task WriteYamlFileAsync<T>(string filePath, T model, CancellationToken cancellationToken)
     {
         var yaml = _yamlSerializer.Serialize(model);
-        await File.WriteAllTextAsync(filePath, yaml);
+        await File.WriteAllTextAsync(filePath, yaml, cancellationToken);
     }
 
     private static bool ValidateFileSize(string filePath)

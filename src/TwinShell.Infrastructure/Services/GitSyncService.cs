@@ -14,7 +14,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Uses LibGit2Sharp for Git operations with retry logic and detailed progress.
 /// Thread-safe: uses SemaphoreSlim to prevent concurrent sync operations.
 /// </summary>
-public sealed class GitSyncService : IGitSyncService
+public sealed class GitSyncService : IGitSyncService, IDisposable
 {
     private readonly ISettingsService _settingsService;
     private readonly ISyncService _yamlSyncService;
@@ -31,7 +31,9 @@ public sealed class GitSyncService : IGitSyncService
     private volatile bool _isOperationInProgress;
 
     // Cancellation support
+    private readonly object _ctsLock = new();
     private CancellationTokenSource? _currentCancellationTokenSource;
+    private bool _disposed;
 
     private string _statusMessage = "Not configured";
     private SyncPhase _currentPhase = SyncPhase.Idle;
@@ -98,9 +100,14 @@ public sealed class GitSyncService : IGitSyncService
         }
 
         // Create new cancellation token source for this operation
-        _currentCancellationTokenSource?.Dispose();
-        _currentCancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = _currentCancellationTokenSource.Token;
+        CancellationTokenSource cancellationTokenSource = new();
+        lock (_ctsLock)
+        {
+            _currentCancellationTokenSource?.Dispose();
+            _currentCancellationTokenSource = cancellationTokenSource;
+        }
+
+        CancellationToken cancellationToken = cancellationTokenSource.Token;
 
         try
         {
@@ -119,20 +126,18 @@ public sealed class GitSyncService : IGitSyncService
         finally
         {
             _isOperationInProgress = false;
-            _currentCancellationTokenSource?.Dispose();
-            _currentCancellationTokenSource = null;
+            lock (_ctsLock)
+            {
+                if (ReferenceEquals(_currentCancellationTokenSource, cancellationTokenSource))
+                {
+                    _currentCancellationTokenSource = null;
+                }
+
+                cancellationTokenSource.Dispose();
+            }
+
             _syncLock.Release();
         }
-    }
-
-    /// <summary>
-    /// Overload for operations that don't need cancellation token
-    /// </summary>
-    private Task<GitOperationResult> ExecuteWithLockAsync(
-        Func<Task<GitOperationResult>> operation,
-        string operationName)
-    {
-        return ExecuteWithLockAsync(async _ => await operation(), operationName);
     }
 
     /// <summary>
@@ -140,11 +145,42 @@ public sealed class GitSyncService : IGitSyncService
     /// </summary>
     public void CancelOperation()
     {
-        if (_currentCancellationTokenSource != null && !_currentCancellationTokenSource.IsCancellationRequested)
+        CancellationTokenSource? cancellationTokenSource;
+        lock (_ctsLock)
+        {
+            cancellationTokenSource = _currentCancellationTokenSource;
+        }
+
+        if (cancellationTokenSource == null || cancellationTokenSource.IsCancellationRequested)
+        {
+            return;
+        }
+
+        try
         {
             _logger.LogInformation("Cancellation requested for current sync operation");
-            _currentCancellationTokenSource.Cancel();
+            cancellationTokenSource.Cancel();
         }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        lock (_ctsLock)
+        {
+            _currentCancellationTokenSource?.Dispose();
+            _currentCancellationTokenSource = null;
+        }
+
+        _syncLock.Dispose();
+        _disposed = true;
     }
 
     /// <summary>
@@ -225,12 +261,15 @@ public sealed class GitSyncService : IGitSyncService
     private async Task<T> ExecuteWithRetryAsync<T>(
         Func<Task<T>> operation,
         string operationName,
+        CancellationToken cancellationToken,
         Func<Exception, bool>? shouldRetry = null)
     {
         shouldRetry ??= IsTransientError;
 
         for (int attempt = 0; attempt < MaxRetryAttempts; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 return await operation().ConfigureAwait(false);
@@ -246,11 +285,12 @@ public sealed class GitSyncService : IGitSyncService
                     LF(MessageKeys.GitSyncRetrying, operationName, attempt + 2, MaxRetryAttempts),
                     phase: _currentPhase);
 
-                await Task.Delay(delay).ConfigureAwait(false);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
         }
 
         // Final attempt without catch
+        cancellationToken.ThrowIfCancellationRequested();
         return await operation().ConfigureAwait(false);
     }
 
@@ -319,9 +359,10 @@ public sealed class GitSyncService : IGitSyncService
         return ExecuteWithLockAsync(InitializeRepositoryInternalAsync, "initialize");
     }
 
-    private async Task<GitOperationResult> InitializeRepositoryInternalAsync()
+    private async Task<GitOperationResult> InitializeRepositoryInternalAsync(CancellationToken cancellationToken)
     {
         var startedAt = DateTime.UtcNow;
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!IsConfigured)
         {
@@ -348,6 +389,7 @@ public sealed class GitSyncService : IGitSyncService
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncCheckingRepository), SyncPhase.Initializing, 0);
 
             // Check if directory exists and is a git repo
@@ -377,6 +419,7 @@ public sealed class GitSyncService : IGitSyncService
             }
 
             // Clone the repository with retry logic
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncCloning), SyncPhase.Initializing, 25);
 
             await ExecuteWithRetryAsync(async () =>
@@ -388,17 +431,27 @@ public sealed class GitSyncService : IGitSyncService
                         BranchName = Settings.GitBranch
                     };
                     options.FetchOptions.CredentialsProvider = GetCredentialsHandler();
+                    options.FetchOptions.OnTransferProgress = _ => !cancellationToken.IsCancellationRequested;
 
                     Repository.Clone(remoteUrl, localPath, options);
-                });
+                }, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
-            }, "clone");
+            }, "clone", cancellationToken);
 
             RaiseStatusChanged(L(MessageKeys.GitSyncCloneSuccess), SyncPhase.Completed, 100);
             _logger.LogInformation("Repository cloned successfully from {RemoteUrl} to {LocalPath}", remoteUrl, localPath);
             var successResult = GitOperationResult.Ok(L(MessageKeys.GitSyncCloneSuccess));
             await LogSyncOperationAsync(successResult, SyncOperationType.Initialize, startedAt);
             return successResult;
+        }
+        catch (UserCancelledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (LibGit2SharpException ex)
         {
@@ -425,9 +478,10 @@ public sealed class GitSyncService : IGitSyncService
         return ExecuteWithLockAsync(PullAndImportInternalAsync, "pull");
     }
 
-    private async Task<GitOperationResult> PullAndImportInternalAsync()
+    private async Task<GitOperationResult> PullAndImportInternalAsync(CancellationToken cancellationToken)
     {
         var startedAt = DateTime.UtcNow;
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!IsConfigured)
         {
@@ -452,7 +506,7 @@ public sealed class GitSyncService : IGitSyncService
         if (!Repository.IsValid(localPath))
         {
             // Use internal method to avoid deadlock (we already hold the lock)
-            var initResult = await InitializeRepositoryInternalAsync();
+            var initResult = await InitializeRepositoryInternalAsync(cancellationToken);
             if (!initResult.Success)
             {
                 return initResult;
@@ -461,6 +515,7 @@ public sealed class GitSyncService : IGitSyncService
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncFetching), SyncPhase.Fetching, 10);
 
             int commitsMerged = 0;
@@ -478,12 +533,15 @@ public sealed class GitSyncService : IGitSyncService
 
                     Commands.Fetch(repo, remote.Name, refSpecs, new FetchOptions
                     {
-                        CredentialsProvider = GetCredentialsHandler()
+                        CredentialsProvider = GetCredentialsHandler(),
+                        OnTransferProgress = _ => !cancellationToken.IsCancellationRequested
                     }, "Fetching from origin");
-                });
+                }, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
-            }, "fetch");
+            }, "fetch", cancellationToken);
 
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncMerging), SyncPhase.Merging, 30);
 
             // Merge changes and detect conflicts
@@ -512,7 +570,8 @@ public sealed class GitSyncService : IGitSyncService
                         {
                             FetchOptions = new FetchOptions
                             {
-                                CredentialsProvider = GetCredentialsHandler()
+                                CredentialsProvider = GetCredentialsHandler(),
+                                OnTransferProgress = _ => !cancellationToken.IsCancellationRequested
                             },
                             MergeOptions = new MergeOptions
                             {
@@ -536,7 +595,8 @@ public sealed class GitSyncService : IGitSyncService
                         }
                     }
                 }
-            });
+            }, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             // If conflicts were detected, return with conflict information
             if (hasConflicts && conflictedFiles != null && conflictedFiles.Count > 0)
@@ -553,8 +613,9 @@ public sealed class GitSyncService : IGitSyncService
             }
 
             // Import YAML files into database
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncImporting), SyncPhase.Importing, 50, entityType: "Actions");
-            var importResult = await _yamlSyncService.ImportDataFromYamlAsync(localPath);
+            var importResult = await _yamlSyncService.ImportDataFromYamlAsync(localPath, cancellationToken);
 
             if (importResult.Success)
             {
@@ -589,6 +650,14 @@ public sealed class GitSyncService : IGitSyncService
                 return failResult;
             }
         }
+        catch (UserCancelledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (LibGit2SharpException ex)
         {
             var errorCode = MapExceptionToErrorCode(ex);
@@ -611,12 +680,13 @@ public sealed class GitSyncService : IGitSyncService
 
     public Task<GitOperationResult> ExportAndPushAsync(string? commitMessage = null)
     {
-        return ExecuteWithLockAsync(() => ExportAndPushInternalAsync(commitMessage), "push");
+        return ExecuteWithLockAsync(cancellationToken => ExportAndPushInternalAsync(commitMessage, cancellationToken), "push");
     }
 
-    private async Task<GitOperationResult> ExportAndPushInternalAsync(string? commitMessage = null)
+    private async Task<GitOperationResult> ExportAndPushInternalAsync(string? commitMessage, CancellationToken cancellationToken)
     {
         var startedAt = DateTime.UtcNow;
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!IsConfigured)
         {
@@ -650,8 +720,9 @@ public sealed class GitSyncService : IGitSyncService
         try
         {
             // Export database to YAML
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncExporting), SyncPhase.Exporting, 10, entityType: "Actions");
-            var exportResult = await _yamlSyncService.ExportDataToYamlAsync(localPath);
+            var exportResult = await _yamlSyncService.ExportDataToYamlAsync(localPath, cancellationToken);
 
             if (!exportResult.Success)
             {
@@ -665,6 +736,7 @@ public sealed class GitSyncService : IGitSyncService
                 return failResult;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncStaging), SyncPhase.Staging, 40);
 
             bool hasChanges = false;
@@ -679,7 +751,8 @@ public sealed class GitSyncService : IGitSyncService
                 // Check if there are changes to commit
                 var status = repo.RetrieveStatus();
                 hasChanges = status.IsDirty;
-            });
+            }, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!hasChanges)
             {
@@ -695,6 +768,7 @@ public sealed class GitSyncService : IGitSyncService
                 return noChangesResult;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncCommitting), SyncPhase.Committing, 60);
 
             await Task.Run(() =>
@@ -705,9 +779,11 @@ public sealed class GitSyncService : IGitSyncService
                 var message = commitMessage ?? $"TwinShell sync: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
 
                 repo.Commit(message, signature, signature);
-            });
+            }, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Push to remote with retry logic
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncPushing), SyncPhase.Pushing, 80);
 
             await ExecuteWithRetryAsync(async () =>
@@ -721,11 +797,13 @@ public sealed class GitSyncService : IGitSyncService
 
                     repo.Network.Push(remote, pushRefSpec, new PushOptions
                     {
-                        CredentialsProvider = GetCredentialsHandler()
+                        CredentialsProvider = GetCredentialsHandler(),
+                        OnPushTransferProgress = (_, _, _) => !cancellationToken.IsCancellationRequested
                     });
-                });
+                }, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
-            }, "push");
+            }, "push", cancellationToken);
 
             RaiseStatusChanged(LF(MessageKeys.GitSyncPushSuccess, exportResult.TotalExported), SyncPhase.Completed, 100);
             _logger.LogInformation("Successfully pushed {ItemCount} items to remote", exportResult.TotalExported);
@@ -737,6 +815,14 @@ public sealed class GitSyncService : IGitSyncService
             };
             await LogSyncOperationAsync(successResult, SyncOperationType.Push, startedAt);
             return successResult;
+        }
+        catch (UserCancelledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (NonFastForwardException ex)
         {
@@ -777,12 +863,13 @@ public sealed class GitSyncService : IGitSyncService
         return ExecuteWithLockAsync(FullSyncInternalAsync, "full-sync");
     }
 
-    private async Task<GitOperationResult> FullSyncInternalAsync()
+    private async Task<GitOperationResult> FullSyncInternalAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _logger.LogInformation("Starting full sync operation");
 
         // First pull and import (use internal method to avoid deadlock)
-        var pullResult = await PullAndImportInternalAsync();
+        var pullResult = await PullAndImportInternalAsync(cancellationToken);
         if (!pullResult.Success)
         {
             _logger.LogWarning("Full sync aborted - pull failed with error code {ErrorCode}: {Message}",
@@ -794,7 +881,8 @@ public sealed class GitSyncService : IGitSyncService
         if (Settings?.GitAutoPush == true)
         {
             // Use internal method to avoid deadlock
-            var pushResult = await ExportAndPushInternalAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            var pushResult = await ExportAndPushInternalAsync(null, cancellationToken);
 
             // Consider sync successful if pull succeeded, even if push had issues
             // (push failures are usually credential issues, not data issues)
@@ -830,9 +918,10 @@ public sealed class GitSyncService : IGitSyncService
         return ExecuteWithLockAsync(TestConnectionInternalAsync, "test-connection");
     }
 
-    private async Task<GitOperationResult> TestConnectionInternalAsync()
+    private async Task<GitOperationResult> TestConnectionInternalAsync(CancellationToken cancellationToken)
     {
         var startedAt = DateTime.UtcNow;
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (string.IsNullOrWhiteSpace(Settings?.GitRemoteUrl))
         {
@@ -843,6 +932,7 @@ public sealed class GitSyncService : IGitSyncService
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncTestingConnection), SyncPhase.Validating, 50);
             _logger.LogDebug("Testing connection to {RemoteUrl}", Settings.GitRemoteUrl);
 
@@ -854,15 +944,20 @@ public sealed class GitSyncService : IGitSyncService
                     // Try to list remote references to test connection
                     var refs = Repository.ListRemoteReferences(Settings.GitRemoteUrl, GetCredentialsHandler());
                     var count = refs.Count();
-                });
+                }, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
-            }, "connection test");
+            }, "connection test", cancellationToken);
 
             RaiseStatusChanged(L(MessageKeys.GitSyncConnectionSuccess), SyncPhase.Completed, 100);
             _logger.LogInformation("Connection test successful for {RemoteUrl}", Settings.GitRemoteUrl);
             var successResult = GitOperationResult.Ok("Connection to remote repository successful.");
             await LogSyncOperationAsync(successResult, SyncOperationType.TestConnection, startedAt);
             return successResult;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (LibGit2SharpException ex)
         {

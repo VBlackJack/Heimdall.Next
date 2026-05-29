@@ -64,12 +64,14 @@ public sealed class JsonSyncService : ISyncService
 
     #region Export
 
-    public async Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath)
+    public async Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncExportResult { Success = true };
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Create folder structure
             EnsureDirectoryExists(rootFolderPath);
             EnsureDirectoryExists(Path.Combine(rootFolderPath, ActionsFolderName));
@@ -78,16 +80,24 @@ public sealed class JsonSyncService : ISyncService
             EnsureDirectoryExists(Path.Combine(rootFolderPath, CategoriesFolderName));
 
             // Export categories first (they may be referenced by actions)
-            result.CategoriesExported = await ExportCategoriesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.CategoriesExported = await ExportCategoriesAsync(rootFolderPath, result, cancellationToken);
 
             // Export templates (they may be referenced by actions)
-            result.TemplatesExported = await ExportTemplatesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.TemplatesExported = await ExportTemplatesAsync(rootFolderPath, result, cancellationToken);
 
             // Export actions (organized by category)
-            result.ActionsExported = await ExportActionsAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.ActionsExported = await ExportActionsAsync(rootFolderPath, result, cancellationToken);
 
             // Export batches
-            result.BatchesExported = await ExportBatchesAsync(rootFolderPath, result);
+            cancellationToken.ThrowIfCancellationRequested();
+            result.BatchesExported = await ExportBatchesAsync(rootFolderPath, result, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -98,14 +108,17 @@ public sealed class JsonSyncService : ISyncService
         return result;
     }
 
-    private async Task<int> ExportCategoriesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportCategoriesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
         var categories = await _categoryRepository.GetAllAsync();
+        HashSet<string> writtenFullPaths = new(StringComparer.OrdinalIgnoreCase);
         int count = 0;
 
         foreach (var category in categories)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var model = new CategoryModel
@@ -120,11 +133,16 @@ public sealed class JsonSyncService : ISyncService
                     IsHidden = category.IsHidden
                 };
 
-                var fileName = SanitizeFileName(category.Name) + ".json";
+                var fileName = BuildEntityFileName(category.Name, category.PublicId);
                 var filePath = Path.Combine(categoriesPath, fileName);
 
-                await WriteJsonFileAsync(filePath, model);
+                await WriteJsonFileAsync(filePath, model, cancellationToken);
+                writtenFullPaths.Add(Path.GetFullPath(filePath));
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -132,17 +150,23 @@ public sealed class JsonSyncService : ISyncService
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        RemoveOrphanFiles(categoriesPath, writtenFullPaths, recursive: false, result);
+
         return count;
     }
 
-    private async Task<int> ExportTemplatesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportTemplatesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
         var templates = await _templateRepository.GetAllAsync();
+        HashSet<string> writtenFullPaths = new(StringComparer.OrdinalIgnoreCase);
         int count = 0;
 
         foreach (var template in templates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var parameters = template.Parameters.Select(p => new TemplateParameterModel
@@ -164,11 +188,16 @@ public sealed class JsonSyncService : ISyncService
                     Parameters = parameters
                 };
 
-                var fileName = SanitizeFileName(template.Name) + ".json";
+                var fileName = BuildEntityFileName(template.Name, template.PublicId);
                 var filePath = Path.Combine(templatesPath, fileName);
 
-                await WriteJsonFileAsync(filePath, model);
+                await WriteJsonFileAsync(filePath, model, cancellationToken);
+                writtenFullPaths.Add(Path.GetFullPath(filePath));
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -176,18 +205,24 @@ public sealed class JsonSyncService : ISyncService
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        RemoveOrphanFiles(templatesPath, writtenFullPaths, recursive: false, result);
+
         return count;
     }
 
-    private async Task<int> ExportActionsAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportActionsAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
         var actions = await _actionRepository.GetAllWithTemplatesAsync();
+        HashSet<string> writtenFullPaths = new(StringComparer.OrdinalIgnoreCase);
 
         int count = 0;
 
         foreach (var action in actions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 // Create category subfolder
@@ -238,11 +273,16 @@ public sealed class JsonSyncService : ISyncService
                     UpdatedAt = action.UpdatedAt
                 };
 
-                var fileName = SanitizeFileName(action.Title) + ".json";
+                var fileName = BuildEntityFileName(action.Title, action.PublicId);
                 var filePath = Path.Combine(categoryPath, fileName);
 
-                await WriteJsonFileAsync(filePath, model);
+                await WriteJsonFileAsync(filePath, model, cancellationToken);
+                writtenFullPaths.Add(Path.GetFullPath(filePath));
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -250,17 +290,23 @@ public sealed class JsonSyncService : ISyncService
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        RemoveOrphanFiles(actionsPath, writtenFullPaths, recursive: true, result);
+
         return count;
     }
 
-    private async Task<int> ExportBatchesAsync(string rootFolderPath, SyncExportResult result)
+    private async Task<int> ExportBatchesAsync(string rootFolderPath, SyncExportResult result, CancellationToken cancellationToken)
     {
         var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
         var batches = await _batchRepository.GetAllAsync();
+        HashSet<string> writtenFullPaths = new(StringComparer.OrdinalIgnoreCase);
         int count = 0;
 
         foreach (var batch in batches)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var commands = batch.Commands.Select(c => new BatchCommandModel
@@ -286,17 +332,25 @@ public sealed class JsonSyncService : ISyncService
                     UpdatedAt = batch.UpdatedAt
                 };
 
-                var fileName = SanitizeFileName(batch.Name) + ".json";
+                var fileName = BuildEntityFileName(batch.Name, batch.PublicId);
                 var filePath = Path.Combine(batchesPath, fileName);
 
-                await WriteJsonFileAsync(filePath, model);
+                await WriteJsonFileAsync(filePath, model, cancellationToken);
+                writtenFullPaths.Add(Path.GetFullPath(filePath));
                 count++;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to export batch '{batch.Name}': {ex.Message}");
             }
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        RemoveOrphanFiles(batchesPath, writtenFullPaths, recursive: false, result);
 
         return count;
     }
@@ -305,12 +359,14 @@ public sealed class JsonSyncService : ISyncService
 
     #region Import
 
-    public async Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath)
+    public async Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncImportResult { Success = true };
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Start transaction for atomic import (all or nothing)
             if (_unitOfWork != null)
             {
@@ -321,34 +377,54 @@ public sealed class JsonSyncService : ISyncService
             // (respecting dependencies)
 
             var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(categoriesPath))
             {
-                await ImportCategoriesAsync(categoriesPath, result);
+                await ImportCategoriesAsync(categoriesPath, result, cancellationToken);
             }
 
             var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(templatesPath))
             {
-                await ImportTemplatesAsync(templatesPath, result);
+                await ImportTemplatesAsync(templatesPath, result, cancellationToken);
             }
 
             var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(actionsPath))
             {
-                await ImportActionsAsync(actionsPath, result);
+                await ImportActionsAsync(actionsPath, result, cancellationToken);
             }
 
             var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(batchesPath))
             {
-                await ImportBatchesAsync(batchesPath, result);
+                await ImportBatchesAsync(batchesPath, result, cancellationToken);
             }
 
             // Commit transaction if successful
+            cancellationToken.ThrowIfCancellationRequested();
             if (_unitOfWork != null && result.Success)
             {
                 await _unitOfWork.CommitTransactionAsync();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            if (_unitOfWork != null)
+            {
+                try
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                }
+                catch
+                {
+                }
+            }
+
+            throw;
         }
         catch (Exception ex)
         {
@@ -373,12 +449,14 @@ public sealed class JsonSyncService : ISyncService
         return result;
     }
 
-    private async Task ImportCategoriesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportCategoriesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -387,7 +465,7 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
 
                 // SECURITY: Validate JSON against schema before processing
                 var validationResult = JsonSchemaValidator.ValidateCategory(json);
@@ -440,6 +518,10 @@ public sealed class JsonSyncService : ISyncService
                     result.CategoriesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import category from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -447,12 +529,14 @@ public sealed class JsonSyncService : ISyncService
         }
     }
 
-    private async Task ImportTemplatesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportTemplatesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -461,7 +545,7 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
 
                 // SECURITY: Validate JSON against schema before processing
                 var validationResult = JsonSchemaValidator.ValidateTemplate(json);
@@ -524,6 +608,10 @@ public sealed class JsonSyncService : ISyncService
                     result.TemplatesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import template from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -531,13 +619,15 @@ public sealed class JsonSyncService : ISyncService
         }
     }
 
-    private async Task ImportActionsAsync(string folderPath, SyncImportResult result)
+    private async Task ImportActionsAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         // Recursively find all JSON files (organized by category subfolders)
         var files = Directory.GetFiles(folderPath, "*.json", SearchOption.AllDirectories);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -546,7 +636,7 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
 
                 // SECURITY: Validate JSON against schema before processing
                 var validationResult = JsonSchemaValidator.ValidateAction(json);
@@ -660,6 +750,10 @@ public sealed class JsonSyncService : ISyncService
                     result.ActionsCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import action from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -667,12 +761,14 @@ public sealed class JsonSyncService : ISyncService
         }
     }
 
-    private async Task ImportBatchesAsync(string folderPath, SyncImportResult result)
+    private async Task ImportBatchesAsync(string folderPath, SyncImportResult result, CancellationToken cancellationToken)
     {
         var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -681,7 +777,7 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
 
                 // SECURITY: Validate JSON against schema before processing
                 var validationResult = JsonSchemaValidator.ValidateBatch(json);
@@ -772,6 +868,10 @@ public sealed class JsonSyncService : ISyncService
                     result.BatchesCreated++;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Warnings.Add($"Failed to import batch from '{Path.GetFileName(filePath)}': {ex.Message}");
@@ -783,12 +883,14 @@ public sealed class JsonSyncService : ISyncService
 
     #region Validation
 
-    public async Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath)
+    public async Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath, CancellationToken cancellationToken = default)
     {
         var result = new SyncValidationResult { IsValid = true };
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!Directory.Exists(rootFolderPath))
             {
                 result.IsValid = false;
@@ -798,36 +900,61 @@ public sealed class JsonSyncService : ISyncService
 
             // Check categories
             var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(categoriesPath))
             {
-                result.CategoryFilesFound = await ValidateJsonFilesAsync<CategoryModel>(categoriesPath, result, "category");
+                result.CategoryFilesFound = await ValidateJsonFilesAsync<CategoryModel>(
+                    categoriesPath,
+                    result,
+                    "category",
+                    cancellationToken);
             }
 
             // Check templates
             var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(templatesPath))
             {
-                result.TemplateFilesFound = await ValidateJsonFilesAsync<TemplateModel>(templatesPath, result, "template");
+                result.TemplateFilesFound = await ValidateJsonFilesAsync<TemplateModel>(
+                    templatesPath,
+                    result,
+                    "template",
+                    cancellationToken);
             }
 
             // Check actions (recursive)
             var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(actionsPath))
             {
-                result.ActionFilesFound = await ValidateJsonFilesAsync<ActionModel>(actionsPath, result, "action", SearchOption.AllDirectories);
+                result.ActionFilesFound = await ValidateJsonFilesAsync<ActionModel>(
+                    actionsPath,
+                    result,
+                    "action",
+                    cancellationToken,
+                    SearchOption.AllDirectories);
             }
 
             // Check batches
             var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(batchesPath))
             {
-                result.BatchFilesFound = await ValidateJsonFilesAsync<BatchModel>(batchesPath, result, "batch");
+                result.BatchFilesFound = await ValidateJsonFilesAsync<BatchModel>(
+                    batchesPath,
+                    result,
+                    "batch",
+                    cancellationToken);
             }
 
             if (result.TotalFilesFound == 0)
             {
                 result.Warnings.Add("No JSON files found in the folder structure.");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -838,13 +965,20 @@ public sealed class JsonSyncService : ISyncService
         return result;
     }
 
-    private async Task<int> ValidateJsonFilesAsync<T>(string folderPath, SyncValidationResult result, string entityType, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    private async Task<int> ValidateJsonFilesAsync<T>(
+        string folderPath,
+        SyncValidationResult result,
+        string entityType,
+        CancellationToken cancellationToken,
+        SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
         var files = Directory.GetFiles(folderPath, "*.json", searchOption);
         int validCount = 0;
 
         foreach (var filePath in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!ValidateFileSize(filePath))
@@ -853,7 +987,7 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var model = JsonSerializer.Deserialize<T>(json, _jsonOptions);
 
                 if (model != null)
@@ -864,6 +998,10 @@ public sealed class JsonSyncService : ISyncService
                 {
                     result.Warnings.Add($"Invalid {entityType} file: {Path.GetFileName(filePath)}");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -886,10 +1024,116 @@ public sealed class JsonSyncService : ISyncService
         }
     }
 
-    private async Task WriteJsonFileAsync<T>(string filePath, T model)
+    private async Task WriteJsonFileAsync<T>(string filePath, T model, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(model, _jsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
+        string json = JsonSerializer.Serialize(model, _jsonOptions);
+        string tempPath = filePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, json, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(tempPath, filePath, overwrite: true);
+        }
+        finally
+        {
+            DeleteTempFileIfExists(tempPath);
+        }
+    }
+
+    private static void DeleteTempFileIfExists(string tempPath)
+    {
+        if (!File.Exists(tempPath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(tempPath);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private void RemoveOrphanFiles(
+        string folderPath,
+        HashSet<string> writtenFullPaths,
+        bool recursive,
+        SyncExportResult result)
+    {
+        if (!Directory.Exists(folderPath))
+        {
+            return;
+        }
+
+        // Export is authoritative for managed JSON files in these folders.
+        // Underscore-prefixed JSON files and non-JSON files are intentionally preserved.
+        SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        string[] files = Directory.GetFiles(folderPath, "*.json", searchOption);
+
+        foreach (string file in files)
+        {
+            string fileName = Path.GetFileName(file);
+            if (fileName.StartsWith("_", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string fullPath = Path.GetFullPath(file);
+            if (writtenFullPaths.Contains(fullPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(file);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to remove stale file '{Path.GetFileName(file)}': {ex.Message}");
+            }
+        }
+
+        if (recursive)
+        {
+            RemoveEmptySubdirectories(folderPath, result);
+        }
+    }
+
+    private static void RemoveEmptySubdirectories(string rootFolderPath, SyncExportResult result)
+    {
+        string[] directories = Directory.GetDirectories(rootFolderPath, "*", SearchOption.AllDirectories)
+            .OrderByDescending(directory => directory.Length)
+            .ToArray();
+
+        foreach (string directory in directories)
+        {
+            try
+            {
+                if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                {
+                    Directory.Delete(directory);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to remove empty folder '{Path.GetFileName(directory)}': {ex.Message}");
+            }
+        }
     }
 
     private static bool ValidateFileSize(string filePath)
@@ -900,20 +1144,37 @@ public sealed class JsonSyncService : ISyncService
 
     private static string SanitizeFileName(string name)
     {
+        string sanitized = SanitizeFileNameCore(name);
+        return string.IsNullOrWhiteSpace(sanitized) ? Guid.NewGuid().ToString() : sanitized;
+    }
+
+    private static string BuildEntityFileName(string name, Guid publicId)
+    {
+        string sanitized = SanitizeFileNameCore(name);
+
+        // Export filenames now include PublicId, so the first export after this change
+        // renames existing files; the follow-up orphan cleanup removes old names.
+        return string.IsNullOrWhiteSpace(sanitized)
+            ? $"{publicId:N}.json"
+            : $"{sanitized}-{publicId:N}.json";
+    }
+
+    private static string SanitizeFileNameCore(string name)
+    {
         if (string.IsNullOrWhiteSpace(name))
         {
-            return Guid.NewGuid().ToString();
+            return string.Empty;
         }
 
         // SECURITY: Protect against path traversal attacks
         // Remove any path separators and parent directory references
-        var sanitized = name
+        string sanitized = name
             .Replace("..", "")
             .Replace("/", "_")
             .Replace("\\", "_");
 
         // Remove invalid characters
-        var invalidChars = Path.GetInvalidFileNameChars();
+        char[] invalidChars = Path.GetInvalidFileNameChars();
         sanitized = new string(sanitized
             .Select(c => invalidChars.Contains(c) ? '_' : c)
             .ToArray());
@@ -931,11 +1192,10 @@ public sealed class JsonSyncService : ISyncService
         // SECURITY: Final check - ensure no path traversal possible
         if (sanitized.Contains("..") || Path.IsPathRooted(sanitized))
         {
-            return Guid.NewGuid().ToString();
+            return string.Empty;
         }
 
-        // If empty after sanitization, use GUID
-        return string.IsNullOrWhiteSpace(sanitized) ? Guid.NewGuid().ToString() : sanitized;
+        return sanitized;
     }
 
     private static List<CommandExample> ParseExamples(List<ExampleModel>? models)
