@@ -180,11 +180,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             ["Default"] = "{}"
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Regex to strip ANSI/VT escape sequences from terminal output for transcript logging.</summary>
-    private static readonly Regex AnsiEscapeRegex = new(
-        @"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\].*?(?:\x07|\x1B\\))",
-        RegexOptions.Compiled);
-
     private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
     private readonly object _logLock = new();
     private readonly ResizeFailureLogThrottle _resizeLogThrottle = new ResizeFailureLogThrottle();
@@ -203,6 +198,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private readonly List<MacroEntry> _macroEntries = [];
     private readonly Stopwatch _macroStopwatch = new();
     private readonly StreamingUtf8Decoder _transcriptDecoder = new StreamingUtf8Decoder();
+    private readonly StreamingAnsiStripper _transcriptStripper = new StreamingAnsiStripper();
 
     private bool _healthPanelVisible;
     private bool _disposed;
@@ -1387,10 +1383,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         lock (_logLock)
         {
-            _transcriptDecoder.Reset();
             StopTranscriptInternal();
+            _transcriptDecoder.Reset();
+            _transcriptStripper.Reset();
 
-            var dir = Path.GetDirectoryName(logFilePath);
+            string? dir = Path.GetDirectoryName(logFilePath);
             if (!string.IsNullOrEmpty(dir))
             {
                 Directory.CreateDirectory(dir);
@@ -1423,7 +1420,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             string residue = _transcriptDecoder.Flush();
             if (residue.Length > 0)
             {
-                string cleanResidue = AnsiEscapeRegex.Replace(residue, string.Empty);
+                string cleanResidue = _transcriptStripper.Strip(residue);
                 if (cleanResidue.Length > 0)
                 {
                     try
@@ -1437,7 +1434,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 }
             }
 
+            _transcriptStripper.Flush();
             _transcriptDecoder.Reset();
+            _transcriptStripper.Reset();
 
             try
             {
@@ -1468,7 +1467,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             try
             {
                 string text = _transcriptDecoder.DecodeChunk(data);
-                string clean = AnsiEscapeRegex.Replace(text, string.Empty);
+                string clean = _transcriptStripper.Strip(text);
                 if (clean.Length > 0)
                 {
                     _logStream.Write(clean);
