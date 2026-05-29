@@ -12,6 +12,305 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-29 — Terminal transcript: stateful ANSI/VT strip (T-1 D5-bis)
+
+Closing follow-up to the 2026-05-26 UTF-8 transcript decoder (D5). The stateful
+UTF-8 decoder fixed multi-byte fragmentation, but the ANSI strip was still a
+**stateless** regex applied per chunk, so a VT sequence split across two chunks
+(e.g. `\x1b[31` then `m`) leaked into the transcript in cleartext.
+
+- **`StreamingAnsiStripper` (new, `src/Heimdall.Terminal/Logging/`)** — a pure
+  char-level state machine (`Normal` / `AfterEsc` / `Csi`) that buffers an
+  incomplete escape sequence between `Strip()` calls. API `Strip()` / `Flush()`
+  / `Reset()`, with `Flush()` discarding any pending partial. Invalid chars are
+  replayed in `Normal` via a `bool consumed` return (index not advanced), which
+  reproduces the regex backtrack exactly, ESC-then-ESC included (`0d12a37`).
+- **Strict regex equivalence proven by oracle test** — the test reuses the old
+  `AnsiEscapeRegex` pattern as the reference on a self-contained token corpus
+  plus 500 pseudo-random inputs (seed `20260529`). The regex's OSC-body quirk
+  (`]` captured by the Fe class before the OSC alternative) and the `ESC7` /
+  `ESC8` passthrough are **preserved deliberately** — D5-bis only addresses
+  fragmentation.
+- **`EmbeddedSshView` integration** — `_transcriptStripper` wired into
+  `WriteToTranscript`, unconditional `Flush` residue on
+  `StopTranscriptInternal`, and `StartTranscript` reordered so the old
+  transcript flush runs *before* the decoder/stripper `Reset()`. The dead
+  `AnsiEscapeRegex` field and its `using` were removed.
+
+Test-only risk profile: 1 production file touched (`EmbeddedSshView`) + 2 new
+files. Six new tests (corpus + random equivalence, fragmentation invariance over
+every cut point, cross-chunk CSI, Flush discard, Reset, invalid ESC). Build
+green, **5,928 passing**, zero warnings. Latent out-of-scope: OSC body leak +
+ESC7/8 passthrough in the transcript (minor, never requested).
+
+## 2026-05-28 — CI deflake bundle + Citrix launcher resolution
+
+Two pair-architect chantiers: re-greening CI on master after the Citrix merge,
+and a Citrix Workspace App launcher-resolution + inline sign-in spike.
+
+### CI deflake bundle (3 commits)
+
+- **`WpfTestHost` startup timeout 10s → 60s** (`dc0acbe`) to absorb WPF + DI +
+  ThemeForge + TwinShell DB-seed init latency on the GitHub Actions Windows 2025
+  runner. Resolves all 79 `Heimdall.App.UiTests` failures at once.
+- **`CommandCredentialProvider` test timeout bump** — first a surgical single-test
+  bump (`59db3f1`, quickly superseded), then a structural refactor (`8b90d5f`)
+  introducing a local `CreateProvider` factory with `TestTimeoutMs = 60000`
+  routing ~30 test sites; production code untouched (`timeoutMs` default stays
+  10s). Final CI run on `8b90d5f` green in 6m24s, 5,897/5,897 (filter
+  `Category!=CIUnstable`). The deblock was achieved purely by timeout bumps — no
+  new `CIUnstable` tags added.
+
+### Citrix launcher resolution + inline sign-in (`19a8cf6` merge, `92f803a`, `248f20d`)
+
+- **StoreBrowse / SelfService resolution on CWA 2507+** (`92f803a`) — handles the
+  new `AuthManager` / `SelfServicePlugin` subfolders via a pure
+  `BuildCitrixLauncherCandidates` helper, covered by 4 xUnit tests.
+- **Inline embed of the Workspace sign-in window** (`248f20d`, Option 2b) — when
+  the sign-in window is foreground, capture is done by diffing window handles
+  rather than PID (so apps launched in a shared `wfica32` session are caught),
+  cancellation propagated to `WatchForSessionAfterAuthAsync`, fire-and-forget
+  observed via `_authWatchTask` / `_authWatchCts`, dedicated i18n key
+  `CitrixAuthSignInHint` (EN + FR).
+
+Runtime validation **not performed** — CWA is absent from the current dev box
+(`Test-Path` negative on all 8 candidates). Residual risk vs master: nil (every
+untested path falls back to external mode). Build green, zero warnings.
+
+## 2026-05-27 — Release.bat encoding fix
+
+- **`Release.bat` ASCII + CRLF + `REM`** (`a48d23a`) — an em dash `—` (UTF-8
+  `e2 80 94`) on line 2, LF-only EOLs, and `::` comments combined to make
+  `cmd.exe` misread the file under its OEM codepage, break the `::` label, and
+  eventually evaluate `Heimdall.Next` as a command. Fix: 3 comment lines
+  reworded (`::` → `REM`, `—` → `-`), EOL converted to CRLF, pure ASCII, no BOM.
+  No `.cs` touched, tests unchanged, build green.
+
+## 2026-05-26 — Terminal/ConPTY quality audit (T-1) + release v2026.052601
+
+Pair-architect quality audit of the terminal subsystem (audit report
+`docs/audit/audit-terminal-conpty-2026-05-25.md`). Verdict: 0 P1 / 8 P2 / 19 P3.
+Closed 8/8 P2 and 14/19 P3 across an 8-chunk audit, then the deferred D-backlog.
+Release **v2026.052601** (`860eccf`) was cut between the audit and the D-backlog.
+
+### 8-chunk audit (P2/P3 close, spanned 2026-05-25 → 26)
+
+- **Session lifecycle cleanup hardened** (`e71a476`, A1 — P2-1/5/6).
+- **Session event-callback safety** (`f061345`, A2 — P2-3).
+- **WebView2 trust boundary + dispatcher hygiene** (`d48e3dc`, B — P2-4 / D3 / D15 / D16).
+- **Stateful Telnet parser + `IsRunning`** (`0d3fba7`, C — P2-2 / D17).
+- **SmartPasteGuard Windows/PowerShell coverage** (`1b0fda4`, D — P2-7 / D18).
+- **`Heimdall.Terminal.Tests` project introduced** (`4346d97`, E1 — D19).
+- **Dedicated session tests** (`6299a78`, E2 — P2-8).
+- **P3 quick-win sweep** (`9f38c89`, F). Test count 5,847 → 5,879.
+
+### Deferred D-backlog (5 commits)
+
+- **Clamp resize values + dedup failure logs** (`e4bf9e1`, D4) — pure
+  `ResizeFailureLogThrottle` component (`{Skip, LogCurrent,
+  LogRepeatSummaryThenCurrent}`, thread-safe), dedup signature excludes
+  dimensions so a terminal drag cannot bypass it; `Math.Clamp(value, 1, 999)`
+  in `ResizeSession`. +8 tests → 5,887.
+- **Localize embedded terminal page strings** (`d9c9241`, D13) — pure
+  `TerminalHtmlLocalizer` substitutes 3 markers in `terminal.html` with
+  context-aware encoding (`WebUtility.HtmlEncode` for HTML, `JsonSerializer`
+  for the JS literal) and explicit EN fallback. 3 new locale keys. +9 → 5,896.
+- **Stateful UTF-8 transcript decoder** (`73f7e90`, D5) — pure
+  `StreamingUtf8Decoder` wrapping `Encoding.UTF8.GetDecoder()` via the
+  single-pass `Decoder.Convert(...)`; only the `WriteToTranscript` site had real
+  multi-byte fragmentation risk. +10 → 5,906.
+- **`CancellationToken` through `ITerminalSession.StartAsync`** (`c8b0d0f`, D1) —
+  optional trailing token (BCL convention). ConPty/PipeMode bail out via
+  `ThrowIfCancellationRequested()`; Telnet links the token to its internal CTS,
+  making the TCP connect truly cancellable. 4 call sites + 2 test fakes aligned.
+  +3 → 5,909.
+- **WinRM credential plaintext reduction** (`f81825b`, D8) — `byte[]` +
+  `CryptographicOperations.ZeroMemory` end-to-end instead of `SecureString`
+  (deliberate deviation: MSFT discourages `SecureString` on modern .NET and
+  DPAPI consumes `byte[]` anyway). New `DpapiProvider.UnprotectToBytes` /
+  `ProtectBytes`, `HmacIntegrity.UnprotectToBytesWithHmac`,
+  `CredentialProtector.UnprotectToBytes`. +9 → 5,918.
+
+### Housekeeping
+
+- **CI flake tags** — `ConPtySession` startup test (`601b0cc`) and
+  `TcpPingViewModel` mixed-results test (`d929b81`) tagged
+  `[Trait("Category", "CIUnstable")]` (GHA Windows runner timing).
+- **HEAD secret scrub** (`629db10`) — redact internal hostnames and an employee
+  id from `HEAD`.
+- **Docs sync** (`39c98c0`) — test/project counts post-T-1.
+
+Build green, zero warnings. Test count 5,847 → 5,918 over the chantier.
+
+## 2026-05-25 — SFTP/FTP/file-server audit + EmbeddedSftpView MVVM refactor (AD-1)
+
+Two quality audits (SFTP/FTP core, then the App-side SFTP/FTP layer) plus the
+AD-1 MVVM refactor of `EmbeddedSftpView`. ~40 commits; grouped below by theme.
+
+### SFTP/FTP core hardening
+
+- **Binary-safe sudo download/upload via base64** for both edit and embedded
+  paths (`814bbfb`, `466db09`).
+- **Symlink-safe delete + partial-download cleanup** in `SftpBrowser`
+  (`a19a76a`), recursive directory delete + symlink/timestamp parsing fixes in
+  FTP (`b240412`).
+- **Remote-edit auto-upload trailing-edge debounce** so the last save in a burst
+  is never lost (`5680d2e`); edit temp-file cleanup on failure + stop on
+  duplicate session (`84c4e8d`); confirm remote save before clearing the
+  modified flag (`63a11c3`).
+- **Temp-dir leak closed + transfers serialized** (`592cbf7`); error-reset timer
+  disposed and state reset on failed reconnect (`7a5f2a3`); native transfers
+  cancellable without crashing (`c9f628e`).
+- **Sudo auth via stdin password feed** with clear failure surfacing
+  (`6b2a7e9`, `e5374f8`); `SftpHandler` input validation (`f03e3a0`).
+- **Local file browser** — recursion + path-containment hardening (`fef54af`),
+  filesystem I/O moved off the UI thread (`213a222`).
+- **File server / TFTP** — TFTP handling + HTTP response headers hardened
+  (`431f8a7`), magic numbers replaced + start guarded (`e45d4af`), a
+  TFTP-unauthenticated warning surfaced on share start (`5fdb736`).
+
+### AD-1 — EmbeddedSftpView MVVM refactor
+
+Drove the view from bindings/commands instead of code-behind (code-behind
+1623 → 1145 lines): selection-free and selection-based actions bound to commands
+(`253b58d`, `70b75b3`), visual state via triggers (`3631f73`), transfer
+orchestration moved to the ViewModel (`f6ca235`), toolbar/connection buttons
+binding-driven (`0adb687`), localization migrated to `{loc:Translate}`
+(`f2cc67c`), MVVM split documented (`0ff5a9c`). Toolbar + disconnect-overlay UX
+polish (`c2a72bc`).
+
+### RDP
+
+- **DPI scale tables consolidated onto `RdpDisplayHelper`** (`119b8b6`).
+
+Tests covered (`a8e2ae5`, `da4590f`). Build green, **5,847 passing**, zero
+warnings, EN/FR locale parity preserved.
+
+## 2026-05-24 — Quality audit wave: splits, SSH/tunnel, RDP/ActiveX, i18n gate
+
+A wide audit day across four subsystems plus a new RDP domain field.
+
+- **Split-system audit closed** (`689ea44`, S1–S10 / S12).
+- **SSH/tunnel audit** (`8911803` chunks A/B/D/E; `587abe6` H4–H7 final
+  hardening) — `FailureClassifier` connection-error classification hardened
+  (`4c4ef75`), `KnownHostsParser` multi-colon host tokens validated (`dbdc87f`).
+- **RDP/ActiveX audit** — MsTscAx event sink guarded against subscriber
+  exceptions (`617c78f`), keyboard-hook callback guarded (`15b54c1`), external
+  credential autofill decoupled from the connect-scoped token (`e28d1a9`),
+  negative monitor indices rejected in `ValidateMultimon` (`29bb0ad`), the
+  non-functional `selectedmonitors` fallback removed (`5c6af8b`), `.rdp`
+  generation hardened with explicit CRLF + field validation (`069db12`),
+  `EmbeddedRdpView` event-handler/timer lifecycle hardened (`6f13285`),
+  connectivity-test invalid-input outcomes localized (`2e5dc8f`), `LastError`
+  set on Connect failure + credential-dialog logging trimmed (`099c196`),
+  magic numbers named (`75b4820`), dead constants/test relocations (`8ae4f6c`,
+  `680b3d3`, `ed03f9e`), stale comments corrected (`55ff6e8`). New RDP coverage:
+  disconnect-reason decoder, `RdpSelectedMonitorValidator`, `RdpShortcutParser`,
+  external credentialed decrypt-failure (`db27634`, `0acf6f4`, `f29fb68`,
+  `86c13e9`).
+- **Explicit RDP domain field** added to the ServerDialog with runtime wiring
+  (`d0c34d6`, `b357ff1`).
+- **i18n gate** — XAML `{loc:Translate}` keys now gated against the locale file
+  in CI (`73ba1ae`); missing RDP auto-reconnect / keep-alive labels added
+  (`0dabd79`).
+- **Polish** — reconnect-overlay message inset (`198edc1`), empty band above the
+  first card on Settings sub-tabs trimmed (`198f097`). The SSH-gateway `12152`
+  WS-Man limitation documented as environmental (`7c13fe6`).
+
+Build green, zero warnings, EN/FR locale parity preserved. *(Per-chantier test
+baseline for this day not recovered from git — backfill if strict convention
+parity is wanted.)*
+
+## 2026-05-23 — WinRM-via-gateway + tunnel ref-count fixes + Settings UX
+
+Releases **v2026.052301** (`26f40c8`), **v2026.052302** (`eb20d94`),
+**v2026.052303** (`3030ed9`).
+
+- **WinRM-via-gateway** — WinRM profiles can route through an SSH gateway
+  (`b406c11`), with gateway selection in the profile UI (`9bf72bb`). HTTP-only;
+  `WinRmUseSsl` + gateway is rejected.
+- **Tunnel reference-count leak closed** on every protocol exit path: RDP
+  (`29b99d2`), SFTP (`cb703c1`), SSH.NET + Plink (`2d3bdff`), external PuTTY
+  (`7785e64`).
+- **WinRM polish** — ServerDialog UI + connection-path diagram (`3fbe7e2`);
+  credential bootstrap no longer aborts on Windows PowerShell 5.1 (`ba1d062`).
+- **Stability** — close-time `NullReferenceException` with active sessions
+  prevented (`79837dc`); terminal `convertEol` applied once the pipe session is
+  attached (`0e0e632`).
+- **Settings UX overhaul** — search reworked to locate and highlight a setting
+  (`3a66e3f`), per-tab validation error badges (`62129f0`), validation feedback
+  fix (`56eea3c`), RDP tab segmented (`9b2a7e8`), Advanced tab restructured with
+  server import/export relocated (`da87b53`), RDP resolution-preset labels
+  (`66f34f0`), missing accessibility labels (`029a4b8`).
+- **Docs** — slow-server RDP cutoff capture procedure
+  (`docs/repro/...`, `498c875`); optional SSH-gateway routing for WinRM in the
+  README (`ccceeb0`).
+
+Build green, zero warnings, EN/FR locale parity preserved. *(Per-chantier test
+baseline for this day not recovered from git.)*
+
+## 2026-05-22 — WinRM 9th protocol completion + NLA parity + RD Gateway UI
+
+Release **v2026.052201** (`7fe7bd1`). WinRM lands as the 9th protocol (ConPTY +
+`Enter-PSSession`, credential injected via a self-deleting `.ps1` bootstrap).
+
+- **WinRM runtime** — profile/config/UI support (`6dcc0a1`), launch bootstrap
+  (`b55117f`), connection dispatch + embedded runtime wiring (`e3114bc`),
+  PowerShell launch correctness (`d0755b2`), transport preflight check
+  (`f3ad97c`) with revocation false-negatives avoided (`4dd6c74`).
+- **RDP** — RD Gateway exposed in the UI and applied for embedded sessions
+  (`fb3aade`); embedded RDP authentication level aligned with the `.rdp`
+  generator, i.e. **NLA #16 external parity** (`074c70b`); RDP auto-reconnect
+  cancelled when the SSH gateway cannot reach the target (`ec96ecd`); chained
+  gateway-unreachable diagnostic emitted (`9460162`).
+- **ServerDialog restructure** — four-tab layout (`9afb5a2`) with per-protocol
+  visibility + per-tab error badges (`8670873`), duplicate adorner text fixed
+  (`c63df2b`), freely resizable with single-level tab scrolling (`a288aeb`).
+- **RDP Options sub-tabs** — split into four sub-tabs (`6877e40`) with a
+  segmented look, spacing/sectioning/focus refinement (`c8cbf14`, `ecd7e00`),
+  roomier focus ring on checkboxes/radios (`617d7f5`), `InputBorderBrush`
+  outline (`598f87b`), session-tree left inset (`1369d81`).
+- **Repo hygiene** — `.gitattributes` added + EOLs normalized to LF
+  (`f3b5248`); `CLAUDE.md` kept local/gitignored (`936ff81`); README/CLAUDE.md
+  refreshed for WinRM (`716b34f`, `d7a1ddb`).
+
+Build green, zero warnings, EN/FR locale parity preserved. *(Per-chantier test
+baseline for this day not recovered from git.)*
+
+## 2026-05-20 → 21 — ThemeForge theme engine migration + accent tint selector
+
+Heimdall's bespoke theme engine was replaced by the private `ThemeForge.Theme`
+NuGet package (16 canonical themes, app default `Drakul`).
+
+- **Package consumed from GitHub Packages** (`a16f34e`); CI offline NuGet source
+  + package-token plumbing for the vulnerability scan (`d55d745`, `8bfe27e`).
+- **`HeimdallThemeService`** added as the app wrapper around
+  `ThemeForge.Theme.ThemeService`, preserving Heimdall's compatibility surface
+  (`ApplyTheme`, `CurrentTheme`, `ThemeRevision`, `ThemeChanged`) (`274d73f`).
+- **`HeimdallThemeBridge` adaptation layer** (`a336208`) re-expresses Heimdall's
+  app brush keys on ThemeForge color slots; the app is switched onto the
+  ThemeForge engine (`b97017e`), the theme selector rebuilt on ThemeForge
+  palettes (`c9ba6f3`), and the WebView2 background retargeted to the ThemeForge
+  slot (`8735e6a`).
+- **Accent tint selector** — the ThemeForge accent tint wired through
+  `HeimdallThemeService` (`9b10b48`) and exposed as a 9-tint selector in
+  Appearance settings (`87072dc`).
+- **Post-migration regression sweep** (`9df0226`) — form controls given a
+  contrasted resting border (`6b2d387`), dialog cards pointed at the existing
+  `CardBrush` (`db77296`).
+- **Adjacent fixes** — `OnLoginComplete` COM event DISPID corrected (`9b59cf7`),
+  RFC 8332 RSA-SHA2 host-key algorithms recognized (`be4c904`), DNS pre-warm
+  task exceptions observed (`6532806`), health probe throttle scoped per cycle +
+  CTS disposal deferred (`62a084b`), SSH forwarded-port failures captured for
+  diagnostics (`0d5fa38`), gateway-to-target unreachable reported in the RDP
+  disconnect overlay (`04b5792`), pane-host detach skipped during shutdown
+  (`5b8deab`), generic session-overlay actions routed by tab scope (`7e9a9db`).
+- **Docs** — ThemeForge migration documented + agent guidance versioned
+  (`cca0c4c`, `f9ab25b`).
+
+Build green, zero warnings, EN/FR locale parity preserved. *(Per-chantier test
+baseline for this day not recovered from git.)*
+
 ## 2026-05-17 — UX/polish series + Session Health Monitor + sidebar compaction
 
 Ten commits across four chantiers. Tests baseline moved from 5,500 to **5,557 passing + 6 skipped** (+57 covering localizers, the extended `ServerStatusToColorConverter`, ViewModel change-notification, the full health monitor pipeline including port resolver / gateway short-circuit / probe state machine, and the new Settings validation). Locale parity now **5,543 keys EN/FR** (+22 keys this session).
