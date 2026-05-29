@@ -21,7 +21,6 @@ public sealed class TwinShellDbContext : DbContext
     public DbSet<CustomCategoryEntity> CustomCategories => Set<CustomCategoryEntity>();
     public DbSet<ActionCategoryMappingEntity> ActionCategoryMappings => Set<ActionCategoryMappingEntity>();
     public DbSet<ActionTranslationEntity> ActionTranslations => Set<ActionTranslationEntity>();
-    public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<CommandBatchEntity> CommandBatches => Set<CommandBatchEntity>();
     public DbSet<SearchHistoryEntity> SearchHistories => Set<SearchHistoryEntity>();
     public DbSet<SyncHistoryEntity> SyncHistories => Set<SyncHistoryEntity>();
@@ -37,7 +36,6 @@ public sealed class TwinShellDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CustomCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new ActionCategoryMappingConfiguration());
         modelBuilder.ApplyConfiguration(new ActionTranslationConfiguration());
-        modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
         modelBuilder.ApplyConfiguration(new CommandBatchConfiguration());
         modelBuilder.ApplyConfiguration(new SearchHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new SyncHistoryConfiguration());
