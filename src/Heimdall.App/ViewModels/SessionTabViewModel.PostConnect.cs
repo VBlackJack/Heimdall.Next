@@ -54,7 +54,14 @@ public partial class SessionTabViewModel
     [RelayCommand(CanExecute = nameof(CanCancelPostConnect))]
     private void CancelPostConnect()
     {
-        _cancelPostConnectAction?.Invoke();
+        try
+        {
+            _cancelPostConnectAction?.Invoke();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The post-connect sequence may have completed after CanExecute was evaluated.
+        }
     }
 
     private bool CanCancelPostConnect() => IsPostConnectRunning && _cancelPostConnectAction is not null;

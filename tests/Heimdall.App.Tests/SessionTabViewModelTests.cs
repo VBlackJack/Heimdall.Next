@@ -144,6 +144,19 @@ public sealed class SessionTabViewModelTests
         Assert.Equal("Prod RDP (forced embedded)", vm.HeaderToolTip);
     }
 
+    [Fact]
+    public void CancelPostConnectCommand_IgnoresDisposedCancellationSourceRace()
+    {
+        SessionTabViewModel vm = new();
+        Action cancelAction = static () => throw new ObjectDisposedException("CancellationTokenSource");
+        vm.SetPostConnectState(true, "1/2", "Running", cancelAction);
+
+        Exception? exception = Record.Exception(() => vm.CancelPostConnectCommand.Execute(null));
+
+        Assert.True(vm.CancelPostConnectCommand.CanExecute(null));
+        Assert.Null(exception);
+    }
+
     private static void RecordChange(PropertyChangedEventArgs args, ICollection<string> changes)
     {
         if (!string.IsNullOrWhiteSpace(args.PropertyName))
