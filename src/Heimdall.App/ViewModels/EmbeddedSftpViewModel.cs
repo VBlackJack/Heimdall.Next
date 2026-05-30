@@ -105,6 +105,14 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     [ObservableProperty]
     private bool _isErrorHighlighted;
 
+    /// <summary>True when the active session transmits credentials without TLS (plain FTP).</summary>
+    [ObservableProperty]
+    private bool _isCleartextWarningVisible;
+
+    /// <summary>Localized cleartext-warning text shown in the persistent security badge.</summary>
+    [ObservableProperty]
+    private string _cleartextWarningText = string.Empty;
+
     /// <summary>Whether a file transfer is currently running.</summary>
     [ObservableProperty]
     private bool _isTransferInProgress;
@@ -523,6 +531,15 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             SessionTab.Status = IsConnected ? "Connected" : "Disconnected";
         }
+    }
+
+    /// <summary>
+    /// Shows the persistent security warning for a plain FTP browser session.
+    /// </summary>
+    public void ShowCleartextWarning(string message)
+    {
+        CleartextWarningText = message;
+        IsCleartextWarningVisible = true;
     }
 
     /// <summary>

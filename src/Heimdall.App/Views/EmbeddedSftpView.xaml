@@ -68,6 +68,33 @@
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         AutomationProperties.Name="{loc:Translate A11ySplitSession}"/>
 
+                <Border x:Name="CleartextWarningBadge"
+                        DockPanel.Dock="Right"
+                        BorderBrush="{DynamicResource WarningBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
+                        Padding="6,1"
+                        Margin="4,0"
+                        VerticalAlignment="Center"
+                        ToolTip="{Binding CleartextWarningText}"
+                        Visibility="{Binding IsCleartextWarningVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                        AutomationProperties.Name="{Binding CleartextWarningText}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7BA;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource WarningTextBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding CleartextWarningText}"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource WarningTextBrush}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="240"/>
+                    </StackPanel>
+                </Border>
+
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
                                FontSize="{StaticResource FontSizeBodyLarge}"

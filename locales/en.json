@@ -1826,6 +1826,7 @@
   "ErrorCitrixLaunchFailed": "Failed to launch Citrix session: {0}",
   "ErrorFtpConnectionFailed": "FTP connection failed: {0}",
   "WarnFtpCleartext": "FTP session to {0}:{1} is using a cleartext channel. Username and password are transmitted unencrypted. Prefer SFTP when available.",
+  "WarnFtpCleartextBadge": "Credentials sent in clear text (no TLS)",
   "ErrorTelnetConnectionFailed": "Telnet connection failed: {0}",
   "ErrorWinRmInvalidConfiguration": "WinRM configuration is invalid: {0}",
   "ErrorWinRmCredentialUnavailable": "WinRM stored credential is unavailable.",

@@ -202,6 +202,42 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public void CleartextWarning_DefaultsHidden()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        Assert.False(viewModel.IsCleartextWarningVisible);
+        Assert.Equal(string.Empty, viewModel.CleartextWarningText);
+    }
+
+    [Fact]
+    public void ShowCleartextWarning_SetsTextAndVisibility()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        viewModel.ShowCleartextWarning("Credentials sent in clear text (no TLS)");
+
+        Assert.True(viewModel.IsCleartextWarningVisible);
+        Assert.Equal("Credentials sent in clear text (no TLS)", viewModel.CleartextWarningText);
+    }
+
+    [Fact]
+    public void CleartextWarning_RemainsVisibleWhenStatusChanges()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+
+        viewModel.ShowCleartextWarning("Credentials sent in clear text (no TLS)");
+        viewModel.UpdateStatus("Ready");
+
+        Assert.True(viewModel.IsCleartextWarningVisible);
+        Assert.Equal("Credentials sent in clear text (no TLS)", viewModel.CleartextWarningText);
+        Assert.Equal("Ready", viewModel.StatusText);
+    }
+
+    [Fact]
     public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
     {
         FakeUiDispatcher dispatcher = new();

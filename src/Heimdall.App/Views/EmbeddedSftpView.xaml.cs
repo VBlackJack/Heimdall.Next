@@ -169,6 +169,14 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             sftpBrowser.SecurityEventOccurred += OnBrowserSecurityEvent;
         }
+        else if (_browser is FtpBrowser ftpBrowser && !ftpBrowser.IsTlsEnabled)
+        {
+            string cleartextWarning = localizer["WarnFtpCleartextBadge"];
+            _viewModel.ShowCleartextWarning(cleartextWarning);
+            System.Windows.Automation.AutomationProperties.SetName(
+                CleartextWarningBadge,
+                cleartextWarning);
+        }
 
         UpdateStatus(_localizer["SftpStatusConnected"]);
         StartHealthTimer();
