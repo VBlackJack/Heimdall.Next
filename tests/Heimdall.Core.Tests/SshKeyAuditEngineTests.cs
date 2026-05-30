@@ -129,6 +129,16 @@ public class SshKeyAuditEngineTests
     }
 
     [Fact]
+    public void Audit_InputExceedingMaxKeyFileSize_ReturnsNull()
+    {
+        string oversized = new string('A', SshKeyAuditEngine.MaxKeyFileSize + 1);
+
+        SshKeyAuditResult? result = SshKeyAuditEngine.Audit(oversized);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void Audit_Pkcs1RsaPrivateKeyPem_IdentifiesFormatAndType()
     {
         using var rsa = RSA.Create(2048);

@@ -102,10 +102,16 @@ public static class SshKeyAuditEngine
     /// <summary>
     /// Parses an SSH key (any supported format) and returns the audit result,
     /// or <c>null</c> if the key could not be parsed.
+    /// Input longer than <see cref="MaxKeyFileSize"/> is rejected and returns <c>null</c>.
     /// </summary>
     public static SshKeyAuditResult? Audit(string keyText, Func<string, string>? localize = null)
     {
         if (string.IsNullOrWhiteSpace(keyText))
+        {
+            return null;
+        }
+
+        if (keyText.Length > MaxKeyFileSize)
         {
             return null;
         }
