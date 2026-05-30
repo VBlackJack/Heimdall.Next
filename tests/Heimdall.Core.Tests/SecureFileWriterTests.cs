@@ -142,6 +142,30 @@ public class SecureFileWriterTests : IDisposable
         Assert.True(AclEnforcer.VerifyFileAcl(path));
     }
 
+    [Fact]
+    public void WriteAndProtect_PreExistingFileWithInheritedAcl_AppliesRestrictiveAcl()
+    {
+        string path = TempFile();
+        File.WriteAllText(path, "stale-permissive");
+
+        SecureFileWriter.WriteAndProtect(path, "secret");
+
+        Assert.Equal("secret", File.ReadAllText(path));
+        Assert.True(AclEnforcer.VerifyFileAcl(path));
+    }
+
+    [Fact]
+    public async Task WriteAndProtectAsync_PreExistingFileWithInheritedAcl_AppliesRestrictiveAcl()
+    {
+        string path = TempFile();
+        File.WriteAllText(path, "stale-permissive");
+
+        await SecureFileWriter.WriteAndProtectAsync(path, "secret");
+
+        Assert.Equal("secret", File.ReadAllText(path));
+        Assert.True(AclEnforcer.VerifyFileAcl(path));
+    }
+
     // ── WriteText basic functionality ──────────────────────────────────
 
     [Fact]

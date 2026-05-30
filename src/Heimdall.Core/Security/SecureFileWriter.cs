@@ -110,9 +110,16 @@ public static class SecureFileWriter
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
 
-        var security = BuildRestrictedSecurity();
-        var fileInfo = new FileInfo(filePath);
-        using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
+        FileSecurity security = BuildRestrictedSecurity();
+        FileInfo fileInfo = new(filePath);
+
+        // CREATE_ALWAYS keeps a pre-existing file's ACL, so the restrictive security descriptor would not be
+        // applied to a file that already exists (e.g. pre-created by another process). Remove any existing
+        // file first, then CreateNew so the SD is always applied - and if a racing process re-creates the
+        // path between the delete and the create, CreateNew fails closed instead of writing the secret into
+        // a foreign file.
+        fileInfo.Delete();
+        using FileStream stream = fileInfo.Create(FileMode.CreateNew, FileSystemRights.WriteData,
             FileShare.None, 4096, FileOptions.None, security);
 
         var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
@@ -143,9 +150,13 @@ public static class SecureFileWriter
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath);
 
-        var security = BuildRestrictedSecurity();
-        var fileInfo = new FileInfo(filePath);
-        await using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
+        FileSecurity security = BuildRestrictedSecurity();
+        FileInfo fileInfo = new(filePath);
+
+        // See WriteAndProtect: CreateNew (after deleting any stale file) guarantees the restrictive ACL is
+        // applied to a freshly created file and fails closed on a creation race.
+        fileInfo.Delete();
+        await using FileStream stream = fileInfo.Create(FileMode.CreateNew, FileSystemRights.WriteData,
             FileShare.None, 4096, FileOptions.Asynchronous, security);
 
         var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
