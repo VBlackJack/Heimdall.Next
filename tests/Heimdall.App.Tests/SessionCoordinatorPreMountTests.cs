@@ -16,6 +16,7 @@
 
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
@@ -25,11 +26,13 @@ using Heimdall.App.Services.SessionSnapshot;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.Settings;
+using Heimdall.App.ViewModels.Session;
 using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
@@ -183,6 +186,39 @@ public sealed class SessionCoordinatorPreMountTests
         Assert.Empty(harness.Main.Connection.ActiveSessions);
     }
 
+    [Fact]
+    public void OnSessionFailed_WhenRaisedOffUiThread_MarshalsThroughDispatcher()
+    {
+        using TestHarness harness = TestHarness.Create(checkAccess: false);
+        SessionDiagnostic diagnostic = new(
+            SessionFailureStage.SshAuth,
+            "ErrorSshAuthRejected",
+            7,
+            "Access denied");
+        MethodInfo method = typeof(SessionCoordinator).GetMethod(
+            "OnSessionFailed",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        method.Invoke(
+            harness.Main.Session,
+            [
+                "session-ssh-failed",
+                "server-ssh",
+                "Demo SSH",
+                "SSH",
+                "Access denied",
+                diagnostic
+            ]);
+
+        Assert.Equal(1, harness.Dispatcher.InvokeCalls);
+        SessionTabViewModel tab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        Assert.Equal("session-ssh-failed", tab.ServerId);
+        Assert.Equal("server-ssh", tab.OriginalServerId);
+        Assert.Equal("Access denied", tab.Status);
+        Assert.Same(diagnostic, tab.FailureDetails);
+        Assert.Equal("Access denied", harness.Main.StatusText);
+    }
+
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(5);
 
     private static ConnectionResult SuccessWithTerminalSession()
@@ -213,22 +249,26 @@ public sealed class SessionCoordinatorPreMountTests
         private TestHarness(
             string rootPath,
             MainViewModel main,
+            FakeUiDispatcher dispatcher,
             FakeEmbeddedSessionManager embeddedSessionManager,
             IReadOnlyDictionary<string, ControlledProtocolHandler> handlers)
         {
             _rootPath = rootPath;
             Main = main;
+            Dispatcher = dispatcher;
             EmbeddedSessionManager = embeddedSessionManager;
             Handlers = handlers;
         }
 
         public MainViewModel Main { get; }
 
+        public FakeUiDispatcher Dispatcher { get; }
+
         public FakeEmbeddedSessionManager EmbeddedSessionManager { get; }
 
         private IReadOnlyDictionary<string, ControlledProtocolHandler> Handlers { get; }
 
-        public static TestHarness Create()
+        public static TestHarness Create(bool checkAccess = true)
         {
             var rootPath = Path.Combine(
                 Path.GetTempPath(),
@@ -268,7 +308,7 @@ public sealed class SessionCoordinatorPreMountTests
                 connectionService,
                 toolRegistry,
                 dialogService);
-            var dispatcher = new FakeUiDispatcher();
+            FakeUiDispatcher dispatcher = new(checkAccess);
             var connection = new ConnectionViewModel(localizer, dialogService, splitService);
             var serverList = new ServerListViewModel(
                 configManager,
@@ -306,7 +346,7 @@ public sealed class SessionCoordinatorPreMountTests
                 settings,
                 new ServiceCollection().BuildServiceProvider());
 
-            return new TestHarness(rootPath, main, embeddedSessionManager, handlers);
+            return new TestHarness(rootPath, main, dispatcher, embeddedSessionManager, handlers);
         }
 
         public ControlledProtocolHandler GetHandler(string protocol) => Handlers[protocol];

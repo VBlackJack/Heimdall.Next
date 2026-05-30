@@ -470,6 +470,18 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         string statusText,
         SessionDiagnostic diagnostic)
     {
+        if (!_uiDispatcher.CheckAccess())
+        {
+            InvokeOnUi(() => OnSessionFailed(
+                sessionId,
+                originalServerId,
+                displayName,
+                connectionType,
+                statusText,
+                diagnostic));
+            return;
+        }
+
         var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
         tab.OriginalServerId = originalServerId;
         tab.Status = statusText;
