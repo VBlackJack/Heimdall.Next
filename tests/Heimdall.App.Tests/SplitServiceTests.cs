@@ -381,6 +381,107 @@ public sealed class SplitServiceTests : IDisposable
         Assert.Null(_connectionSm.GetStateData("old-session")?.TunnelLocalPort);
     }
 
+    [Fact]
+    public async Task ReconnectPaneAsync_Success_PreservesFreshConnectionState_WhenServerIdIsReused()
+    {
+        var newSession = new DisposableSessionResult();
+        var hostManager = new FakeEmbeddedSessionManager();
+        var newHost = new DisposableHost();
+        hostManager.CreateHostControlCallback = (_, _, _, sessionResult, _) =>
+        {
+            Assert.Same(newSession, sessionResult);
+            return newHost;
+        };
+
+        var sut = CreateSplitService(
+            new SuccessfulRdpConnectionService(_connectionSm, newSession),
+            hostManager);
+
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "RDP"
+            }
+        });
+
+        var oldHost = new DisposableHost();
+        var pane = MakePane(paneId: "pane-1", serverId: "server-1", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.Title = "Server 1";
+        pane.HostControl = oldHost;
+
+        var session = new SessionTabViewModel { RootContent = pane };
+        session.Title = "Split tab";
+        var activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.Initializing));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.ValidatingConfig));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.LaunchingRdp));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.Connected));
+
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.True(oldHost.Disposed);
+        Assert.False(newSession.Disposed);
+        Assert.Same(newHost, pane.HostControl);
+        Assert.Equal("server-1", pane.ServerId);
+        Assert.Equal("Connected", pane.Status);
+        Assert.Equal(ConnectionState.Connected, _connectionSm.GetState("server-1"));
+    }
+
+    [Fact]
+    public async Task ReconnectPaneAsync_HostFactoryFailure_DisposesNewSessionAndResetsNewState()
+    {
+        var newSession = new DisposableSessionResult();
+        var hostManager = new FakeEmbeddedSessionManager();
+        hostManager.CreateHostControlCallback = (_, _, _, _, _) =>
+            throw new InvalidOperationException("factory failed");
+
+        var sut = CreateSplitService(
+            new SuccessfulRdpConnectionService(_connectionSm, newSession),
+            hostManager);
+
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "RDP"
+            }
+        });
+
+        var oldHost = new DisposableHost();
+        var pane = MakePane(paneId: "pane-1", serverId: "server-1", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.Title = "Server 1";
+        pane.HostControl = oldHost;
+
+        var session = new SessionTabViewModel { RootContent = pane };
+        session.Title = "Split tab";
+        var activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.Initializing));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.ValidatingConfig));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.LaunchingRdp));
+        Assert.True(_connectionSm.TryTransition("server-1", ConnectionState.Connected));
+
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.True(oldHost.Disposed);
+        Assert.True(newSession.Disposed);
+        Assert.Null(pane.HostControl);
+        Assert.Equal("Error", pane.Status);
+        Assert.Equal(ConnectionState.Disconnected, _connectionSm.GetState("server-1"));
+    }
+
     // ── Category E: ToggleSplitOrientation ──────────────────────────────
 
     [Fact]
@@ -543,6 +644,24 @@ public sealed class SplitServiceTests : IDisposable
         Assert.True(target.IsSplit);
     }
 
+    [Fact]
+    public void RestoreHostControls_MissingPane_DisposesOrphanedControl()
+    {
+        var session = new SessionTabViewModel
+        {
+            RootContent = MakePane(paneId: "existing")
+        };
+        var orphanedHost = new DisposableHost();
+        var hostControls = new Dictionary<string, object?>
+        {
+            ["missing"] = orphanedHost
+        };
+
+        SplitService.RestoreHostControls(session, hostControls);
+
+        Assert.True(orphanedHost.Disposed);
+    }
+
     // ── Category H: Forced embedded mode policy ────────────────────────
 
     [Fact]
@@ -586,12 +705,17 @@ public sealed class SplitServiceTests : IDisposable
     }
 
     private SplitService CreateSplitService(IConnectionService connectionService)
+        => CreateSplitService(connectionService, new FakeEmbeddedSessionManager());
+
+    private SplitService CreateSplitService(
+        IConnectionService connectionService,
+        IEmbeddedSessionManager sessionManager)
         => new(
             _configManager,
             _localizer,
             _connectionSm,
             _tunnelManager,
-            new FakeEmbeddedSessionManager(),
+            sessionManager,
             connectionService,
             _toolRegistry,
             dialogService: null!);
@@ -672,6 +796,103 @@ public sealed class SplitServiceTests : IDisposable
         public void Dispose() => Disposed = true;
     }
 
+    private sealed class DisposableSessionResult : ISessionResult, IDisposable
+    {
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class SuccessfulRdpConnectionService : IConnectionService
+    {
+        private readonly ConnectionStateMachine _connectionSm;
+        private readonly ISessionResult _sessionResult;
+
+        public SuccessfulRdpConnectionService(
+            ConnectionStateMachine connectionSm,
+            ISessionResult sessionResult)
+        {
+            _connectionSm = connectionSm;
+            _sessionResult = sessionResult;
+        }
+
+        public AppSettings? CurrentSettings => null;
+
+        public PreflightResult RunPreflight(ServerProfileDto server, AppSettings settings)
+            => PreflightResult.Ok();
+
+        public Task<ConnectionResult> ConnectSshAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectRdpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (!_connectionSm.TryTransition(server.Id, ConnectionState.Initializing)
+                || !_connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig)
+                || !_connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp)
+                || !_connectionSm.TryTransition(server.Id, ConnectionState.Connected))
+            {
+                throw new InvalidOperationException("new connection state was not reset before reconnect");
+            }
+
+            return Task.FromResult(new ConnectionResult(true, null, _sessionResult));
+        }
+
+        public Task<ConnectionResult> ConnectSftpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectVncAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectTelnetAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectFtpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectCitrixAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectLocalShellAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectWinRmAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public void Dispose() { }
+
+        private static Task<ConnectionResult> NotScriptedAsync()
+            => Task.FromResult(new ConnectionResult(false, "not scripted", null));
+    }
+
     private sealed class ThrowingConnectionService : IConnectionService
     {
         private readonly Exception _exception;
@@ -749,6 +970,7 @@ public sealed class SplitServiceTests : IDisposable
 
     private sealed class FakeEmbeddedSessionManager : IEmbeddedSessionManager
     {
+        public Func<SessionTabViewModel, string, string, ISessionResult, AppSettings?, object>? CreateHostControlCallback { get; set; }
         public Action<byte[], object?>? BroadcastCallback { get; set; }
         public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
         public Func<bool>? IsBroadcastActive { get; set; }
@@ -765,6 +987,11 @@ public sealed class SplitServiceTests : IDisposable
             ISessionResult session,
             AppSettings? settings = null)
         {
+            if (CreateHostControlCallback is not null)
+            {
+                return CreateHostControlCallback(sessionTab, displayName, connectionType, session, settings);
+            }
+
             throw new NotSupportedException();
         }
 

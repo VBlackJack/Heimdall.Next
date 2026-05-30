@@ -216,16 +216,31 @@ public sealed class SplitService : ISplitService
                 || !activeSessions.Contains(session)
                 || SplitTreeHelper.FindPane(session.RootContent, newPane.PaneId) is null)
             {
-                SafeDispose(result.Session as IDisposable);
+                SafeDisposeSessionResult(result.Session);
                 CleanupOrphanedPane(serverId);
                 Core.Logging.FileLogger.Info(
                     $"Split cancelled for '{serverDto.DisplayName}' — session or pane removed during connection.");
                 return;
             }
 
-            var hostControl = _sessionManager.CreateHostControl(
-                session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
-                result.Session, settings);
+            object hostControl;
+            try
+            {
+                hostControl = _sessionManager.CreateHostControl(
+                    session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
+                    result.Session, settings);
+            }
+            catch (Exception ex)
+            {
+                SafeDisposeSessionResult(result.Session);
+                CleanupOrphanedPane(serverDto.Id);
+                session.RootContent = SplitTreeHelper.RemovePane(
+                    session.RootContent, newPane.PaneId) ?? session.PrimaryPane;
+                SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
+                Core.Logging.FileLogger.Error(
+                    $"Split host creation failed for '{serverDto.DisplayName}': {ex.Message}", ex);
+                return;
+            }
 
             newPane.HostControl = hostControl;
             if (hostControl is EmbeddedRdpView rdpView)
@@ -437,6 +452,7 @@ public sealed class SplitService : ISplitService
             {
                 Core.Logging.FileLogger.Warn(
                     $"Merge: orphaned host control for pane '{id}' — pane not found after reparent.");
+                SafeDispose(control as IDisposable);
             }
         }
 
@@ -531,14 +547,29 @@ public sealed class SplitService : ISplitService
             return;
         }
 
-        // Save old connection state for deferred cleanup.
+        // Save old connection state for cleanup before reconnecting. Reconnects
+        // target the same server id, so deferring this until after ConnectAsync
+        // can reset the freshly established state machine entry.
         var oldServerId = pane.ServerId;
+        var oldConnectionStateReleased = false;
+
+        void ReleaseOldConnectionStateOnce(string context)
+        {
+            if (oldConnectionStateReleased)
+            {
+                return;
+            }
+
+            TryReleaseOldConnectionState(oldServerId, context);
+            oldConnectionStateReleased = true;
+        }
 
         try
         {
             // Dispose current host control through the shared teardown order before
             // replacing it with the reconnect placeholder state.
             _sessionManager.DisconnectSession(pane, DisconnectReason.ReconnectInitiated);
+            ReleaseOldConnectionStateOnce("ReconnectPane pre-connect");
             pane.FailureDetails = null;
             pane.HostControl = null;
             pane.Status = _localizer["SplitSecondaryConnecting"];
@@ -553,8 +584,6 @@ public sealed class SplitService : ISplitService
             if (serverDto is null)
             {
                 pane.Status = "Error";
-                // Release old state on failure (nothing new to preserve)
-                TryReleaseOldConnectionState(oldServerId, "ReconnectPane missing server");
                 Core.Logging.FileLogger.Warn(
                     $"ReconnectPane failed: server '{serverId}' no longer in inventory.");
                 return;
@@ -570,7 +599,6 @@ public sealed class SplitService : ISplitService
             if (!result.Success || result.Session is null)
             {
                 pane.Status = "Error";
-                TryReleaseOldConnectionState(oldServerId, "ReconnectPane connection failure");
                 SetStatusText?.Invoke(result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"]);
                 Core.Logging.FileLogger.Warn(
                     $"ReconnectPane failed for '{serverDto.DisplayName}': {result.ErrorMessage}");
@@ -583,20 +611,30 @@ public sealed class SplitService : ISplitService
                 || !activeSessions.Contains(session)
                 || SplitTreeHelper.FindPane(session.RootContent, paneId) is null)
             {
-                SafeDispose(result.Session as IDisposable);
+                SafeDisposeSessionResult(result.Session);
                 CleanupOrphanedPane(serverDto.Id);
-                TryReleaseOldConnectionState(oldServerId, "ReconnectPane post-await guard");
                 Core.Logging.FileLogger.Info(
                     $"ReconnectPane cancelled for '{serverDto.DisplayName}' — session or pane removed.");
                 return;
             }
 
-            // Success: release old state AFTER new connection is confirmed
-            TryReleaseOldConnectionState(oldServerId, "ReconnectPane success");
-
-            var hostControl = _sessionManager.CreateHostControl(
-                session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
-                result.Session, settings);
+            object hostControl;
+            try
+            {
+                hostControl = _sessionManager.CreateHostControl(
+                    session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
+                    result.Session, settings);
+            }
+            catch (Exception ex)
+            {
+                SafeDisposeSessionResult(result.Session);
+                CleanupOrphanedPane(serverDto.Id);
+                pane.Status = "Error";
+                SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
+                Core.Logging.FileLogger.Error(
+                    $"ReconnectPane host creation failed for '{serverDto.DisplayName}': {ex.Message}", ex);
+                return;
+            }
 
             pane.HostControl = hostControl;
             if (hostControl is EmbeddedRdpView rdpView)
@@ -611,14 +649,14 @@ public sealed class SplitService : ISplitService
         }
         catch (OperationCanceledException)
         {
-            TryReleaseOldConnectionState(oldServerId, "ReconnectPane cancellation");
+            ReleaseOldConnectionStateOnce("ReconnectPane cancellation");
             Core.Logging.FileLogger.Info(
                 $"ReconnectPane cancelled for session '{session.Title}' — tab closed during reconnection.");
         }
         catch (Exception ex)
         {
             pane.Status = "Error";
-            TryReleaseOldConnectionState(oldServerId, "ReconnectPane exception");
+            ReleaseOldConnectionStateOnce("ReconnectPane exception");
             Core.Logging.FileLogger.Error($"ReconnectPane error: {ex.Message}", ex);
             SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
         }
@@ -888,14 +926,21 @@ public sealed class SplitService : ISplitService
         }
     }
 
-    private static void RestoreHostControls(
+    internal static void RestoreHostControls(
         SessionTabViewModel session,
         IReadOnlyDictionary<string, object?> hostControls)
     {
         foreach (var (id, control) in hostControls)
         {
             var pane = SplitTreeHelper.FindPane(session.RootContent, id);
-            if (pane is not null) pane.HostControl = control;
+            if (pane is not null)
+            {
+                pane.HostControl = control;
+            }
+            else
+            {
+                SafeDispose(control as IDisposable);
+            }
         }
     }
 
@@ -925,6 +970,36 @@ public sealed class SplitService : ISplitService
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"Unexpected exception during host control disposal: {ex.Message}");
+        }
+    }
+
+    private static void SafeDisposeSessionResult(ISessionResult? session)
+    {
+        switch (session)
+        {
+            case null:
+                return;
+            case IDisposable disposable:
+                SafeDispose(disposable);
+                return;
+            case SshSessionResult ssh:
+                SafeDispose(ssh.Session);
+                return;
+            case TerminalSessionResult terminal:
+                SafeDispose(terminal.Session);
+                return;
+            case LocalShellBundle local:
+                SafeDispose(local.Session);
+                return;
+            case SftpSessionBundle sftp:
+                SafeDispose(sftp.Browser as IDisposable);
+                return;
+            case FtpSessionBundle ftp:
+                SafeDispose(ftp.Browser as IDisposable);
+                return;
+            case CitrixSessionResult citrix:
+                SafeDispose(citrix.Process);
+                return;
         }
     }
 
