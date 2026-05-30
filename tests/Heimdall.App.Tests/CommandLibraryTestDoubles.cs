@@ -40,6 +40,8 @@ internal static class CommandLibraryTestHelpers
         var services = new ServiceCollection();
         services.AddSingleton<ILocalizationService, FakeTwinShellLocalizationService>();
         services.AddScoped<IActionService>(_ => new FakeActionService(actions));
+        services.AddScoped<IFavoritesService, FakeFavoritesService>();
+        services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<ICommandGeneratorService, CommandGeneratorService>();
         return services.BuildServiceProvider();
     }
@@ -171,6 +173,57 @@ internal sealed class FakeActionService(IEnumerable<ActionModel> actions) : IAct
         }
 
         return Task.FromResult(matched);
+    }
+}
+
+internal sealed class FakeFavoritesService : IFavoritesService
+{
+    private readonly HashSet<string> _favorites = new(StringComparer.Ordinal);
+
+    public Task<(bool Success, string? ErrorMessage)> AddFavoriteAsync(string actionId, string? userId = null)
+    {
+        _favorites.Add(actionId);
+        return Task.FromResult((true, (string?)null));
+    }
+
+    public Task RemoveFavoriteAsync(string actionId, string? userId = null)
+    {
+        _favorites.Remove(actionId);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> ToggleFavoriteAsync(string actionId, string? userId = null)
+    {
+        if (!_favorites.Add(actionId))
+        {
+            _favorites.Remove(actionId);
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> IsFavoriteAsync(string actionId, string? userId = null)
+        => Task.FromResult(_favorites.Contains(actionId));
+
+    public Task<IEnumerable<UserFavorite>> GetAllFavoritesAsync(string? userId = null)
+        => Task.FromResult<IEnumerable<UserFavorite>>(
+            _favorites.Select((actionId, index) => new UserFavorite
+            {
+                ActionId = actionId,
+                DisplayOrder = index
+            }).ToList());
+
+    public Task<int> GetFavoriteCountAsync(string? userId = null)
+        => Task.FromResult(_favorites.Count);
+
+    public Task ReorderFavoriteAsync(string favoriteId, int newOrder)
+        => Task.CompletedTask;
+
+    public Task ClearAllFavoritesAsync(string? userId = null)
+    {
+        _favorites.Clear();
+        return Task.CompletedTask;
     }
 }
 

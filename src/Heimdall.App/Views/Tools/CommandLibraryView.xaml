@@ -59,6 +59,17 @@
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="13"/>
                 <Button DockPanel.Dock="Right"
+                        Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                        Command="{Binding CancelSyncCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnCancelSync}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnCancelSync}"
+                        Visibility="{Binding IsSyncing, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="13"/>
+                <Button DockPanel.Dock="Right"
                         Content="&#xE8B5;" FontFamily="Segoe MDL2 Assets"
                         Command="{Binding ImportCommand}"
                         ToolTip="{loc:Translate ToolCmdLibBtnImport}"

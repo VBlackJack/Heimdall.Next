@@ -421,6 +421,12 @@ public sealed partial class CommandLibraryViewModel : ObservableObject, IDisposa
         SelectAction(value);
     }
 
+    partial void OnIsSyncingChanged(bool value)
+    {
+        CancelSyncCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanClose));
+    }
+
     partial void OnUseWindowsTemplateChanged(bool value)
     {
         if (_loadingSelection) return;

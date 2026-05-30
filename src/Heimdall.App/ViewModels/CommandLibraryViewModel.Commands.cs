@@ -517,7 +517,16 @@ public sealed partial class CommandLibraryViewModel
             var result = await Task.Run(() => _gitSyncService.FullSyncAsync());
             await ReloadAsync();
 
-            if (result.Success)
+            if (result.ErrorCode == GitSyncErrorCode.Cancelled)
+            {
+                var message = string.IsNullOrWhiteSpace(result.Message)
+                    ? LocalizeKey("ToolCmdLibSyncCancelledMessage")
+                    : result.Message;
+                _dialogService.ShowInfo(
+                    LocalizeKey("ToolCmdLibSyncCancelled"),
+                    message);
+            }
+            else if (result.Success)
             {
                 var hasWarnings = result.Warnings?.Count > 0;
                 if (hasWarnings)
@@ -540,6 +549,12 @@ public sealed partial class CommandLibraryViewModel
                     result.ErrorDetails ?? result.Message ?? LocalizeKey("ToolCmdLibSyncError"));
             }
         }
+        catch (OperationCanceledException)
+        {
+            _dialogService.ShowInfo(
+                LocalizeKey("ToolCmdLibSyncCancelled"),
+                LocalizeKey("ToolCmdLibSyncCancelledMessage"));
+        }
         catch (Exception ex)
         {
             Heimdall.Core.Logging.FileLogger.Warn(
@@ -552,4 +567,18 @@ public sealed partial class CommandLibraryViewModel
             SyncStatusMessage = string.Empty;
         }
     }
+
+    /// <summary>
+    /// Requests cancellation of the active Git sync operation.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCancelSync))]
+    public void CancelSync()
+    {
+        if (!IsSyncing) return;
+
+        SyncStatusMessage = LocalizeKey("ToolCmdLibSyncCancelling");
+        _gitSyncService.CancelOperation();
+    }
+
+    private bool CanCancelSync() => IsSyncing;
 }
