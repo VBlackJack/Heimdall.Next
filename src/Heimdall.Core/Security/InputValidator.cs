@@ -106,13 +106,21 @@ public static class InputValidator
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        var trimmed = value.Trim();
+        string trimmed = value.Trim();
 
-        if (!ValidationPatterns.TryGetValue(patternName, out var regex))
+        if (!ValidationPatterns.TryGetValue(patternName, out Regex? regex))
             return false;
 
-        if (!regex.IsMatch(trimmed))
+        try
+        {
+            if (!regex!.IsMatch(trimmed))
+                return false;
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Fail closed: a pathological input that trips the ReDoS guard is rejected, never thrown.
             return false;
+        }
 
         // Additional DNS validation for hostname-type patterns
         if (DnsValidatedPatterns.Contains(patternName))
@@ -141,8 +149,8 @@ public static class InputValidator
     /// <returns>The regex pattern string, or null if the pattern name is unknown.</returns>
     public static string? GetPattern(string patternName)
     {
-        return ValidationPatterns.TryGetValue(patternName, out var regex)
-            ? regex.ToString()
+        return ValidationPatterns.TryGetValue(patternName, out Regex? regex)
+            ? regex!.ToString()
             : null;
     }
 
@@ -170,8 +178,8 @@ public static class InputValidator
             return false;
 
         // Check individual label lengths and edge constraints
-        var labels = value.Split('.');
-        foreach (var label in labels)
+        string[] labels = value.Split('.');
+        foreach (string label in labels)
         {
             if (label.Length > MaxDnsLabelLength)
                 return false;
@@ -196,7 +204,7 @@ public static class InputValidator
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        var trimmed = value.Trim().TrimStart('*', '.');
+        string trimmed = value.Trim().TrimStart('*', '.');
         return trimmed.Length > 0 && Validate(trimmed, "Address");
     }
 
@@ -263,30 +271,37 @@ public static class InputValidator
     /// metacharacters (<c>%</c>, <c>^</c>, <c>()</c>, <c>!</c>, etc.).
     /// Covers cmd.exe, PowerShell, WSL, Unix shells (bash/sh/zsh),
     /// Windows Script Host (cscript/wscript/mshta), and their associated
-    /// script extensions (.bat, .cmd, .ps1, .vbs, .js, .wsf, .hta).
+    /// script extensions (.bat, .cmd, .ps1, .vbs, .js, .jse, .vbe, .wsf, .hta).
     /// Returns <c>true</c> for null/empty paths as a safe default.
     /// </summary>
     public static bool IsShellTarget(string? executablePath)
     {
         if (string.IsNullOrWhiteSpace(executablePath)) return true;
 
-        var fileName = Path.GetFileName(executablePath.AsSpan());
+        ReadOnlySpan<char> fileName = Path.GetFileName(executablePath.AsSpan());
         if (fileName.IsEmpty) return true;
 
+        // Windows trims trailing spaces/dots when resolving a path; mirror that so "cmd.exe " / "cmd.exe."
+        // are still detected as shell targets.
+        ReadOnlySpan<char> normalized = fileName.TrimEnd([' ', '.']);
+        if (normalized.IsEmpty) return true;
+
         // Script files executed by a shell/interpreter via file association
-        if (fileName.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".vbs", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".wsf", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith(".hta", StringComparison.OrdinalIgnoreCase))
+        if (normalized.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".vbs", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".jse", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".vbe", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".wsf", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith(".hta", StringComparison.OrdinalIgnoreCase))
             return true;
 
         // Shell interpreters and script hosts (with and without .exe)
-        ReadOnlySpan<char> stem = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? fileName[..^4]
-            : fileName;
+        ReadOnlySpan<char> stem = normalized.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? normalized[..^4]
+            : normalized;
 
         return stem.Equals("cmd", StringComparison.OrdinalIgnoreCase)
             || stem.Equals("powershell", StringComparison.OrdinalIgnoreCase)

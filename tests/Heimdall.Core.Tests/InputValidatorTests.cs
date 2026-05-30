@@ -149,8 +149,8 @@ public class InputValidatorTests
     public void Validate_Hostname_RejectsExcessiveFqdnLength()
     {
         // Build a hostname with total length > 255
-        var longLabel = new string('a', 63);
-        var longHostname = string.Join(".", longLabel, longLabel, longLabel, longLabel, "com");
+        string longLabel = new('a', 63);
+        string longHostname = string.Join(".", longLabel, longLabel, longLabel, longLabel, "com");
         // Should be >255 chars total
         Assert.True(longHostname.Length > 255);
 
@@ -160,8 +160,8 @@ public class InputValidatorTests
     [Fact]
     public void Validate_Hostname_RejectsLabelOver63Chars()
     {
-        var longLabel = new string('a', 64);
-        var hostname = $"{longLabel}.example.com";
+        string longLabel = new('a', 64);
+        string hostname = $"{longLabel}.example.com";
 
         Assert.False(InputValidator.Validate(hostname, "Hostname"));
     }
@@ -191,7 +191,7 @@ public class InputValidatorTests
     [Fact]
     public void GetPatternNames_ReturnsAllExpectedPatterns()
     {
-        var names = InputValidator.GetPatternNames().ToList();
+        List<string> names = InputValidator.GetPatternNames().ToList();
 
         Assert.Contains("SshGateway", names);
         Assert.Contains("SshUser", names);
@@ -281,6 +281,34 @@ public class InputValidatorTests
     public void IsShellTarget_ScriptExtensions_ReturnsTrue(string path)
     {
         Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("macro.jse")]
+    [InlineData("MACRO.JSE")]
+    [InlineData("payload.vbe")]
+    [InlineData(@"C:\x\y.jse")]
+    public void IsShellTarget_EncodedScriptHosts_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("cmd.exe ")]
+    [InlineData("cmd.exe.")]
+    [InlineData("script.bat ")]
+    [InlineData("deploy.ps1.")]
+    public void IsShellTarget_TrailingSpaceOrDot_StillDetectsShell(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("ping.exe ")]
+    [InlineData("putty.exe.")]
+    public void IsShellTarget_TrailingSpaceOnRegularExe_StillFalse(string path)
+    {
+        Assert.False(InputValidator.IsShellTarget(path));
     }
 
     [Theory]
