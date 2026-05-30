@@ -99,56 +99,6 @@ public static class AclEnforcer
     }
 
     /// <summary>
-    /// Check whether a file has the expected restrictive ACL
-    /// (only current user, Administrators, SYSTEM).
-    /// </summary>
-    /// <param name="filePath">Path to the file.</param>
-    /// <returns>True if the file ACL matches the expected restrictive pattern.</returns>
-    public static bool VerifyFileAcl(string filePath)
-    {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-            return false;
-
-        try
-        {
-            var fileInfo = new FileInfo(filePath);
-            var acl = fileInfo.GetAccessControl();
-
-            // Check that inheritance is disabled (protected DACL)
-            if (!acl.AreAccessRulesProtected)
-                return false;
-
-            var rules = acl.GetAccessRules(
-                includeExplicit: true,
-                includeInherited: false,
-                targetType: typeof(SecurityIdentifier));
-
-            var expectedIdentities = GetRestrictedIdentities()
-                .Select(id => id.Value)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // Each rule must be an Allow rule for one of the expected identities
-            foreach (FileSystemAccessRule rule in rules)
-            {
-                if (rule.AccessControlType != AccessControlType.Allow)
-                    return false;
-
-                if (rule.IdentityReference is SecurityIdentifier sid
-                    && !expectedIdentities.Contains(sid.Value))
-                {
-                    return false;
-                }
-            }
-
-            return rules.Count > 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Get the list of security identifiers for the restricted ACL:
     /// current user, BUILTIN\Administrators, NT AUTHORITY\SYSTEM.
     /// </summary>

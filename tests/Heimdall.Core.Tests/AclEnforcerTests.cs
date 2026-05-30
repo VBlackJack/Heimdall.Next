@@ -111,45 +111,4 @@ public class AclEnforcerTests : IDisposable
         Assert.Throws<ArgumentNullException>(() => AclEnforcer.SetDirectoryAcl(null!));
     }
 
-    // ── VerifyFileAcl ──────────────────────────────────────────────────
-
-    [Fact]
-    public void VerifyFileAcl_ReturnsTrueAfterSetFileAcl()
-    {
-        var path = CreateTempFile();
-        AclEnforcer.SetFileAcl(path);
-
-        var result = AclEnforcer.VerifyFileAcl(path);
-
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void VerifyFileAcl_ReturnsFalseOnUnprotectedFile()
-    {
-        var path = CreateTempFile();
-
-        // File has default inherited ACL, not the restricted one
-        var result = AclEnforcer.VerifyFileAcl(path);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void VerifyFileAcl_ReturnsFalseForNonexistentFile()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"nonexistent_{Guid.NewGuid():N}.tmp");
-
-        var result = AclEnforcer.VerifyFileAcl(path);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void VerifyFileAcl_ReturnsFalseForNullPath()
-    {
-        var result = AclEnforcer.VerifyFileAcl(null!);
-
-        Assert.False(result);
-    }
 }

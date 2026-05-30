@@ -15,6 +15,8 @@
  */
 
 using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
@@ -139,7 +141,7 @@ public class SecureFileWriterTests : IDisposable
 
         SecureFileWriter.WriteAndProtect(path, "protected");
 
-        Assert.True(AclEnforcer.VerifyFileAcl(path));
+        AssertRestrictiveAcl(path);
     }
 
     [Fact]
@@ -151,7 +153,7 @@ public class SecureFileWriterTests : IDisposable
         SecureFileWriter.WriteAndProtect(path, "secret");
 
         Assert.Equal("secret", File.ReadAllText(path));
-        Assert.True(AclEnforcer.VerifyFileAcl(path));
+        AssertRestrictiveAcl(path);
     }
 
     [Fact]
@@ -163,7 +165,7 @@ public class SecureFileWriterTests : IDisposable
         await SecureFileWriter.WriteAndProtectAsync(path, "secret");
 
         Assert.Equal("secret", File.ReadAllText(path));
-        Assert.True(AclEnforcer.VerifyFileAcl(path));
+        AssertRestrictiveAcl(path);
     }
 
     // ── WriteText basic functionality ──────────────────────────────────
@@ -229,5 +231,42 @@ public class SecureFileWriterTests : IDisposable
         // UTF-8 BOM is 0xEF, 0xBB, 0xBF — verify it is absent
         Assert.False(
             bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
+    }
+
+    private static void AssertRestrictiveAcl(string path)
+    {
+        FileInfo fileInfo = new(path);
+        FileSecurity acl = fileInfo.GetAccessControl();
+
+        Assert.True(acl.AreAccessRulesProtected);
+
+        HashSet<string> expectedIdentities = new(StringComparer.OrdinalIgnoreCase);
+        SecurityIdentifier? currentUser = WindowsIdentity.GetCurrent().User;
+        if (currentUser is not null)
+        {
+            expectedIdentities.Add(currentUser.Value);
+        }
+
+        SecurityIdentifier administrators = new(WellKnownSidType.BuiltinAdministratorsSid, null);
+        SecurityIdentifier system = new(WellKnownSidType.LocalSystemSid, null);
+        expectedIdentities.Add(administrators.Value);
+        expectedIdentities.Add(system.Value);
+
+        AuthorizationRuleCollection rules = acl.GetAccessRules(
+            includeExplicit: true,
+            includeInherited: false,
+            targetType: typeof(SecurityIdentifier));
+
+        Assert.True(rules.Count > 0);
+        foreach (FileSystemAccessRule rule in rules)
+        {
+            Assert.Equal(AccessControlType.Allow, rule.AccessControlType);
+            if (rule.IdentityReference is SecurityIdentifier securityIdentifier)
+            {
+                Assert.True(
+                    expectedIdentities.Contains(securityIdentifier.Value),
+                    $"Unexpected ACL identity: {securityIdentifier.Value}");
+            }
+        }
     }
 }

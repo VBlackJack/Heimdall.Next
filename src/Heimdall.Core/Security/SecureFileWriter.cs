@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
@@ -33,70 +31,6 @@ public static class SecureFileWriter
     /// UTF-8 encoding without BOM (matches legacy PS 5.1 behavior that avoids BOM corruption).
     /// </summary>
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
-
-    /// <summary>
-    /// Write a SecureString directly to a file as UTF-8 without creating an
-    /// intermediate managed System.String, minimizing the plaintext memory exposure window.
-    /// BSTR, char[], and byte[] intermediates are all zeroed in finally blocks.
-    /// </summary>
-    /// <param name="secureString">The SecureString to write.</param>
-    /// <param name="filePath">The target file path.</param>
-    /// <exception cref="ArgumentNullException">Thrown when any argument is null or empty.</exception>
-    public static void WriteSecureStringToFile(SecureString secureString, string filePath)
-    {
-        ArgumentNullException.ThrowIfNull(secureString);
-        ArgumentException.ThrowIfNullOrEmpty(filePath);
-
-        var bstr = IntPtr.Zero;
-        char[]? chars = null;
-        byte[]? utf8Bytes = null;
-
-        try
-        {
-            bstr = Marshal.SecureStringToBSTR(secureString);
-
-            // BSTR stores its byte length as a 4-byte integer at offset -4
-            var bstrLenBytes = Marshal.ReadInt32(bstr, -4);
-            var charCount = bstrLenBytes / 2;
-
-            // Copy UTF-16 chars from unmanaged BSTR into a clearable managed array
-            chars = new char[charCount];
-            for (var i = 0; i < charCount; i++)
-            {
-                chars[i] = (char)Marshal.ReadInt16(bstr, i * 2);
-            }
-
-            // Convert to UTF-8 for file output
-            utf8Bytes = Utf8NoBom.GetBytes(chars);
-
-            // Zero the char array immediately after encoding
-            Array.Clear(chars);
-            chars = null;
-
-            // Write UTF-8 bytes to file
-            File.WriteAllBytes(filePath, utf8Bytes);
-        }
-        finally
-        {
-            // Zero the BSTR in unmanaged memory
-            if (bstr != IntPtr.Zero)
-            {
-                Marshal.ZeroFreeBSTR(bstr);
-            }
-
-            // Zero the char array if not already cleared
-            if (chars is not null)
-            {
-                Array.Clear(chars);
-            }
-
-            // Zero the UTF-8 byte array
-            if (utf8Bytes is not null)
-            {
-                Array.Clear(utf8Bytes);
-            }
-        }
-    }
 
     /// <summary>
     /// Writes text to a file that is created with restrictive ACL from the start,
