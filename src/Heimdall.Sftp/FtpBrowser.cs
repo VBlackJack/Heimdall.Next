@@ -14,39 +14,30 @@
  * limitations under the License.
  */
 
-using System.Globalization;
 using System.IO;
 using System.Net;
-using System.Text.RegularExpressions;
+using System.Net.Security;
+using FluentFTP;
+using Heimdall.Core.Logging;
 
 namespace Heimdall.Sftp;
 
 /// <summary>
-/// FTP file browser backed by <see cref="FtpWebRequest"/> (.NET built-in).
+/// FTP file browser backed by FluentFTP.
 /// Provides the same <see cref="IRemoteBrowser"/> surface as <see cref="SftpBrowser"/>
 /// so the embedded file browser view can work with both SFTP and FTP.
 /// </summary>
-/// <remarks>
-/// Operations wrap blocking <see cref="FtpWebRequest"/> calls in
-/// <see cref="Task.Run"/>. The <see cref="CancellationToken"/> is honoured at
-/// the operation boundary, not mid-call; a blocking transfer already in
-/// progress runs to completion or to its own timeout.
-/// </remarks>
-public sealed partial class FtpBrowser : IRemoteBrowser
+public sealed class FtpBrowser : IRemoteBrowser
 {
-    private const int DefaultBufferSize = 81920;
+    private const int DefaultTimeoutMilliseconds = 30_000;
 
-    /// <summary>Hard cap on FTP recursive-delete depth (mirrors SftpBrowser.MaxDeleteDepth).</summary>
-    internal const int MaxFtpDeleteDepth = 256;
-
+    private readonly SemaphoreSlim _opLock = new SemaphoreSlim(1, 1);
+    private AsyncFtpClient? _client;
     private string? _host;
     private int _port;
-    private NetworkCredential? _credential;
     private bool _disposed;
     private bool _connected;
-    private bool _passiveMode = true;
     private bool _useSsl;
-    private readonly SemaphoreSlim _opLock = new(1, 1);
 
     /// <inheritdoc/>
     public event Action<string>? DirectoryChanged;
@@ -87,31 +78,35 @@ public sealed partial class FtpBrowser : IRemoteBrowser
 
         _host = host;
         _port = port > 0 ? port : 21;
-        _passiveMode = passiveMode;
         _useSsl = useSsl;
-        _credential = new NetworkCredential(
-            string.IsNullOrEmpty(username) ? "anonymous" : username,
-            password ?? string.Empty);
 
-        // FTP without TLS sends credentials in clear text. Surface this loudly
-        // in the log so an operator reviewing connection history can spot when
-        // a session was actually transmitted unencrypted, even if the UI shows
-        // a green "connected" state.
         if (!useSsl && !string.IsNullOrEmpty(username))
         {
-            Heimdall.Core.Logging.FileLogger.Warn(
+            FileLogger.Warn(
                 $"FtpBrowser: connecting to ftp://{host}:{_port} without TLS — username and password will be transmitted in clear text. Prefer SFTP when available.");
         }
 
-        // Verify connectivity by listing the root directory
-        await Task.Run(() =>
+        string effectiveUsername = string.IsNullOrEmpty(username) ? "anonymous" : username;
+        FtpConfig config = CreateConfig(passiveMode, useSsl);
+        AsyncFtpClient client = new AsyncFtpClient(host, effectiveUsername, password ?? string.Empty, _port, config);
+        client.ValidateCertificate += static (_, e) =>
         {
-            ct.ThrowIfCancellationRequested();
-            var request = CreateRequest("/", WebRequestMethods.Ftp.ListDirectory);
-            using var response = (FtpWebResponse)request.GetResponse();
-            response.Close();
-        }, ct).ConfigureAwait(false);
+            e.Accept = e.PolicyErrors == SslPolicyErrors.None;
+        };
 
+        try
+        {
+            await client.Connect(ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            client.Dispose();
+            _host = null;
+            _connected = false;
+            throw;
+        }
+
+        _client = client;
         _connected = true;
         CurrentDirectory = "/";
         DirectoryChanged?.Invoke(CurrentDirectory);
@@ -122,17 +117,26 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         string? path = null,
         CancellationToken ct = default)
     {
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
         string targetPath = NormalizePath(path ?? CurrentDirectory);
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            return await Task.Run(() =>
+            FtpListItem[] items = await client.GetListing(targetPath, ct).ConfigureAwait(false);
+            List<SftpFileInfo> result = new List<SftpFileInfo>();
+
+            foreach (FtpListItem item in items)
             {
-                ct.ThrowIfCancellationRequested();
-                return ListDirectoryDetailed(targetPath);
-            }, ct).ConfigureAwait(false);
+                if (item.Name is "." or "..")
+                {
+                    continue;
+                }
+
+                result.Add(MapFtpItemToFileInfo(item, targetPath));
+            }
+
+            return result;
         }
         finally
         {
@@ -143,6 +147,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     /// <inheritdoc/>
     public Task<string> GetCurrentDirectoryAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         EnsureConnected();
         return Task.FromResult(CurrentDirectory);
     }
@@ -151,21 +156,18 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     public async Task ChangeDirectoryAsync(string path, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
 
         string resolved = ResolvePath(path, CurrentDirectory);
 
-        // Verify the directory exists by listing it
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Run(() =>
+            bool exists = await client.DirectoryExists(resolved, ct).ConfigureAwait(false);
+            if (!exists)
             {
-                ct.ThrowIfCancellationRequested();
-                var request = CreateRequest(resolved, WebRequestMethods.Ftp.ListDirectory);
-                using var response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-            }, ct).ConfigureAwait(false);
+                throw new DirectoryNotFoundException($"FTP directory not found: {resolved}");
+            }
 
             CurrentDirectory = resolved;
             DirectoryChanged?.Invoke(CurrentDirectory);
@@ -184,54 +186,25 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(remotePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
 
         string fileName = Path.GetFileName(remotePath);
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            // Get file size for progress reporting
-            long totalBytes = 0;
-            await Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                try
-                {
-                    var sizeRequest = CreateRequest(remotePath, WebRequestMethods.Ftp.GetFileSize);
-                    using var sizeResponse = (FtpWebResponse)sizeRequest.GetResponse();
-                    totalBytes = sizeResponse.ContentLength;
-                    sizeResponse.Close();
-                }
-                catch
-                {
-                    // Some FTP servers do not support SIZE; proceed without progress
-                }
-            }, ct).ConfigureAwait(false);
+            long totalBytes = await client.GetFileSize(remotePath, 0, ct).ConfigureAwait(false);
+            totalBytes = Math.Max(0, totalBytes);
+            IProgress<FtpProgress> progress = CreateProgress(fileName, totalBytes, isUpload: false);
+            FtpStatus status = await client.DownloadFile(
+                localPath,
+                remotePath,
+                FtpLocalExists.Overwrite,
+                FtpVerify.None,
+                progress,
+                ct).ConfigureAwait(false);
 
-            await Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                var request = CreateRequest(remotePath, WebRequestMethods.Ftp.DownloadFile);
-                using var response = (FtpWebResponse)request.GetResponse();
-                using var responseStream = response.GetResponseStream();
-                using var fileStream = new FileStream(
-                    localPath, FileMode.Create, FileAccess.Write, FileShare.None, DefaultBufferSize);
-
-                var buffer = new byte[DefaultBufferSize];
-                long bytesTransferred = 0;
-                int bytesRead;
-
-                while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    fileStream.Write(buffer, 0, bytesRead);
-                    bytesTransferred += bytesRead;
-
-                    TransferProgress?.Invoke(new SftpTransferProgress(
-                        fileName, bytesTransferred, totalBytes, IsUpload: false));
-                }
-            }, ct).ConfigureAwait(false);
+            ThrowIfFailed(status, remotePath, "download");
         }
         finally
         {
@@ -247,41 +220,25 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(remotePath);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
 
         string fileName = Path.GetFileName(localPath);
-        long totalBytes = new FileInfo(localPath).Length;
+        long totalBytes = Math.Max(0, new FileInfo(localPath).Length);
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                var request = CreateRequest(remotePath, WebRequestMethods.Ftp.UploadFile);
-                request.ContentLength = totalBytes;
+            IProgress<FtpProgress> progress = CreateProgress(fileName, totalBytes, isUpload: true);
+            FtpStatus status = await client.UploadFile(
+                localPath,
+                remotePath,
+                FtpRemoteExists.Overwrite,
+                false,
+                FtpVerify.None,
+                progress,
+                ct).ConfigureAwait(false);
 
-                using var fileStream = new FileStream(
-                    localPath, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize);
-                using var requestStream = request.GetRequestStream();
-
-                var buffer = new byte[DefaultBufferSize];
-                long bytesTransferred = 0;
-                int bytesRead;
-
-                while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    requestStream.Write(buffer, 0, bytesRead);
-                    bytesTransferred += bytesRead;
-
-                    TransferProgress?.Invoke(new SftpTransferProgress(
-                        fileName, bytesTransferred, totalBytes, IsUpload: true));
-                }
-
-                using var response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-            }, ct).ConfigureAwait(false);
+            ThrowIfFailed(status, remotePath, "upload");
         }
         finally
         {
@@ -293,18 +250,12 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     public async Task CreateDirectoryAsync(string path, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                var request = CreateRequest(path, WebRequestMethods.Ftp.MakeDirectory);
-                using var response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-            }, ct).ConfigureAwait(false);
+            await client.CreateDirectory(path, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -316,15 +267,20 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     public async Task DeleteAsync(string path, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
+        string normalizedPath = NormalizePath(path);
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Run(() =>
+            if (await client.DirectoryExists(normalizedPath, ct).ConfigureAwait(false))
             {
-                DeleteRecursive(NormalizePath(path), 0, ct);
-            }, ct).ConfigureAwait(false);
+                await client.DeleteDirectory(normalizedPath, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await client.DeleteFile(normalizedPath, ct).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -335,6 +291,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     /// <inheritdoc/>
     public Task ChmodAsync(string path, short mode, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         // FTP does not natively support chmod; this is a no-op.
         // Some servers support SITE CHMOD but it is non-standard.
         return Task.CompletedTask;
@@ -345,19 +302,12 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(oldPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(newPath);
-        EnsureConnected();
+        AsyncFtpClient client = GetConnectedClient();
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                var request = CreateRequest(oldPath, WebRequestMethods.Ftp.Rename);
-                request.RenameTo = newPath;
-                using var response = (FtpWebResponse)request.GetResponse();
-                response.Close();
-            }, ct).ConfigureAwait(false);
+            await client.Rename(oldPath, newPath, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -368,8 +318,9 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     /// <inheritdoc/>
     public void Disconnect()
     {
+        _client?.Dispose();
+        _client = null;
         _connected = false;
-        _credential = null;
         _host = null;
         Disconnected?.Invoke(null);
     }
@@ -385,45 +336,6 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         _disposed = true;
         Disconnect();
         _opLock.Dispose();
-    }
-
-    // ------------------------------------------------------------------
-    // Private helpers
-    // ------------------------------------------------------------------
-
-    private void EnsureConnected()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (!_connected || _host is null)
-        {
-            throw new InvalidOperationException("FTP browser is not connected.");
-        }
-    }
-
-    private FtpWebRequest CreateRequest(string remotePath, string method)
-    {
-        string normalizedPath = NormalizePath(remotePath);
-        var uri = new Uri($"ftp://{_host}:{_port}{normalizedPath}");
-
-        // TODO(audit-A4): migrate to FluentFTP — see docs/audit/ftp-fluentftp-migration.md
-        // Known limitation (audit P3-1): remotePath is interpolated into the URI
-        // without escaping; filenames containing '#', '?', '%', spaces or non-ASCII
-        // produce wrong or failing requests. The fix rides with the FluentFTP
-        // migration rather than a fragile FtpWebRequest URI-escaping workaround.
-#pragma warning disable SYSLIB0014 // FtpWebRequest is obsolete but no built-in replacement exists
-        var request = (FtpWebRequest)WebRequest.Create(uri);
-#pragma warning restore SYSLIB0014
-
-        request.Method = method;
-        request.Credentials = _credential!;
-        request.UseBinary = true;
-        request.UsePassive = _passiveMode;
-        request.EnableSsl = _useSsl;
-        request.KeepAlive = false;
-        request.Timeout = 30_000;
-
-        return request;
     }
 
     internal static string NormalizePath(string path)
@@ -460,227 +372,81 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         return NormalizePath($"{basePath}/{path}");
     }
 
-    /// <summary>
-    /// Lists directory contents using LIST (detailed format) and parses
-    /// Unix-style or DOS-style directory listings.
-    /// </summary>
-    private IReadOnlyList<SftpFileInfo> ListDirectoryDetailed(string path)
+    internal static SftpFileInfo MapFtpItemToFileInfo(FtpListItem item, string parentPath)
     {
-        var request = CreateRequest(path, WebRequestMethods.Ftp.ListDirectoryDetails);
-        using var response = (FtpWebResponse)request.GetResponse();
-        using var reader = new StreamReader(response.GetResponseStream());
+        bool isDirectory = item.Type == FtpObjectType.Directory;
+        long size = isDirectory ? 0 : Math.Max(0, item.Size);
+        DateTime lastModified = item.Modified == default
+            ? DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc)
+            : DateTime.SpecifyKind(item.Modified, DateTimeKind.Utc);
+        string permissions = string.IsNullOrEmpty(item.RawPermissions)
+            ? isDirectory ? "rwxr-xr-x" : "rw-r--r--"
+            : item.RawPermissions;
+        string owner = string.IsNullOrEmpty(item.RawOwner) ? "-" : item.RawOwner;
+        string group = string.IsNullOrEmpty(item.RawGroup) ? "-" : item.RawGroup;
+        string fullPath = parentPath.TrimEnd('/') + "/" + item.Name;
 
-        var result = new List<SftpFileInfo>();
-        string? line;
-
-        while ((line = reader.ReadLine()) is not null)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                continue;
-            }
-
-            var entry = ParseListLine(line, path);
-            if (entry is not null && entry.Name is not "." and not "..")
-            {
-                result.Add(entry);
-            }
-        }
-
-        return result;
+        return new SftpFileInfo(
+            Name: item.Name,
+            FullPath: fullPath,
+            IsDirectory: isDirectory,
+            Size: size,
+            LastModified: lastModified,
+            Permissions: permissions,
+            Owner: owner,
+            Group: group);
     }
 
-    private void DeleteRecursive(string path, int depth, CancellationToken ct)
+    private static FtpConfig CreateConfig(bool passiveMode, bool useSsl)
     {
-        ct.ThrowIfCancellationRequested();
-
-        if (depth > MaxFtpDeleteDepth)
+        return new FtpConfig
         {
-            throw new InvalidOperationException(
-                $"Refused to delete '{path}': remote directory depth exceeds {MaxFtpDeleteDepth}.");
-        }
-
-        // FTP has no stat. Probe by attempting a file delete first.
-        WebException? fileDeleteError = TryDeleteFile(path);
-        if (fileDeleteError is null)
-        {
-            return; // It was a regular file (or a symlink) and is now deleted.
-        }
-
-        // The file delete failed. If listing also fails, keep the original
-        // delete failure instead of masking a genuine file-delete error.
-        IReadOnlyList<SftpFileInfo> children;
-        try
-        {
-            children = ListDirectoryDetailed(path);
-        }
-        catch (WebException)
-        {
-            throw fileDeleteError;
-        }
-
-        foreach (SftpFileInfo entry in children)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (entry.IsDirectory)
-            {
-                DeleteRecursive(entry.FullPath, depth + 1, ct);
-            }
-            else
-            {
-                WebException? childError = TryDeleteFile(entry.FullPath);
-                if (childError is not null)
-                {
-                    throw childError;
-                }
-            }
-        }
-
-        RemoveDirectory(path);
+            EncryptionMode = useSsl ? FtpEncryptionMode.Explicit : FtpEncryptionMode.None,
+            DataConnectionEncryption = useSsl,
+            DataConnectionType = passiveMode
+                ? FtpDataConnectionType.AutoPassive
+                : FtpDataConnectionType.AutoActive,
+            ConnectTimeout = DefaultTimeoutMilliseconds,
+            ReadTimeout = DefaultTimeoutMilliseconds,
+            DataConnectionConnectTimeout = DefaultTimeoutMilliseconds,
+            DataConnectionReadTimeout = DefaultTimeoutMilliseconds,
+        };
     }
 
-    /// <summary>
-    /// Attempts to delete a path as a regular file. Returns null on success,
-    /// or the <see cref="WebException"/> on failure.
-    /// </summary>
-    private WebException? TryDeleteFile(string remotePath)
+    private static void ThrowIfFailed(FtpStatus status, string remotePath, string operation)
     {
-        try
+        if (status == FtpStatus.Failed)
         {
-            var request = CreateRequest(remotePath, WebRequestMethods.Ftp.DeleteFile);
-            using var response = (FtpWebResponse)request.GetResponse();
-            response.Close();
-            return null;
-        }
-        catch (WebException ex)
-        {
-            return ex;
+            throw new IOException($"FTP {operation} failed for '{remotePath}'.");
         }
     }
 
-    private void RemoveDirectory(string remotePath)
+    private IProgress<FtpProgress> CreateProgress(string fileName, long totalBytes, bool isUpload)
     {
-        var request = CreateRequest(remotePath, WebRequestMethods.Ftp.RemoveDirectory);
-        using var response = (FtpWebResponse)request.GetResponse();
-        response.Close();
+        return new Progress<FtpProgress>(progress =>
+        {
+            long transferredBytes = Math.Max(0, progress.TransferredBytes);
+            TransferProgress?.Invoke(new SftpTransferProgress(
+                fileName,
+                transferredBytes,
+                totalBytes,
+                isUpload));
+        });
     }
 
-    /// <summary>
-    /// Hard cap on the length of a filename extracted from an FTP LIST response.
-    /// Defends against a hostile or buggy server padding entries with megabytes
-    /// of trailing garbage that the regex would otherwise capture wholesale.
-    /// </summary>
-    internal const int MaxFtpFilenameLength = 4096;
-
-    /// <summary>
-    /// Parses a single line from an FTP LIST response.
-    /// Supports Unix-style (drwxr-xr-x ...) and DOS-style (01-01-2026 ...) formats.
-    /// </summary>
-    internal static SftpFileInfo? ParseListLine(string line, string parentPath)
+    private void EnsureConnected()
     {
-        // Try Unix-style format first: drwxr-xr-x 2 user group 4096 Jan 01 12:00 filename
-        var unixMatch = UnixListRegex().Match(line);
-        if (unixMatch.Success)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!_connected || _host is null || _client is null)
         {
-            string permissions = unixMatch.Groups[1].Value;
-            bool isDirectory = permissions.StartsWith('d');
-            long size = long.TryParse(unixMatch.Groups[4].Value, CultureInfo.InvariantCulture, out var s) ? s : 0;
-            string dateStr = unixMatch.Groups[5].Value;
-            string name = unixMatch.Groups[6].Value;
-
-            if (permissions.StartsWith('l'))
-            {
-                int arrowIndex = name.IndexOf(" -> ", StringComparison.Ordinal);
-                if (arrowIndex >= 0)
-                {
-                    name = name[..arrowIndex];
-                }
-            }
-
-            if (name.Length > MaxFtpFilenameLength)
-            {
-                return null;
-            }
-
-            DateTime lastModified = ParseUnixDate(dateStr);
-            string fullPath = parentPath.TrimEnd('/') + "/" + name;
-
-            return new SftpFileInfo(
-                Name: name,
-                FullPath: fullPath,
-                IsDirectory: isDirectory,
-                Size: isDirectory ? 0 : size,
-                LastModified: lastModified,
-                Permissions: permissions.Length >= 10 ? permissions[1..] : permissions,
-                Owner: unixMatch.Groups[2].Value,
-                Group: unixMatch.Groups[3].Value);
+            throw new InvalidOperationException("FTP browser is not connected.");
         }
-
-        // Try DOS-style format: 01-01-26 12:00PM <DIR> filename
-        var dosMatch = DosListRegex().Match(line);
-        if (dosMatch.Success)
-        {
-            string dateStr = dosMatch.Groups[1].Value + " " + dosMatch.Groups[2].Value;
-            bool isDirectory = dosMatch.Groups[3].Value.Trim().Equals("<DIR>", StringComparison.OrdinalIgnoreCase);
-            string sizeStr = dosMatch.Groups[3].Value.Trim();
-            long size = 0;
-            if (!isDirectory)
-            {
-                long.TryParse(sizeStr, CultureInfo.InvariantCulture, out size);
-            }
-            string name = dosMatch.Groups[4].Value;
-
-            if (name.Length > MaxFtpFilenameLength)
-            {
-                return null;
-            }
-
-            DateTime.TryParse(dateStr, CultureInfo.InvariantCulture,
-                DateTimeStyles.None, out var lastModified);
-            // FTP LIST dates carry no timezone. Tag UTC for consistency with
-            // SftpBrowser; the true offset is unknowable over FTP.
-            lastModified = DateTime.SpecifyKind(lastModified, DateTimeKind.Utc);
-
-            string fullPath = parentPath.TrimEnd('/') + "/" + name;
-
-            return new SftpFileInfo(
-                Name: name,
-                FullPath: fullPath,
-                IsDirectory: isDirectory,
-                Size: size,
-                LastModified: lastModified,
-                Permissions: isDirectory ? "rwxr-xr-x" : "rw-r--r--",
-                Owner: "-",
-                Group: "-");
-        }
-
-        return null;
     }
 
-    internal static DateTime ParseUnixDate(string dateStr)
+    private AsyncFtpClient GetConnectedClient()
     {
-        // Formats: "Jan 01 12:00" or "Jan 01  2025"
-        if (DateTime.TryParseExact(dateStr.Trim(), new[] { "MMM dd HH:mm", "MMM dd  yyyy", "MMM  d HH:mm", "MMM  d  yyyy" },
-            CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
-        {
-            var now = DateTime.UtcNow;
-            // If the parsed date has no year component and is in the future, subtract a year
-            if (result.Year == now.Year && result > now)
-            {
-                result = result.AddYears(-1);
-            }
-
-            // FTP LIST dates carry no timezone. Tag UTC for consistency with
-            // SftpBrowser; the true offset is unknowable over FTP.
-            return DateTime.SpecifyKind(result, DateTimeKind.Utc);
-        }
-
-        return DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+        EnsureConnected();
+        return _client!;
     }
-
-    [GeneratedRegex(@"^([drwxstSTlL\-]{10})\s+\d+\s+(\S+)\s+(\S+)\s+(\d+)\s+(\w{3}\s+\d{1,2}\s+[\d:]+)\s+(.+)$")]
-    private static partial Regex UnixListRegex();
-
-    [GeneratedRegex(@"^(\d{2}-\d{2}-\d{2,4})\s+(\d{2}:\d{2}[APMapm]{2})\s+(<DIR>|\d+)\s+(.+)$")]
-    private static partial Regex DosListRegex();
 }

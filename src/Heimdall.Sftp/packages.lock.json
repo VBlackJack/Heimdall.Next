@@ -2,6 +2,12 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "FluentFTP": {
+        "type": "Direct",
+        "requested": "[54.2.0, )",
+        "resolved": "54.2.0",
+        "contentHash": "n+OyaqU80gnOltXo2xBPZklAqbtxJAfl2GfblOIe5OCAk4jr/3zYW9Jf1fG6eR/USZq4AKWQcUMmKE9neSk8og=="
+      },
       "SSH.NET": {
         "type": "Direct",
         "requested": "[2025.1.0, )",

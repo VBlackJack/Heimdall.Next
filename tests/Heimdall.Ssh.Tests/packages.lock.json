@@ -45,6 +45,11 @@
         "resolved": "8.4.0",
         "contentHash": "tqVU8yc/ADO9oiTRyTnwhFN68hCwvkliMierptWOudIAvWY1mWCh5VFh+guwHJmpMwfg0J0rY+yyd5Oy7ty9Uw=="
       },
+      "FluentFTP": {
+        "type": "Transitive",
+        "resolved": "54.2.0",
+        "contentHash": "n+OyaqU80gnOltXo2xBPZklAqbtxJAfl2GfblOIe5OCAk4jr/3zYW9Jf1fG6eR/USZq4AKWQcUMmKE9neSk8og=="
+      },
       "Microsoft.CodeCoverage": {
         "type": "Transitive",
         "resolved": "17.14.1",
@@ -138,15 +143,10 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.5, )"
         }
       },
-      "heimdall.rdp": {
-        "type": "Project",
-        "dependencies": {
-          "Heimdall.Core": "[1.0.0, )"
-        }
-      },
       "heimdall.sftp": {
         "type": "Project",
         "dependencies": {
+          "FluentFTP": "[54.2.0, )",
           "Heimdall.Core": "[1.0.0, )",
           "Heimdall.Ssh": "[1.0.0, )",
           "SSH.NET": "[2025.1.0, )"
@@ -157,12 +157,6 @@
         "dependencies": {
           "Heimdall.Core": "[1.0.0, )",
           "SSH.NET": "[2025.1.0, )"
-        }
-      },
-      "heimdall.terminal": {
-        "type": "Project",
-        "dependencies": {
-          "Heimdall.Core": "[1.0.0, )"
         }
       }
     }

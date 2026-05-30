@@ -190,13 +190,13 @@ host-key trust again on every save.
 
 ### FTP cleartext warning
 
-FTP remains implemented on top of .NET `FtpWebRequest` for now, with a
-documented migration path to FluentFTP in
-`docs/audit/ftp-fluentftp-migration.md`. `FtpHandler` validates the target
-host and port before connect. If a user connects with credentials and TLS is
-disabled, `ConnectionResult.Warning` carries a localized non-blocking
-cleartext warning to the status surface; it does not block anonymous or
-explicit FTPS sessions.
+FTP is implemented on top of FluentFTP `AsyncFtpClient`. `FtpHandler`
+validates the target host and port before connect. If a user connects with
+credentials and TLS is disabled, `ConnectionResult.Warning` carries a
+localized non-blocking cleartext warning to the status surface; it does not
+block anonymous or explicit FTPS sessions. Explicit FTPS enables TLS for the
+control channel and FluentFTP `DataConnectionEncryption`, so file transfers
+use a protected data channel.
 
 ### SSH agent identity enumeration
 

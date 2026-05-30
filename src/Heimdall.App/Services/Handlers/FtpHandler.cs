@@ -44,7 +44,7 @@ internal sealed class FtpHandler : IProtocolHandler
     public string Protocol => "FTP";
 
     /// <summary>
-    /// Establishes an FTP browser session using .NET's built-in FtpWebRequest.
+    /// Establishes an FTP browser session using FluentFTP.
     /// </summary>
     public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,

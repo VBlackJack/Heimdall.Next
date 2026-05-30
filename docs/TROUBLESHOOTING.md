@@ -608,8 +608,8 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 
 **Solution**:
 1. Ensure the FTP server's passive port range is accessible
-2. The built-in .NET `FtpWebRequest` uses passive mode by default
-3. For active mode requirements, this is a known limitation of the current implementation
+2. Heimdall uses FluentFTP `AutoPassive` when passive mode is enabled
+3. Disable passive mode in the FTP profile when the server requires active mode; Heimdall then uses FluentFTP `AutoActive`
 
 **Files**: `Sftp/FtpBrowser.cs`
 

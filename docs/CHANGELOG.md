@@ -12,6 +12,21 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-30 — FTP FluentFTP migration
+
+Replaced the FTP browser's deprecated `FtpWebRequest` backend and home-grown
+LIST parser with FluentFTP `AsyncFtpClient`.
+
+- **Runtime** — added FluentFTP 54.2.0 to `Heimdall.Sftp`; FTP/FTPS operations
+  now use true async client APIs, keep the existing `IRemoteBrowser` contract,
+  and serialize FTP client access through the existing operation lock.
+- **Security** — explicit FTPS now enables FluentFTP data-connection
+  encryption while credentialed cleartext FTP still surfaces the existing
+  non-blocking warning.
+- **Tests** — removed Unix/DOS LIST parser fixtures and replaced them with
+  FluentFTP `FtpListItem` mapping coverage. Build green, **5,985 passing**,
+  zero warnings.
+
 ## 2026-05-30 — TwinShell dead-code removal
 
 Removed a cluster of TwinShell services that were never wired into Heimdall —
@@ -526,14 +541,14 @@ Security hardening:
 
 FTP follow-up:
 
-- `FtpBrowser` now has parser/path tests for Unix and DOS listing formats,
+- `FtpBrowser` gained parser/path tests for Unix and DOS listing formats,
   malformed lines, oversized filenames, path normalization, and date rollover.
 - `FtpHandler` validates host and port before connect and reuses localized
   validation messages.
 - Credentialed FTP sessions without TLS produce a non-blocking
   `ConnectionResult.Warning` routed to the status surface.
-- FluentFTP migration rationale and scope are documented in
-  `docs/audit/ftp-fluentftp-migration.md`.
+- Superseded on 2026-05-30 by the FluentFTP migration entry above, which
+  removed the custom LIST parser and the `FtpWebRequest` backend.
 
 Audit documents:
 

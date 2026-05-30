@@ -99,12 +99,12 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Chmod dialog, path bookmarks, filename filter
 
 ### FTP Browser
-- FTP client using built-in .NET (no external dependencies)
+- FTP/FTPS client backed by FluentFTP async APIs
 - Reuses the full SFTP browser UI via `IRemoteBrowser` interface
 - Configurable passive mode and SSL/TLS (FTPS) support
 - Cleartext FTP connections with credentials surface a non-blocking warning in the session status area
-- Host and port validation matches SSH/SFTP handlers; long-term migration to FluentFTP is tracked in `docs/audit/ftp-fluentftp-migration.md`
-- Unix and DOS directory listing format support
+- Host and port validation matches SSH/SFTP handlers
+- Directory listing parsing is delegated to FluentFTP across server variants
 
 ### Citrix
 - StoreBrowse integration for published applications and desktops
@@ -420,7 +420,7 @@ Heimdall.App          WPF application (MVVM, views, themes, services)
   +-- Heimdall.Core     Models, security (DPAPI, HMAC, PIN), config, state machine, i18n
   +-- Heimdall.Ssh      SSH engine (SSH.NET), tunnels, Pageant IPC, TOFU, failure classifier
   +-- Heimdall.Rdp      RDP + Citrix engine (ActiveX MsTscAx), credential autofill, StoreBrowse
-  +-- Heimdall.Sftp     SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
+  +-- Heimdall.Sftp     SFTP/FTP browser (SSH.NET + FluentFTP), remote file editing
   +-- Heimdall.Terminal  Terminal sessions (pipe mode, ConPTY, Telnet), smart paste guard
   +-- TwinShell.*        Terminal emulator core, persistence, and infrastructure components
 ```

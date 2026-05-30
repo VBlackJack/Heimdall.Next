@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using FluentFTP;
 using Heimdall.Sftp;
 
 namespace Heimdall.App.Tests;
@@ -48,138 +49,120 @@ public sealed class FtpBrowserParsingTests
     }
 
     [Fact]
-    public void ParseListLine_UnixFile_ParsedCorrectly()
+    public void MapFtpItemToFileInfo_File_MapsContractFields()
     {
-        const string line = "-rw-r--r-- 1 root root 4096 Jan 15 12:34 hosts";
+        DateTime modified = new DateTime(2026, 1, 15, 12, 34, 0, DateTimeKind.Local);
+        FtpListItem item = new FtpListItem
+        {
+            Name = "hosts",
+            Type = FtpObjectType.File,
+            Size = 4096,
+            Modified = modified,
+            RawPermissions = "rw-r--r--",
+            RawOwner = "root",
+            RawGroup = "wheel",
+        };
 
-        var entry = FtpBrowser.ParseListLine(line, "/etc");
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/etc");
 
-        Assert.NotNull(entry);
-        Assert.Equal("hosts", entry!.Name);
+        Assert.Equal("hosts", entry.Name);
         Assert.Equal("/etc/hosts", entry.FullPath);
         Assert.False(entry.IsDirectory);
         Assert.Equal(4096, entry.Size);
-        Assert.Equal("root", entry.Owner);
-        Assert.Equal("root", entry.Group);
+        Assert.Equal(DateTimeKind.Utc, entry.LastModified.Kind);
+        Assert.Equal(modified.Ticks, entry.LastModified.Ticks);
         Assert.Equal("rw-r--r--", entry.Permissions);
+        Assert.Equal("root", entry.Owner);
+        Assert.Equal("wheel", entry.Group);
     }
 
     [Fact]
-    public void ParseListLine_UnixDirectory_ParsedCorrectly()
+    public void MapFtpItemToFileInfo_Directory_ForcesSizeToZero()
     {
-        const string line = "drwxr-xr-x 2 user staff 4096 Mar 10 09:00 archive";
+        FtpListItem item = new FtpListItem
+        {
+            Name = "archive",
+            Type = FtpObjectType.Directory,
+            Size = 4096,
+            RawPermissions = "rwxr-xr-x",
+        };
 
-        var entry = FtpBrowser.ParseListLine(line, "/srv");
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/srv");
 
-        Assert.NotNull(entry);
-        Assert.True(entry!.IsDirectory);
+        Assert.True(entry.IsDirectory);
         Assert.Equal(0, entry.Size);
         Assert.Equal("archive", entry.Name);
         Assert.Equal("/srv/archive", entry.FullPath);
+        Assert.Equal("rwxr-xr-x", entry.Permissions);
     }
 
     [Fact]
-    public void ParseListLine_UnixSymlink_StripsLinkTargetFromName()
+    public void MapFtpItemToFileInfo_Link_MapsAsNonDirectoryWithCleanName()
     {
-        const string line = "lrwxrwxrwx 1 user group 7 Jan 01 12:00 link -> /target";
+        FtpListItem item = new FtpListItem
+        {
+            Name = "link",
+            Type = FtpObjectType.Link,
+            Size = 7,
+            LinkTarget = "/target",
+            RawPermissions = "rwxrwxrwx",
+        };
 
-        var entry = FtpBrowser.ParseListLine(line, "/srv");
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/srv");
 
-        Assert.NotNull(entry);
-        Assert.False(entry!.IsDirectory);
+        Assert.False(entry.IsDirectory);
         Assert.Equal("link", entry.Name);
         Assert.Equal("/srv/link", entry.FullPath);
+        Assert.Equal(7, entry.Size);
         Assert.Equal("rwxrwxrwx", entry.Permissions);
     }
 
     [Fact]
-    public void ParseListLine_DosFile_ParsedCorrectly()
+    public void MapFtpItemToFileInfo_NegativeFileSize_ClampsToZero()
     {
-        const string line = "01-15-26  12:34PM             1024 readme.txt";
+        FtpListItem item = new FtpListItem
+        {
+            Name = "unknown.bin",
+            Type = FtpObjectType.File,
+            Size = -1,
+        };
 
-        var entry = FtpBrowser.ParseListLine(line, "/");
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/tmp");
 
-        Assert.NotNull(entry);
-        Assert.False(entry!.IsDirectory);
-        Assert.Equal(1024, entry.Size);
-        Assert.Equal("readme.txt", entry.Name);
-        Assert.Equal("/readme.txt", entry.FullPath);
-    }
-
-    [Fact]
-    public void ParseListLine_DosDirectory_ParsedCorrectly()
-    {
-        const string line = "01-15-26  12:34PM       <DIR>          subfolder";
-
-        var entry = FtpBrowser.ParseListLine(line, "/");
-
-        Assert.NotNull(entry);
-        Assert.True(entry!.IsDirectory);
         Assert.Equal(0, entry.Size);
-        Assert.Equal("subfolder", entry.Name);
-        Assert.Equal("/subfolder", entry.FullPath);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("garbage line")]
-    [InlineData("-rw-r--r-- 1 root root")]
-    public void ParseListLine_MalformedLine_ReturnsNull(string line)
-    {
-        Assert.Null(FtpBrowser.ParseListLine(line, "/"));
     }
 
     [Fact]
-    public void ParseListLine_FilenameExceedingMaxLength_ReturnsNull()
+    public void MapFtpItemToFileInfo_MissingFileMetadata_UsesFallbacks()
     {
-        var giantName = new string('a', FtpBrowser.MaxFtpFilenameLength + 1);
-        var line = $"-rw-r--r-- 1 user user 1 Jan 01 12:00 {giantName}";
+        FtpListItem item = new FtpListItem
+        {
+            Name = "readme.txt",
+            Type = FtpObjectType.File,
+        };
 
-        Assert.Null(FtpBrowser.ParseListLine(line, "/"));
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/");
+
+        Assert.Equal("rw-r--r--", entry.Permissions);
+        Assert.Equal("-", entry.Owner);
+        Assert.Equal("-", entry.Group);
+        Assert.Equal(DateTimeKind.Utc, entry.LastModified.Kind);
+        Assert.Equal(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), entry.LastModified);
     }
 
     [Fact]
-    public void ParseUnixDate_TimeFormat_PreservesMonthAndDay()
+    public void MapFtpItemToFileInfo_MissingDirectoryMetadata_UsesDirectoryFallback()
     {
-        var result = FtpBrowser.ParseUnixDate("Mar 15 09:00");
+        FtpListItem item = new FtpListItem
+        {
+            Name = "subfolder",
+            Type = FtpObjectType.Directory,
+        };
 
-        Assert.NotEqual(DateTime.MinValue, result);
-        Assert.Equal(DateTimeKind.Utc, result.Kind);
-        Assert.Equal(3, result.Month);
-        Assert.Equal(15, result.Day);
-        Assert.Equal(9, result.Hour);
-        Assert.Equal(0, result.Minute);
-    }
+        SftpFileInfo entry = FtpBrowser.MapFtpItemToFileInfo(item, "/");
 
-    [Fact]
-    public void ParseUnixDate_YearFormat_UsesParsedYear()
-    {
-        var result = FtpBrowser.ParseUnixDate("Mar 15  2024");
-
-        Assert.Equal(2024, result.Year);
-        Assert.Equal(3, result.Month);
-        Assert.Equal(15, result.Day);
-    }
-
-    [Fact]
-    public void ParseUnixDate_FutureDateInTimeFormat_RollsBackOneYear()
-    {
-        var result = FtpBrowser.ParseUnixDate("Dec 31 23:59");
-        var now = DateTime.UtcNow;
-        var currentYearCandidate = new DateTime(now.Year, 12, 31, 23, 59, 0);
-
-        Assert.Equal(currentYearCandidate > now ? now.Year - 1 : now.Year, result.Year);
-        Assert.Equal(12, result.Month);
-        Assert.Equal(31, result.Day);
-    }
-
-    [Theory]
-    [InlineData("not a date")]
-    [InlineData("")]
-    [InlineData("Foo 99 99:99")]
-    public void ParseUnixDate_Garbage_ReturnsMinValue(string input)
-    {
-        Assert.Equal(DateTime.MinValue, FtpBrowser.ParseUnixDate(input));
+        Assert.Equal("rwxr-xr-x", entry.Permissions);
+        Assert.Equal("-", entry.Owner);
+        Assert.Equal("-", entry.Group);
     }
 }

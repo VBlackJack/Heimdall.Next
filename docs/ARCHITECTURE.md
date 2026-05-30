@@ -20,7 +20,7 @@ Heimdall.slnx (14 projects)
 │   ├── Heimdall.Core          net10.0         Models, session diagnostics, security, config, state machine, i18n, network scanner, utilities
 │   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier, health monitor
 │   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
-│   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
+│   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FluentFTP), remote file editing
 │   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY, Telnet)
 │   ├── TwinShell.Core         net10.0         Terminal emulator core abstractions
 │   ├── TwinShell.Persistence  net10.0         Terminal persistence primitives
@@ -283,9 +283,9 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Problem**: Some servers expose FTP instead of SFTP. The file browser UI should work identically regardless of protocol.
 
-**Solution**: `IRemoteBrowser` defines the common surface (`Connect`, `ListDirectory`, `Upload`, `Download`, `Disconnect`, events). `SftpBrowser` (SSH.NET) and `FtpBrowser` (`FtpWebRequest`) both implement this interface. `EmbeddedSftpView` binds to `IRemoteBrowser` without knowing the underlying protocol. `RemoteFileEditor` works with both via the same interface.
+**Solution**: `IRemoteBrowser` defines the common surface (`Connect`, `ListDirectory`, `Upload`, `Download`, `Disconnect`, events). `SftpBrowser` (SSH.NET) and `FtpBrowser` (FluentFTP `AsyncFtpClient`) both implement this interface. `EmbeddedSftpView` binds to `IRemoteBrowser` without knowing the underlying protocol. `RemoteFileEditor` works with both via the same interface.
 
-`FtpHandler` validates host and port before connect. When `FtpUseSsl` is false and credentials are present, it returns a successful `ConnectionResult` with `Warning = WarnFtpCleartext`; the UI shows this as non-blocking status text. `FtpBrowser` still uses the deprecated `FtpWebRequest` API for now; migration rationale and scope are tracked in `docs/audit/ftp-fluentftp-migration.md`.
+`FtpHandler` validates host and port before connect. When `FtpUseSsl` is false and credentials are present, it returns a successful `ConnectionResult` with `Warning = WarnFtpCleartext`; the UI shows this as non-blocking status text. `FtpBrowser` uses FluentFTP for async FTP/FTPS operations, delegates directory listing parsing to FluentFTP, and enables protected data connections for explicit FTPS.
 
 **Dual edit modes**: Right-click a file to choose between:
 - **Edit (integrated)**: Opens AvalonEdit inside the app with syntax highlighting. Save triggers upload.
@@ -685,7 +685,7 @@ ConnectionService.ConnectAsync(server)
         |
         +-- FTP?
                 +-- EmbeddedSftpView (reused): file browser panel
-                        +-- FtpBrowser: IRemoteBrowser over FtpWebRequest
+                        +-- FtpBrowser: IRemoteBrowser over FluentFTP
 ```
 
 ## State Machines
