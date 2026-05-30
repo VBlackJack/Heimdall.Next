@@ -12,6 +12,82 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-05-30 — TwinShell dead-code removal
+
+Removed a cluster of TwinShell services that were never wired into Heimdall —
+the DI bridges (`HeimdallSettingsBridge` / `HeimdallLocalizationBridge`) and the
+inline bootstrapper seed replace them. Supervisor reconnaissance grepped the
+exact symbol across all of `src/` and `tests/` (not just the bootstrapper),
+which surfaced two domino pairs (`Backup`→`Config`, `BatchExecution`→`Audit`).
+
+- **Deleted (21 files, −3,320 lines)** — `BackupService` / `IBackupService`,
+  `ConfigurationService` / `IConfigurationService`, the native `SettingsService`
+  class, `ImportExportService` / `IImportExportService`, `BatchExecutionService`
+  / `IBatchExecutionService`, `AuditLogService` / `IAuditLogService` and the full
+  Audit cascade (`AuditLogEntity`, repository, EF configuration, `AuditLogs`
+  DbSet), `JsonSeedService` / `ISeedService`, `BatchExecutionResult` (`867131b`).
+- **Kept (proven live)** — the `ISettingsService` *interface* (GitSync /
+  HealthCheck / Theme / Backdrop consume it via `HeimdallSettingsBridge`) and the
+  whole `CommandBatch` cluster (one of the four PublicId tables, live through
+  JSON/YAML sync + DI + tests).
+
+Pure deletion, zero functional change. Build green, **5,979 passing**, zero
+warnings. CI run `26662106337` success.
+
+## 2026-05-30 — TwinShell versioned schema runner (F1 + F3)
+
+Replaced the fragile schema-bootstrap path with a versioned `PRAGMA user_version`
+runner, closing audit findings F1 (no migration runner — `EnsureCreatedAsync`
+never alters an existing DB) and F3 (non-transactional ALTER→UPDATE→CREATE INDEX
+that could leave PublicId columns empty on a mid-upgrade crash).
+
+- **`SchemaUpgrader` / `SchemaStep` (new, `src/TwinShell.Persistence/Schema/`)** —
+  reads `PRAGMA user_version`, applies steps with `Version > current` in
+  ascending order, **one transaction per step** with the version bump inside the
+  same transaction and best-effort logged rollback (`c698961`).
+- **Live wiring + dead-code removal** — `TwinShellSchema.Steps` carries one
+  idempotent step (GitOps PublicId columns, byte-identical UUID SQL);
+  `TwinShellBootstrapper.InitializeAsync` calls `SchemaUpgrader.UpgradeAsync`
+  after `EnsureCreatedAsync`. Dropped `EnsureGitOpsSchemaMigrationAsync`,
+  `AddPublicIdColumnIfNotExistsAsync`, the design-time factory, the dead EF
+  migration and the `EntityFrameworkCore.Design` package (`3cc69f1`).
+
+Fresh DBs (`EnsureCreated`) and legacy DBs both converge via `user_version 0 → 1`.
+Convention for the future: any TwinShell schema change is a new
+`SchemaStep(N, …)`, ascending, idempotent, transactional — never an EF migration
+or an out-of-transaction ALTER again. **+10 tests** (5,969 → 5,979), build green,
+zero warnings. CI run `26656228551` success.
+
+## 2026-05-29 — TwinShell sync hardening
+
+Made the bundled TwinShell sync layer cancellable end-to-end and its export an
+authoritative mirror of the DB, closing audit findings J1/J5/J3/J2 and G1/G5/G2.
+The layer went from **0 to 24 tests** (`d3d7a1e`).
+
+- **Real cancellation** — `CancellationToken` threaded through `ISyncService`
+  import/export, `JsonSyncService` (rollback + rethrow on cancel so GitSync maps
+  `Cancelled`), `YamlSyncService`, and every internal GitSync operation
+  (clone/fetch/merge/import/export/stage/commit/push) including network abort via
+  `OnTransferProgress` / `OnPushTransferProgress`. The visible **Cancel** button
+  is no longer cosmetic.
+- **CTS race + leak fixed** — `_currentCancellationTokenSource` created /
+  assigned / disposed under a dedicated lock (G5); `GitSyncService` is now
+  `IDisposable` and disposes its `SemaphoreSlim` + CTS (G2).
+- **Export hygiene** — atomic per-file write via `*.tmp` → `File.Move` overwrite
+  (J5), collision-safe `Name-{PublicId:N}.json` naming (J3), and orphan cleanup
+  so the export folder mirrors the DB across the four managed folders (J2). A
+  cancelled export deletes nothing.
+
+**+24 tests** (5,945 → 5,969), build green, zero warnings. First real export
+against an existing folder renames every file under the new naming scheme and
+removes the old ones — a one-time large git diff, expected.
+
+## 2026-05-29 — CI housekeeping
+
+Migrated the GitHub Actions runner image to `windows-2025` (VS 2026 toolchain)
+and bumped the workflow actions to their Node24 majors (`actions/*` v6/v5/v7)
+(`b3ab296`). No production change. CI run `26645789164` success (5m38s).
+
 ## 2026-05-29 — Terminal transcript: stateful ANSI/VT strip (T-1 D5-bis)
 
 Closing follow-up to the 2026-05-26 UTF-8 transcript decoder (D5). The stateful
