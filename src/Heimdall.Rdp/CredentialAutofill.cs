@@ -69,16 +69,31 @@ public static partial class CredentialAutofill
     [LibraryImport("user32.dll")]
     private static partial IntPtr GetForegroundWindow();
 
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static partial IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
+    private static partial int GetWindowLong32(IntPtr hWnd, int nIndex);
+
     [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
     private static partial IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [LibraryImport("user32.dll", EntryPoint = "SendMessageW", StringMarshalling = StringMarshalling.Utf16)]
     private static partial IntPtr SendMessageString(IntPtr hWnd, uint msg, IntPtr wParam, string lParam);
 
+    private const int GWL_STYLE = -16;
+    private const long ES_PASSWORD = 0x0020L;
     private const uint WM_SETTEXT = 0x000C;
     private const uint BM_CLICK = 0x00F5;
 
     #endregion
+
+    internal static bool HasPasswordStyle(long style) => (style & ES_PASSWORD) != 0;
+
+    private static long GetWindowStyle(IntPtr hWnd)
+        => IntPtr.Size == 8
+            ? GetWindowLongPtr64(hWnd, GWL_STYLE).ToInt64()
+            : GetWindowLong32(hWnd, GWL_STYLE);
 
     #region Configuration
 
@@ -566,7 +581,7 @@ public static partial class CredentialAutofill
     /// </summary>
     private static bool TryInjectPasswordViaWin32(WindowInfo dialog, char[] passwordBuffer)
     {
-        var editControls = GetDescendantWindows(dialog.Handle)
+        List<WindowInfo> editControls = GetDescendantWindows(dialog.Handle)
             .Where(w => string.Equals(w.ClassName, "Edit", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
@@ -577,8 +592,25 @@ public static partial class CredentialAutofill
             return false;
         }
 
-        var passwordEdit = editControls.Count >= 2 ? editControls[1].Handle : editControls[0].Handle;
-        var passwordText = new string(passwordBuffer);
+        IntPtr passwordEdit = IntPtr.Zero;
+        foreach (WindowInfo edit in editControls)
+        {
+            if (HasPasswordStyle(GetWindowStyle(edit.Handle)))
+            {
+                passwordEdit = edit.Handle;
+                break;
+            }
+        }
+
+        bool styleDetected = passwordEdit != IntPtr.Zero;
+        if (!styleDetected)
+        {
+            passwordEdit = editControls.Count >= 2 ? editControls[1].Handle : editControls[0].Handle;
+        }
+
+        FileLogger.Info($"CredentialAutofill Win32 password edit selected: styleDetected={styleDetected} handle=0x{passwordEdit.ToInt64():X}");
+
+        string passwordText = new(passwordBuffer);
         SendMessageString(passwordEdit, WM_SETTEXT, IntPtr.Zero, passwordText);
         FileLogger.Info($"CredentialAutofill Win32 password text sent to handle=0x{passwordEdit.ToInt64():X}");
 
@@ -827,7 +859,7 @@ public static partial class CredentialAutofill
         var existingHandles = new HashSet<IntPtr>(result.Select(w => w.Handle));
         try
         {
-            var process = System.Diagnostics.Process.GetCurrentProcess();
+            using System.Diagnostics.Process process = System.Diagnostics.Process.GetCurrentProcess();
             foreach (System.Diagnostics.ProcessThread thread in process.Threads)
             {
                 EnumThreadWindows((uint)thread.Id, (hWnd, _) =>

@@ -42,6 +42,21 @@ public sealed class RdpActiveXHostTests
     }
 
     [Theory]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    public void CanAttemptResolutionUpdate_ReturnsExpectedResult(
+        bool disposed,
+        bool isConnected,
+        bool expected)
+    {
+        bool actual = RdpActiveXHost.CanAttemptResolutionUpdate(disposed, isConnected);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(0, "NoInfo")]
     [InlineData(3, "AdminDisconnect")]
     [InlineData(260, "DnsLookupFailed")]

@@ -392,32 +392,34 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// <inheritdoc />
     public void Connect()
     {
-        var ocx = GetActiveXInstance()
+        object ocx = GetActiveXInstance()
             ?? throw new InvalidOperationException("ActiveX control is not initialized. Ensure the host control handle is created first.");
 
         Core.Logging.FileLogger.Info(
             $"RdpActiveXHost.Connect: handle=0x{HostHandle.ToInt64():X} clsid={_activeXClsid} ocxType={ocx.GetType().FullName ?? "unknown"} size={_pendingWidth}x{_pendingHeight}");
 
-        ResolveAndApplyPendingDisplayContext();
-
-        // Apply all pending settings before connecting
-        ApplyServerSettings(ocx);
-        ApplyCredentialSettings(ocx);
-        ApplyDisplaySettings(ocx);
-        ApplyDisplayScaleSettings(ocx);
-        ApplyRedirectionSettings(ocx);
-
-        // Clear plaintext password from managed memory after COM handoff
-        _pendingPassword = null;
-
         try
         {
+            ResolveAndApplyPendingDisplayContext();
+
+            // Apply all pending settings before connecting
+            ApplyServerSettings(ocx);
+            ApplyCredentialSettings(ocx);
+            ApplyDisplaySettings(ocx);
+            ApplyDisplayScaleSettings(ocx);
+            ApplyRedirectionSettings(ocx);
+
             ((dynamic)ocx).Connect();
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
             throw;
+        }
+        finally
+        {
+            // Clear plaintext password from managed memory after the connection attempt.
+            _pendingPassword = null;
         }
     }
 
@@ -448,7 +450,14 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         uint deviceScaleFactor = 100,
         bool allowReconnectFallback = true)
     {
-        var ocx = GetActiveXInstance();
+        if (!CanAttemptResolutionUpdate(_disposed, IsConnected))
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.UpdateResolution skipped: disposed={_disposed} connected={IsConnected} for {width}x{height}");
+            return RdpDisplayUpdateResult.Skipped;
+        }
+
+        object? ocx = GetActiveXInstance();
         if (ocx is null)
         {
             Core.Logging.FileLogger.Warn(
@@ -792,6 +801,12 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     #endregion
 
     internal static long StripScrollbarBits(long style) => style & ~ScrollbarStyleMask;
+
+    /// <summary>
+    /// Disposed or disconnected hosts are not touched because the reconnect fallback could otherwise revive the session.
+    /// </summary>
+    internal static bool CanAttemptResolutionUpdate(bool disposed, bool isConnected)
+        => !disposed && isConnected;
 
     private static IntPtr GetWindowLongPtr(IntPtr hwnd, int index)
     {

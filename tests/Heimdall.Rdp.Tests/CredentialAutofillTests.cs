@@ -84,6 +84,17 @@ public sealed class CredentialAutofillTests : IDisposable
         Assert.DoesNotMatch(CredentialAutofill.TitlePattern, title);
     }
 
+    [Theory]
+    [InlineData(0x50000020L, true)]
+    [InlineData(0x50000000L, false)]
+    [InlineData(0L, false)]
+    public void HasPasswordStyle_ReturnsExpectedResult(long style, bool expected)
+    {
+        bool actual = CredentialAutofill.HasPasswordStyle(style);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void SelectCredentialDialogTarget_ReturnsNull_ForUnmatchedBrokerWindows()
     {
