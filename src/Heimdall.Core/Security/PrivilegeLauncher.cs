@@ -265,11 +265,11 @@ public static class PrivilegeLauncher
         IReadOnlyList<string>? arguments,
         PrivilegeLevel level)
     {
-        var payload = new PrivilegeLaunchPayload(
+        PrivilegeLaunchPayload payload = new(
             executablePath,
             arguments?.ToArray() ?? []);
 
-        if (!TryValidateLaunchPayload(payload, out var validationError))
+        if (!TryValidateLaunchPayload(payload, out string validationError, level))
             return PrivilegeLaunchResult.Failed(validationError);
 
         // UAC elevation is handled by ShellExecute directly
@@ -295,8 +295,10 @@ public static class PrivilegeLauncher
     /// </summary>
     public static bool IsCurrentProcessElevated()
     {
-        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-        var principal = new System.Security.Principal.WindowsPrincipal(identity);
+        using System.Security.Principal.WindowsIdentity identity =
+            System.Security.Principal.WindowsIdentity.GetCurrent();
+        System.Security.Principal.WindowsPrincipal principal =
+            new(identity);
         return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
     }
 
@@ -316,8 +318,8 @@ public static class PrivilegeLauncher
             return 1;
         }
 
-        var levelStr = args[1];
-        if (!Enum.TryParse<PrivilegeLevel>(levelStr, ignoreCase: true, out var level))
+        string levelStr = args[1];
+        if (!Enum.TryParse<PrivilegeLevel>(levelStr, ignoreCase: true, out PrivilegeLevel level))
         {
             FileLogger.Warn($"[PrivilegeLauncher] Rejected self-elevation request with invalid level '{levelStr}'.");
             return 1;
@@ -340,9 +342,16 @@ public static class PrivilegeLauncher
             return 1;
         }
 
-        if (!TryValidateLaunchPayload(payload, out var validationError))
+        if (!TryValidateLaunchPayload(payload, out string validationError, level))
         {
             FileLogger.Warn($"[PrivilegeLauncher] Rejected self-elevation payload validation: {validationError}");
+            return 1;
+        }
+
+        if (!IsCurrentProcessElevated())
+        {
+            FileLogger.Warn(
+                "[PrivilegeLauncher] Rejected self-elevation token work: process is not elevated.");
             return 1;
         }
 
@@ -371,7 +380,7 @@ public static class PrivilegeLauncher
     {
         try
         {
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new()
             {
                 FileName = exe,
                 Arguments = BuildArgumentsString(args),
@@ -379,7 +388,7 @@ public static class PrivilegeLauncher
                 Verb = "runas"
             };
 
-            var process = Process.Start(psi);
+            Process? process = Process.Start(psi);
             return process is not null
                 ? PrivilegeLaunchResult.Ok(process.Id)
                 : PrivilegeLaunchResult.Failed("Process.Start returned null.");
@@ -404,18 +413,18 @@ public static class PrivilegeLauncher
             // Resolve the native host exe for self-elevation.
             // Environment.ProcessPath returns dotnet.exe when using "dotnet run",
             // so we derive the .exe path from the entry assembly's DLL location.
-            var (selfExe, selfPrefix) = ResolveSelfExecutable();
+            (string? selfExe, string selfPrefix) = ResolveSelfExecutable();
             if (string.IsNullOrEmpty(selfExe))
                 return PrivilegeLaunchResult.Failed("Cannot determine current executable path.");
 
-            var payload = EncodeLaunchPayload(exe, args);
+            string payload = EncodeLaunchPayload(exe, args);
 
             // Verb="runas" requires UseShellExecute=true, so the UAC hop still
             // uses a raw Arguments string. The payload is base64-encoded JSON,
             // which keeps token boundaries stable across this relaunch.
-            var childArguments = BuildSelfElevationArguments(level, payload, selfPrefix);
+            string childArguments = BuildSelfElevationArguments(level, payload, selfPrefix);
 
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new()
             {
                 FileName = selfExe,
                 Arguments = childArguments,
@@ -424,13 +433,13 @@ public static class PrivilegeLauncher
                 WindowStyle = ProcessWindowStyle.Hidden
             };
 
-            var process = Process.Start(psi);
+            Process? process = Process.Start(psi);
             if (process is null)
                 return PrivilegeLaunchResult.Failed("Failed to start elevated process.");
 
             // Wait for the elevated child to finish (it just launches the target and exits)
             process.WaitForExit(15_000);
-            var exitCode = process.HasExited ? process.ExitCode : -1;
+            int exitCode = process.HasExited ? process.ExitCode : -1;
             process.Dispose();
 
             return exitCode == 0
@@ -456,7 +465,7 @@ public static class PrivilegeLauncher
     /// </summary>
     private static (string? ExePath, string ArgPrefix) ResolveSelfExecutable()
     {
-        var processPath = Environment.ProcessPath;
+        string? processPath = Environment.ProcessPath;
 
         // Direct exe launch (Release, Run.bat, etc.) — ProcessPath IS the app exe
         if (processPath is not null
@@ -466,10 +475,10 @@ public static class PrivilegeLauncher
         }
 
         // Running via "dotnet run" or "dotnet exec" — derive the .exe from the loaded DLL
-        var dllPath = Assembly.GetEntryAssembly()?.Location;
+        string? dllPath = Assembly.GetEntryAssembly()?.Location;
         if (!string.IsNullOrEmpty(dllPath))
         {
-            var exePath = System.IO.Path.ChangeExtension(dllPath, ".exe");
+            string exePath = System.IO.Path.ChangeExtension(dllPath, ".exe") ?? string.Empty;
             if (System.IO.File.Exists(exePath))
                 return (exePath, string.Empty);
 
@@ -492,20 +501,20 @@ public static class PrivilegeLauncher
 
     private static SafeAccessTokenHandle? TryAcquireTokenFromProcesses(string[] processNames)
     {
-        foreach (var name in processNames)
+        foreach (string name in processNames)
         {
-            var procs = Process.GetProcessesByName(name);
+            Process[] procs = Process.GetProcessesByName(name);
             try
             {
-                foreach (var proc in procs)
+                foreach (Process proc in procs)
                 {
-                    var token = TryOpenAndDuplicateToken(proc.Id);
+                    SafeAccessTokenHandle? token = TryOpenAndDuplicateToken(proc.Id);
                     if (token is not null) return token;
                 }
             }
             finally
             {
-                foreach (var p in procs) p.Dispose();
+                foreach (Process p in procs) p.Dispose();
             }
         }
 
@@ -514,10 +523,10 @@ public static class PrivilegeLauncher
 
     private static SafeAccessTokenHandle? TryOpenAndDuplicateToken(int pid)
     {
-        using var processHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
+        using SafeProcessHandle processHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
         if (processHandle.IsInvalid) return null;
 
-        if (!OpenProcessToken(processHandle, TOKEN_DUPLICATE, out var tokenHandle))
+        if (!OpenProcessToken(processHandle, TOKEN_DUPLICATE, out SafeAccessTokenHandle tokenHandle))
             return null;
 
         using (tokenHandle)
@@ -525,7 +534,7 @@ public static class PrivilegeLauncher
             if (DuplicateTokenEx(
                     tokenHandle, MAXIMUM_ALLOWED, IntPtr.Zero,
                     SECURITY_IMPERSONATION, TOKEN_PRIMARY,
-                    out var duplicated))
+                    out SafeAccessTokenHandle duplicated))
                 return duplicated;
 
             return null;
@@ -537,7 +546,7 @@ public static class PrivilegeLauncher
     private static PrivilegeLaunchResult LaunchAsTrustedInstaller(string exe, IReadOnlyList<string> args)
     {
         // Step 1: Ensure TrustedInstaller service is running
-        var serviceResult = EnsureTrustedInstallerServiceRunning();
+        PrivilegeLaunchResult serviceResult = EnsureTrustedInstallerServiceRunning();
         if (!serviceResult.Success)
             return serviceResult;
 
@@ -547,20 +556,20 @@ public static class PrivilegeLauncher
 
     private static PrivilegeLaunchResult EnsureTrustedInstallerServiceRunning()
     {
-        var scManager = OpenSCManager(null, null, SC_MANAGER_CONNECT);
+        IntPtr scManager = OpenSCManager(null, null, SC_MANAGER_CONNECT);
         if (scManager == IntPtr.Zero)
             return PrivilegeLaunchResult.Failed($"OpenSCManager failed: {Marshal.GetLastPInvokeError()}");
 
         try
         {
-            var service = OpenService(scManager, "TrustedInstaller", SERVICE_START | SERVICE_QUERY_STATUS);
+            IntPtr service = OpenService(scManager, "TrustedInstaller", SERVICE_START | SERVICE_QUERY_STATUS);
             if (service == IntPtr.Zero)
                 return PrivilegeLaunchResult.Failed($"OpenService(TrustedInstaller) failed: {Marshal.GetLastPInvokeError()}");
 
             try
             {
                 // Check current status
-                if (!QueryServiceStatus(service, out var status))
+                if (!QueryServiceStatus(service, out SERVICE_STATUS status))
                     return PrivilegeLaunchResult.Failed($"QueryServiceStatus failed: {Marshal.GetLastPInvokeError()}");
 
                 if (status.dwCurrentState == SERVICE_RUNNING)
@@ -569,13 +578,13 @@ public static class PrivilegeLauncher
                 // Start the service
                 if (!StartService(service, 0, IntPtr.Zero))
                 {
-                    var err = Marshal.GetLastPInvokeError();
+                    int err = Marshal.GetLastPInvokeError();
                     if (err != 1056) // ERROR_SERVICE_ALREADY_RUNNING
                         return PrivilegeLaunchResult.Failed($"StartService(TrustedInstaller) failed: {err}");
                 }
 
                 // Wait for it to reach RUNNING state
-                var sw = Stopwatch.StartNew();
+                Stopwatch sw = Stopwatch.StartNew();
                 while (sw.ElapsedMilliseconds < MAX_SERVICE_WAIT_MS)
                 {
                     if (QueryServiceStatus(service, out status) && status.dwCurrentState == SERVICE_RUNNING)
@@ -610,20 +619,20 @@ public static class PrivilegeLauncher
         {
             EnableDebugPrivilege();
 
-            using var token = TryAcquireTokenFromProcesses(processCandidates);
+            using SafeAccessTokenHandle? token = TryAcquireTokenFromProcesses(processCandidates);
             if (token is null || token.IsInvalid)
                 return PrivilegeLaunchResult.Failed(
                     $"No accessible token found. Probed: {string.Join(", ", processCandidates)}. " +
                     "Ensure Heimdall is running as administrator.");
 
-            var commandLine = BuildCommandLine(exe, args);
+            string commandLine = BuildCommandLine(exe, args);
 
-            var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
+            STARTUPINFO si = new() { cb = Marshal.SizeOf<STARTUPINFO>() };
 
             if (!CreateProcessWithTokenW(
                     token, LOGON_WITH_PROFILE, null, commandLine,
                     CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, null,
-                    ref si, out var pi))
+                    ref si, out PROCESS_INFORMATION pi))
                 return PrivilegeLaunchResult.Failed(
                     $"CreateProcessWithTokenW failed: {Marshal.GetLastPInvokeError()}");
 
@@ -640,13 +649,13 @@ public static class PrivilegeLauncher
 
     internal static string EncodeLaunchPayload(string executablePath, IReadOnlyList<string>? arguments)
     {
-        var payload = new PrivilegeLaunchPayloadDto
+        PrivilegeLaunchPayloadDto payload = new()
         {
             Exe = executablePath,
             Args = arguments?.ToArray() ?? []
         };
 
-        var json = JsonSerializer.Serialize(payload);
+        string json = JsonSerializer.Serialize(payload);
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
     }
 
@@ -686,7 +695,8 @@ public static class PrivilegeLauncher
 
     internal static bool TryValidateLaunchPayload(
         PrivilegeLaunchPayload? payload,
-        out string errorMessage)
+        out string errorMessage,
+        PrivilegeLevel level = PrivilegeLevel.CurrentUserElevated)
     {
         if (payload is null)
         {
@@ -703,6 +713,15 @@ public static class PrivilegeLauncher
         if (payload.Exe.IndexOf('\0') >= 0)
         {
             errorMessage = "Executable path contains an embedded null byte.";
+            return false;
+        }
+
+        bool requiresQualifiedPath =
+            level is PrivilegeLevel.System or PrivilegeLevel.TrustedInstaller;
+        if (requiresQualifiedPath && !Path.IsPathFullyQualified(payload.Exe))
+        {
+            errorMessage =
+                "A fully-qualified executable path is required for SYSTEM or TrustedInstaller launches.";
             return false;
         }
 
@@ -727,8 +746,8 @@ public static class PrivilegeLauncher
         if (string.IsNullOrWhiteSpace(arguments))
             return [];
 
-        var commandLine = "heimdall.exe " + arguments;
-        var argv = CommandLineToArgvW(commandLine, out var argc);
+        string commandLine = "heimdall.exe " + arguments;
+        IntPtr argv = CommandLineToArgvW(commandLine, out int argc);
         if (argv == IntPtr.Zero)
             throw new Win32Exception(
                 Marshal.GetLastPInvokeError(),
@@ -739,10 +758,10 @@ public static class PrivilegeLauncher
             if (argc <= 1)
                 return [];
 
-            var parsedArgs = new string[argc - 1];
-            for (var i = 1; i < argc; i++)
+            string[] parsedArgs = new string[argc - 1];
+            for (int i = 1; i < argc; i++)
             {
-                var argPtr = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
+                IntPtr argPtr = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
                 parsedArgs[i - 1] = Marshal.PtrToStringUni(argPtr) ?? string.Empty;
             }
 
@@ -774,9 +793,9 @@ public static class PrivilegeLauncher
         ArgumentNullException.ThrowIfNull(executablePath);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var tokens = new string[arguments.Count + 1];
+        string[] tokens = new string[arguments.Count + 1];
         tokens[0] = QuoteWindowsArgument(executablePath);
-        for (var i = 0; i < arguments.Count; i++)
+        for (int i = 0; i < arguments.Count; i++)
         {
             tokens[i + 1] = QuoteWindowsArgument(arguments[i]);
         }
@@ -801,15 +820,15 @@ public static class PrivilegeLauncher
         if (argument.Length == 0)
             return "\"\"";
 
-        var needsQuotes = argument.Any(ch => char.IsWhiteSpace(ch) || ch == '"');
+        bool needsQuotes = argument.Any(ch => char.IsWhiteSpace(ch) || ch == '"');
         if (!needsQuotes)
             return argument;
 
-        var builder = new StringBuilder(argument.Length + 2);
+        StringBuilder builder = new(argument.Length + 2);
         builder.Append('"');
 
-        var backslashCount = 0;
-        foreach (var ch in argument)
+        int backslashCount = 0;
+        foreach (char ch in argument)
         {
             if (ch == '\\')
             {
@@ -844,20 +863,20 @@ public static class PrivilegeLauncher
     private static void EnableDebugPrivilege()
     {
         const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
-        using var process = Process.GetCurrentProcess();
-        using var processHandle = new SafeProcessHandle(process.Handle, ownsHandle: false);
+        using Process process = Process.GetCurrentProcess();
+        using SafeProcessHandle processHandle = new(process.Handle, ownsHandle: false);
 
-        if (!OpenProcessToken(processHandle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out var tokenHandle))
+        if (!OpenProcessToken(processHandle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out SafeAccessTokenHandle tokenHandle))
             throw new Win32Exception(Marshal.GetLastPInvokeError(),
                 "Failed to open current process token.");
 
         using (tokenHandle)
         {
-            if (!LookupPrivilegeValue(null, "SeDebugPrivilege", out var luid))
+            if (!LookupPrivilegeValue(null, "SeDebugPrivilege", out LUID luid))
                 throw new Win32Exception(Marshal.GetLastPInvokeError(),
                     "SeDebugPrivilege lookup failed.");
 
-            var tp = new TOKEN_PRIVILEGES
+            TOKEN_PRIVILEGES tp = new()
             {
                 PrivilegeCount = 1,
                 Privileges = new LUID_AND_ATTRIBUTES
@@ -867,8 +886,11 @@ public static class PrivilegeLauncher
                 }
             };
 
-            AdjustTokenPrivileges(tokenHandle, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
-            var lastError = Marshal.GetLastPInvokeError();
+            bool adjusted = AdjustTokenPrivileges(tokenHandle, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+            int lastError = Marshal.GetLastPInvokeError();
+            if (!adjusted)
+                throw new Win32Exception(
+                    lastError, "AdjustTokenPrivileges failed while enabling SeDebugPrivilege.");
             if (lastError == 1300) // ERROR_NOT_ALL_ASSIGNED
                 throw new InvalidOperationException(
                     "SeDebugPrivilege is not available. Run as administrator.");

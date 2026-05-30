@@ -34,8 +34,8 @@ public sealed class PrivilegeLauncherTests
             "-Force"
         ];
 
-        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", originalArgs);
-        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+        string encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", originalArgs);
+        PrivilegeLauncher.PrivilegeLaunchPayload decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
 
         Assert.Equal("notepad.exe", decoded.Exe);
         Assert.Equal(originalArgs, decoded.Args);
@@ -44,8 +44,8 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void EncodeDecodeLaunchPayload_RoundTripsEmptyArgsArray()
     {
-        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", []);
-        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+        string encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", []);
+        PrivilegeLauncher.PrivilegeLaunchPayload decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
 
         Assert.Equal("notepad.exe", decoded.Exe);
         Assert.Empty(decoded.Args);
@@ -54,8 +54,8 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void EncodeDecodeLaunchPayload_RoundTripsSingleArgument()
     {
-        var encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", ["single"]);
-        var decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
+        string encoded = PrivilegeLauncher.EncodeLaunchPayload("notepad.exe", ["single"]);
+        PrivilegeLauncher.PrivilegeLaunchPayload decoded = PrivilegeLauncher.DecodeLaunchPayload(encoded);
 
         Assert.Equal("notepad.exe", decoded.Exe);
         Assert.Equal(["single"], decoded.Args);
@@ -64,7 +64,7 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void ParseArguments_PreservesQuotedArguments()
     {
-        var parsed = PrivilegeLauncher.ParseArguments(
+        string[] parsed = PrivilegeLauncher.ParseArguments(
             "\"arg with spaces\" \"he said \\\"hello\\\"\" \"arg \" --key=value -Force");
 
         Assert.Equal(
@@ -75,9 +75,9 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_RejectsNullExe()
     {
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload(null!, []),
-            out var errorMessage);
+            out string errorMessage);
 
         Assert.False(isValid);
         Assert.Contains("Executable path is required", errorMessage, StringComparison.Ordinal);
@@ -86,9 +86,9 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_RejectsEmptyExe()
     {
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload("", []),
-            out var errorMessage);
+            out string errorMessage);
 
         Assert.False(isValid);
         Assert.Contains("Executable path is required", errorMessage, StringComparison.Ordinal);
@@ -97,9 +97,9 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_RejectsExeContainingNullByte()
     {
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload("bad\0exe.exe", []),
-            out var errorMessage);
+            out string errorMessage);
 
         Assert.False(isValid);
         Assert.Contains("null byte", errorMessage, StringComparison.Ordinal);
@@ -108,10 +108,10 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_RejectsMissingFullyQualifiedExe()
     {
-        var missingExePath = Path.Combine(Path.GetTempPath(), $"heimdall-missing-{Guid.NewGuid():N}.exe");
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        string missingExePath = Path.Combine(Path.GetTempPath(), $"heimdall-missing-{Guid.NewGuid():N}.exe");
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload(missingExePath, []),
-            out var errorMessage);
+            out string errorMessage);
 
         Assert.False(isValid);
         Assert.Contains("File not found", errorMessage, StringComparison.Ordinal);
@@ -120,9 +120,73 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_AcceptsBareExeName()
     {
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload("notepad.exe", ["arg with spaces"]),
-            out var errorMessage);
+            out string errorMessage);
+
+        Assert.True(isValid);
+        Assert.Equal(string.Empty, errorMessage);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_System_RejectsBareExeName()
+    {
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("notepad.exe", []),
+            out string errorMessage,
+            PrivilegeLevel.System);
+
+        Assert.False(isValid);
+        Assert.Contains("fully-qualified", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_TrustedInstaller_RejectsBareExeName()
+    {
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("notepad.exe", []),
+            out string errorMessage,
+            PrivilegeLevel.TrustedInstaller);
+
+        Assert.False(isValid);
+        Assert.Contains("fully-qualified", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_System_AcceptsExistingFullyQualifiedExe()
+    {
+        string? comspec = Environment.GetEnvironmentVariable("COMSPEC");
+        Assert.False(string.IsNullOrWhiteSpace(comspec));
+
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload(comspec!, []),
+            out string errorMessage,
+            PrivilegeLevel.System);
+
+        Assert.True(isValid);
+        Assert.Equal(string.Empty, errorMessage);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_System_RejectsMissingFullyQualifiedExe()
+    {
+        string missingExePath = Path.Combine(Path.GetTempPath(), $"heimdall-missing-{Guid.NewGuid():N}.exe");
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload(missingExePath, []),
+            out string errorMessage,
+            PrivilegeLevel.System);
+
+        Assert.False(isValid);
+        Assert.Contains("File not found", errorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryValidateLaunchPayload_CurrentUserElevated_StillAcceptsBareExeName()
+    {
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+            new PrivilegeLauncher.PrivilegeLaunchPayload("notepad.exe", []),
+            out string errorMessage,
+            PrivilegeLevel.CurrentUserElevated);
 
         Assert.True(isValid);
         Assert.Equal(string.Empty, errorMessage);
@@ -131,12 +195,12 @@ public sealed class PrivilegeLauncherTests
     [Fact]
     public void TryValidateLaunchPayload_AcceptsExistingFullyQualifiedExe()
     {
-        var comspec = Environment.GetEnvironmentVariable("COMSPEC");
+        string? comspec = Environment.GetEnvironmentVariable("COMSPEC");
         Assert.False(string.IsNullOrWhiteSpace(comspec));
 
-        var isValid = PrivilegeLauncher.TryValidateLaunchPayload(
+        bool isValid = PrivilegeLauncher.TryValidateLaunchPayload(
             new PrivilegeLauncher.PrivilegeLaunchPayload(comspec!, []),
-            out var errorMessage);
+            out string errorMessage);
 
         Assert.True(isValid);
         Assert.Equal(string.Empty, errorMessage);
