@@ -591,6 +591,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         Settings.ConfigurationChanged -= _onConfigurationChanged;
         Settings.ThemeChanged -= OnSettingsThemePreview;
         Settings.AccentTintChanged -= OnSettingsAccentTintPreview;
+        Settings.Dispose();
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;

@@ -490,6 +490,60 @@ public sealed class SettingsViewModelTests
         Assert.Contains(".txt", dialog.ErrorCalls[0].Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Dispose_UnsubscribesExternalToolTracking()
+    {
+        SettingsViewModel viewModel = CreateViewModel(new FakeConfigManager());
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            ExternalTools =
+            [
+                new ExternalToolDefinition
+                {
+                    Name = "Ping",
+                    ExecutablePath = "ping.exe",
+                    Arguments = "{Host}"
+                }
+            ]
+        });
+        viewModel.IsDirty = false;
+        ExternalToolItemViewModel tool = Assert.Single(viewModel.ExternalTools);
+
+        viewModel.Dispose();
+        tool.Name = "Changed";
+
+        Assert.False(viewModel.IsDirty);
+    }
+
+    [Fact]
+    public void Dispose_DisposesTrustedHostKeysAndIsIdempotent()
+    {
+        HostKeyStore store = new();
+        HostKeyTrustService trust = new(store);
+        LocalizationManager localizer = new();
+        FakeDialogService dialog = new();
+        TrustedHostKeysSettingsViewModel trustedHostKeys = new(
+            trust,
+            () => new KnownHostsImportReport(0, 0, []),
+            () => new KnownHostsExportReport(0, 0, 0),
+            localizer,
+            dialog,
+            new FakeClipboardService(),
+            new FakeUiDispatcher());
+        SettingsViewModel viewModel = new(new FakeConfigManager(), localizer, dialog, trustedHostKeys);
+
+        viewModel.Dispose();
+        viewModel.Dispose();
+        trust.Trust(
+            "server.example.com",
+            22,
+            "SHA256:fingerprint",
+            "ssh-ed25519",
+            HostKeySource.UserConfirmed);
+
+        Assert.Empty(trustedHostKeys.Rows);
+    }
+
     private static SettingsViewModel CreateViewModel(
         FakeConfigManager config,
         FakeDialogService? dialog = null,

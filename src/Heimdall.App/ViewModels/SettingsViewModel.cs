@@ -37,7 +37,7 @@ namespace Heimdall.App.ViewModels;
 /// ViewModel for the application settings tab.
 /// Tracks dirty state and delegates persistence to <see cref="IConfigManager"/>.
 /// </summary>
-public partial class SettingsViewModel : ObservableValidator
+public partial class SettingsViewModel : ObservableValidator, IDisposable
 {
     private static bool HasUtf8Bom(byte[] bytes) =>
         bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
@@ -58,6 +58,7 @@ public partial class SettingsViewModel : ObservableValidator
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
     private readonly IProfileImportService? _profileImportService;
+    private bool _disposed;
 
     private string _originalTheme = "";
     private string _originalAccentTint = "Default";
@@ -1480,6 +1481,16 @@ public partial class SettingsViewModel : ObservableValidator
         if (e.NewItems is not null)
             foreach (ExternalToolItemViewModel tool in e.NewItems)
                 tool.PropertyChanged += OnExternalToolItemPropertyChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        UnsubscribeExternalToolTracking();
+        TrustedHostKeys.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
