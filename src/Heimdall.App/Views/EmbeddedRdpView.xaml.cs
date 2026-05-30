@@ -1314,6 +1314,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             if (result == RdpDisplayUpdateResult.ReconnectRequired
                 && await ConfirmResolutionReconnectAsync(width, height))
             {
+                if (_disposed || _rdpHost is null || !_rdpHost.IsConnected || !_allowResolutionUpdates)
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedRDP {reason} reconnect fallback skipped after confirmation: disposed={_disposed} connected={_rdpHost?.IsConnected ?? false} allowUpdates={_allowResolutionUpdates}");
+                    return;
+                }
+
                 result = _rdpHost.UpdateResolution(
                     width,
                     height,
@@ -1709,8 +1716,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             CancelAutofill();
             _autofillRetryContext = null;
             UpdateAutofillState(RdpAutofillState.None);
+            StopAntiIdleTimer();
             StopStabilizationCountdown();
             StopReconnectElapsedTracking();
+            ReleaseSleepPrevention();
             TransitionPhase(RdpConnectionPhase.None);
             HideRedirectionIndicators();
             _allowResolutionUpdates = false;
@@ -3623,6 +3632,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         _antiIdleTimer.Stop();
+        _antiIdleTimer.Tick -= OnAntiIdleTick;
         _antiIdleTimer = null;
         Core.Logging.FileLogger.Info("RDP anti-idle timer stopped");
 
