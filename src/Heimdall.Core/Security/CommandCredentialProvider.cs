@@ -101,20 +101,29 @@ public sealed class CommandCredentialProvider : ICredentialProvider
             linkedCts.CancelAfter(_commandTimeout);
 
             // Drain stderr concurrently to prevent pipe buffer deadlock (4 KB limit on Windows).
-            // Not logged — external credential tools may echo credential fragments to stderr.
-            _ = process.StandardError.ReadToEndAsync(linkedCts.Token);
+            // Not logged - external credential tools may echo credential fragments to stderr.
+            Task<string> stderrDrain = process.StandardError.ReadToEndAsync(linkedCts.Token);
 
-            var stdout = await process.StandardOutput.ReadToEndAsync(linkedCts.Token)
-                .ConfigureAwait(false);
-
+            string stdout;
             try
             {
+                stdout = await process.StandardOutput.ReadToEndAsync(linkedCts.Token)
+                    .ConfigureAwait(false);
                 await process.WaitForExitAsync(linkedCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
+                // Any timeout/cancellation - during the stdout read OR the exit wait - must kill the external
+                // process before `using` disposes it (Dispose does not terminate the process), otherwise a hung
+                // credential tool is left orphaned holding its database lock.
                 TryKillProcess(process);
                 throw;
+            }
+            finally
+            {
+                // Observe the stderr drain so a cancelled/closed pipe never surfaces as an unobserved task
+                // exception. Its content is intentionally discarded (it may contain credential fragments).
+                await ObserveSilentlyAsync(stderrDrain).ConfigureAwait(false);
             }
 
             if (process.ExitCode != 0)
@@ -126,7 +135,7 @@ public sealed class CommandCredentialProvider : ICredentialProvider
                 return null;
             }
 
-            var password = stdout.Trim();
+            string password = stdout.Trim();
             if (string.IsNullOrEmpty(password))
             {
                 Logging.FileLogger.Warn("CommandCredentialProvider: command returned empty output");
@@ -244,6 +253,22 @@ public sealed class CommandCredentialProvider : ICredentialProvider
         catch
         {
             // Best-effort cleanup
+        }
+    }
+
+    /// <summary>
+    /// Awaits a background task and swallows any exception, so a cancelled or closed pipe never
+    /// surfaces as an unobserved task exception. Used to observe the stderr drain.
+    /// </summary>
+    private static async Task ObserveSilentlyAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Best-effort: the stderr drain may be cancelled or the pipe closed when the process is killed.
         }
     }
 }
