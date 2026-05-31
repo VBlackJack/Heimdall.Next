@@ -467,9 +467,9 @@ public static class TlsAuditEngine
             if (ecdsa is not null)
                 return ecdsa.KeySize;
         }
-        catch
+        catch (Exception ex)
         {
-            // Unsupported key algorithm.
+            Heimdall.Core.Logging.FileLogger.Warn($"[TlsAuditEngine] public key size: {ex.Message}");
         }
 
         return 0;
