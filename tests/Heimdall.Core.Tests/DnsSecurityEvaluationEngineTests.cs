@@ -305,6 +305,66 @@ public sealed class DnsSecurityEvaluationEngineTests
     }
 
     [Fact]
+    public void EvaluateSpf_NeutralAll_ReturnsWarn()
+    {
+        string raw = "\"v=spf1 include:a ?all\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecSpfNeutral", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateSpf_MissingAll_ReturnsWarn()
+    {
+        string raw = "\"v=spf1 include:_spf.google.com\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecSpfNoAll", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateSpf_RedirectNoAll_ReturnsPass()
+    {
+        string raw = "\"v=spf1 redirect=_spf.example.com\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecSpfGood", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateSpf_HardFailAll_ReturnsPass()
+    {
+        string raw = "\"v=spf1 -all\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecSpfGood", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateSpf_BareAll_ReturnsWarnPermissive()
+    {
+        string raw = "\"v=spf1 all\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecSpfPermissive", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateSpf_AllSubstringInDomain_NotMatchedAsAll()
+    {
+        string raw = "\"v=spf1 include:spf.fall.com -all\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateSpf(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecSpfGood", result.DetailKey);
+    }
+
+    [Fact]
     public void EvaluateSpf_NoRecord_ReturnsFail()
     {
         var result = DnsSecurityEvaluationEngine.EvaluateSpf("");

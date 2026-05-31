@@ -268,12 +268,13 @@ public static class DnsSecurityEvaluationEngine
     // ── Evaluators ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Evaluates an SPF TXT response. A record containing <c>+all</c> is flagged as
-    /// a warning (permissive policy); missing records fail; otherwise pass.
+    /// Evaluates an SPF TXT response by parsing the SPF <c>all</c> mechanism
+    /// qualifier. Missing records fail; permissive, neutral, or incomplete
+    /// policies warn; hardfail, softfail, or redirect-backed records pass.
     /// </summary>
     public static DnsCheckResult EvaluateSpf(string? raw)
     {
-        var spf = ExtractRecord(raw, "v=spf1");
+        string spf = ExtractRecord(raw, "v=spf1");
         if (string.IsNullOrEmpty(spf))
         {
             return new DnsCheckResult(
@@ -284,22 +285,132 @@ public static class DnsSecurityEvaluationEngine
                 Array.Empty<string>());
         }
 
-        if (spf.Contains("+all", StringComparison.OrdinalIgnoreCase))
+        if (TryGetSpfAllQualifier(spf, out char qualifier))
+        {
+            if (qualifier == '+' || qualifier == '?')
+            {
+                string detailKey = qualifier == '+'
+                    ? "ToolDnsSecSpfPermissive"
+                    : "ToolDnsSecSpfNeutral";
+
+                return new DnsCheckResult(
+                    DnsCheckKind.Spf,
+                    DnsCheckStatus.Warn,
+                    spf,
+                    detailKey,
+                    Array.Empty<string>());
+            }
+
+            return new DnsCheckResult(
+                DnsCheckKind.Spf,
+                DnsCheckStatus.Pass,
+                spf,
+                "ToolDnsSecSpfGood",
+                Array.Empty<string>());
+        }
+
+        if (ContainsSpfRedirectModifier(spf))
         {
             return new DnsCheckResult(
                 DnsCheckKind.Spf,
-                DnsCheckStatus.Warn,
+                DnsCheckStatus.Pass,
                 spf,
-                "ToolDnsSecSpfPermissive",
+                "ToolDnsSecSpfGood",
                 Array.Empty<string>());
         }
 
         return new DnsCheckResult(
             DnsCheckKind.Spf,
-            DnsCheckStatus.Pass,
+            DnsCheckStatus.Warn,
             spf,
-            "ToolDnsSecSpfGood",
+            "ToolDnsSecSpfNoAll",
             Array.Empty<string>());
+    }
+
+    private static bool TryGetSpfAllQualifier(string spf, out char qualifier)
+    {
+        qualifier = '\0';
+        int tokenStart = 0;
+
+        while (tokenStart < spf.Length)
+        {
+            while (tokenStart < spf.Length && char.IsWhiteSpace(spf[tokenStart]))
+            {
+                tokenStart++;
+            }
+
+            int tokenEnd = tokenStart;
+            while (tokenEnd < spf.Length && !char.IsWhiteSpace(spf[tokenEnd]))
+            {
+                tokenEnd++;
+            }
+
+            ReadOnlySpan<char> token = spf.AsSpan(tokenStart, tokenEnd - tokenStart);
+            if (IsSpfAllMechanism(token, out char tokenQualifier))
+            {
+                qualifier = tokenQualifier;
+                return true;
+            }
+
+            tokenStart = tokenEnd + 1;
+        }
+
+        return false;
+    }
+
+    private static bool IsSpfAllMechanism(ReadOnlySpan<char> token, out char qualifier)
+    {
+        qualifier = '\0';
+
+        if (token.Length == 3 && token.Equals("all".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            qualifier = '+';
+            return true;
+        }
+
+        if (token.Length == 4 &&
+            IsSpfAllQualifier(token[0]) &&
+            token[1..].Equals("all".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            qualifier = token[0];
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSpfAllQualifier(char qualifier)
+    {
+        return qualifier == '-' || qualifier == '~' || qualifier == '?' || qualifier == '+';
+    }
+
+    private static bool ContainsSpfRedirectModifier(string spf)
+    {
+        int tokenStart = 0;
+
+        while (tokenStart < spf.Length)
+        {
+            while (tokenStart < spf.Length && char.IsWhiteSpace(spf[tokenStart]))
+            {
+                tokenStart++;
+            }
+
+            int tokenEnd = tokenStart;
+            while (tokenEnd < spf.Length && !char.IsWhiteSpace(spf[tokenEnd]))
+            {
+                tokenEnd++;
+            }
+
+            ReadOnlySpan<char> token = spf.AsSpan(tokenStart, tokenEnd - tokenStart);
+            if (token.StartsWith("redirect=".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            tokenStart = tokenEnd + 1;
+        }
+
+        return false;
     }
 
     /// <summary>

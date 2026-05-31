@@ -5153,6 +5153,8 @@
   "ToolDnsSecWarn": "Partial",
   "ToolDnsSecFail": "Missing",
   "ToolDnsSecSpfPermissive": "SPF record uses +all (permissive â€” any server can send)",
+  "ToolDnsSecSpfNeutral": "SPF record uses ?all (neutral \u2014 provides no protection)",
+  "ToolDnsSecSpfNoAll": "SPF record has no 'all' mechanism (incomplete \u2014 unmatched senders are unhandled)",
   "ToolDnsSecSpfGood": "SPF record restricts senders",
   "ToolDnsSecDmarcNone": "DMARC policy is p=none (monitoring only, no enforcement)",
   "ToolDnsSecDmarcEnforced": "DMARC policy enforces {0}",

@@ -5152,6 +5152,8 @@
   "ToolDnsSecWarn": "Partiel",
   "ToolDnsSecFail": "Manquant",
   "ToolDnsSecSpfPermissive": "L\u2019enregistrement SPF utilise +all (permissif \u2014 tout serveur peut envoyer)",
+  "ToolDnsSecSpfNeutral": "L\u2019enregistrement SPF utilise ?all (neutre \u2014 n\u2019offre aucune protection)",
+  "ToolDnsSecSpfNoAll": "L\u2019enregistrement SPF n\u2019a pas de m\u00e9canisme \u00ab all \u00bb (incomplet \u2014 les exp\u00e9diteurs non list\u00e9s ne sont pas trait\u00e9s)",
   "ToolDnsSecSpfGood": "L\u2019enregistrement SPF restreint les exp\u00e9diteurs",
   "ToolDnsSecDmarcNone": "La politique DMARC est p=none (surveillance uniquement, pas d\u2019application)",
   "ToolDnsSecDmarcEnforced": "La politique DMARC applique {0}",
