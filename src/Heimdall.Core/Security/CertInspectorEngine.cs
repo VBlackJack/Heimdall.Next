@@ -235,6 +235,7 @@ public static class CertInspectorEngine
 
         using var chain = new X509Chain();
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.ChainPolicy.DisableCertificateDownloads = true;
         chain.Build(cert);
 
         foreach (var element in chain.ChainElements)
@@ -378,10 +379,14 @@ public static class CertInspectorEngine
         int port,
         CancellationToken ct)
     {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(ConnectionTimeout);
+        CancellationToken probeCt = timeoutCts.Token;
+
         X509Certificate? remoteCert = null;
 
         using var tcp = new TcpClient();
-        await tcp.ConnectAsync(host, port, ct).ConfigureAwait(false);
+        await tcp.ConnectAsync(host, port, probeCt).ConfigureAwait(false);
 
         using var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
         {
@@ -391,7 +396,7 @@ public static class CertInspectorEngine
 
         await ssl.AuthenticateAsClientAsync(
             new SslClientAuthenticationOptions { TargetHost = host },
-            ct).ConfigureAwait(false);
+            probeCt).ConfigureAwait(false);
 
         if (remoteCert is null)
             throw new InvalidOperationException(L(null, "ErrorNoCertReceived"));
