@@ -56,7 +56,7 @@ public static class SecureFileWriter
         using FileStream stream = fileInfo.Create(FileMode.CreateNew, FileSystemRights.WriteData,
             FileShare.None, 4096, FileOptions.None, security);
 
-        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
+        byte[] bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
         try
         {
             stream.Write(bytes, 0, bytes.Length);
@@ -93,7 +93,7 @@ public static class SecureFileWriter
         await using FileStream stream = fileInfo.Create(FileMode.CreateNew, FileSystemRights.WriteData,
             FileShare.None, 4096, FileOptions.Asynchronous, security);
 
-        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
+        byte[] bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
         try
         {
             await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -107,10 +107,10 @@ public static class SecureFileWriter
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static FileSecurity BuildRestrictedSecurity()
     {
-        var currentUser = WindowsIdentity.GetCurrent().User
+        SecurityIdentifier currentUser = WindowsIdentity.GetCurrent().User
             ?? throw new InvalidOperationException("Cannot determine current user SID.");
 
-        var security = new FileSecurity();
+        FileSecurity security = new FileSecurity();
         security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
         security.AddAccessRule(new FileSystemAccessRule(
             currentUser,
