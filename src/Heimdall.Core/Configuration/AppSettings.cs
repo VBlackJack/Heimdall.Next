@@ -73,6 +73,15 @@ public sealed class AppSettings
     // Security
     public string? PinHash { get; set; }
     public string? PinSalt { get; set; }
+
+    /// <summary>Persisted count of consecutive failed PIN attempts, restored on startup
+    /// so brute-force lockout survives an application restart.</summary>
+    public int PinFailureCount { get; set; }
+
+    /// <summary>Persisted absolute UTC instant until which the PIN is locked out, or null
+    /// when not locked out. Restored on startup so lockout survives an application restart.</summary>
+    public DateTime? PinLockoutUntilUtc { get; set; }
+
     public string? HmacKey { get; set; }
     public DateTime? HmacKeyCreatedAt { get; set; }
     public string? LastDpapiUser { get; set; }
