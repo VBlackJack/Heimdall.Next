@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-using FluentAssertions;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using FluentAssertions;
 using TwinShell.Core.Interfaces;
 using TwinShell.Core.Models;
 using TwinShell.Core.Utilities;
