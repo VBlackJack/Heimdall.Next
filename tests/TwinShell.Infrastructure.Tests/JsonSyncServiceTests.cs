@@ -210,6 +210,71 @@ public sealed class JsonSyncServiceTests
         }
     }
 
+    [Fact]
+    public async Task ValidateFolder_ActionFileFailingSchema_IsNotCounted()
+    {
+        string exportPath = CreateTempDirectory();
+
+        try
+        {
+            await using TwinShellSyncFixture fixture = await TwinShellSyncFixture.CreateAsync();
+            string actionFolder = Path.Combine(exportPath, "actions", "Invalid");
+            Directory.CreateDirectory(actionFolder);
+            string invalidActionPath = Path.Combine(actionFolder, "invalid-action.json");
+            string oversizedCategory = new('A', 101);
+            string invalidJson = $$"""
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "title": "Schema Invalid Action",
+              "category": "{{oversizedCategory}}"
+            }
+            """;
+            await File.WriteAllTextAsync(invalidActionPath, invalidJson);
+
+            SyncValidationResult result = await fixture.SyncService.ValidateFolderAsync(exportPath);
+
+            result.IsValid.Should().BeTrue();
+            result.ActionFilesFound.Should().Be(0);
+            result.Warnings.Should().Contain(warning => warning.Contains("Schema validation failed", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteDirectory(exportPath);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateFolder_ValidActionFile_IsCounted()
+    {
+        string exportPath = CreateTempDirectory();
+
+        try
+        {
+            await using TwinShellSyncFixture fixture = await TwinShellSyncFixture.CreateAsync();
+            string actionFolder = Path.Combine(exportPath, "actions", "Valid");
+            Directory.CreateDirectory(actionFolder);
+            string validActionPath = Path.Combine(actionFolder, "valid-action.json");
+            const string ValidJson = """
+            {
+              "id": "22222222-2222-4222-8222-222222222222",
+              "title": "Schema Valid Action",
+              "category": "Valid"
+            }
+            """;
+            await File.WriteAllTextAsync(validActionPath, ValidJson);
+
+            SyncValidationResult result = await fixture.SyncService.ValidateFolderAsync(exportPath);
+
+            result.IsValid.Should().BeTrue();
+            result.ActionFilesFound.Should().Be(1);
+            result.Warnings.Should().NotContain(warning => warning.Contains("Schema validation failed", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteDirectory(exportPath);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(

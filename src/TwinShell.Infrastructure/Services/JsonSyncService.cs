@@ -907,6 +907,7 @@ public sealed class JsonSyncService : ISyncService
                     categoriesPath,
                     result,
                     "category",
+                    JsonSchemaValidator.ValidateCategory,
                     cancellationToken);
             }
 
@@ -919,6 +920,7 @@ public sealed class JsonSyncService : ISyncService
                     templatesPath,
                     result,
                     "template",
+                    JsonSchemaValidator.ValidateTemplate,
                     cancellationToken);
             }
 
@@ -931,6 +933,7 @@ public sealed class JsonSyncService : ISyncService
                     actionsPath,
                     result,
                     "action",
+                    JsonSchemaValidator.ValidateAction,
                     cancellationToken,
                     SearchOption.AllDirectories);
             }
@@ -944,6 +947,7 @@ public sealed class JsonSyncService : ISyncService
                     batchesPath,
                     result,
                     "batch",
+                    JsonSchemaValidator.ValidateBatch,
                     cancellationToken);
             }
 
@@ -969,13 +973,14 @@ public sealed class JsonSyncService : ISyncService
         string folderPath,
         SyncValidationResult result,
         string entityType,
+        Func<string, SchemaValidationResult> schemaValidate,
         CancellationToken cancellationToken,
         SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
-        var files = Directory.GetFiles(folderPath, "*.json", searchOption);
+        string[] files = Directory.GetFiles(folderPath, "*.json", searchOption);
         int validCount = 0;
 
-        foreach (var filePath in files)
+        foreach (string filePath in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -987,8 +992,18 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
-                var model = JsonSerializer.Deserialize<T>(json, _jsonOptions);
+                string json = await File.ReadAllTextAsync(filePath, cancellationToken);
+
+                SchemaValidationResult schemaResult = schemaValidate(json);
+                if (!schemaResult.IsValid)
+                {
+                    result.Warnings.Add(
+                        $"Schema validation failed for {entityType} file '{Path.GetFileName(filePath)}': "
+                        + string.Join("; ", schemaResult.Errors));
+                    continue;
+                }
+
+                T? model = JsonSerializer.Deserialize<T>(json, _jsonOptions);
 
                 if (model != null)
                 {
