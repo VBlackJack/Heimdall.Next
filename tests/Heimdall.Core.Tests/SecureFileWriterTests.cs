@@ -168,56 +168,6 @@ public class SecureFileWriterTests : IDisposable
         AssertRestrictiveAcl(path);
     }
 
-    // ── WriteText basic functionality ──────────────────────────────────
-
-    [Fact]
-    public void WriteText_CreatesFileWithContent()
-    {
-        var path = TempFile("writetext.txt");
-
-        SecureFileWriter.WriteText("hello", path);
-
-        Assert.True(File.Exists(path));
-        Assert.Equal("hello", File.ReadAllText(path));
-    }
-
-    [Fact]
-    public void WriteText_NullPath_ThrowsArgumentException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            SecureFileWriter.WriteText("content", null!));
-    }
-
-    [Fact]
-    public void WriteText_NullContent_WritesEmptyFile()
-    {
-        var path = TempFile("nullcontent.txt");
-
-        SecureFileWriter.WriteText(null!, path);
-
-        Assert.Equal(string.Empty, File.ReadAllText(path));
-    }
-
-    // ── WriteTextAsync basic functionality ──────────────────────────────
-
-    [Fact]
-    public async Task WriteTextAsync_CreatesFileWithContent()
-    {
-        var path = TempFile("async.txt");
-
-        await SecureFileWriter.WriteTextAsync("async content", path);
-
-        Assert.True(File.Exists(path));
-        Assert.Equal("async content", File.ReadAllText(path));
-    }
-
-    [Fact]
-    public async Task WriteTextAsync_NullPath_ThrowsArgumentException()
-    {
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            SecureFileWriter.WriteTextAsync("content", null!));
-    }
-
     // ── UTF-8 without BOM ──────────────────────────────────────────────
 
     [Fact]

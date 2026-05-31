@@ -127,32 +127,4 @@ public static class SecureFileWriter
         return security;
     }
 
-    /// <summary>
-    /// Write text to a file using UTF-8 without BOM.
-    /// </summary>
-    /// <param name="text">The text to write.</param>
-    /// <param name="filePath">The target file path.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="filePath"/> is null or empty.</exception>
-    public static void WriteText(string text, string filePath)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(filePath);
-        File.WriteAllText(filePath, text ?? string.Empty, Utf8NoBom);
-    }
-
-    /// <summary>
-    /// Write text to a file using UTF-8 without BOM (async version).
-    /// </summary>
-    /// <param name="text">The text to write.</param>
-    /// <param name="filePath">The target file path.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="filePath"/> is null or empty.</exception>
-    public static async Task WriteTextAsync(
-        string text,
-        string filePath,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(filePath);
-        await File.WriteAllTextAsync(filePath, text ?? string.Empty, Utf8NoBom, cancellationToken)
-            .ConfigureAwait(false);
-    }
 }
