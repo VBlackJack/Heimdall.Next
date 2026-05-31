@@ -74,6 +74,24 @@ public sealed class ProfileImportServiceTests
     }
 
     [Fact]
+    public async Task ImportFromPathAsync_JsonOversized_ReturnsFailureBeforePreviewOrPersistence()
+    {
+        using ProfileImportFixture fixture = new(maxImportFileSizeBytes: 10);
+        string path = await fixture.WriteTextAsync(
+            "servers.json",
+            "[{\"displayName\":\"Oversized\",\"remoteServer\":\"host.example\"}]");
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        Assert.True(result.IsFailure);
+        Assert.Contains("Import file is too large", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("10 B", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Empty(servers);
+        Assert.Null(fixture.Dialog.LastRdpImportViewModel);
+    }
+
+    [Fact]
     public async Task ImportFromPathAsync_UnknownExtension_ReturnsFailure()
     {
         using var fixture = new ProfileImportFixture();
@@ -96,13 +114,13 @@ public sealed class ProfileImportServiceTests
 
         public ProfileImportService Service { get; }
 
-        public ProfileImportFixture()
+        public ProfileImportFixture(long maxImportFileSizeBytes = AppConstants.MaxImportFileSizeBytes)
         {
             Directory.CreateDirectory(RootPath);
             ConfigManager = new ConfigManager(RootPath);
-            var localizer = CreateLocalizerAsync().GetAwaiter().GetResult();
-            var rdpImport = new RdpImportService(ConfigManager, localizer);
-            Service = new ProfileImportService(ConfigManager, localizer, Dialog, rdpImport);
+            LocalizationManager localizer = CreateLocalizerAsync().GetAwaiter().GetResult();
+            RdpImportService rdpImport = new(ConfigManager, localizer);
+            Service = new ProfileImportService(ConfigManager, localizer, Dialog, rdpImport, maxImportFileSizeBytes);
         }
 
         public async Task<string> WriteTextAsync(string fileName, string content)

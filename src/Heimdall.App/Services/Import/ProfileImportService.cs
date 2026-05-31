@@ -20,6 +20,7 @@ using System.Text.Json.Serialization;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Utilities;
 
 namespace Heimdall.App.Services.Import;
 
@@ -30,7 +31,8 @@ public sealed class ProfileImportService(
     IConfigManager configManager,
     LocalizationManager localizer,
     IDialogService dialogService,
-    IRdpImportService rdpImportService) : IProfileImportService
+    IRdpImportService rdpImportService,
+    long maxImportFileSizeBytes = AppConstants.MaxImportFileSizeBytes) : IProfileImportService
 {
     private static readonly JsonSerializerOptions ProfileJsonOptions = new()
     {
@@ -43,6 +45,7 @@ public sealed class ProfileImportService(
     private readonly LocalizationManager _localizer = localizer;
     private readonly IDialogService _dialogService = dialogService;
     private readonly IRdpImportService _rdpImportService = rdpImportService;
+    private readonly long _maxImportFileSizeBytes = maxImportFileSizeBytes;
 
     public Task<ProfileImportResult> ImportFromPathAsync(string path, CancellationToken ct = default)
     {
@@ -143,7 +146,14 @@ public sealed class ProfileImportService(
         List<ServerProfileDto> candidates;
         try
         {
-            var json = await File.ReadAllTextAsync(path, ct);
+            FileInfo fileInfo = new(path);
+            if (fileInfo.Length > _maxImportFileSizeBytes)
+            {
+                return ProfileImportResult.Failure(
+                    _localizer.Format("ImportErrorFileTooLarge", FileSize.Format(_maxImportFileSizeBytes)));
+            }
+
+            string json = await File.ReadAllTextAsync(path, ct);
             candidates = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ProfileJsonOptions) ?? [];
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)

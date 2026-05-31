@@ -283,6 +283,7 @@
   "StatusExportCredentialsExcluded": "Credentials were not included in the export file.",
   "StatusImportSuccess": "{0} session(s) imported successfully.",
   "ImportNoSessionsFound": "No sessions found in the selected file.",
+  "ImportErrorFileTooLarge": "Import file is too large (limit {0}).",
   "StatusImportFailed": "Import failed: {0}",
   "StatusExportFailed": "Export failed: {0}",
   "ConfirmImportTitle": "Import Sessions",
