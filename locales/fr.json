@@ -280,6 +280,7 @@
   "ImportDialogTitle": "Importer des sessions",
   "ImportDialogFilter": "Fichiers JSON (*.json)|*.json|Tous les fichiers (*.*)|*.*",
   "StatusExportSuccess": "{0} session(s) export\u00e9e(s) avec succ\u00e8s.",
+  "StatusExportCredentialsExcluded": "Les identifiants n'ont pas \u00e9t\u00e9 inclus dans le fichier export\u00e9.",
   "StatusImportSuccess": "{0} session(s) import\u00e9e(s) avec succ\u00e8s.",
   "ImportNoSessionsFound": "Aucune session trouv\u00e9e dans le fichier s\u00e9lectionn\u00e9.",
   "StatusImportFailed": "\u00c9chec de l'import : {0}",

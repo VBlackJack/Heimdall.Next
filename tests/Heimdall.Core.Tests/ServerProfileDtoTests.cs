@@ -232,6 +232,41 @@ public class ServerProfileDtoTests
     }
 
     [Fact]
+    public void JsonDeserialization_LegacyCredentialFields_RemainsImportable()
+    {
+        const string Json = """
+        {
+            "id": "legacy-with-credentials",
+            "displayName": "Legacy With Credentials",
+            "remoteServer": "10.0.0.1",
+            "rdpPasswordEncrypted": "rdp-secret",
+            "sshPasswordEncrypted": "ssh-secret",
+            "winRmPasswordEncrypted": "winrm-secret",
+            "ftpPasswordEncrypted": "ftp-secret",
+            "telnetPasswordEncrypted": "telnet-secret",
+            "sshKeyPassphraseEncrypted": "key-secret",
+            "vncPassword": "vnc-secret"
+        }
+        """;
+        JsonSerializerOptions importOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        ServerProfileDto? dto = JsonSerializer.Deserialize<ServerProfileDto>(Json, importOptions);
+
+        Assert.NotNull(dto);
+        Assert.Equal("rdp-secret", dto!.RdpPasswordEncrypted);
+        Assert.Equal("ssh-secret", dto.SshPasswordEncrypted);
+        Assert.Equal("winrm-secret", dto.WinRmPasswordEncrypted);
+        Assert.Equal("ftp-secret", dto.FtpPasswordEncrypted);
+        Assert.Equal("telnet-secret", dto.TelnetPasswordEncrypted);
+        Assert.Equal("key-secret", dto.SshKeyPassphraseEncrypted);
+        Assert.True(dto.HasSshKeyPassphraseEncryptedField);
+        Assert.Equal("vnc-secret", dto.VncPassword);
+    }
+
+    [Fact]
     public void TunnelsPanelExpanded_RoundTrip_NullOmitsKey()
     {
         var original = new ServerProfileDto

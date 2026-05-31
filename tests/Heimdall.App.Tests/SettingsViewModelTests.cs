@@ -15,7 +15,9 @@
  */
 
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Import;
 using Heimdall.App.Services.PostConnect;
@@ -33,6 +35,46 @@ namespace Heimdall.App.Tests;
 
 public sealed class SettingsViewModelTests
 {
+    [Fact]
+    public void ExportJsonOptions_StripsCredentialFieldsFromServerProfiles()
+    {
+        ServerProfileDto server = new()
+        {
+            Id = "credential-export-test",
+            DisplayName = "Credential Export Test",
+            RemoteServer = "10.0.0.1",
+            RdpPasswordEncrypted = "rdp-secret",
+            SshPasswordEncrypted = "ssh-secret",
+            WinRmPasswordEncrypted = "winrm-secret",
+            FtpPasswordEncrypted = "ftp-secret",
+            TelnetPasswordEncrypted = "telnet-secret",
+            SshKeyPassphraseEncrypted = "key-secret",
+            VncPassword = "vnc-secret"
+        };
+        JsonSerializerOptions options = GetExportJsonOptions();
+
+        string json = JsonSerializer.Serialize(new[] { server }, options);
+        JsonArray? servers = JsonNode.Parse(json)?.AsArray();
+
+        Assert.NotNull(servers);
+        JsonObject exported = Assert.IsType<JsonObject>(servers![0]);
+        Assert.Equal("credential-export-test", exported["id"]?.GetValue<string>());
+        Assert.False(exported.ContainsKey("rdpPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("sshPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("winRmPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("ftpPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("telnetPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("sshKeyPassphraseEncrypted"));
+        Assert.False(exported.ContainsKey("vncPassword"));
+
+        foreach (string propertyName in exported.Select(property => property.Key))
+        {
+            Assert.DoesNotContain("password", propertyName, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("encrypted", propertyName, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("passphrase", propertyName, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Fact]
     public async Task SaveThenLoad_PreservesNewRdpRedirectionDefaults()
     {
@@ -687,6 +729,16 @@ public sealed class SettingsViewModelTests
             trustedHostKeys,
             new PinManager(),
             profileImportService);
+    }
+
+    private static JsonSerializerOptions GetExportJsonOptions()
+    {
+        FieldInfo? field = typeof(SettingsViewModel).GetField(
+            "ExportJsonOptions",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(field);
+        return Assert.IsType<JsonSerializerOptions>(field!.GetValue(null));
     }
 
     private static async Task<AppSettings> LoadExpectedFactoryDefaultsAsync()

@@ -20,6 +20,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
@@ -47,7 +48,40 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver
+        {
+            Modifiers =
+            {
+                static typeInfo =>
+                {
+                    if (typeInfo.Type != typeof(ServerProfileDto))
+                    {
+                        return;
+                    }
+
+                    string[] credentialPropertyNames =
+                    [
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.RdpPasswordEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshPasswordEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.WinRmPasswordEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.FtpPasswordEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.TelnetPasswordEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshKeyPassphraseEncrypted)),
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.VncPassword))
+                    ];
+
+                    for (int index = typeInfo.Properties.Count - 1; index >= 0; index--)
+                    {
+                        JsonPropertyInfo property = typeInfo.Properties[index];
+                        if (credentialPropertyNames.Contains(property.Name, StringComparer.Ordinal))
+                        {
+                            typeInfo.Properties.RemoveAt(index);
+                        }
+                    }
+                }
+            }
+        }
     };
 
     private static readonly JsonSerializerOptions ImportJsonOptions = new()
@@ -938,9 +972,11 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
             var count = servers.Count;
             FileLogger.Info($"Exported {count} server(s) to {dialog.FileName}");
+            string message = _localizer.Format("StatusExportSuccess", count)
+                + "\n\n" + _localizer["StatusExportCredentialsExcluded"];
             _dialogService.ShowInfo(
                 _localizer["ExportDialogTitle"],
-                _localizer.Format("StatusExportSuccess", count));
+                message);
         }
         catch (Exception ex)
         {
