@@ -207,7 +207,7 @@ public static class JsonSchemaValidator
             "commandPattern": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 2000
+                "maxLength": 1000
             },
             "parameters": {
                 "type": ["array", "null"],
@@ -338,7 +338,7 @@ public static class JsonSchemaValidator
                     },
                     "additionalProperties": false
                 },
-                "maxItems": 20
+                "maxItems": 10
             },
             "isUserCreated": {
                 "type": "boolean"
