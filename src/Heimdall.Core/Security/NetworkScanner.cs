@@ -162,22 +162,29 @@ public static class NetworkScanner
 
     internal static (string Network, int PrefixLength) ParseCidr(string cidr)
     {
-        var trimmed = cidr.Trim();
+        string trimmed = cidr.Trim();
 
         // Support single IP without CIDR prefix (e.g. "192.168.1.1")
         if (!trimmed.Contains('/'))
         {
-            if (!IPAddress.TryParse(trimmed, out _))
-                throw new ArgumentException($"Invalid IP address: {trimmed}.");
+            if (!TryParseIPv4(trimmed))
+                throw new ArgumentException($"Invalid IP address: {trimmed}. NetworkScanner supports IPv4 only.");
             return (trimmed, 32);
         }
 
-        var parts = trimmed.Split('/');
-        if (parts.Length != 2 || !int.TryParse(parts[1], out var prefix) || prefix < 16 || prefix > 32)
+        string[] parts = trimmed.Split('/');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out int prefix) || prefix < 16 || prefix > 32)
             throw new ArgumentException($"Invalid CIDR notation: {cidr}. Use format like 192.168.1.0/24 (prefix 16-32).");
+
+        if (!TryParseIPv4(parts[0]))
+            throw new ArgumentException($"Invalid IP address: {parts[0]}. NetworkScanner supports IPv4 only.");
 
         return (parts[0], prefix);
     }
+
+    private static bool TryParseIPv4(string value) =>
+        IPAddress.TryParse(value, out IPAddress? parsed)
+        && parsed.AddressFamily == AddressFamily.InterNetwork;
 
     internal static List<string> GenerateAddresses(string network, int prefixLength)
     {

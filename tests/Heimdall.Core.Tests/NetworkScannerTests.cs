@@ -42,6 +42,10 @@ public class NetworkScannerTests
     [InlineData("192.168.1.0/8")]
     [InlineData("10.0.0.0/33")]
     [InlineData("not-an-ip")]
+    [InlineData("::1")]
+    [InlineData("fe80::1")]
+    [InlineData("fe80::/24")]
+    [InlineData("not-an-ip/24")]
     public void ParseCidr_InvalidInput_ThrowsArgumentException(string input)
     {
         Assert.Throws<ArgumentException>(() => NetworkScanner.ParseCidr(input));
