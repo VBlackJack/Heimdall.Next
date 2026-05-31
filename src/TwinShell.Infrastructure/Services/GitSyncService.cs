@@ -375,8 +375,10 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             return failResult;
         }
 
-        var localPath = Settings!.GitRepositoryPath!;
-        var remoteUrl = Settings.GitRemoteUrl!;
+        UserSettings settings = Settings!;
+        string localPath = settings.GitRepositoryPath!;
+        string remoteUrl = settings.GitRemoteUrl!;
+        bool hasToken = !string.IsNullOrWhiteSpace(settings.GitAccessToken);
 
         // SECURITY: Validate repository path
         if (!IsValidRepositoryPath(localPath))
@@ -385,6 +387,16 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
                 "Invalid repository path",
                 GitSyncErrorCode.InvalidConfiguration,
                 "Repository path contains invalid characters or path traversal attempts.");
+            await LogSyncOperationAsync(failResult, SyncOperationType.Initialize, startedAt);
+            return failResult;
+        }
+
+        if (!GitUrlValidator.IsAllowed(remoteUrl, hasToken, out string remoteUrlReason))
+        {
+            GitOperationResult failResult = GitOperationResult.Fail(
+                "Invalid remote URL",
+                GitSyncErrorCode.InvalidConfiguration,
+                remoteUrlReason);
             await LogSyncOperationAsync(failResult, SyncOperationType.Initialize, startedAt);
             return failResult;
         }
@@ -428,9 +440,9 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             {
                 await Task.Run(() =>
                 {
-                    var options = new CloneOptions
+                    CloneOptions options = new()
                     {
-                        BranchName = Settings.GitBranch
+                        BranchName = settings.GitBranch
                     };
                     options.FetchOptions.CredentialsProvider = GetCredentialsHandler();
                     options.FetchOptions.OnTransferProgress = _ => !cancellationToken.IsCancellationRequested;
@@ -938,13 +950,26 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             return failResult;
         }
 
+        UserSettings settings = Settings!;
+        string remoteUrl = settings.GitRemoteUrl!;
+        bool hasToken = !string.IsNullOrWhiteSpace(settings.GitAccessToken);
+        if (!GitUrlValidator.IsAllowed(remoteUrl, hasToken, out string remoteUrlReason))
+        {
+            GitOperationResult failResult = GitOperationResult.Fail(
+                "Invalid remote URL",
+                GitSyncErrorCode.InvalidConfiguration,
+                remoteUrlReason);
+            await LogSyncOperationAsync(failResult, SyncOperationType.TestConnection, startedAt);
+            return failResult;
+        }
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncTestingConnection), SyncPhase.Validating, 50);
             _logger.LogDebug(
                 "Testing connection to {RemoteUrl}",
-                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl));
 
             // Test connection with retry logic
             await ExecuteWithRetryAsync(async () =>
@@ -952,8 +977,8 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
                 await Task.Run(() =>
                 {
                     // Try to list remote references to test connection
-                    var refs = Repository.ListRemoteReferences(Settings.GitRemoteUrl, GetCredentialsHandler());
-                    var count = refs.Count();
+                    IEnumerable<Reference> refs = Repository.ListRemoteReferences(remoteUrl, GetCredentialsHandler());
+                    int count = refs.Count();
                 }, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return true;
@@ -962,7 +987,7 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             RaiseStatusChanged(L(MessageKeys.GitSyncConnectionSuccess), SyncPhase.Completed, 100);
             _logger.LogInformation(
                 "Connection test successful for {RemoteUrl}",
-                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl));
             var successResult = GitOperationResult.Ok("Connection to remote repository successful.");
             await LogSyncOperationAsync(successResult, SyncOperationType.TestConnection, startedAt);
             return successResult;
@@ -978,7 +1003,7 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             _logger.LogWarning(
                 ex,
                 "Failed to connect to remote repository {RemoteUrl}",
-                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl));
             var failResult = GitOperationResult.Fail("Failed to connect to remote repository", errorCode, ex.Message);
             await LogSyncOperationAsync(failResult, SyncOperationType.TestConnection, startedAt);
             return failResult;
@@ -990,7 +1015,7 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             _logger.LogError(
                 ex,
                 "Connection test failed for {RemoteUrl}",
-                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl));
             var failResult = GitOperationResult.Fail("Connection test failed", errorCode, ex.Message);
             await LogSyncOperationAsync(failResult, SyncOperationType.TestConnection, startedAt);
             return failResult;
