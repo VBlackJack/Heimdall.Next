@@ -722,107 +722,8 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             return;
         }
 
-        var settings = await _configManager.LoadSettingsAsync();
-
-        // General
-        settings.DefaultLocale = DefaultLocale;
-        settings.DefaultTheme = DefaultTheme;
-        settings.AccentTint = AccentTint;
-        settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
-        settings.PreventSleepDuringSession = PreventSleepDuringSession;
-        settings.CollapseTunnelsPanelByDefault = CollapseTunnelsPanelByDefault;
-        settings.ExternalEditorPath = ExternalEditorPath;
-
-        // Terminal
-        settings.TerminalFontFamily = TerminalFontFamily;
-        settings.TerminalFontSize = TerminalFontSize;
-        settings.TerminalColorScheme = TerminalColorScheme;
-        settings.PowerShellExecutionPolicy = PowerShellExecutionPolicy;
-
-        // SSH & SFTP
-        settings.PlinkPath = PlinkPath;
-        settings.PuttyPath = string.IsNullOrWhiteSpace(PuttyPath) ? null : PuttyPath;
-        settings.SshDefaultMode = SshDefaultMode;
-        settings.SshAgentPreference = Enum.TryParse<SshAgentPreferenceEnum>(
-            SshAgentPreference,
-            ignoreCase: false,
-            out var sshAgentPreference)
-            ? sshAgentPreference
-            : SshAgentPreferenceEnum.AutoOpenSshFirst;
-        settings.AntiIdleIntervalSeconds = AntiIdleInterval;
-        settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
-        settings.SshAutoReconnect = SshAutoReconnect;
-        settings.SshAutoReconnectAttempts = SshAutoReconnectAttempts;
-        settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
-        settings.X11ServerPath = string.IsNullOrWhiteSpace(X11ServerPath) ? null : X11ServerPath;
-        settings.X11AutoStart = X11AutoStart;
-        settings.SysinternalsPath = string.IsNullOrWhiteSpace(SysinternalsPath) ? null : SysinternalsPath;
-        settings.NirSoftPath = string.IsNullOrWhiteSpace(NirSoftPath) ? null : NirSoftPath;
-        settings.NanaRunPath = string.IsNullOrWhiteSpace(NanaRunPath) ? null : NanaRunPath;
-
-        // Command Library Git Sync
-        settings.CmdLibGitSyncEnabled = CmdLibGitSyncEnabled;
-        settings.CmdLibGitSyncUrl = string.IsNullOrWhiteSpace(CmdLibGitSyncUrl) ? null : CmdLibGitSyncUrl;
-        settings.CmdLibGitSyncBranch = CmdLibGitSyncBranch;
-        settings.CmdLibGitSyncAuthorName = CmdLibGitSyncAuthorName;
-        settings.CmdLibGitSyncAuthorEmail = CmdLibGitSyncAuthorEmail;
-        settings.CmdLibGitSyncOnStartup = CmdLibGitSyncOnStartup;
-        settings.CmdLibGitSyncAutoPush = CmdLibGitSyncAutoPush;
-
-        // Session Health Monitor
-        settings.SessionHealthMonitorEnabled = SessionHealthMonitorEnabled;
-        settings.SessionHealthCheckIntervalSeconds = SessionHealthCheckIntervalSeconds;
-        settings.SessionHealthProbeTimeoutMs = SessionHealthProbeTimeoutMs;
-        settings.SessionHealthMaxConcurrent = SessionHealthMaxConcurrent;
-
-        // RDP defaults
-        settings.DefaultResolutionWidth = DefaultResolutionWidth;
-        settings.DefaultResolutionHeight = DefaultResolutionHeight;
-        settings.RdpDefaultMode = RdpDefaultMode;
-        settings.RdpDefaultNla = RdpDefaultNla;
-        settings.RdpDefaultColorDepth = RdpDefaultColorDepth;
-        settings.RdpDefaultDynamicResolution = RdpDefaultDynamicResolution;
-        settings.RdpDefaultMultiMonitor = RdpDefaultMultiMonitor;
-        settings.RdpDefaultRedirectClipboard = RdpDefaultRedirectClipboard;
-        settings.RdpDefaultRedirectDrives = RdpDefaultRedirectDrives;
-        settings.RdpDefaultRedirectPrinters = RdpDefaultRedirectPrinters;
-        settings.RdpDefaultRedirectComPorts = RdpDefaultRedirectComPorts;
-        settings.RdpDefaultRedirectSmartCards = RdpDefaultRedirectSmartCards;
-        settings.RdpDefaultRedirectWebcam = RdpDefaultRedirectWebcam;
-        settings.RdpDefaultRedirectUsb = RdpDefaultRedirectUsb;
-        settings.RdpDefaultAudioCapture = RdpDefaultAudioCapture;
-        settings.RdpDefaultAutoReconnect = RdpDefaultAutoReconnect;
-        settings.RdpDefaultBitmapCaching = RdpDefaultBitmapCaching;
-        settings.RdpDefaultCompression = RdpDefaultCompression;
-        settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
-        settings.RdpResolutionPresets = RdpResolutionPresets;
-        settings.RdpDialogAdvancedDefault = RdpDialogAdvancedDefault;
-
-        // Security
-        settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
-        settings.CredentialProviderCommand = CredentialProviderCommand;
-        settings.CredentialProviderDatabase = CredentialProviderDatabase;
-        settings.RequireCredentialGuard = RequireCredentialGuard;
-
-        // Advanced / Logging
-        settings.EnableLogging = EnableLogging;
-        settings.SessionLoggingEnabled = SessionLoggingEnabled;
-        settings.SessionLogDirectory = SessionLogDirectory;
-        settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
-        settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
-        settings.ExternalToolTimeoutMs = ExternalToolTimeoutMs;
-        settings.RdpResizeEnableDelayMs = RdpResizeEnableDelayMs;
-        settings.RdpArtifactCleanupDelayMs = RdpArtifactCleanupDelayMs;
-        settings.RdpCredentialAutofillTimeoutMs = RdpCredentialAutofillTimeoutMs;
-
-        // UI state
-        settings.ShowToolsPanel = ShowToolsPanel;
-
-        // Advanced / File sharing
-        settings.FileShareEnableTftp = FileShareEnableTftp;
-
         // Validate external tools before persisting
-        var extToolError = ValidateExternalTools();
+        string? extToolError = ValidateExternalTools();
         if (extToolError is not null)
         {
             ValidationSummary = extToolError;
@@ -830,21 +731,123 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             return;
         }
 
-        settings.ExternalTools = ExternalTools.Select(t => new ExternalToolDefinition
+        SshAgentPreferenceEnum parsedSshAgentPreference = Enum.TryParse<SshAgentPreferenceEnum>(
+            SshAgentPreference,
+            ignoreCase: false,
+            out SshAgentPreferenceEnum sshAgentPreference)
+            ? sshAgentPreference
+            : SshAgentPreferenceEnum.AutoOpenSshFirst;
+        List<ExternalToolDefinition> externalTools = ExternalTools.Select(tool => new ExternalToolDefinition
         {
-            Name = t.Name.Trim(),
-            ExecutablePath = t.ExecutablePath.Trim(),
-            Arguments = t.Arguments,
-            WorkingDirectory = t.WorkingDirectory,
-            RunAsAdministrator = t.RunAsAdministrator,
-            RunHidden = t.RunHidden
+            Name = tool.Name.Trim(),
+            ExecutablePath = tool.ExecutablePath.Trim(),
+            Arguments = tool.Arguments,
+            WorkingDirectory = tool.WorkingDirectory,
+            RunAsAdministrator = tool.RunAsAdministrator,
+            RunHidden = tool.RunHidden
         }).ToList();
+        List<SshGatewayDto> sshGateways = _pendingGateways.Select(CloneGateway).ToList();
+        List<ProjectDto> projects = _pendingProjects.Select(CloneProject).ToList();
 
-        // Flush buffered gateways and projects
-        settings.SshGateways = _pendingGateways.Select(CloneGateway).ToList();
-        settings.Projects = _pendingProjects.Select(CloneProject).ToList();
+        await _configManager.MergeSettingAsync((AppSettings settings) =>
+        {
+            // General
+            settings.DefaultLocale = DefaultLocale;
+            settings.DefaultTheme = DefaultTheme;
+            settings.AccentTint = AccentTint;
+            settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
+            settings.PreventSleepDuringSession = PreventSleepDuringSession;
+            settings.CollapseTunnelsPanelByDefault = CollapseTunnelsPanelByDefault;
+            settings.ExternalEditorPath = ExternalEditorPath;
 
-        await _configManager.SaveSettingsAsync(settings);
+            // Terminal
+            settings.TerminalFontFamily = TerminalFontFamily;
+            settings.TerminalFontSize = TerminalFontSize;
+            settings.TerminalColorScheme = TerminalColorScheme;
+            settings.PowerShellExecutionPolicy = PowerShellExecutionPolicy;
+
+            // SSH & SFTP
+            settings.PlinkPath = PlinkPath;
+            settings.PuttyPath = string.IsNullOrWhiteSpace(PuttyPath) ? null : PuttyPath;
+            settings.SshDefaultMode = SshDefaultMode;
+            settings.SshAgentPreference = parsedSshAgentPreference;
+            settings.AntiIdleIntervalSeconds = AntiIdleInterval;
+            settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
+            settings.SshAutoReconnect = SshAutoReconnect;
+            settings.SshAutoReconnectAttempts = SshAutoReconnectAttempts;
+            settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
+            settings.X11ServerPath = string.IsNullOrWhiteSpace(X11ServerPath) ? null : X11ServerPath;
+            settings.X11AutoStart = X11AutoStart;
+            settings.SysinternalsPath = string.IsNullOrWhiteSpace(SysinternalsPath) ? null : SysinternalsPath;
+            settings.NirSoftPath = string.IsNullOrWhiteSpace(NirSoftPath) ? null : NirSoftPath;
+            settings.NanaRunPath = string.IsNullOrWhiteSpace(NanaRunPath) ? null : NanaRunPath;
+
+            // Command Library Git Sync
+            settings.CmdLibGitSyncEnabled = CmdLibGitSyncEnabled;
+            settings.CmdLibGitSyncUrl = string.IsNullOrWhiteSpace(CmdLibGitSyncUrl) ? null : CmdLibGitSyncUrl;
+            settings.CmdLibGitSyncBranch = CmdLibGitSyncBranch;
+            settings.CmdLibGitSyncAuthorName = CmdLibGitSyncAuthorName;
+            settings.CmdLibGitSyncAuthorEmail = CmdLibGitSyncAuthorEmail;
+            settings.CmdLibGitSyncOnStartup = CmdLibGitSyncOnStartup;
+            settings.CmdLibGitSyncAutoPush = CmdLibGitSyncAutoPush;
+
+            // Session Health Monitor
+            settings.SessionHealthMonitorEnabled = SessionHealthMonitorEnabled;
+            settings.SessionHealthCheckIntervalSeconds = SessionHealthCheckIntervalSeconds;
+            settings.SessionHealthProbeTimeoutMs = SessionHealthProbeTimeoutMs;
+            settings.SessionHealthMaxConcurrent = SessionHealthMaxConcurrent;
+
+            // RDP defaults
+            settings.DefaultResolutionWidth = DefaultResolutionWidth;
+            settings.DefaultResolutionHeight = DefaultResolutionHeight;
+            settings.RdpDefaultMode = RdpDefaultMode;
+            settings.RdpDefaultNla = RdpDefaultNla;
+            settings.RdpDefaultColorDepth = RdpDefaultColorDepth;
+            settings.RdpDefaultDynamicResolution = RdpDefaultDynamicResolution;
+            settings.RdpDefaultMultiMonitor = RdpDefaultMultiMonitor;
+            settings.RdpDefaultRedirectClipboard = RdpDefaultRedirectClipboard;
+            settings.RdpDefaultRedirectDrives = RdpDefaultRedirectDrives;
+            settings.RdpDefaultRedirectPrinters = RdpDefaultRedirectPrinters;
+            settings.RdpDefaultRedirectComPorts = RdpDefaultRedirectComPorts;
+            settings.RdpDefaultRedirectSmartCards = RdpDefaultRedirectSmartCards;
+            settings.RdpDefaultRedirectWebcam = RdpDefaultRedirectWebcam;
+            settings.RdpDefaultRedirectUsb = RdpDefaultRedirectUsb;
+            settings.RdpDefaultAudioCapture = RdpDefaultAudioCapture;
+            settings.RdpDefaultAutoReconnect = RdpDefaultAutoReconnect;
+            settings.RdpDefaultBitmapCaching = RdpDefaultBitmapCaching;
+            settings.RdpDefaultCompression = RdpDefaultCompression;
+            settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
+            settings.RdpResolutionPresets = RdpResolutionPresets;
+            settings.RdpDialogAdvancedDefault = RdpDialogAdvancedDefault;
+
+            // Security
+            settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
+            settings.CredentialProviderCommand = CredentialProviderCommand;
+            settings.CredentialProviderDatabase = CredentialProviderDatabase;
+            settings.RequireCredentialGuard = RequireCredentialGuard;
+
+            // Advanced / Logging
+            settings.EnableLogging = EnableLogging;
+            settings.SessionLoggingEnabled = SessionLoggingEnabled;
+            settings.SessionLogDirectory = SessionLogDirectory;
+            settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
+            settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
+            settings.ExternalToolTimeoutMs = ExternalToolTimeoutMs;
+            settings.RdpResizeEnableDelayMs = RdpResizeEnableDelayMs;
+            settings.RdpArtifactCleanupDelayMs = RdpArtifactCleanupDelayMs;
+            settings.RdpCredentialAutofillTimeoutMs = RdpCredentialAutofillTimeoutMs;
+
+            // UI state
+            settings.ShowToolsPanel = ShowToolsPanel;
+
+            // Advanced / File sharing
+            settings.FileShareEnableTftp = FileShareEnableTftp;
+            settings.ExternalTools = externalTools;
+
+            // Flush buffered gateways and projects
+            settings.SshGateways = sshGateways;
+            settings.Projects = projects;
+        });
 
         // Unassign servers from deleted projects
         if (_deletedProjectIds.Count > 0)

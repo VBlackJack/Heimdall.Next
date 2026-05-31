@@ -313,6 +313,65 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveAsync_UsesMergeSettingAsyncInsteadOfSaveSettingsAsync()
+    {
+        FakeConfigManager config = new();
+        SettingsViewModel viewModel = CreateViewModel(config);
+        viewModel.DefaultTheme = "Buffy";
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, config.MergeSettingCallCount);
+        Assert.Equal(0, config.SaveSettingsCallCount);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreservesExternallyManagedGitToken()
+    {
+        FakeConfigManager config = new()
+        {
+            Settings = new AppSettings
+            {
+                CmdLibGitSyncToken = "tok",
+                CmdLibGitSyncUrl = "https://old.example/repo.git"
+            }
+        };
+        SettingsViewModel viewModel = CreateViewModel(config);
+        viewModel.LoadFromSettings(config.Settings);
+        viewModel.CmdLibGitSyncUrl = "https://new.example/repo.git";
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        AppSettings saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.Equal("tok", saved.CmdLibGitSyncToken);
+        Assert.Equal("https://new.example/repo.git", saved.CmdLibGitSyncUrl);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreservesExternallyManagedPinFields()
+    {
+        FakeConfigManager config = new()
+        {
+            Settings = new AppSettings
+            {
+                PinHash = "hash",
+                PinSalt = "salt",
+                DefaultTheme = "Drakul"
+            }
+        };
+        SettingsViewModel viewModel = CreateViewModel(config);
+        viewModel.LoadFromSettings(config.Settings);
+        viewModel.DefaultTheme = "Buffy";
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        AppSettings saved = Assert.IsType<AppSettings>(config.SavedSettings);
+        Assert.Equal("hash", saved.PinHash);
+        Assert.Equal("salt", saved.PinSalt);
+        Assert.Equal("Buffy", saved.DefaultTheme);
+    }
+
+    [Fact]
     public async Task ConfigurePin_SetResult_PersistsHashSaltAndResetsLockout()
     {
         DateTime lockoutUntilUtc = DateTime.UtcNow.AddMinutes(5);
@@ -808,6 +867,10 @@ public sealed class SettingsViewModelTests
 
         public AppSettings? SavedSettings { get; private set; }
 
+        public int SaveSettingsCallCount { get; private set; }
+
+        public int MergeSettingCallCount { get; private set; }
+
         public List<ServerProfileDto> Servers { get; set; } = [];
 
         public List<ServerProfileDto>? SavedServers { get; private set; }
@@ -822,13 +885,15 @@ public sealed class SettingsViewModelTests
 
         public Task InitializeAsync() => Task.CompletedTask;
 
-        public Task<AppSettings> LoadSettingsAsync() => Task.FromResult(Settings);
+        public Task<AppSettings> LoadSettingsAsync() => Task.FromResult(CloneSettings(Settings));
 
         public Task SaveSettingsAsync(AppSettings settings)
         {
-            SavedSettings = settings;
-            Settings = settings;
-            SettingsChanged?.Invoke(settings);
+            SaveSettingsCallCount++;
+            AppSettings storedSettings = CloneSettings(settings);
+            SavedSettings = storedSettings;
+            Settings = storedSettings;
+            SettingsChanged?.Invoke(storedSettings);
             return Task.CompletedTask;
         }
 
@@ -840,9 +905,12 @@ public sealed class SettingsViewModelTests
 
         public Task MergeSettingAsync(Action<AppSettings> mutate)
         {
-            mutate(Settings);
-            SavedSettings = Settings;
-            SettingsChanged?.Invoke(Settings);
+            MergeSettingCallCount++;
+            AppSettings currentSettings = CloneSettings(Settings);
+            mutate(currentSettings);
+            Settings = currentSettings;
+            SavedSettings = currentSettings;
+            SettingsChanged?.Invoke(currentSettings);
             return Task.CompletedTask;
         }
 
@@ -854,6 +922,12 @@ public sealed class SettingsViewModelTests
             SavedServers = servers;
             Servers = servers;
             return Task.CompletedTask;
+        }
+
+        private static AppSettings CloneSettings(AppSettings settings)
+        {
+            string json = JsonSerializer.Serialize(settings);
+            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
         }
     }
 
