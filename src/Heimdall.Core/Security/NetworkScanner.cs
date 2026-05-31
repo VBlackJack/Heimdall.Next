@@ -160,7 +160,7 @@ public static class NetworkScanner
         return open;
     }
 
-    private static (string Network, int PrefixLength) ParseCidr(string cidr)
+    internal static (string Network, int PrefixLength) ParseCidr(string cidr)
     {
         var trimmed = cidr.Trim();
 
@@ -179,11 +179,14 @@ public static class NetworkScanner
         return (parts[0], prefix);
     }
 
-    private static List<string> GenerateAddresses(string network, int prefixLength)
+    internal static List<string> GenerateAddresses(string network, int prefixLength)
     {
         var ip = IPAddress.Parse(network);
         var bytes = ip.GetAddressBytes();
         var networkInt = (uint)(bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]);
+        int hostBits = 32 - prefixLength;
+        uint mask = hostBits >= 32 ? 0u : ~((1u << hostBits) - 1);
+        networkInt &= mask;
 
         // /32 = single host, /31 = point-to-point (2 hosts, no broadcast)
         if (prefixLength == 32)
@@ -200,7 +203,6 @@ public static class NetworkScanner
             ];
         }
 
-        var hostBits = 32 - prefixLength;
         var hostCount = (1u << hostBits) - 2; // exclude network and broadcast
         var addresses = new List<string>((int)hostCount);
 
