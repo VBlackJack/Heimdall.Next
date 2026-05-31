@@ -340,6 +340,19 @@ public class PinManagerTests
     }
 
     [Fact]
+    public void RegisterFailure_RaisesStateChanged()
+    {
+        PinManager pm = new PinManager();
+        int invocationCount = 0;
+
+        pm.StateChanged += () => invocationCount++;
+
+        pm.RegisterFailure();
+
+        Assert.Equal(1, invocationCount);
+    }
+
+    [Fact]
     public void RegisterFailure_AtMaxAttempts_TriggersLockout()
     {
         var pm = new PinManager(maxAttempts: 3);
@@ -350,6 +363,24 @@ public class PinManagerTests
 
         pm.RegisterFailure();
         Assert.True(pm.IsLockedOut);
+    }
+
+    [Fact]
+    public void LockoutUntilUtc_AfterLockoutIsFutureAndResetClears()
+    {
+        PinManager pm = new PinManager(maxAttempts: 2, lockoutDuration: TimeSpan.FromMinutes(5));
+
+        pm.RegisterFailure();
+        pm.RegisterFailure();
+
+        DateTime? lockoutUntilUtc = pm.LockoutUntilUtc;
+
+        Assert.NotNull(lockoutUntilUtc);
+        Assert.True(lockoutUntilUtc.Value > DateTime.UtcNow);
+
+        pm.ResetFailures();
+
+        Assert.Null(pm.LockoutUntilUtc);
     }
 
     [Fact]
@@ -365,6 +396,33 @@ public class PinManagerTests
 
         Assert.Equal(0, pm.FailureCount);
         Assert.False(pm.IsLockedOut);
+    }
+
+    [Fact]
+    public void ResetFailures_RaisesStateChanged()
+    {
+        PinManager pm = new PinManager();
+        pm.RegisterFailure();
+        int invocationCount = 0;
+
+        pm.StateChanged += () => invocationCount++;
+
+        pm.ResetFailures();
+
+        Assert.Equal(1, invocationCount);
+    }
+
+    [Fact]
+    public void LockoutUntilUtc_FreshAndBelowMaxAttempts_IsNull()
+    {
+        PinManager pm = new PinManager(maxAttempts: 3);
+
+        Assert.Null(pm.LockoutUntilUtc);
+
+        pm.RegisterFailure();
+        pm.RegisterFailure();
+
+        Assert.Null(pm.LockoutUntilUtc);
     }
 
     [Fact]

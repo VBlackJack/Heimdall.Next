@@ -66,6 +66,19 @@ public sealed class PinManager
     }
 
     /// <summary>
+    /// Absolute UTC instant until which the PIN is locked out, or null when not locked out. Exposed for persistence.
+    /// </summary>
+    public DateTime? LockoutUntilUtc
+    {
+        get { lock (_lock) return _lockoutUntilUtc; }
+    }
+
+    /// <summary>
+    /// Raised whenever the persisted lockout state (failure count or lockout expiry) changes, so the host can persist it.
+    /// </summary>
+    public event Action? StateChanged;
+
+    /// <summary>
     /// Whether the PIN is currently locked out due to too many failures.
     /// </summary>
     public bool IsLockedOut
@@ -80,6 +93,7 @@ public sealed class PinManager
                 if (DateTime.UtcNow >= _lockoutUntilUtc.Value)
                 {
                     // Lockout expired — auto-reset
+                    // Intentionally no StateChanged here; persisted expiry is reconciled during restore.
                     _failureCount = 0;
                     _lockoutUntilUtc = null;
                     return false;
@@ -250,6 +264,8 @@ public sealed class PinManager
     /// <returns>The updated failure count.</returns>
     public int RegisterFailure()
     {
+        int failureCount;
+
         lock (_lock)
         {
             _failureCount++;
@@ -259,8 +275,11 @@ public sealed class PinManager
                 _lockoutUntilUtc = DateTime.UtcNow.Add(LockoutDuration);
             }
 
-            return _failureCount;
+            failureCount = _failureCount;
         }
+
+        StateChanged?.Invoke();
+        return failureCount;
     }
 
     /// <summary>
@@ -273,6 +292,8 @@ public sealed class PinManager
             _failureCount = 0;
             _lockoutUntilUtc = null;
         }
+
+        StateChanged?.Invoke();
     }
 
     /// <summary>
