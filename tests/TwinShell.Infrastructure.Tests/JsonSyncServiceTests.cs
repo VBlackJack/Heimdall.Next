@@ -15,8 +15,12 @@
  */
 
 using FluentAssertions;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using TwinShell.Core.Interfaces;
 using TwinShell.Core.Models;
+using TwinShell.Core.Utilities;
 using ActionModel = TwinShell.Core.Models.Action;
 
 namespace TwinShell.Infrastructure.Tests;
@@ -183,6 +187,53 @@ public sealed class JsonSyncServiceTests
     }
 
     [Fact]
+    public async Task Import_ClampsFutureRemoteTimestamp()
+    {
+        string exportPath = CreateTempDirectory();
+
+        try
+        {
+            await using TwinShellSyncFixture exportFixture = await TwinShellSyncFixture.CreateAsync();
+            SeededSyncData seed = await exportFixture.SeedAsync();
+            SyncExportResult exportResult = await exportFixture.SyncService.ExportDataToYamlAsync(exportPath);
+            exportResult.Success.Should().BeTrue();
+
+            DateTime futureUpdatedAt = DateTime.UtcNow.AddYears(50);
+            string actionFilePath = Path.Combine(
+                exportPath,
+                "actions",
+                seed.Category.Name,
+                BuildExpectedEntityFileName(seed.Actions[0].Title, seed.Actions[0].PublicId));
+            string batchFilePath = Path.Combine(
+                exportPath,
+                "batches",
+                BuildExpectedEntityFileName(seed.Batch.Name, seed.Batch.PublicId));
+            await SetJsonUpdatedAtAsync(actionFilePath, futureUpdatedAt);
+            await SetJsonUpdatedAtAsync(batchFilePath, futureUpdatedAt);
+
+            await using TwinShellSyncFixture importFixture = await TwinShellSyncFixture.CreateAsync();
+            SyncImportResult importResult = await importFixture.SyncService.ImportDataFromYamlAsync(exportPath);
+
+            importResult.Success.Should().BeTrue();
+            importResult.Warnings.Count(warning =>
+                warning.Contains("future updatedAt", StringComparison.Ordinal)).Should().Be(2);
+
+            DateTime upperBound = DateTime.UtcNow + ImportTimestampNormalizer.DefaultFutureSkew;
+            ActionModel? importedAction = await importFixture.Actions.GetByPublicIdAsync(seed.Actions[0].PublicId);
+            importedAction.Should().NotBeNull();
+            importedAction!.UpdatedAt.Should().BeOnOrBefore(upperBound);
+
+            CommandBatch? importedBatch = await importFixture.Batches.GetByPublicIdAsync(seed.Batch.PublicId);
+            importedBatch.Should().NotBeNull();
+            importedBatch!.UpdatedAt.Should().BeOnOrBefore(upperBound);
+        }
+        finally
+        {
+            DeleteDirectory(exportPath);
+        }
+    }
+
+    [Fact]
     public async Task ValidateFolder_ReportsFileCounts()
     {
         string exportPath = CreateTempDirectory();
@@ -286,6 +337,16 @@ public sealed class JsonSyncServiceTests
 
     private static string BuildExpectedEntityFileName(string name, Guid publicId)
         => $"{name}-{publicId:N}.json";
+
+    private static async Task SetJsonUpdatedAtAsync(string filePath, DateTime updatedAt)
+    {
+        string json = await File.ReadAllTextAsync(filePath);
+        JsonNode? document = JsonNode.Parse(json);
+        document.Should().NotBeNull();
+        document!["updatedAt"] = updatedAt.ToString("O", CultureInfo.InvariantCulture);
+        string patchedJson = document.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, patchedJson);
+    }
 
     private static void DeleteDirectory(string path)
     {

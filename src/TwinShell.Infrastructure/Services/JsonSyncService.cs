@@ -21,6 +21,7 @@ using TwinShell.Core.Enums;
 using TwinShell.Core.Helpers;
 using TwinShell.Core.Interfaces;
 using TwinShell.Core.Models;
+using TwinShell.Core.Utilities;
 
 namespace TwinShell.Infrastructure.Services;
 
@@ -654,6 +655,22 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
+                DateTime nowUtc = DateTime.UtcNow;
+                DateTime? normalizedUpdatedAt = model.UpdatedAt;
+                if (normalizedUpdatedAt.HasValue)
+                {
+                    DateTime clamped = ImportTimestampNormalizer.ClampFutureToNow(
+                        normalizedUpdatedAt.Value,
+                        nowUtc,
+                        ImportTimestampNormalizer.DefaultFutureSkew,
+                        out bool wasClamped);
+                    if (wasClamped)
+                    {
+                        normalizedUpdatedAt = clamped;
+                        result.Warnings.Add($"Action '{model.Title}' had a future updatedAt timestamp; clamped to import time.");
+                    }
+                }
+
                 if (!Enum.TryParse<Platform>(model.Platform, true, out var platform))
                 {
                     platform = Platform.Windows;
@@ -683,7 +700,7 @@ public sealed class JsonSyncService : ISyncService
                 if (existing != null)
                 {
                     // Conflict detection: check if local is newer than remote
-                    var remoteUpdatedAt = model.UpdatedAt ?? DateTime.MinValue;
+                    DateTime remoteUpdatedAt = normalizedUpdatedAt ?? DateTime.MinValue;
                     if (existing.UpdatedAt > remoteUpdatedAt)
                     {
                         // Local is newer - this is a conflict
@@ -717,7 +734,7 @@ public sealed class JsonSyncService : ISyncService
                     existing.Notes = model.Notes;
                     existing.Links = ParseLinks(model.Links);
                     existing.IsUserCreated = model.IsUserCreated;
-                    existing.UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow;
+                    existing.UpdatedAt = normalizedUpdatedAt ?? nowUtc;
 
                     await _actionRepository.UpdateAsync(existing);
                     result.ActionsUpdated++;
@@ -744,7 +761,7 @@ public sealed class JsonSyncService : ISyncService
                         Links = ParseLinks(model.Links),
                         IsUserCreated = model.IsUserCreated,
                         CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow
+                        UpdatedAt = normalizedUpdatedAt ?? nowUtc
                     };
                     await _actionRepository.AddAsync(action);
                     result.ActionsCreated++;
@@ -795,6 +812,22 @@ public sealed class JsonSyncService : ISyncService
                     continue;
                 }
 
+                DateTime nowUtc = DateTime.UtcNow;
+                DateTime? normalizedUpdatedAt = model.UpdatedAt;
+                if (normalizedUpdatedAt.HasValue)
+                {
+                    DateTime clamped = ImportTimestampNormalizer.ClampFutureToNow(
+                        normalizedUpdatedAt.Value,
+                        nowUtc,
+                        ImportTimestampNormalizer.DefaultFutureSkew,
+                        out bool wasClamped);
+                    if (wasClamped)
+                    {
+                        normalizedUpdatedAt = clamped;
+                        result.Warnings.Add($"Batch '{model.Name}' had a future updatedAt timestamp; clamped to import time.");
+                    }
+                }
+
                 if (!Enum.TryParse<BatchExecutionMode>(model.ExecutionMode, true, out var executionMode))
                 {
                     executionMode = BatchExecutionMode.StopOnError;
@@ -817,7 +850,7 @@ public sealed class JsonSyncService : ISyncService
                 if (existing != null)
                 {
                     // Conflict detection: check if local is newer than remote
-                    var remoteUpdatedAt = model.UpdatedAt ?? DateTime.MinValue;
+                    DateTime remoteUpdatedAt = normalizedUpdatedAt ?? DateTime.MinValue;
                     if (existing.UpdatedAt > remoteUpdatedAt)
                     {
                         // Local is newer - this is a conflict
@@ -843,7 +876,7 @@ public sealed class JsonSyncService : ISyncService
                     existing.Commands = commands;
                     existing.Tags = model.Tags ?? new List<string>();
                     existing.IsUserCreated = model.IsUserCreated;
-                    existing.UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow;
+                    existing.UpdatedAt = normalizedUpdatedAt ?? nowUtc;
 
                     await _batchRepository.UpdateAsync(existing);
                     result.BatchesUpdated++;
@@ -862,7 +895,7 @@ public sealed class JsonSyncService : ISyncService
                         Tags = model.Tags ?? new List<string>(),
                         IsUserCreated = model.IsUserCreated,
                         CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow
+                        UpdatedAt = normalizedUpdatedAt ?? nowUtc
                     };
                     await _batchRepository.AddAsync(batch);
                     result.BatchesCreated++;
