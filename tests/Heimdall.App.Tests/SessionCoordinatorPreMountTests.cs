@@ -32,6 +32,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.SessionDiagnostics;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
@@ -320,7 +321,12 @@ public sealed class SessionCoordinatorPreMountTests
                 new FakeRdpImportService(),
                 new PuttySessionImporter(new FakePuttySessionRegistrySource(), configManager),
                 new Heimdall.App.Services.Import.KnownHostsImporter(configManager, hostKeyStore));
-            var settings = new SettingsViewModel(configManager, localizer, dialogService, trustedHostKeys: null!);
+            SettingsViewModel settings = new SettingsViewModel(
+                configManager,
+                localizer,
+                dialogService,
+                null!,
+                new PinManager());
             var main = new MainViewModel(
                 configManager,
                 localizer,

@@ -29,6 +29,7 @@ using Heimdall.App.ViewModels.Settings;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
+using Heimdall.Core.Security;
 using SshAgentPreferenceEnum = Heimdall.Core.Ssh.SshAgentPreference;
 
 namespace Heimdall.App.ViewModels;
@@ -57,6 +58,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
+    private readonly PinManager _pinManager;
     private readonly IProfileImportService? _profileImportService;
     private bool _disposed;
 
@@ -321,6 +323,15 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     [ObservableProperty]
     private bool _requireCredentialGuard;
 
+    [ObservableProperty]
+    private bool _isPinConfigured;
+
+    partial void OnIsPinConfiguredChanged(bool value) => OnPropertyChanged(nameof(PinStatusText));
+
+    public string PinStatusText => IsPinConfigured
+        ? _localizer["SettingsPinStatusEnabled"]
+        : _localizer["SettingsPinStatusDisabled"];
+
     // --- UI state (persisted but not exposed in Settings tab) ---
 
     [ObservableProperty]
@@ -435,11 +446,13 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         LocalizationManager localizer,
         IDialogService dialogService,
         TrustedHostKeysSettingsViewModel trustedHostKeys,
+        PinManager pinManager,
         IProfileImportService? profileImportService = null)
     {
         _configManager = configManager;
         _localizer = localizer;
         _dialogService = dialogService;
+        _pinManager = pinManager;
         _profileImportService = profileImportService;
         TrustedHostKeys = trustedHostKeys;
     }
@@ -605,6 +618,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         CredentialProviderCommand = settings.CredentialProviderCommand ?? "";
         CredentialProviderDatabase = settings.CredentialProviderDatabase ?? "";
         RequireCredentialGuard = settings.RequireCredentialGuard;
+        IsPinConfigured = !string.IsNullOrEmpty(settings.PinHash) && !string.IsNullOrEmpty(settings.PinSalt);
 
         // Advanced / Logging
         EnableLogging = settings.EnableLogging;
@@ -1403,6 +1417,45 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     private string? _credentialProviderTestResult;
 
     [RelayCommand]
+    private async Task ConfigurePinAsync()
+    {
+        AppSettings current = await _configManager.LoadSettingsAsync();
+        PinSetupDialogViewModel dialogViewModel =
+            new PinSetupDialogViewModel(_pinManager, current.PinHash, current.PinSalt);
+        PinSetupResult? result = await _dialogService.ShowPinSetupDialogAsync(dialogViewModel);
+        if (result is null)
+        {
+            return;
+        }
+
+        if (result.Outcome == PinSetupOutcome.Set)
+        {
+            await _configManager.MergeSettingAsync((AppSettings settings) =>
+            {
+                settings.PinHash = result.Hash;
+                settings.PinSalt = result.Salt;
+                settings.PinFailureCount = 0;
+                settings.PinLockoutUntilUtc = null;
+            });
+
+            IsPinConfigured = true;
+            FileLogger.Info("PIN configured: set.");
+            return;
+        }
+
+        await _configManager.MergeSettingAsync((AppSettings settings) =>
+        {
+            settings.PinHash = null;
+            settings.PinSalt = null;
+            settings.PinFailureCount = 0;
+            settings.PinLockoutUntilUtc = null;
+        });
+
+        IsPinConfigured = false;
+        FileLogger.Info("PIN configured: removed.");
+    }
+
+    [RelayCommand]
     private async Task TestCredentialProviderAsync(CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(CredentialProviderCommand))
@@ -1501,6 +1554,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         if (e.PropertyName is not (nameof(IsDirty) or nameof(IsBusy)
             or nameof(SelectedGateway) or nameof(SelectedProject)
             or nameof(SelectedExternalTool) or nameof(HasValidationErrors)
+            or nameof(IsPinConfigured) or nameof(PinStatusText)
             or nameof(ValidationSummary)
             or nameof(GeneralTabErrorCount) or nameof(HasGeneralTabErrors)
             or nameof(TerminalTabErrorCount) or nameof(HasTerminalTabErrors)

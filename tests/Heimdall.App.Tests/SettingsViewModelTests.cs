@@ -25,6 +25,7 @@ using Heimdall.App.ViewModels.Settings;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 
@@ -267,6 +268,120 @@ public sealed class SettingsViewModelTests
 
         var saved = Assert.IsType<AppSettings>(config.SavedSettings);
         Assert.True(saved.FileShareEnableTftp);
+    }
+
+    [Fact]
+    public async Task ConfigurePin_SetResult_PersistsHashSaltAndResetsLockout()
+    {
+        DateTime lockoutUntilUtc = DateTime.UtcNow.AddMinutes(5);
+        FakeConfigManager config = new FakeConfigManager
+        {
+            Settings = new AppSettings
+            {
+                PinFailureCount = 2,
+                PinLockoutUntilUtc = lockoutUntilUtc
+            }
+        };
+        FakeDialogService dialog = new FakeDialogService
+        {
+            PinSetupResultToReturn = new PinSetupResult(PinSetupOutcome.Set, "H", "S")
+        };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog);
+
+        await viewModel.ConfigurePinCommand.ExecuteAsync(null);
+
+        Assert.Equal("H", config.Settings.PinHash);
+        Assert.Equal("S", config.Settings.PinSalt);
+        Assert.Equal(0, config.Settings.PinFailureCount);
+        Assert.Null(config.Settings.PinLockoutUntilUtc);
+        Assert.True(viewModel.IsPinConfigured);
+        Assert.NotNull(dialog.LastPinSetupViewModel);
+        Assert.False(dialog.LastPinSetupViewModel!.IsPinSet);
+    }
+
+    [Fact]
+    public async Task ConfigurePin_RemovedResult_ClearsPinAndLockout()
+    {
+        FakeConfigManager config = new FakeConfigManager
+        {
+            Settings = new AppSettings
+            {
+                PinHash = "H",
+                PinSalt = "S",
+                PinFailureCount = 2,
+                PinLockoutUntilUtc = DateTime.UtcNow.AddMinutes(5)
+            }
+        };
+        FakeDialogService dialog = new FakeDialogService
+        {
+            PinSetupResultToReturn = new PinSetupResult(PinSetupOutcome.Removed, null, null)
+        };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog);
+        viewModel.LoadFromSettings(config.Settings);
+
+        await viewModel.ConfigurePinCommand.ExecuteAsync(null);
+
+        Assert.Null(config.Settings.PinHash);
+        Assert.Null(config.Settings.PinSalt);
+        Assert.Equal(0, config.Settings.PinFailureCount);
+        Assert.Null(config.Settings.PinLockoutUntilUtc);
+        Assert.False(viewModel.IsPinConfigured);
+        Assert.NotNull(dialog.LastPinSetupViewModel);
+        Assert.True(dialog.LastPinSetupViewModel!.IsPinSet);
+    }
+
+    [Fact]
+    public async Task ConfigurePin_CancelledNullResult_DoesNotChangePinState()
+    {
+        DateTime lockoutUntilUtc = DateTime.UtcNow.AddMinutes(5);
+        FakeConfigManager config = new FakeConfigManager
+        {
+            Settings = new AppSettings
+            {
+                PinHash = "H",
+                PinSalt = "S",
+                PinFailureCount = 2,
+                PinLockoutUntilUtc = lockoutUntilUtc
+            }
+        };
+        FakeDialogService dialog = new FakeDialogService
+        {
+            PinSetupResultToReturn = null
+        };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog);
+        viewModel.LoadFromSettings(config.Settings);
+
+        await viewModel.ConfigurePinCommand.ExecuteAsync(null);
+
+        Assert.Equal("H", config.Settings.PinHash);
+        Assert.Equal("S", config.Settings.PinSalt);
+        Assert.Equal(2, config.Settings.PinFailureCount);
+        Assert.Equal(lockoutUntilUtc, config.Settings.PinLockoutUntilUtc);
+        Assert.True(viewModel.IsPinConfigured);
+    }
+
+    [Fact]
+    public void LoadFromSettings_WithPin_SetsIsPinConfiguredTrue()
+    {
+        SettingsViewModel viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings
+        {
+            PinHash = "H",
+            PinSalt = "S"
+        });
+
+        Assert.True(viewModel.IsPinConfigured);
+    }
+
+    [Fact]
+    public void LoadFromSettings_WithoutPin_SetsIsPinConfiguredFalse()
+    {
+        SettingsViewModel viewModel = CreateViewModel(new FakeConfigManager());
+
+        viewModel.LoadFromSettings(new AppSettings());
+
+        Assert.False(viewModel.IsPinConfigured);
     }
 
     [Fact]
@@ -530,7 +645,12 @@ public sealed class SettingsViewModelTests
             dialog,
             new FakeClipboardService(),
             new FakeUiDispatcher());
-        SettingsViewModel viewModel = new(new FakeConfigManager(), localizer, dialog, trustedHostKeys);
+        SettingsViewModel viewModel = new(
+            new FakeConfigManager(),
+            localizer,
+            dialog,
+            trustedHostKeys,
+            new PinManager());
 
         viewModel.Dispose();
         viewModel.Dispose();
@@ -560,7 +680,13 @@ public sealed class SettingsViewModelTests
             new FakeClipboardService(),
             new FakeUiDispatcher());
 
-        return new SettingsViewModel(config, localizer, dialog, trustedHostKeys, profileImportService);
+        return new SettingsViewModel(
+            config,
+            localizer,
+            dialog,
+            trustedHostKeys,
+            new PinManager(),
+            profileImportService);
     }
 
     private static async Task<AppSettings> LoadExpectedFactoryDefaultsAsync()
@@ -694,6 +820,10 @@ public sealed class SettingsViewModelTests
 
         public List<(string Title, string Message)> ErrorCalls { get; } = [];
 
+        public PinSetupResult? PinSetupResultToReturn { get; set; }
+
+        public PinSetupDialogViewModel? LastPinSetupViewModel { get; private set; }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
         {
             ConfirmCalls.Add((title, message, severity));
@@ -725,7 +855,10 @@ public sealed class SettingsViewModelTests
             => Task.CompletedTask;
 
         public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
-            => Task.FromResult<PinSetupResult?>(null);
+        {
+            LastPinSetupViewModel = viewModel;
+            return Task.FromResult(PinSetupResultToReturn);
+        }
 
         public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
             => Task.FromResult<SnapshotRestoreDialogResult?>(null);
