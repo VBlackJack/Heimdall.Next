@@ -100,6 +100,13 @@ public interface IDialogService
     Task ShowPinDialogAsync(PinDialogViewModel viewModel);
 
     /// <summary>
+    /// Shows the PIN setup dialog for setting, changing, or removing the application PIN.
+    /// </summary>
+    /// <param name="viewModel">The PIN setup dialog ViewModel managing setup state.</param>
+    /// <returns>The completed setup result, or null if cancelled.</returns>
+    Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel);
+
+    /// <summary>
     /// Shows the startup restore dialog for a previously saved session snapshot.
     /// Returns <c>null</c> when the user dismisses the dialog via the window close button.
     /// </summary>

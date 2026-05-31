@@ -394,6 +394,9 @@ public sealed class TrustedHostKeysSettingsViewModelTests
         public Task ShowPinDialogAsync(PinDialogViewModel viewModel)
             => Task.CompletedTask;
 
+        public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
+            => Task.FromResult<PinSetupResult?>(null);
+
         public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
             => Task.FromResult<SnapshotRestoreDialogResult?>(null);
 

@@ -733,6 +733,11 @@ public sealed class SessionCoordinatorPreMountTests
             return Task.CompletedTask;
         }
 
+        public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
+        {
+            return Task.FromResult<PinSetupResult?>(null);
+        }
+
         public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(
             SnapshotRestoreDialogViewModel viewModel)
         {

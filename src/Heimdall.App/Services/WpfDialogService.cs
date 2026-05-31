@@ -250,6 +250,24 @@ public sealed class WpfDialogService(
     }
 
     /// <inheritdoc/>
+    public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        PinSetupDialog dialog = new PinSetupDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        PinSetupResult? result = dialog.ShowDialog() == true
+            ? viewModel.Result
+            : null;
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
     public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);

@@ -404,6 +404,11 @@ public sealed class SshHandlerConnectTests
             throw new NotImplementedException();
         }
 
+        public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
         {
             throw new NotImplementedException();
