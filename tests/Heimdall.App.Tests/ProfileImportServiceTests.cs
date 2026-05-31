@@ -92,6 +92,86 @@ public sealed class ProfileImportServiceTests
     }
 
     [Fact]
+    public async Task ImportFromPathAsync_JsonOutOfRangePort_ShowsParseErrorAndDoesNotPersist()
+    {
+        using ProfileImportFixture fixture = new();
+        string path = await fixture.WriteJsonAsync("servers.json",
+        [
+            new ServerProfileDto
+            {
+                Id = "bad-port",
+                DisplayName = "Bad Port",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                SshPort = 70000
+            }
+        ]);
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        RdpImportRowViewModel row = Assert.Single(fixture.Dialog.LastRdpImportViewModel!.Rows);
+        Assert.False(result.HasChanges);
+        Assert.Empty(servers);
+        Assert.True(row.HasParseError);
+        Assert.False(row.IsSelected);
+        Assert.Contains(nameof(ServerProfileDto.SshPort), row.ParseErrorMessage!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportFromPathAsync_JsonUnsupportedConnectionType_ShowsParseErrorAndDoesNotPersist()
+    {
+        using ProfileImportFixture fixture = new();
+        string path = await fixture.WriteJsonAsync("servers.json",
+        [
+            new ServerProfileDto
+            {
+                Id = "bad-type",
+                DisplayName = "Bad Type",
+                ConnectionType = "garbage",
+                RemoteServer = "host.example.com"
+            }
+        ]);
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        RdpImportRowViewModel row = Assert.Single(fixture.Dialog.LastRdpImportViewModel!.Rows);
+        Assert.False(result.HasChanges);
+        Assert.Empty(servers);
+        Assert.True(row.HasParseError);
+        Assert.False(row.IsSelected);
+        Assert.Contains(nameof(ServerProfileDto.ConnectionType), row.ParseErrorMessage!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportFromPathAsync_JsonParseErrorSelected_DoesNotPersist()
+    {
+        using ProfileImportFixture fixture = new();
+        fixture.Dialog.SelectParseErrorRows = true;
+        string path = await fixture.WriteJsonAsync("servers.json",
+        [
+            new ServerProfileDto
+            {
+                Id = "hostile-selection",
+                DisplayName = "Hostile Selection",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                SshPort = -1
+            }
+        ]);
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        RdpImportRowViewModel row = Assert.Single(fixture.Dialog.LastRdpImportViewModel!.Rows);
+        Assert.False(result.HasChanges);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Empty(servers);
+        Assert.True(row.HasParseError);
+    }
+
+    [Fact]
     public async Task ImportFromPathAsync_UnknownExtension_ReturnsFailure()
     {
         using var fixture = new ProfileImportFixture();
@@ -102,6 +182,29 @@ public sealed class ProfileImportServiceTests
         Assert.True(result.IsFailure);
         Assert.Contains(".txt", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Null(fixture.Dialog.LastRdpImportViewModel);
+    }
+
+    [Fact]
+    public void SupportedConnectionTypes_MatchesProtocolHandlerKeys()
+    {
+        string[] expected =
+        [
+            "RDP",
+            "SSH",
+            "SFTP",
+            "VNC",
+            "TELNET",
+            "FTP",
+            "CITRIX",
+            "LOCAL",
+            "WINRM"
+        ];
+
+        Assert.Equal(expected.Length, ProfileImportService.SupportedConnectionTypes.Count);
+        foreach (string connectionType in expected)
+        {
+            Assert.True(ProfileImportService.SupportedConnectionTypes.Contains(connectionType), connectionType);
+        }
     }
 
     private sealed class ProfileImportFixture : IDisposable
@@ -164,6 +267,8 @@ public sealed class ProfileImportServiceTests
     {
         public RdpImportDialogViewModel? LastRdpImportViewModel { get; private set; }
 
+        public bool SelectParseErrorRows { get; set; }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
             => Task.FromResult(true);
 
@@ -207,7 +312,7 @@ public sealed class ProfileImportServiceTests
                     .. viewModel.Rows.Select(row => new RdpImportSelectionEntry
                     {
                         SourceFilePath = row.SourceFilePath,
-                        IsSelected = !row.HasParseError,
+                        IsSelected = SelectParseErrorRows || !row.HasParseError,
                         ConflictResolution = row.HasNameConflict
                             ? RdpConflictResolution.AutoRename
                             : RdpConflictResolution.Skip

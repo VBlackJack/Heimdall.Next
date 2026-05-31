@@ -41,6 +41,23 @@ public sealed class ProfileImportService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
+    /// <summary>
+    /// Mirrors the ConnectionService handler protocol keys. Keep in sync when adding protocol handlers.
+    /// </summary>
+    internal static readonly IReadOnlySet<string> SupportedConnectionTypes =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "RDP",
+            "SSH",
+            "SFTP",
+            "VNC",
+            "TELNET",
+            "FTP",
+            "CITRIX",
+            "LOCAL",
+            "WINRM"
+        };
+
     private readonly IConfigManager _configManager = configManager;
     private readonly LocalizationManager _localizer = localizer;
     private readonly IDialogService _dialogService = dialogService;
@@ -214,34 +231,63 @@ public sealed class ProfileImportService(
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var currentServers = await _configManager.LoadServersAsync();
-        var existingById = currentServers
+        List<ServerProfileDto> currentServers = await _configManager.LoadServersAsync();
+        Dictionary<string, ServerProfileDto> existingById = currentServers
             .Where(server => !string.IsNullOrWhiteSpace(server.Id))
             .ToDictionary(server => server.Id, StringComparer.OrdinalIgnoreCase);
-        var existingNameMap = currentServers
+        Dictionary<string, string> existingNameMap = currentServers
             .Where(server => !string.IsNullOrWhiteSpace(server.DisplayName))
             .GroupBy(server => server.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().DisplayName, StringComparer.OrdinalIgnoreCase);
-        var candidateNameCounts = candidates
-            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.DisplayName))
-            .GroupBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> candidateNameCounts = new(StringComparer.OrdinalIgnoreCase);
+        List<ServerProfileDto> previewCandidates = new(candidates.Count);
+        List<IReadOnlyList<string>> validationErrors = new(candidates.Count);
 
-        var entries = new List<RdpImportPreviewEntry>(candidates.Count);
-        for (var index = 0; index < candidates.Count; index++)
+        for (int index = 0; index < candidates.Count; index++)
         {
-            var candidate = CloneProfile(candidates[index]);
-            var proposedName = string.IsNullOrWhiteSpace(candidate.DisplayName)
+            ServerProfileDto candidate = CloneProfile(candidates[index]);
+            string proposedName = string.IsNullOrWhiteSpace(candidate.DisplayName)
                 ? _localizer["DialogImportProfileFallbackName"]
                 : candidate.DisplayName.Trim();
             candidate.DisplayName = proposedName;
+            IReadOnlyList<string> errors = ImportedProfileValidator.Validate(candidate, SupportedConnectionTypes);
+            previewCandidates.Add(candidate);
+            validationErrors.Add(errors);
+
+            if (errors.Count == 0 && !string.IsNullOrWhiteSpace(proposedName))
+            {
+                if (candidateNameCounts.TryGetValue(proposedName, out int candidateNameCount))
+                {
+                    candidateNameCounts[proposedName] = candidateNameCount + 1;
+                }
+                else
+                {
+                    candidateNameCounts[proposedName] = 1;
+                }
+            }
+        }
+
+        List<RdpImportPreviewEntry> entries = new(candidates.Count);
+        for (int index = 0; index < previewCandidates.Count; index++)
+        {
+            ServerProfileDto candidate = previewCandidates[index];
+            IReadOnlyList<string> errors = validationErrors[index];
+            bool hasParseError = errors.Count > 0;
+            string? parseErrorMessage = hasParseError ? string.Join("; ", errors) : null;
+            string proposedName = candidate.DisplayName;
 
             ServerProfileDto? idConflict = null;
-            var hasExistingIdConflict = !string.IsNullOrWhiteSpace(candidate.Id) &&
+            bool hasExistingIdConflict = !hasParseError &&
+                !string.IsNullOrWhiteSpace(candidate.Id) &&
                 existingById.TryGetValue(candidate.Id, out idConflict);
-            var hasExistingNameConflict = existingNameMap.TryGetValue(proposedName, out var conflictingName);
-            var hasBatchConflict = candidateNameCounts.TryGetValue(proposedName, out var count) && count > 1;
-            var conflictDisplayName = hasExistingIdConflict
+            string? conflictingName = null;
+            bool hasExistingNameConflict = !hasParseError &&
+                existingNameMap.TryGetValue(proposedName, out conflictingName);
+            int count = 0;
+            bool hasBatchConflict = !hasParseError &&
+                candidateNameCounts.TryGetValue(proposedName, out count) &&
+                count > 1;
+            string? conflictDisplayName = hasExistingIdConflict
                 ? idConflict!.DisplayName
                 : hasExistingNameConflict
                     ? conflictingName
@@ -254,7 +300,10 @@ public sealed class ProfileImportService(
                 SourceFilePath = $"{path}#{index}",
                 ProposedName = proposedName,
                 Candidate = candidate,
-                HasNameConflict = hasExistingIdConflict || hasExistingNameConflict || hasBatchConflict,
+                HasParseError = hasParseError,
+                ParseErrorMessage = parseErrorMessage,
+                HasNameConflict = !hasParseError &&
+                    (hasExistingIdConflict || hasExistingNameConflict || hasBatchConflict),
                 ConflictingExistingName = conflictDisplayName
             });
         }
@@ -286,6 +335,12 @@ public sealed class ProfileImportService(
             if (!selectionEntry.IsSelected ||
                 !previewMap.TryGetValue(selectionEntry.SourceFilePath, out var previewEntry))
             {
+                continue;
+            }
+
+            if (previewEntry.HasParseError)
+            {
+                skippedCount++;
                 continue;
             }
 
