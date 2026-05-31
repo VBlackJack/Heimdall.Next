@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using TwinShell.Core.Constants;
 using TwinShell.Core.Interfaces;
 using TwinShell.Core.Models;
+using TwinShell.Core.Utilities;
 
 namespace TwinShell.Infrastructure.Services;
 
@@ -199,20 +200,21 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
         try
         {
             // Create a scope to get a scoped repository instance
-            using var scope = _serviceScopeFactory.CreateScope();
-            var syncHistoryRepository = scope.ServiceProvider.GetService<ISyncHistoryRepository>();
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            ISyncHistoryRepository? syncHistoryRepository = scope.ServiceProvider.GetService<ISyncHistoryRepository>();
 
             if (syncHistoryRepository == null)
             {
                 return;
             }
 
-            var entry = SyncHistoryEntry.FromResult(
+            SyncHistoryEntry entry = SyncHistoryEntry.FromResult(
                 result,
                 operationType,
                 startedAt,
-                Settings?.GitRemoteUrl,
+                GitUrlSanitizer.SanitizeForLogging(Settings?.GitRemoteUrl),
                 Settings?.GitBranch);
+            entry.ErrorDetails = GitUrlSanitizer.RedactCredentials(entry.ErrorDetails);
 
             await syncHistoryRepository.AddAsync(entry);
         }
@@ -440,7 +442,10 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             }, "clone", cancellationToken);
 
             RaiseStatusChanged(L(MessageKeys.GitSyncCloneSuccess), SyncPhase.Completed, 100);
-            _logger.LogInformation("Repository cloned successfully from {RemoteUrl} to {LocalPath}", remoteUrl, localPath);
+            _logger.LogInformation(
+                "Repository cloned successfully from {RemoteUrl} to {LocalPath}",
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl),
+                localPath);
             var successResult = GitOperationResult.Ok(L(MessageKeys.GitSyncCloneSuccess));
             await LogSyncOperationAsync(successResult, SyncOperationType.Initialize, startedAt);
             return successResult;
@@ -457,7 +462,10 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
         {
             var errorCode = MapExceptionToErrorCode(ex);
             RaiseStatusChanged(L(MessageKeys.GitSyncCloneFailed), SyncPhase.Failed);
-            _logger.LogError(ex, "Failed to clone repository from {RemoteUrl}", remoteUrl);
+            _logger.LogError(
+                ex,
+                "Failed to clone repository from {RemoteUrl}",
+                GitUrlSanitizer.SanitizeForLogging(remoteUrl));
             var failResult = GitOperationResult.Fail("Failed to clone repository", errorCode, ex.Message);
             await LogSyncOperationAsync(failResult, SyncOperationType.Initialize, startedAt);
             return failResult;
@@ -934,7 +942,9 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             RaiseStatusChanged(L(MessageKeys.GitSyncTestingConnection), SyncPhase.Validating, 50);
-            _logger.LogDebug("Testing connection to {RemoteUrl}", Settings.GitRemoteUrl);
+            _logger.LogDebug(
+                "Testing connection to {RemoteUrl}",
+                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
 
             // Test connection with retry logic
             await ExecuteWithRetryAsync(async () =>
@@ -950,7 +960,9 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
             }, "connection test", cancellationToken);
 
             RaiseStatusChanged(L(MessageKeys.GitSyncConnectionSuccess), SyncPhase.Completed, 100);
-            _logger.LogInformation("Connection test successful for {RemoteUrl}", Settings.GitRemoteUrl);
+            _logger.LogInformation(
+                "Connection test successful for {RemoteUrl}",
+                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
             var successResult = GitOperationResult.Ok("Connection to remote repository successful.");
             await LogSyncOperationAsync(successResult, SyncOperationType.TestConnection, startedAt);
             return successResult;
@@ -963,7 +975,10 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
         {
             var errorCode = MapExceptionToErrorCode(ex);
             RaiseStatusChanged(L(MessageKeys.GitSyncConnectionFailed), SyncPhase.Failed);
-            _logger.LogWarning(ex, "Failed to connect to remote repository {RemoteUrl}", Settings.GitRemoteUrl);
+            _logger.LogWarning(
+                ex,
+                "Failed to connect to remote repository {RemoteUrl}",
+                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
             var failResult = GitOperationResult.Fail("Failed to connect to remote repository", errorCode, ex.Message);
             await LogSyncOperationAsync(failResult, SyncOperationType.TestConnection, startedAt);
             return failResult;
@@ -972,7 +987,10 @@ public sealed class GitSyncService : IGitSyncService, IDisposable
         {
             var errorCode = MapExceptionToErrorCode(ex);
             RaiseStatusChanged(L(MessageKeys.GitSyncConnectionFailed), SyncPhase.Failed);
-            _logger.LogError(ex, "Connection test failed for {RemoteUrl}", Settings.GitRemoteUrl);
+            _logger.LogError(
+                ex,
+                "Connection test failed for {RemoteUrl}",
+                GitUrlSanitizer.SanitizeForLogging(Settings.GitRemoteUrl));
             var failResult = GitOperationResult.Fail("Connection test failed", errorCode, ex.Message);
             await LogSyncOperationAsync(failResult, SyncOperationType.TestConnection, startedAt);
             return failResult;
