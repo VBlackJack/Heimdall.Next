@@ -448,6 +448,68 @@ public sealed class DnsSecurityEvaluationEngineTests
     }
 
     [Fact]
+    public void EvaluateDmarc_RejectPctZero_ReturnsWarn()
+    {
+        string raw = "\"v=DMARC1; p=reject; pct=0\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecDmarcPctZero", result.DetailKey);
+        Assert.Equal("reject", result.DetailArgs[0]);
+    }
+
+    [Fact]
+    public void EvaluateDmarc_QuarantinePctZero_ReturnsWarn()
+    {
+        string raw = "\"v=DMARC1; p=quarantine; pct=0\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecDmarcPctZero", result.DetailKey);
+        Assert.Equal("quarantine", result.DetailArgs[0]);
+    }
+
+    [Fact]
+    public void EvaluateDmarc_RejectPct100_ReturnsPass()
+    {
+        string raw = "\"v=DMARC1; p=reject; pct=100\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecDmarcEnforced", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateDmarc_RejectPct50_ReturnsPass()
+    {
+        string raw = "\"v=DMARC1; p=reject; pct=50\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecDmarcEnforced", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateDmarc_RejectMalformedPct_ReturnsPass()
+    {
+        string raw = "\"v=DMARC1; p=reject; pct=abc\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Pass, result.Status);
+        Assert.Equal("ToolDnsSecDmarcEnforced", result.DetailKey);
+    }
+
+    [Fact]
+    public void EvaluateDmarc_NonePctZero_StaysWarnNone()
+    {
+        string raw = "\"v=DMARC1; p=none; pct=0\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDmarc(raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecDmarcNone", result.DetailKey);
+    }
+
+    [Fact]
     public void EvaluateDmarc_PolicyNone_ReturnsWarn()
     {
         var raw = "\"v=DMARC1; p=none\"";

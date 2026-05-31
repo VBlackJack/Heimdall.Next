@@ -5157,6 +5157,7 @@
   "ToolDnsSecSpfGood": "L\u2019enregistrement SPF restreint les exp\u00e9diteurs",
   "ToolDnsSecDmarcNone": "La politique DMARC est p=none (surveillance uniquement, pas d\u2019application)",
   "ToolDnsSecDmarcEnforced": "La politique DMARC applique {0}",
+  "ToolDnsSecDmarcPctZero": "La politique DMARC est {0} mais pct=0 (aucun message n'est r\u00e9ellement filtr\u00e9)",
   "ToolDnsSecDkimFound": "Enregistrement DKIM trouv\u00e9 pour le s\u00e9lecteur\u00a0: {0}",
   "ToolDnsSecNoDkim": "Aucun enregistrement DKIM trouv\u00e9 pour les s\u00e9lecteurs courants (default, google, selector1, selector2)",
   "ToolDnsSecNoCaa": "Aucun enregistrement CAA \u2014 toute autorit\u00e9 de certification peut \u00e9mettre des certificats pour ce domaine",

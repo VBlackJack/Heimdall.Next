@@ -459,11 +459,12 @@ public static class DnsSecurityEvaluationEngine
 
     /// <summary>
     /// Evaluates a DMARC TXT response. Missing record fails; <c>p=none</c> (or
-    /// missing <c>p</c> tag) warns; any other enforcement policy passes.
+    /// missing <c>p</c> tag) warns; enforcing policies with <c>pct=0</c> warn
+    /// because no messages are filtered; any other enforcement policy passes.
     /// </summary>
     public static DnsCheckResult EvaluateDmarc(string? raw)
     {
-        var dmarc = ExtractRecord(raw, "v=DMARC1");
+        string dmarc = ExtractRecord(raw, "v=DMARC1");
         if (string.IsNullOrEmpty(dmarc))
         {
             return new DnsCheckResult(
@@ -474,7 +475,7 @@ public static class DnsSecurityEvaluationEngine
                 Array.Empty<string>());
         }
 
-        var policy = ExtractTag(dmarc, "p");
+        string policy = ExtractTag(dmarc, "p");
         if (string.IsNullOrEmpty(policy) ||
             policy.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
@@ -484,6 +485,19 @@ public static class DnsSecurityEvaluationEngine
                 dmarc,
                 "ToolDnsSecDmarcNone",
                 Array.Empty<string>());
+        }
+
+        string pct = ExtractTag(dmarc, "pct");
+        if (!string.IsNullOrEmpty(pct) &&
+            int.TryParse(pct, NumberStyles.Integer, CultureInfo.InvariantCulture, out int pctValue) &&
+            pctValue == 0)
+        {
+            return new DnsCheckResult(
+                DnsCheckKind.Dmarc,
+                DnsCheckStatus.Warn,
+                dmarc,
+                "ToolDnsSecDmarcPctZero",
+                new[] { policy });
         }
 
         return new DnsCheckResult(
