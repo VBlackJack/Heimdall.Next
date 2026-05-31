@@ -103,9 +103,13 @@ public partial class PinDialogViewModel : ObservableObject
 
         if (IsLockedOut)
         {
-            var remaining = _pinManager.LockoutRemaining;
+            ErrorMessage = "";
+            TimeSpan remaining = _pinManager.LockoutRemaining;
             LockoutMessage = _localizer.Format("PinLockedOut",
                 (int)Math.Ceiling(remaining.TotalMinutes));
+            return;
         }
+
+        LockoutMessage = "";
     }
 }

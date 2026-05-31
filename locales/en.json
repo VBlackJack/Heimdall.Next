@@ -3076,7 +3076,7 @@
   "StatusSftpAutoOpenFailed": "SFTP auto-open failed: {0}",
   "ErrorGatewayNotFound": "SSH gateway not found: {0}",
   "MigrationServerFailed": "Failed to import session: {0}",
-  "PinLockedOut": "Too many incorrect attempts. Locked out until {0}.",
+  "PinLockedOut": "Too many incorrect attempts. Try again in {0} minute(s).",
   "PinInvalidRemaining": "Incorrect PIN. {0} attempt(s) remaining.",
   "ErrorUnsupportedConnectionType": "Unsupported connection type: {0}",
   "StatusReconnectFailed": "Reconnect failed: {0}",

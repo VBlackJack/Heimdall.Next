@@ -239,11 +239,16 @@ public sealed class WpfDialogService(
     {
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        var dialog = new PinDialog
+        PinDialog dialog = new PinDialog
         {
-            DataContext = viewModel,
-            Owner = GetOwnerWindow()
+            DataContext = viewModel
         };
+
+        Window? owner = GetOwnerWindow();
+        if (owner is not null && !ReferenceEquals(owner, dialog) && owner.IsVisible)
+        {
+            dialog.Owner = owner;
+        }
 
         dialog.ShowDialog();
         return Task.CompletedTask;

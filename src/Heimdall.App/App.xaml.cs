@@ -231,6 +231,47 @@ public partial class App : System.Windows.Application
             // Close splash before showing main window
             splash.Close();
 
+            // PIN gate: when a PIN is configured, require it before the main window is shown.
+            // The lockout state is restored from (and persisted back to) settings so brute-force
+            // protection survives an application restart (F1-D10-7).
+            if (!string.IsNullOrEmpty(settings.PinHash) && !string.IsNullOrEmpty(settings.PinSalt))
+            {
+                PinManager pinManager = _serviceProvider.GetRequiredService<PinManager>();
+                pinManager.RestoreLockoutState(settings.PinFailureCount, settings.PinLockoutUntilUtc);
+
+                // Persist lockout state at the moment it changes, so a lockout reached mid-prompt
+                // survives even if the process is killed without closing the dialog.
+                pinManager.StateChanged += () =>
+                {
+                    _ = configManager.MergeSettingAsync((AppSettings persistedSettings) =>
+                    {
+                        persistedSettings.PinFailureCount = pinManager.FailureCount;
+                        persistedSettings.PinLockoutUntilUtc = pinManager.LockoutUntilUtc;
+                    });
+                };
+
+                IDialogService dialogService = _serviceProvider.GetRequiredService<IDialogService>();
+                PinDialogViewModel pinViewModel =
+                    new PinDialogViewModel(pinManager, localization, settings.PinHash!, settings.PinSalt!);
+                await dialogService.ShowPinDialogAsync(pinViewModel);
+
+                // Final awaited persist covers the clean-close path (verify resets; cancel keeps lockout).
+                await configManager.MergeSettingAsync((AppSettings persistedSettings) =>
+                {
+                    persistedSettings.PinFailureCount = pinManager.FailureCount;
+                    persistedSettings.PinLockoutUntilUtc = pinManager.LockoutUntilUtc;
+                });
+
+                if (!pinViewModel.IsVerified)
+                {
+                    Heimdall.Core.Logging.FileLogger.Info("PIN gate not satisfied; exiting.");
+                    Shutdown(0);
+                    return;
+                }
+
+                Heimdall.Core.Logging.FileLogger.Info("PIN gate satisfied.");
+            }
+
             var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
             _mainViewModel = mainWindow.DataContext as MainViewModel;
             MainWindow = mainWindow;

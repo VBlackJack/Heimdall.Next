@@ -3075,7 +3075,7 @@
   "StatusSftpAutoOpenFailed": "Ouverture automatique SFTP \u00e9chou\u00e9e : {0}",
   "ErrorGatewayNotFound": "Passerelle SSH introuvable : {0}",
   "MigrationServerFailed": "\u00c9chec de l'import de la session : {0}",
-  "PinLockedOut": "Trop de tentatives incorrectes. Verrouill\u00e9 jusqu'\u00e0 {0}.",
+  "PinLockedOut": "Trop de tentatives incorrectes. R\u00e9essayez dans {0} minute(s).",
   "PinInvalidRemaining": "PIN incorrect. {0} tentative(s) restante(s).",
   "ErrorUnsupportedConnectionType": "Type de connexion non support\u00e9 : {0}",
   "StatusReconnectFailed": "\u00c9chec de la reconnexion : {0}",

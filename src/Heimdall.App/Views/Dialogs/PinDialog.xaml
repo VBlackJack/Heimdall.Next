@@ -10,7 +10,7 @@
         mc:Ignorable="d"
         Title="{loc:Translate PinDialogTitle}"
         Width="380" SizeToContent="Height" MaxHeight="400"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
         MinWidth="320"
