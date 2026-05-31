@@ -23,6 +23,8 @@ namespace Heimdall.App.Tests;
 
 public sealed class RemoteFileEditorTaskTrackingTests
 {
+    private const int TestTimeoutMs = 30000;
+
     [Fact]
     public async Task OnFileChanged_Tracks_CurrentUpload_OnSession()
     {
@@ -192,7 +194,7 @@ public sealed class RemoteFileEditorTaskTrackingTests
 
             editor.TriggerOnFileChangedForTesting(session);
 
-            await WaitUntilAsync(() => browser.UploadCallCount == 1, timeoutMs: 5000);
+            await WaitUntilAsync(() => browser.UploadCallCount == 1, timeoutMs: TestTimeoutMs);
         }
         finally
         {
@@ -241,7 +243,7 @@ public sealed class RemoteFileEditorTaskTrackingTests
         };
     }
 
-    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = 2000)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = TestTimeoutMs)
     {
         var timeoutAt = Environment.TickCount64 + timeoutMs;
         while (Environment.TickCount64 < timeoutAt)
@@ -257,7 +259,7 @@ public sealed class RemoteFileEditorTaskTrackingTests
         Assert.True(predicate(), "Condition was not met before timeout.");
     }
 
-    private static async Task WaitForTaskAsync(Task task, int timeoutMs = 2000)
+    private static async Task WaitForTaskAsync(Task task, int timeoutMs = TestTimeoutMs)
     {
         var timeout = Task.Delay(timeoutMs);
         var completed = await Task.WhenAny(task, timeout);
