@@ -512,21 +512,25 @@ public static class TlsAuditEngine
     public static async Task<bool> TestProtocolAsync(
         string host, int port, SslProtocols protocol, CancellationToken ct)
     {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(ConnectionTimeout);
+        CancellationToken probeCt = timeoutCts.Token;
+
         try
         {
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync(host, port, ct);
+            await tcp.ConnectAsync(host, port, probeCt);
 #pragma warning disable CA5397, CS0618, SYSLIB0039
             using var ssl = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
             await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
             {
                 TargetHost = host,
                 EnabledSslProtocols = protocol
-            }, ct);
+            }, probeCt);
 #pragma warning restore CA5397, CS0618, SYSLIB0039
             return true;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
@@ -543,10 +547,14 @@ public static class TlsAuditEngine
     public static async Task<bool> TestCipherSuiteAsync(
         string host, int port, TlsCipherSuite suite, CancellationToken ct)
     {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(ConnectionTimeout);
+        CancellationToken probeCt = timeoutCts.Token;
+
         try
         {
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync(host, port, ct);
+            await tcp.ConnectAsync(host, port, probeCt);
             using var ssl = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
 
             var options = new SslClientAuthenticationOptions
@@ -566,14 +574,14 @@ public static class TlsAuditEngine
                 return false;
             }
 
-            await ssl.AuthenticateAsClientAsync(options, ct);
+            await ssl.AuthenticateAsClientAsync(options, probeCt);
             return true;
         }
         catch (PlatformNotSupportedException)
         {
             return false;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
@@ -589,20 +597,35 @@ public static class TlsAuditEngine
     public static async Task<X509Certificate2?> RetrieveCertificateAsync(
         string host, int port, CancellationToken ct)
     {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(ConnectionTimeout);
+        CancellationToken probeCt = timeoutCts.Token;
+
         X509Certificate? remoteCert = null;
 
-        using var tcp = new TcpClient();
-        await tcp.ConnectAsync(host, port, ct).ConfigureAwait(false);
-
-        using var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
+        try
         {
-            remoteCert = cert;
-            return true;
-        });
+            using var tcp = new TcpClient();
+            await tcp.ConnectAsync(host, port, probeCt).ConfigureAwait(false);
 
-        await ssl.AuthenticateAsClientAsync(
-            new SslClientAuthenticationOptions { TargetHost = host },
-            ct).ConfigureAwait(false);
+            using var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
+            {
+                remoteCert = cert;
+                return true;
+            });
+
+            await ssl.AuthenticateAsClientAsync(
+                new SslClientAuthenticationOptions { TargetHost = host },
+                probeCt).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return null; // timeout: certificate unavailable, preserve partial audit results
+        }
 
         if (remoteCert is null)
             return null;
