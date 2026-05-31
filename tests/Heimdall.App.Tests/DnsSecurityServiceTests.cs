@@ -158,6 +158,75 @@ public sealed class DnsSecurityServiceTests
     }
 
     [Fact]
+    public async Task RunAllChecksAsync_DkimRevokedKeySurfacesWarnWhenNoSelectorPasses()
+    {
+        List<string> dkimQueries = [];
+
+        DnsSecurityService service = new(
+            gateway: null,
+            localQuery: (type, domain, ct) =>
+            {
+                if (domain.Contains("._domainkey.", StringComparison.Ordinal))
+                {
+                    dkimQueries.Add(domain);
+                }
+
+                return Task.FromResult(domain switch
+                {
+                    "default._domainkey.example.com" => "\"v=DKIM1; p=\"",
+                    "google._domainkey.example.com" => string.Empty,
+                    "selector1._domainkey.example.com" => string.Empty,
+                    "selector2._domainkey.example.com" => string.Empty,
+                    _ => GetSuccessfulResponse(type, domain),
+                });
+            },
+            tunnelQuery: (_, _, _, _) => Task.FromResult(string.Empty));
+
+        IReadOnlyList<DnsCheckResult> results = await service.RunAllChecksAsync("example.com", CancellationToken.None);
+        DnsCheckResult dkim = results.Single(result => result.Kind == DnsCheckKind.Dkim);
+
+        Assert.Equal(
+            ["default._domainkey.example.com", "google._domainkey.example.com", "selector1._domainkey.example.com", "selector2._domainkey.example.com"],
+            dkimQueries);
+        Assert.Equal(DnsCheckStatus.Warn, dkim.Status);
+        Assert.Equal("ToolDnsSecDkimRevoked", dkim.DetailKey);
+    }
+
+    [Fact]
+    public async Task RunAllChecksAsync_DkimValidSelectorPreferredOverRevoked()
+    {
+        List<string> dkimQueries = [];
+
+        DnsSecurityService service = new(
+            gateway: null,
+            localQuery: (type, domain, ct) =>
+            {
+                if (domain.Contains("._domainkey.", StringComparison.Ordinal))
+                {
+                    dkimQueries.Add(domain);
+                }
+
+                return Task.FromResult(domain switch
+                {
+                    "default._domainkey.example.com" => "\"v=DKIM1; p=\"",
+                    "google._domainkey.example.com" => string.Empty,
+                    "selector1._domainkey.example.com" => "\"v=DKIM1; p=abc\"",
+                    "selector2._domainkey.example.com" => throw new Xunit.Sdk.XunitException("selector2 should not be queried"),
+                    _ => GetSuccessfulResponse(type, domain),
+                });
+            },
+            tunnelQuery: (_, _, _, _) => Task.FromResult(string.Empty));
+
+        IReadOnlyList<DnsCheckResult> results = await service.RunAllChecksAsync("example.com", CancellationToken.None);
+        DnsCheckResult dkim = results.Single(result => result.Kind == DnsCheckKind.Dkim);
+
+        Assert.Equal(
+            ["default._domainkey.example.com", "google._domainkey.example.com", "selector1._domainkey.example.com"],
+            dkimQueries);
+        Assert.Equal(DnsCheckStatus.Pass, dkim.Status);
+    }
+
+    [Fact]
     public async Task RunAllChecksAsync_DnssecFallsBackToRrsigWhenDnskeyMissing()
     {
         var queries = new List<(string Type, string Domain)>();

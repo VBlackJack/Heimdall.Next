@@ -399,6 +399,28 @@ public sealed class DnsSecurityEvaluationEngineTests
     }
 
     [Fact]
+    public void EvaluateDkim_EmptyPublicKey_ReturnsWarn()
+    {
+        string raw = "\"v=DKIM1; k=rsa; p=\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDkim("default", raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecDkimRevoked", result.DetailKey);
+        Assert.Equal("default", result.DetailArgs[0]);
+        Assert.StartsWith("[default]", result.RawRecord);
+    }
+
+    [Fact]
+    public void EvaluateDkim_MissingPTag_ReturnsWarn()
+    {
+        string raw = "\"v=DKIM1; k=rsa\"";
+        DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDkim("default", raw);
+
+        Assert.Equal(DnsCheckStatus.Warn, result.Status);
+        Assert.Equal("ToolDnsSecDkimRevoked", result.DetailKey);
+    }
+
+    [Fact]
     public void EvaluateDkim_NullSelector_ReturnsFail()
     {
         var result = DnsSecurityEvaluationEngine.EvaluateDkim(null, "\"v=DKIM1; p=abc\"");

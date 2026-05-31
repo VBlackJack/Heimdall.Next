@@ -5160,6 +5160,7 @@
   "ToolDnsSecDmarcEnforced": "DMARC policy enforces {0}",
   "ToolDnsSecDmarcPctZero": "DMARC policy is {0} but pct=0 (no messages are actually filtered)",
   "ToolDnsSecDkimFound": "DKIM record found for selector: {0}",
+  "ToolDnsSecDkimRevoked": "DKIM record for selector {0} has an empty public key (revoked or invalid)",
   "ToolDnsSecNoDkim": "No DKIM record found for common selectors (default, google, selector1, selector2)",
   "ToolDnsSecNoCaa": "No CAA records â€” any CA can issue certificates for this domain",
   "ToolDnsSecCaaPresent": "Certificate issuance restricted to: {0}",

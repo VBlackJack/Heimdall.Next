@@ -414,9 +414,9 @@ public static class DnsSecurityEvaluationEngine
     }
 
     /// <summary>
-    /// Evaluates a DKIM TXT response for the supplied selector. When the raw
-    /// response does not contain a <c>v=DKIM1</c> tag (or either argument is
-    /// empty), the result is "no DKIM found".
+    /// Evaluates a DKIM TXT response for the supplied selector. Missing records
+    /// fail; records with a missing or empty <c>p</c> public-key tag warn because
+    /// the key is revoked or invalid; records with a public key pass.
     /// </summary>
     /// <param name="selector">
     /// Selector that produced <paramref name="rawResponse"/>, or <c>null</c>/empty
@@ -438,7 +438,7 @@ public static class DnsSecurityEvaluationEngine
                 Array.Empty<string>());
         }
 
-        var dkim = ExtractRecord(rawResponse, "v=DKIM1");
+        string dkim = ExtractRecord(rawResponse, "v=DKIM1");
         if (string.IsNullOrEmpty(dkim))
         {
             return new DnsCheckResult(
@@ -447,6 +447,17 @@ public static class DnsSecurityEvaluationEngine
                 string.Empty,
                 "ToolDnsSecNoDkim",
                 Array.Empty<string>());
+        }
+
+        string publicKey = ExtractTag(dkim, "p");
+        if (string.IsNullOrEmpty(publicKey))
+        {
+            return new DnsCheckResult(
+                DnsCheckKind.Dkim,
+                DnsCheckStatus.Warn,
+                $"[{selector}] {dkim}",
+                "ToolDnsSecDkimRevoked",
+                new[] { selector });
         }
 
         return new DnsCheckResult(

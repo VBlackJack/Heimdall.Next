@@ -131,18 +131,25 @@ public sealed class DnsSecurityService : IDnsSecurityService
     {
         try
         {
-            foreach (var selector in DnsSecurityEvaluationEngine.DefaultDkimSelectors)
+            DnsCheckResult? firstWarn = null;
+
+            foreach (string selector in DnsSecurityEvaluationEngine.DefaultDkimSelectors)
             {
-                var dkimDomain = $"{selector}._domainkey.{domain}";
-                var raw = await QueryDnsAsync("TXT", dkimDomain, ct).ConfigureAwait(false);
-                var result = DnsSecurityEvaluationEngine.EvaluateDkim(selector, raw);
+                string dkimDomain = $"{selector}._domainkey.{domain}";
+                string raw = await QueryDnsAsync("TXT", dkimDomain, ct).ConfigureAwait(false);
+                DnsCheckResult result = DnsSecurityEvaluationEngine.EvaluateDkim(selector, raw);
                 if (result.Status == DnsCheckStatus.Pass)
                 {
                     return result;
                 }
+
+                if (result.Status == DnsCheckStatus.Warn && firstWarn is null)
+                {
+                    firstWarn = result;
+                }
             }
 
-            return DnsSecurityEvaluationEngine.EvaluateDkim(null, null);
+            return firstWarn ?? DnsSecurityEvaluationEngine.EvaluateDkim(null, null);
         }
         catch (OperationCanceledException)
         {
