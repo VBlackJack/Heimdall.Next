@@ -261,7 +261,7 @@ internal sealed class LocalShellHandler : IProtocolHandler
         return null;
     }
 
-    private static bool IsPowerShellExecutable(string executable)
+    internal static bool IsPowerShellExecutable(string executable)
     {
         string executableName = Path.GetFileNameWithoutExtension(executable);
         return string.Equals(executableName, "powershell", StringComparison.OrdinalIgnoreCase)
@@ -271,7 +271,8 @@ internal sealed class LocalShellHandler : IProtocolHandler
     /// <summary>
     /// Builds a dictionary of HEIMDALL_* environment variables from the server profile.
     /// </summary>
-    private static Dictionary<string, string>? BuildContextEnvironment(ServerProfileDto server)
+    // internal for test coverage of the user-facing HEIMDALL_* env contract
+    internal static Dictionary<string, string>? BuildContextEnvironment(ServerProfileDto server)
     {
         Dictionary<string, string> env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
