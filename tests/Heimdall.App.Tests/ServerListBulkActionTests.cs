@@ -25,6 +25,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
@@ -1410,6 +1411,129 @@ public sealed class ServerListBulkActionTests
         Assert.Null(fixture.LastStatusMessage);
     }
 
+    [Theory]
+    [InlineData("RDP", nameof(ServerProfileDto.RdpPasswordEncrypted))]
+    [InlineData("SSH", nameof(ServerProfileDto.SshPasswordEncrypted))]
+    [InlineData("SFTP", nameof(ServerProfileDto.SshPasswordEncrypted))]
+    [InlineData("FTP", nameof(ServerProfileDto.FtpPasswordEncrypted))]
+    [InlineData("WINRM", nameof(ServerProfileDto.WinRmPasswordEncrypted))]
+    [InlineData("TELNET", nameof(ServerProfileDto.TelnetPasswordEncrypted))]
+    [InlineData("VNC", nameof(ServerProfileDto.VncPassword))]
+    [InlineData("FOO", nameof(ServerProfileDto.RdpPasswordEncrypted))]
+    [InlineData(null, nameof(ServerProfileDto.RdpPasswordEncrypted))]
+    public async Task BulkEditPasswordAsync_RoutesPasswordByConnectionTypeAndPreservesSelection(
+        string? connectionType,
+        string expectedPasswordField)
+    {
+        const string NewPassword = "new-secret";
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        ServerProfileDto alpha = CreatePasswordServer("alpha", "Alpha", "ops", connectionType);
+        ServerProfileDto beta = CreatePasswordServer("beta", "Beta", "ops", connectionType);
+
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            alpha,
+            beta);
+        fixture.DialogService.NextBulkEditPasswordResult = NewPassword;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.BulkEditPasswordCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, fixture.DialogService.BulkEditPasswordCallCount);
+        Assert.Equal(2, fixture.DialogService.LastBulkEditPasswordCount);
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("Password updated on 2 server(s).", fixture.LastStatusMessage);
+
+        ServerProfileDto[] storedServers = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(2, storedServers.Length);
+        foreach (ServerProfileDto storedServer in storedServers)
+        {
+            AssertOnlyPasswordFieldSet(storedServer, expectedPasswordField, NewPassword);
+            if (string.Equals(expectedPasswordField, nameof(ServerProfileDto.WinRmPasswordEncrypted), StringComparison.Ordinal))
+            {
+                Assert.Equal(WinRmIdentityMode.Credential, storedServer.WinRmIdentityMode);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task BulkEditPasswordAsync_SingleSelection_NoDialogAndNoMutation()
+    {
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreatePasswordServer("alpha", "Alpha", "ops", "SSH"));
+        fixture.DialogService.NextBulkEditPasswordResult = "new-secret";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+
+        await fixture.ViewModel.BulkEditPasswordCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(0, fixture.DialogService.BulkEditPasswordCallCount);
+        ServerProfileDto storedServer = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        AssertNoStoredPasswords(storedServer);
+    }
+
+    [Fact]
+    public async Task BulkEditPasswordAsync_WhenDialogCancelled_DoesNotMutateAndPreservesSelection()
+    {
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreatePasswordServer("alpha", "Alpha", "ops", "SSH"),
+            CreatePasswordServer("beta", "Beta", "ops", "FTP"));
+        fixture.DialogService.NextBulkEditPasswordResult = null;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.BulkEditPasswordCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, fixture.DialogService.BulkEditPasswordCallCount);
+        Assert.Equal(2, fixture.DialogService.LastBulkEditPasswordCount);
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        ServerProfileDto[] storedServers = (await fixture.ConfigManager.LoadServersAsync())
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.All(storedServers, AssertNoStoredPasswords);
+    }
+
+    [Fact]
+    public async Task BulkEditPasswordAsync_WhenSaveFails_DoesNotMutatePersistedStateOrSelection()
+    {
+        FailingSaveConfigManager configManager = new();
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            configManager: configManager);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreatePasswordServer("alpha", "Alpha", "ops", "SSH"),
+            CreatePasswordServer("beta", "Beta", "ops", "RDP"));
+        fixture.DialogService.NextBulkEditPasswordResult = "new-secret";
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            fixture.ViewModel.BulkEditPasswordCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList()));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Null(fixture.LastStatusMessage);
+        ServerProfileDto[] storedServers = (await fixture.ConfigManager.LoadServersAsync())
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.All(storedServers, AssertNoStoredPasswords);
+    }
+
     private static ServerProfileDto CreateServer(
         string id,
         string displayName,
@@ -1443,6 +1567,58 @@ public sealed class ServerListBulkActionTests
         if (!string.IsNullOrWhiteSpace(server.FtpUsername)) return server.FtpUsername;
         if (!string.IsNullOrWhiteSpace(server.TelnetUsername)) return server.TelnetUsername;
         return string.Empty;
+    }
+
+    private static ServerProfileDto CreatePasswordServer(
+        string id,
+        string displayName,
+        string group,
+        string? connectionType)
+    {
+        ServerProfileDto server = CreateServer(id, displayName, group);
+        server.ConnectionType = connectionType is null ? null! : connectionType;
+        server.WinRmIdentityMode = WinRmIdentityMode.CurrentUser;
+        return server;
+    }
+
+    private static void AssertOnlyPasswordFieldSet(
+        ServerProfileDto server,
+        string expectedPasswordField,
+        string expectedPlaintextPassword)
+    {
+        string? encryptedPassword = GetStoredPasswordField(server, expectedPasswordField);
+        Assert.NotNull(encryptedPassword);
+        Assert.Equal(expectedPlaintextPassword, CredentialProtector.Unprotect(encryptedPassword));
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.RdpPasswordEncrypted), server.RdpPasswordEncrypted is not null);
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.SshPasswordEncrypted), server.SshPasswordEncrypted is not null);
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.FtpPasswordEncrypted), server.FtpPasswordEncrypted is not null);
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.WinRmPasswordEncrypted), server.WinRmPasswordEncrypted is not null);
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.TelnetPasswordEncrypted), server.TelnetPasswordEncrypted is not null);
+        Assert.Equal(expectedPasswordField == nameof(ServerProfileDto.VncPassword), server.VncPassword is not null);
+    }
+
+    private static void AssertNoStoredPasswords(ServerProfileDto server)
+    {
+        Assert.Null(server.RdpPasswordEncrypted);
+        Assert.Null(server.SshPasswordEncrypted);
+        Assert.Null(server.FtpPasswordEncrypted);
+        Assert.Null(server.WinRmPasswordEncrypted);
+        Assert.Null(server.TelnetPasswordEncrypted);
+        Assert.Null(server.VncPassword);
+    }
+
+    private static string? GetStoredPasswordField(ServerProfileDto server, string passwordField)
+    {
+        return passwordField switch
+        {
+            nameof(ServerProfileDto.RdpPasswordEncrypted) => server.RdpPasswordEncrypted,
+            nameof(ServerProfileDto.SshPasswordEncrypted) => server.SshPasswordEncrypted,
+            nameof(ServerProfileDto.FtpPasswordEncrypted) => server.FtpPasswordEncrypted,
+            nameof(ServerProfileDto.WinRmPasswordEncrypted) => server.WinRmPasswordEncrypted,
+            nameof(ServerProfileDto.TelnetPasswordEncrypted) => server.TelnetPasswordEncrypted,
+            nameof(ServerProfileDto.VncPassword) => server.VncPassword,
+            _ => throw new ArgumentOutOfRangeException(nameof(passwordField), passwordField, "Unsupported password field.")
+        };
     }
 
     private static ServerProfileDto CreateTool(
