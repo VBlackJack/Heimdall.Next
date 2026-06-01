@@ -758,7 +758,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             {
                 if (pane.HostControl is EmbeddedSshView sshView)
                 {
-                    sshView.WriteCommand($"cd \"{path}\"");
+                    sshView.WriteCommand(TerminalCommandFormatter.FormatRemoteCd(path));
                     break;
                 }
             }
@@ -809,40 +809,22 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
 
     /// <summary>
     /// Builds the correct <c>cd</c> command for the detected shell type.
-    /// PowerShell uses <c>cd "path"</c>, cmd uses <c>cd /d "path"</c>,
+    /// PowerShell uses <c>cd 'path'</c>, cmd uses <c>cd /d "path"</c>,
     /// and bash/wsl uses <c>cd 'path'</c>.
     /// </summary>
     private static string FormatCdCommand(string shellExecutable, string path)
     {
-        var shellExe = (shellExecutable ?? "powershell.exe").ToLowerInvariant();
-
-        if (shellExe.Contains("cmd"))
-            return $"cd /d \"{path}\"\n";
-
-        if (shellExe.Contains("wsl") || shellExe.Contains("bash"))
-            return $"cd '{path}'\n";
-
-        // PowerShell (powershell.exe, pwsh.exe) is the default
-        return $"cd \"{path}\"\n";
+        return TerminalCommandFormatter.FormatCd(shellExecutable, path);
     }
 
     /// <summary>
     /// Builds the correct run/execute command for the detected shell type.
-    /// PowerShell uses <c>&amp; "path"</c>, cmd uses <c>"path"</c>,
+    /// PowerShell uses <c>&amp; 'path'</c>, cmd uses <c>"path"</c>,
     /// and bash/wsl uses <c>'path'</c>.
     /// </summary>
     private static string FormatRunCommand(string shellExecutable, string path)
     {
-        var shellExe = (shellExecutable ?? "powershell.exe").ToLowerInvariant();
-
-        if (shellExe.Contains("cmd"))
-            return $"\"{path}\"\n";
-
-        if (shellExe.Contains("wsl") || shellExe.Contains("bash"))
-            return $"'{path}'\n";
-
-        // PowerShell (powershell.exe, pwsh.exe) is the default
-        return $"& \"{path}\"\n";
+        return TerminalCommandFormatter.FormatRun(shellExecutable, path);
     }
 
     private static Brush GetBrush(string resourceKey, Brush fallback)
