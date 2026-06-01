@@ -236,7 +236,40 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         }
 
         profile.ExecutionConfirmed = true;
+        await PersistExecutionTrustAsync(profile);
 
+        return true;
+    }
+
+    /// <summary>
+    /// Confirms and best-effort persists trust for imported post-connect commands.
+    /// </summary>
+    internal async Task<bool> ConfirmAndTrustPostConnectAsync(ServerProfileDto profile, int commandCount)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        string body = _localizer.Format(
+            "ConfirmPostConnectImportedBody",
+            profile.DisplayName,
+            commandCount);
+        bool confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmPostConnectImportedTitle"],
+            body,
+            "warning");
+
+        if (!confirmed)
+        {
+            return false;
+        }
+
+        profile.ExecutionConfirmed = true;
+        await PersistExecutionTrustAsync(profile);
+
+        return true;
+    }
+
+    private async Task PersistExecutionTrustAsync(ServerProfileDto profile)
+    {
         try
         {
             List<ServerProfileDto> servers = await _configManager.LoadServersAsync();
@@ -264,8 +297,6 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             Core.Logging.FileLogger.Warn(
                 $"Failed to persist execution-trust for '{profile.DisplayName}': {ex.Message}");
         }
-
-        return true;
     }
 
     private static string ResolveExecutionTrustInventoryId(string profileId)

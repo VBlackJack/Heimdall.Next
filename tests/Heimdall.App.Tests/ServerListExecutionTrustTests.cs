@@ -89,6 +89,44 @@ public sealed class ServerListExecutionTrustTests
         Assert.True(stored.ExecutionConfirmed);
     }
 
+    [Fact]
+    public async Task ConfirmAndTrustPostConnectAsync_Confirmed_PersistsExecutionConfirmed()
+    {
+        await using ServerListExecutionTrustFixture fixture = await ServerListExecutionTrustFixture.CreateAsync(true);
+        ServerProfileDto storedProfile = CreatePostConnectProfile("ssh-1");
+        await fixture.ConfigManager.SaveServersAsync(new List<ServerProfileDto> { storedProfile });
+        ServerProfileDto promptProfile = CreatePostConnectProfile("ssh-1");
+
+        bool result = await fixture.ViewModel.ConfirmAndTrustPostConnectAsync(promptProfile, 2);
+        List<ServerProfileDto> storedProfiles = await fixture.ConfigManager.LoadServersAsync();
+        ServerProfileDto stored = Assert.Single(storedProfiles);
+
+        Assert.True(result);
+        Assert.True(promptProfile.ExecutionConfirmed);
+        Assert.True(stored.ExecutionConfirmed);
+        Assert.Equal(1, fixture.DialogService.ConfirmCallCount);
+        Assert.Equal("warning", fixture.DialogService.LastSeverity);
+        Assert.Contains("2", fixture.DialogService.LastConfirmMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ConfirmAndTrustPostConnectAsync_Declined_DoesNotPersistExecutionConfirmed()
+    {
+        await using ServerListExecutionTrustFixture fixture = await ServerListExecutionTrustFixture.CreateAsync(false);
+        ServerProfileDto storedProfile = CreatePostConnectProfile("ssh-1");
+        await fixture.ConfigManager.SaveServersAsync(new List<ServerProfileDto> { storedProfile });
+        ServerProfileDto promptProfile = CreatePostConnectProfile("ssh-1");
+
+        bool result = await fixture.ViewModel.ConfirmAndTrustPostConnectAsync(promptProfile, 2);
+        List<ServerProfileDto> storedProfiles = await fixture.ConfigManager.LoadServersAsync();
+        ServerProfileDto stored = Assert.Single(storedProfiles);
+
+        Assert.False(result);
+        Assert.False(promptProfile.ExecutionConfirmed);
+        Assert.False(stored.ExecutionConfirmed);
+        Assert.Equal(1, fixture.DialogService.ConfirmCallCount);
+    }
+
     private static ServerProfileDto CreateLocalShellProfile(string id)
     {
         return new ServerProfileDto
@@ -98,6 +136,22 @@ public sealed class ServerListExecutionTrustTests
             RemoteServer = "localhost",
             ConnectionType = "LOCAL",
             LocalShellExecutable = "evil.exe"
+        };
+    }
+
+    private static ServerProfileDto CreatePostConnectProfile(string id)
+    {
+        return new ServerProfileDto
+        {
+            Id = id,
+            DisplayName = "Imported SSH",
+            RemoteServer = "ssh.example.com",
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, Input = "whoami" },
+                new PostConnectStep { Enabled = true, CommandLibraryId = "tail-log" }
+            ]
         };
     }
 

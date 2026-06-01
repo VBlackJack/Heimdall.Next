@@ -15,6 +15,7 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Tests;
 
@@ -111,9 +112,142 @@ public sealed class ProfileExecutionTrustTests
     }
 
     [Fact]
+    public void CarriesPostConnectPayload_EnabledStepWithInput_ReturnsTrue()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, Input = "whoami" }
+            ]
+        };
+
+        bool carriesPayload = ProfileExecutionTrust.CarriesPostConnectPayload(profile);
+        bool requiresConfirmation = ProfileExecutionTrust.RequiresPostConnectConfirmation(profile);
+
+        Assert.True(carriesPayload);
+        Assert.True(requiresConfirmation);
+    }
+
+    [Fact]
+    public void CarriesPostConnectPayload_EnabledStepWithCommandLibraryId_ReturnsTrue()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, CommandLibraryId = "tail-log" }
+            ]
+        };
+
+        bool carriesPayload = ProfileExecutionTrust.CarriesPostConnectPayload(profile);
+
+        Assert.True(carriesPayload);
+    }
+
+    [Fact]
+    public void CarriesPostConnectPayload_DisabledRunnableStep_ReturnsFalse()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = false, Input = "whoami" }
+            ]
+        };
+
+        bool carriesPayload = ProfileExecutionTrust.CarriesPostConnectPayload(profile);
+        bool requiresConfirmation = ProfileExecutionTrust.RequiresPostConnectConfirmation(profile);
+
+        Assert.False(carriesPayload);
+        Assert.False(requiresConfirmation);
+    }
+
+    [Fact]
+    public void CarriesPostConnectPayload_EnabledEmptyStep_ReturnsFalse()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, Input = "   ", CommandLibraryId = "   " }
+            ]
+        };
+
+        bool carriesPayload = ProfileExecutionTrust.CarriesPostConnectPayload(profile);
+        bool requiresConfirmation = ProfileExecutionTrust.RequiresPostConnectConfirmation(profile);
+
+        Assert.False(carriesPayload);
+        Assert.False(requiresConfirmation);
+    }
+
+    [Fact]
+    public void CarriesPostConnectPayload_EmptyOrNullSteps_ReturnsFalse()
+    {
+        ServerProfileDto emptyProfile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps = []
+        };
+        ServerProfileDto nullProfile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps = null!
+        };
+
+        Assert.False(ProfileExecutionTrust.CarriesPostConnectPayload(emptyProfile));
+        Assert.False(ProfileExecutionTrust.RequiresPostConnectConfirmation(emptyProfile));
+        Assert.False(ProfileExecutionTrust.CarriesPostConnectPayload(nullProfile));
+        Assert.False(ProfileExecutionTrust.RequiresPostConnectConfirmation(nullProfile));
+    }
+
+    [Fact]
+    public void RequiresPostConnectConfirmation_ConfirmedPayload_ReturnsFalse()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            ExecutionConfirmed = true,
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, Input = "whoami" }
+            ]
+        };
+
+        bool requiresConfirmation = ProfileExecutionTrust.RequiresPostConnectConfirmation(profile);
+
+        Assert.False(requiresConfirmation);
+    }
+
+    [Fact]
+    public void PostConnectOnlyPayload_IsIndependentFromLocalShellPayload()
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "SSH",
+            PostConnectSteps =
+            [
+                new PostConnectStep { Enabled = true, Input = "whoami" }
+            ]
+        };
+
+        bool carriesLocalPayload = ProfileExecutionTrust.CarriesLocalExecutionPayload(profile);
+        bool carriesPostConnectPayload = ProfileExecutionTrust.CarriesPostConnectPayload(profile);
+
+        Assert.False(carriesLocalPayload);
+        Assert.True(carriesPostConnectPayload);
+    }
+
+    [Fact]
     public void NullProfile_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() => ProfileExecutionTrust.CarriesLocalExecutionPayload(null!));
         Assert.Throws<ArgumentNullException>(() => ProfileExecutionTrust.RequiresExecutionConfirmation(null!));
+        Assert.Throws<ArgumentNullException>(() => ProfileExecutionTrust.CarriesPostConnectPayload(null!));
+        Assert.Throws<ArgumentNullException>(() => ProfileExecutionTrust.RequiresPostConnectConfirmation(null!));
     }
 }

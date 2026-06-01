@@ -803,6 +803,20 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
                 return;
             }
 
+            if (ProfileExecutionTrust.RequiresPostConnectConfirmation(server))
+            {
+                bool approved = await _main.ServerList
+                    .ConfirmAndTrustPostConnectAsync(server, runnableSteps)
+                    .ConfigureAwait(false);
+
+                if (!approved)
+                {
+                    FileLogger.Info(
+                        $"Post-connect skipped for {displayName}: unconfirmed imported commands.");
+                    return;
+                }
+            }
+
             tab.SetPostConnectState(
                 true,
                 $"0/{server.PostConnectSteps.Count}",

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Core.Configuration;
 
 /// <summary>
@@ -41,5 +43,41 @@ public static class ProfileExecutionTrust
         ArgumentNullException.ThrowIfNull(profile);
 
         return CarriesLocalExecutionPayload(profile) && !profile.ExecutionConfirmed;
+    }
+
+    /// <summary>
+    /// Returns true when a profile carries at least one enabled post-connect command.
+    /// </summary>
+    public static bool CarriesPostConnectPayload(ServerProfileDto profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        if (profile.PostConnectSteps is null)
+        {
+            return false;
+        }
+
+        foreach (PostConnectStep? step in profile.PostConnectSteps)
+        {
+            if (step is not null
+                && step.Enabled
+                && (!string.IsNullOrWhiteSpace(step.Input)
+                    || !string.IsNullOrWhiteSpace(step.CommandLibraryId)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true when a profile carries post-connect payload that has not been confirmed.
+    /// </summary>
+    public static bool RequiresPostConnectConfirmation(ServerProfileDto profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        return CarriesPostConnectPayload(profile) && !profile.ExecutionConfirmed;
     }
 }

@@ -291,6 +291,8 @@
   "ConfirmExecutionImportedTitle": "Run imported profile?",
   "ConfirmExecutionImportedBody": "\"{0}\" was imported and will launch a local program: {1}. Only continue if you trust this profile. Continue and remember this choice?",
   "StatusExecutionBlockedUnconfirmed": "Connection blocked: the imported profile's local program was not confirmed.",
+  "ConfirmPostConnectImportedTitle": "Run post-connect commands?",
+  "ConfirmPostConnectImportedBody": "\"{0}\" was imported and will automatically run {1} command(s) in this session. Only continue if you trust this profile. Run them and remember this choice?",
   "BtnUndo": "Undo",
   "StatusServerDeletedUndo": "Session \"{0}\" deleted. Click Undo to restore.",
   "StatusServerRestored": "Session \"{0}\" restored.",
