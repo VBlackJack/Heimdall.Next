@@ -339,6 +339,56 @@ public sealed class SplitServiceTests : IDisposable
     // ── Category D: Reconnect exception handling ─────────────────────────
 
     [Fact]
+    public async Task ReconnectPaneAsync_AlreadyReconnectingPane_SkipsConnect()
+    {
+        RecordingConnectionService connectionService = new RecordingConnectionService();
+        SplitService sut = CreateSplitService(connectionService);
+        SessionPaneModel pane = MakePane(paneId: "pane-1", serverId: "old-session", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.HostControl = null;
+
+        SessionTabViewModel session = new SessionTabViewModel { RootContent = pane };
+        ObservableCollection<SessionTabViewModel> activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        string? capturedStatus = null;
+        sut.SetStatusText = (string s) => capturedStatus = s;
+
+        Exception? ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.False(connectionService.ConnectInvoked);
+        Assert.Null(capturedStatus);
+        Assert.Null(pane.HostControl);
+    }
+
+    [Fact]
+    public async Task ReconnectPaneAsync_EmptyOriginalServerId_SetsErrorAndSkipsConnectAndTeardown()
+    {
+        RecordingConnectionService connectionService = new RecordingConnectionService();
+        SplitService sut = CreateSplitService(connectionService);
+        DisposableHost host = new DisposableHost();
+        SessionPaneModel pane = MakePane(paneId: "pane-1", serverId: "old-session", connectionType: "RDP");
+        pane.OriginalServerId = string.Empty;
+        pane.HostControl = host;
+
+        SessionTabViewModel session = new SessionTabViewModel { RootContent = pane };
+        ObservableCollection<SessionTabViewModel> activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        string? capturedStatus = null;
+        sut.SetStatusText = (string s) => capturedStatus = s;
+
+        Exception? ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.Equal(_localizer["ErrorSplitSessionFailed"], capturedStatus);
+        Assert.False(connectionService.ConnectInvoked);
+        Assert.False(host.Disposed);
+        Assert.Same(host, pane.HostControl);
+    }
+
+    [Fact]
     public async Task ReconnectPaneAsync_UnexpectedConnectException_SetsErrorAndDoesNotThrow()
     {
         var sut = CreateSplitService(new ThrowingConnectionService(new InvalidOperationException("boom")));
@@ -800,6 +850,79 @@ public sealed class SplitServiceTests : IDisposable
     {
         public bool Disposed { get; private set; }
         public void Dispose() => Disposed = true;
+    }
+
+    private sealed class RecordingConnectionService : IConnectionService
+    {
+        public bool ConnectInvoked { get; private set; }
+
+        public AppSettings? CurrentSettings => null;
+
+        public PreflightResult RunPreflight(ServerProfileDto server, AppSettings settings)
+            => PreflightResult.Ok();
+
+        public Task<ConnectionResult> ConnectSshAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectRdpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default,
+            RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectSftpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectVncAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectTelnetAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectFtpAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectCitrixAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectLocalShellAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public Task<ConnectionResult> ConnectWinRmAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync();
+
+        public void Dispose() { }
+
+        private Task<ConnectionResult> RecordConnectAsync()
+        {
+            ConnectInvoked = true;
+            return Task.FromResult(new ConnectionResult(false, "unexpected connect", null));
+        }
     }
 
     private sealed class SuccessfulRdpConnectionService : IConnectionService
