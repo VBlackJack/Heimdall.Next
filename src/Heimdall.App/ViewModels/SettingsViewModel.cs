@@ -71,10 +71,18 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
                         JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.VncPassword))
                     ];
 
+                    // Locally-scanned, machine-local launch data is non-portable; mirror
+                    // ImportedProfileSanitizer import behavior for export hygiene.
+                    string[] nonPortableScannerPropertyNames =
+                    [
+                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.CitrixLaunchCommandLine))
+                    ];
+
                     for (int index = typeInfo.Properties.Count - 1; index >= 0; index--)
                     {
                         JsonPropertyInfo property = typeInfo.Properties[index];
-                        if (credentialPropertyNames.Contains(property.Name, StringComparer.Ordinal))
+                        if (credentialPropertyNames.Contains(property.Name, StringComparer.Ordinal)
+                            || nonPortableScannerPropertyNames.Contains(property.Name, StringComparer.Ordinal))
                         {
                             typeInfo.Properties.RemoveAt(index);
                         }

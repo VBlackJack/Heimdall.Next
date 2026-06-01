@@ -76,6 +76,29 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void ExportJsonOptions_StripsCitrixLaunchCommandLine()
+    {
+        ServerProfileDto server = new()
+        {
+            Id = "citrix-export-test",
+            DisplayName = "Citrix Export Test",
+            RemoteServer = "citrix.example.test",
+            CitrixLaunchCommandLine = "-launch local cache blob"
+        };
+        JsonSerializerOptions options = GetExportJsonOptions();
+
+        string json = JsonSerializer.Serialize(new[] { server }, options);
+        JsonArray? servers = JsonNode.Parse(json)?.AsArray();
+
+        Assert.NotNull(servers);
+        JsonObject exported = Assert.IsType<JsonObject>(servers![0]);
+        Assert.Equal("citrix-export-test", exported["id"]?.GetValue<string>());
+        Assert.Equal("Citrix Export Test", exported["displayName"]?.GetValue<string>());
+        Assert.Equal("citrix.example.test", exported["remoteServer"]?.GetValue<string>());
+        Assert.False(exported.ContainsKey("citrixLaunchCommandLine"));
+    }
+
+    [Fact]
     public async Task SaveThenLoad_PreservesNewRdpRedirectionDefaults()
     {
         var config = new FakeConfigManager();
