@@ -1783,6 +1783,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
+        if (_rdpHost is not null && !RdpActiveXHost.AllowsAutoReconnect(disconnectReason))
+        {
+            _rdpHost.CancelAutoReconnect = true;
+            RdpActiveXHost.RdpDisconnectSeverity severity =
+                RdpActiveXHost.GetDisconnectSeverity(disconnectReason);
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP auto-reconnect cancelled for non-transient disconnect: " +
+                $"reason={disconnectReason} severity={severity} attempt={attemptCount}");
+            return;
+        }
+
         var attemptTimestampUtc = DateTime.UtcNow;
         Dispatcher.Invoke(() =>
         {

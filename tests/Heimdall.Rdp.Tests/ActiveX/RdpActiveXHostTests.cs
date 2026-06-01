@@ -139,6 +139,62 @@ public sealed class RdpActiveXHostTests
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
     }
 
+    [Theory]
+    [InlineData(260)]
+    [InlineData(264)]
+    [InlineData(516)]
+    [InlineData(772)]
+    [InlineData(2308)]
+    [InlineData(2825)]
+    [InlineData(3080)]
+    [InlineData(4360)]
+    public void AllowsAutoReconnect_TransientCode_ReturnsTrue(int reason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason);
+
+        Assert.True(actual);
+    }
+
+    [Theory]
+    [InlineData(2055)]
+    [InlineData(2567)]
+    [InlineData(3335)]
+    [InlineData(3591)]
+    [InlineData(3847)]
+    public void AllowsAutoReconnect_AuthIssueCode_ReturnsFalse(int reason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason);
+
+        Assert.False(actual);
+    }
+
+    [Theory]
+    [InlineData(1030)]
+    [InlineData(1796)]
+    [InlineData(2056)]
+    [InlineData(2311)]
+    [InlineData(2822)]
+    [InlineData(3848)]
+    public void AllowsAutoReconnect_SecurityOrTerminalCode_ReturnsFalse(int reason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason);
+
+        Assert.False(actual);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(999999)]
+    public void AllowsAutoReconnect_CleanExitOrUnknownCode_ReturnsFalse(int reason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason);
+
+        Assert.False(actual);
+    }
+
     [Fact]
     public void PostConnectStripTimer_BeginStartsTicksAndStopsAfterMaxDuration()
     {

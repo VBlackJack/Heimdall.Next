@@ -1063,6 +1063,15 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         _ => RdpDisconnectSeverity.TerminalError
     };
 
+    /// <summary>
+    /// Fail-closed auto-reconnect policy: only transient (network-level) disconnects
+    /// are eligible for automatic reconnection. Auth, security, terminal, clean-exit
+    /// and unknown reasons are NOT retried, to avoid hammering credentials/accounts
+    /// and to surface the disconnect to the user instead of silently looping.
+    /// </summary>
+    public static bool AllowsAutoReconnect(int reason)
+        => GetDisconnectSeverity(reason) == RdpDisconnectSeverity.Transient;
+
     #endregion
 
     #region Private apply methods (late-bound COM property access)
