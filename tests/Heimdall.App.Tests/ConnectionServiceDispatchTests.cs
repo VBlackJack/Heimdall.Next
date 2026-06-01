@@ -69,6 +69,241 @@ public sealed class ConnectionServiceDispatchTests
         }
     }
 
+    [Fact]
+    public async Task ConnectLocalShellAsync_UnconfirmedPayloadApproved_DispatchesToHandler()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-local-dispatch-approved",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            await configManager.InitializeAsync();
+
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("LOCAL");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            int confirmCalls = 0;
+            service.ConfirmExecution = profile =>
+            {
+                confirmCalls++;
+                return Task.FromResult(true);
+            };
+            ServerProfileDto server = CreateUnconfirmedLocalShellProfile();
+            AppSettings settings = new AppSettings();
+
+            ConnectionResult result = await service.ConnectLocalShellAsync(server, settings);
+
+            Assert.True(result.Success);
+            Assert.Equal(1, confirmCalls);
+            Assert.Equal(1, handler.CallCount);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConnectLocalShellAsync_UnconfirmedPayloadDeclined_BlocksHandler()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-local-dispatch-declined",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            await configManager.InitializeAsync();
+
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("LOCAL");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            service.ConfirmExecution = profile => Task.FromResult(false);
+            ServerProfileDto server = CreateUnconfirmedLocalShellProfile();
+            AppSettings settings = new AppSettings();
+
+            ConnectionResult result = await service.ConnectLocalShellAsync(server, settings);
+
+            Assert.False(result.Success);
+            Assert.Equal(0, handler.CallCount);
+            Assert.Equal(localizer["StatusExecutionBlockedUnconfirmed"], result.ErrorMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConnectLocalShellAsync_UnconfirmedPayloadWithoutDelegate_FailsClosed()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-local-dispatch-failclosed",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            await configManager.InitializeAsync();
+
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("LOCAL");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            ServerProfileDto server = CreateUnconfirmedLocalShellProfile();
+            AppSettings settings = new AppSettings();
+
+            ConnectionResult result = await service.ConnectLocalShellAsync(server, settings);
+
+            Assert.False(result.Success);
+            Assert.Equal(0, handler.CallCount);
+            Assert.Equal(localizer["StatusExecutionBlockedUnconfirmed"], result.ErrorMessage);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConnectLocalShellAsync_ConfirmedPayload_SkipsConfirmation()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-local-dispatch-confirmed",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            await configManager.InitializeAsync();
+
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("LOCAL");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            int confirmCalls = 0;
+            service.ConfirmExecution = profile =>
+            {
+                confirmCalls++;
+                return Task.FromResult(false);
+            };
+            ServerProfileDto server = CreateUnconfirmedLocalShellProfile();
+            server.ExecutionConfirmed = true;
+            AppSettings settings = new AppSettings();
+
+            ConnectionResult result = await service.ConnectLocalShellAsync(server, settings);
+
+            Assert.True(result.Success);
+            Assert.Equal(0, confirmCalls);
+            Assert.Equal(1, handler.CallCount);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConnectWinRmAsync_NonLocalPayload_SkipsConfirmation()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-winrm-dispatch-nonlocal",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            await configManager.InitializeAsync();
+
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("WINRM");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            int confirmCalls = 0;
+            service.ConfirmExecution = profile =>
+            {
+                confirmCalls++;
+                return Task.FromResult(false);
+            };
+            ServerProfileDto server = new ServerProfileDto
+            {
+                Id = "winrm-with-local-fields",
+                ConnectionType = "WINRM",
+                RemoteServer = "server01.contoso.local",
+                LocalShellExecutable = "evil.exe"
+            };
+            AppSettings settings = new AppSettings();
+
+            ConnectionResult result = await service.ConnectWinRmAsync(server, settings);
+
+            Assert.True(result.Success);
+            Assert.Equal(0, confirmCalls);
+            Assert.Equal(1, handler.CallCount);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    private static async Task<LocalizationManager> CreateLocalizerAsync()
+    {
+        LocalizationManager localizer = new LocalizationManager();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        return localizer;
+    }
+
+    private static ServerProfileDto CreateUnconfirmedLocalShellProfile()
+    {
+        return new ServerProfileDto
+        {
+            Id = "local-test",
+            DisplayName = "Imported Local",
+            ConnectionType = "LOCAL",
+            RemoteServer = "localhost",
+            LocalShellExecutable = "evil.exe"
+        };
+    }
+
     private sealed class CapturingProtocolHandler(string protocol) : IProtocolHandler
     {
         public string Protocol { get; } = protocol;

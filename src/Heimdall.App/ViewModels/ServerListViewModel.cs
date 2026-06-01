@@ -212,6 +212,93 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Confirms and best-effort persists trust for a profile carrying local-execution payload.
+    /// </summary>
+    internal async Task<bool> ConfirmAndTrustExecutionAsync(ServerProfileDto profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        string executable = string.IsNullOrWhiteSpace(profile.LocalShellExecutable)
+            ? "powershell.exe"
+            : profile.LocalShellExecutable;
+        string body = _localizer.Format(
+            "ConfirmExecutionImportedBody",
+            profile.DisplayName,
+            executable);
+        bool confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmExecutionImportedTitle"],
+            body,
+            "warning");
+
+        if (!confirmed)
+        {
+            return false;
+        }
+
+        profile.ExecutionConfirmed = true;
+
+        try
+        {
+            List<ServerProfileDto> servers = await _configManager.LoadServersAsync();
+            ServerProfileDto? stored = servers.FirstOrDefault(
+                server => string.Equals(server.Id, profile.Id, StringComparison.Ordinal));
+
+            if (stored is null)
+            {
+                string inventoryId = ResolveExecutionTrustInventoryId(profile.Id);
+                if (!string.Equals(inventoryId, profile.Id, StringComparison.Ordinal))
+                {
+                    stored = servers.FirstOrDefault(
+                        server => string.Equals(server.Id, inventoryId, StringComparison.Ordinal));
+                }
+            }
+
+            if (stored is not null && !stored.ExecutionConfirmed)
+            {
+                stored.ExecutionConfirmed = true;
+                await _configManager.SaveServersAsync(servers);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"Failed to persist execution-trust for '{profile.DisplayName}': {ex.Message}");
+        }
+
+        return true;
+    }
+
+    private static string ResolveExecutionTrustInventoryId(string profileId)
+    {
+        if (string.IsNullOrWhiteSpace(profileId))
+        {
+            return profileId;
+        }
+
+        int separatorIndex = profileId.LastIndexOf('_');
+        if (separatorIndex <= 0 || separatorIndex + 9 != profileId.Length)
+        {
+            return profileId;
+        }
+
+        for (int index = separatorIndex + 1; index < profileId.Length; index++)
+        {
+            char value = profileId[index];
+            bool isHex =
+                (value >= '0' && value <= '9') ||
+                (value >= 'a' && value <= 'f') ||
+                (value >= 'A' && value <= 'F');
+
+            if (!isHex)
+            {
+                return profileId;
+            }
+        }
+
+        return profileId[..separatorIndex];
+    }
+
+    /// <summary>
     /// Recursively detaches <see cref="OnFolderExpandedChanged"/> from every folder
     /// in the supplied tree. Called before rebuilding <see cref="GroupedServers"/>
     /// and in <see cref="Dispose"/> to ensure handler subscriptions do not

@@ -137,6 +137,10 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         // Wire ConnectionService status-text relay
         _main.ServerList.ConnectionService.SetStatusText = s => _main.StatusText = s;
 
+        // Wire connect-time execution-trust confirmation relay
+        _main.ServerList.ConnectionService.ConfirmExecution =
+            profile => _main.ServerList.ConfirmAndTrustExecutionAsync(profile);
+
         // Wire broadcast relay so terminal views can fan out input
         _embeddedSessionManager.BroadcastCallback = BroadcastToAllTerminals;
         _embeddedSessionManager.IsBroadcastActive = () => IsBroadcastMode;

@@ -36,6 +36,7 @@ public sealed class ConnectionService : IConnectionService
     private readonly ITunnelService _tunnelService;
     private readonly Dictionary<string, IProtocolHandler> _handlers;
     private Action<string>? _setStatusText;
+    private Func<ServerProfileDto, Task<bool>>? _confirmExecution;
 
     /// <summary>Cached snapshot of the latest application settings.</summary>
     private AppSettings? _currentSettings;
@@ -55,6 +56,16 @@ public sealed class ConnectionService : IConnectionService
                 sshHandler.SetStatusText = value;
             }
         }
+    }
+
+    /// <summary>
+    /// Relay wired by the shell to confirm and trust execution of an imported profile's
+    /// local-execution payload before connecting. Returns true to proceed, false to block.
+    /// </summary>
+    internal Func<ServerProfileDto, Task<bool>>? ConfirmExecution
+    {
+        get => _confirmExecution;
+        set => _confirmExecution = value;
     }
 
     public ConnectionService(
@@ -186,6 +197,19 @@ public sealed class ConnectionService : IConnectionService
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
+
+        if (ProfileExecutionTrust.RequiresExecutionConfirmation(server))
+        {
+            bool approved = _confirmExecution is not null
+                && await _confirmExecution(server).ConfigureAwait(false);
+
+            if (!approved)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"Connection to '{server.DisplayName}' blocked: unconfirmed local-execution payload (protocol={protocol}).");
+                return new ConnectionResult(false, _localizer["StatusExecutionBlockedUnconfirmed"], null);
+            }
+        }
 
         if (_handlers.TryGetValue(protocol, out var handler))
         {
