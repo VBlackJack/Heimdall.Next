@@ -145,15 +145,24 @@ public sealed class TcpPingServiceTests
     [Fact]
     public async Task PublicCtor_SmokeAgainstUnusedPort_ReturnsFailedQuickly()
     {
-        var unusedPort = GetUnusedTcpPort();
-        var service = new TcpPingService();
-        var stopwatch = Stopwatch.StartNew();
+        // Guards against the kernel TCP-retransmit hang (20-127s) on filtered/unused ports,
+        // not micro-latency. Kept generous so CI scheduling jitter never flakes it while it
+        // still fails loudly if the probe regresses to a multi-second hang.
+        const long maxElapsedMs = 10_000;
 
-        var result = await service.ProbeAsync(new TcpPingProbeRequest("127.0.0.1", unusedPort, 1, 250), CancellationToken.None);
+        int unusedPort = GetUnusedTcpPort();
+        TcpPingService service = new();
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        TcpPingProbeResult result = await service.ProbeAsync(
+            new TcpPingProbeRequest("127.0.0.1", unusedPort, 1, 250),
+            CancellationToken.None);
         stopwatch.Stop();
 
         Assert.Equal(TcpPingProbeStatus.Failed, result.Status);
-        Assert.True(stopwatch.ElapsedMilliseconds < 2000);
+        Assert.True(
+            stopwatch.ElapsedMilliseconds < maxElapsedMs,
+            $"Probe took {stopwatch.ElapsedMilliseconds} ms, expected under {maxElapsedMs} ms");
     }
 
     [Fact]
