@@ -47,7 +47,13 @@ public sealed class CommandGeneratorService : ICommandGeneratorService
         if (template.Parameters == null)
         {
             // If no parameters defined, return the pattern as-is
-            return template.CommandPattern;
+            return EnforceCommandLength(template.CommandPattern);
+        }
+
+        if (template.Parameters.Count > ValidationConstants.MaxParametersPerTemplate)
+        {
+            throw new InvalidOperationException(
+                $"Command template declares too many parameters ({template.Parameters.Count}); maximum is {ValidationConstants.MaxParametersPerTemplate}");
         }
 
         // PERFORMANCE: Use StringBuilder for multiple string replacements (40-60% fewer allocations)
@@ -78,7 +84,7 @@ public sealed class CommandGeneratorService : ICommandGeneratorService
             command.Replace(placeholder, escapedValue);
         }
 
-        return command.ToString();
+        return EnforceCommandLength(command.ToString());
     }
 
     public Dictionary<string, string> GetDefaultParameterValues(CommandTemplate template)
@@ -133,6 +139,12 @@ public sealed class CommandGeneratorService : ICommandGeneratorService
         if (template.Parameters == null || template.Parameters.Count == 0)
         {
             return true; // No parameters to validate
+        }
+
+        if (template.Parameters.Count > ValidationConstants.MaxParametersPerTemplate)
+        {
+            errors.Add($"Command template declares too many parameters ({template.Parameters.Count}); maximum is {ValidationConstants.MaxParametersPerTemplate}");
+            return false;
         }
 
         foreach (var parameter in template.Parameters)
@@ -212,6 +224,17 @@ public sealed class CommandGeneratorService : ICommandGeneratorService
         }
 
         return errors.Count == 0;
+    }
+
+    private static string EnforceCommandLength(string command)
+    {
+        if (command.Length > ValidationConstants.MaxCommandLength)
+        {
+            throw new InvalidOperationException(
+                $"Generated command exceeds maximum length of {ValidationConstants.MaxCommandLength} characters (was {command.Length})");
+        }
+
+        return command;
     }
 
     /// <summary>

@@ -16,6 +16,11 @@ public static class ValidationConstants
     public const int MaxCommandLength = 1024;
 
     /// <summary>
+    /// Maximum number of parameters a single command template may declare (50).
+    /// </summary>
+    public const int MaxParametersPerTemplate = 50;
+
+    /// <summary>
     /// Maximum length for a file path (260 characters, standard Windows MAX_PATH).
     /// </summary>
     public const int MaxPathLength = 260;
