@@ -341,15 +341,27 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private async Task RefreshCommandLibraryTokenStatusAsync()
     {
-        var hasToken = await _commandLibrarySettingsService.HasSavedTokenAsync().ConfigureAwait(true);
+        bool hasToken = await _commandLibrarySettingsService.HasSavedTokenAsync().ConfigureAwait(true);
         ApplyCommandLibraryTokenStatus(hasToken);
     }
 
     private void ApplyCommandLibraryTokenStatus(bool hasToken)
     {
-        var status = _commandLibrarySettingsService.GetTokenStatus(hasToken);
+        CommandLibraryTokenStatus status = _commandLibrarySettingsService.GetTokenStatus(hasToken);
         Mw_SettingsCmdLibSyncTokenStatus.Text = status.StatusText;
+        Mw_SettingsCmdLibSyncTokenStatus.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            "SuccessTextBrush");
         Mw_SettingsCmdLibSyncTokenClear.Visibility = status.ClearButtonVisibility;
+    }
+
+    private void ApplyCommandLibraryTokenSaveError()
+    {
+        Mw_SettingsCmdLibSyncTokenStatus.Text = _commandLibrarySettingsService.GetSaveErrorStatusText();
+        Mw_SettingsCmdLibSyncTokenStatus.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            "ErrorTextBrush");
+        Mw_SettingsCmdLibSyncTokenClear.Visibility = Visibility.Collapsed;
     }
 
     private void RefreshExternalToolSettingsUi(MainViewModel vm)
@@ -1743,29 +1755,37 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         vm.Settings.IsDirty = true;
     }
 
-    private void OnCmdLibSyncTokenChanged(object sender, RoutedEventArgs e)
+    private async void OnCmdLibSyncTokenChanged(object sender, RoutedEventArgs e)
     {
-        var password = Mw_SettingsCmdLibSyncToken.Password;
-        if (string.IsNullOrEmpty(password)) return;
+        string password = Mw_SettingsCmdLibSyncToken.Password;
+        if (string.IsNullOrEmpty(password))
+        {
+            return;
+        }
 
-        var app = System.Windows.Application.Current as App;
-        var configManager = app?.Services?.GetService<Core.Configuration.IConfigManager>();
-        if (configManager is null) return;
-
-        var encrypted = Core.Security.DpapiProvider.Protect(password);
-        _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = encrypted);
-        ApplyCommandLibraryTokenStatus(true);
+        bool saved = await _commandLibrarySettingsService.TrySaveTokenAsync(password).ConfigureAwait(true);
+        if (saved)
+        {
+            ApplyCommandLibraryTokenStatus(true);
+        }
+        else
+        {
+            ApplyCommandLibraryTokenSaveError();
+        }
     }
 
-    private void OnCmdLibSyncTokenClear(object sender, RoutedEventArgs e)
+    private async void OnCmdLibSyncTokenClear(object sender, RoutedEventArgs e)
     {
-        var app = System.Windows.Application.Current as App;
-        var configManager = app?.Services?.GetService<Core.Configuration.IConfigManager>();
-        if (configManager is null) return;
-
-        _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = null);
+        bool cleared = await _commandLibrarySettingsService.TryClearTokenAsync().ConfigureAwait(true);
         Mw_SettingsCmdLibSyncToken.Password = "";
-        ApplyCommandLibraryTokenStatus(false);
+        if (cleared)
+        {
+            ApplyCommandLibraryTokenStatus(false);
+        }
+        else
+        {
+            ApplyCommandLibraryTokenSaveError();
+        }
     }
 
     private async void OnCmdLibSyncTestClick(object sender, RoutedEventArgs e)

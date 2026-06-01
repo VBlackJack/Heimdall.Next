@@ -17,6 +17,8 @@
 using System.Windows;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Services;
 
@@ -41,8 +43,52 @@ public sealed class CommandLibrarySettingsService
     /// </summary>
     public async Task<bool> HasSavedTokenAsync()
     {
-        var settings = await _configManager.LoadSettingsAsync().ConfigureAwait(false);
+        AppSettings settings = await _configManager.LoadSettingsAsync().ConfigureAwait(false);
         return !string.IsNullOrEmpty(settings.CmdLibGitSyncToken);
+    }
+
+    /// <summary>
+    /// Persists a Git sync token and reports whether the write completed.
+    /// </summary>
+    public async Task<bool> TrySaveTokenAsync(string plaintext)
+    {
+        if (string.IsNullOrEmpty(plaintext))
+        {
+            return false;
+        }
+
+        string encrypted = DpapiProvider.Protect(plaintext);
+        try
+        {
+            await _configManager.MergeSettingAsync(
+                    (AppSettings settings) => settings.CmdLibGitSyncToken = encrypted)
+                .ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"Failed to persist Command Library Git token: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Clears the persisted Git sync token and reports whether the write completed.
+    /// </summary>
+    public async Task<bool> TryClearTokenAsync()
+    {
+        try
+        {
+            await _configManager.MergeSettingAsync(
+                    (AppSettings settings) => settings.CmdLibGitSyncToken = null)
+                .ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"Failed to clear Command Library Git token: {ex.Message}");
+            return false;
+        }
     }
 
     /// <summary>
@@ -54,6 +100,8 @@ public sealed class CommandLibrarySettingsService
             hasToken ? _localizer["SettingsCmdLibSyncTokenSaved"] : string.Empty,
             hasToken ? Visibility.Visible : Visibility.Collapsed);
     }
+
+    public string GetSaveErrorStatusText() => _localizer["SettingsCmdLibSyncTokenSaveError"];
 }
 
 /// <summary>

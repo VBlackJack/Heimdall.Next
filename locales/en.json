@@ -5006,6 +5006,7 @@
   "SettingsCmdLibSyncOnStartup": "Sync on startup",
   "SettingsCmdLibSyncAutoPush": "Auto-push after changes",
   "SettingsCmdLibSyncTokenSaved": "Token saved",
+  "SettingsCmdLibSyncTokenSaveError": "Save failed",
   "SettingsCmdLibSyncTokenClear": "Clear token",
   "SettingsCmdLibSyncTestConnection": "Test Connection",
   "SettingsCmdLibSyncTestSuccess": "Connection OK",

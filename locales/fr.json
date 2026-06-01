@@ -5005,6 +5005,7 @@
   "SettingsCmdLibSyncOnStartup": "Synchroniser au d\u00e9marrage",
   "SettingsCmdLibSyncAutoPush": "Push automatique apr\u00e8s modifications",
   "SettingsCmdLibSyncTokenSaved": "Jeton enregistr\u00e9",
+  "SettingsCmdLibSyncTokenSaveError": "\u00c9chec de l'enregistrement",
   "SettingsCmdLibSyncTokenClear": "Supprimer le jeton",
   "SettingsCmdLibSyncTestConnection": "Tester la connexion",
   "SettingsCmdLibSyncTestSuccess": "Connexion OK",
