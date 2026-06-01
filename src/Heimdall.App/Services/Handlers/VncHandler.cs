@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.StateMachine;
 
 namespace Heimdall.App.Services.Handlers;
@@ -51,12 +53,18 @@ internal sealed class VncHandler : IProtocolHandler
 
         if (string.IsNullOrWhiteSpace(server.RemoteServer))
         {
-            var msg = _localizer["ErrorInvalidTargetHost"];
+            string msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
             return Task.FromResult(new ConnectionResult(false, msg, null));
         }
 
-        var vncPort = server.VncPort > 0 ? server.VncPort : DefaultPorts.Vnc;
+        int vncPort = server.VncPort > 0 ? server.VncPort : DefaultPorts.Vnc;
+        if (!InputValidator.ValidatePortRange(vncPort))
+        {
+            string msg = _localizer.Format("ErrorInvalidPort", vncPort.ToString(CultureInfo.InvariantCulture));
+            _connectionSm.SetError(server.Id, msg);
+            return Task.FromResult(new ConnectionResult(false, msg, null));
+        }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingVnc);
 
@@ -66,7 +74,7 @@ internal sealed class VncHandler : IProtocolHandler
             password = ConnectionHelpers.DecryptPassword(server.VncPassword);
         }
 
-        var session = new VncSessionResult(
+        VncSessionResult session = new VncSessionResult(
             server.Id,
             server.RemoteServer,
             vncPort,

@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Core.StateMachine;
 
 namespace Heimdall.App.Services.Handlers;
@@ -54,18 +56,24 @@ internal sealed class TelnetHandler : IProtocolHandler
 
         if (string.IsNullOrWhiteSpace(server.RemoteServer))
         {
-            var msg = _localizer["ErrorInvalidTargetHost"];
+            string msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(false, msg, null);
         }
 
-        var port = server.TelnetPort > 0 ? server.TelnetPort : DefaultPorts.Telnet;
+        int port = server.TelnetPort > 0 ? server.TelnetPort : DefaultPorts.Telnet;
+        if (!InputValidator.ValidatePortRange(port))
+        {
+            string msg = _localizer.Format("ErrorInvalidPort", port.ToString(CultureInfo.InvariantCulture));
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingTelnet);
 
         Core.Logging.FileLogger.Info($"Launching Telnet session: {server.RemoteServer}:{port}");
 
-        var session = new Terminal.TelnetSession(
+        Heimdall.Terminal.TelnetSession session = new Heimdall.Terminal.TelnetSession(
             server.RemoteServer,
             port,
             settings.TelnetConnectTimeoutMs);
@@ -79,7 +87,7 @@ internal sealed class TelnetHandler : IProtocolHandler
         {
             session.Dispose();
             Core.Logging.FileLogger.Error("Telnet connection failed", ex);
-            var userMsg = _localizer.Format("ErrorTelnetConnectionFailed", ex.Message);
+            string userMsg = _localizer.Format("ErrorTelnetConnectionFailed", ex.Message);
             _connectionSm.SetError(server.Id, userMsg);
             return new ConnectionResult(false, userMsg, null);
         }
