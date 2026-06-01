@@ -214,6 +214,13 @@ public sealed class ServerProfileDto
     public Models.ElevationMode ElevationMode { get; set; } = Models.ElevationMode.None;
 
     /// <summary>
+    /// True when the user has authored or explicitly vetted this profile's local-execution
+    /// payload (e.g. via the server dialog). Profiles serialized before this field, and all
+    /// imported profiles, deserialize to false. A later connect-time guard uses this flag.
+    /// </summary>
+    public bool ExecutionConfirmed { get; set; }
+
+    /// <summary>
     /// Returns the effective elevation mode: if <see cref="ElevationMode"/> is
     /// <see cref="Models.ElevationMode.None"/> but legacy <see cref="LocalShellElevated"/>
     /// is true, returns <see cref="Models.ElevationMode.Auto"/> for backward compatibility.

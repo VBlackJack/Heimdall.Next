@@ -680,6 +680,54 @@ public class ConfigManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveServersAsync_ThenLoadServersAsync_PreservesExecutionConfirmed()
+    {
+        List<ServerProfileDto> original = new()
+        {
+            new()
+            {
+                Id = "srv-exec-trusted",
+                DisplayName = "Trusted Local Shell",
+                RemoteServer = "localhost",
+                ConnectionType = "LOCAL",
+                LocalShellExecutable = "pwsh.exe",
+                ExecutionConfirmed = true
+            }
+        };
+
+        await _manager.SaveServersAsync(original);
+        List<ServerProfileDto> loaded = await _manager.LoadServersAsync();
+
+        ServerProfileDto server = Assert.Single(loaded);
+        Assert.True(server.ExecutionConfirmed);
+    }
+
+    [Fact]
+    public async Task LoadServersAsync_MissingExecutionConfirmed_DefaultsFalse()
+    {
+        string configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        const string Json = """
+        [
+            {
+                "id": "srv-exec-legacy",
+                "displayName": "Legacy Local Shell",
+                "remoteServer": "localhost",
+                "connectionType": "LOCAL",
+                "localShellExecutable": "pwsh.exe"
+            }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, Json, new UTF8Encoding(false));
+
+        List<ServerProfileDto> loaded = await _manager.LoadServersAsync();
+
+        ServerProfileDto server = Assert.Single(loaded);
+        Assert.False(server.ExecutionConfirmed);
+    }
+
+    [Fact]
     public async Task SaveServersAsync_RoundTrips_SshKeyPassphraseEncrypted()
     {
         CredentialProtector.Initialize(null);

@@ -483,6 +483,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             Id = server.Id,
             DisplayName = server.DisplayName,
             Origin = server.Origin,
+            ExecutionConfirmed = server.ExecutionConfirmed,
             RemoteServer = server.RemoteServer,
             RemotePort = server.RemotePort,
             LocalPort = server.LocalPort,

@@ -19,14 +19,15 @@ namespace Heimdall.Core.Configuration;
 /// <summary>
 /// Strips imported profile fields that must only be populated by trusted
 /// local discovery or scanner flows before profiles cross into persisted
-/// application configuration.
+/// application configuration, and resets local-execution trust on import.
 /// </summary>
 public static class ImportedProfileSanitizer
 {
     /// <summary>
     /// Clears fields that are intended to be produced only by trusted local
-    /// scanners and must not cross the trust boundary of an external import.
-    /// New rules can be added here as additional scanner-only fields are identified.
+    /// scanners and must not cross the trust boundary of an external import,
+    /// and clears any imported local-execution trust assertion.
+    /// New rules can be added here as additional trust-boundary fields are identified.
     /// </summary>
     public static void Sanitize(IList<ServerProfileDto> profiles)
     {
@@ -40,6 +41,7 @@ public static class ImportedProfileSanitizer
             }
 
             profile.CitrixLaunchCommandLine = null;
+            profile.ExecutionConfirmed = false;
         }
     }
 }

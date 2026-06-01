@@ -1638,6 +1638,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         {
             DisplayName = DisplayName,
             Origin = Origin,
+            ExecutionConfirmed = true,
             RemoteServer = RemoteServer,
             RemotePort = RemotePort,
             LocalPort = LocalPort,

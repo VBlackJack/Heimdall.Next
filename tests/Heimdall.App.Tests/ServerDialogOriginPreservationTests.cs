@@ -52,6 +52,22 @@ public sealed class ServerDialogOriginPreservationTests
     }
 
     [Fact]
+    public void ServerDialogViewModel_ToDto_MarksExecutionConfirmed()
+    {
+        ServerDialogViewModel vm = new()
+        {
+            DisplayName = "Local Shell",
+            RemoteServer = "localhost",
+            ConnectionType = "LOCAL",
+            LocalShellExecutable = "pwsh.exe"
+        };
+
+        ServerProfileDto dto = vm.ToDto();
+
+        Assert.True(dto.ExecutionConfirmed);
+    }
+
+    [Fact]
     public async Task ServerListViewModel_AddServer_SetsOriginToManual()
     {
         await using var fixture = await ServerListFixture.CreateAsync(new ServerProfileDto
