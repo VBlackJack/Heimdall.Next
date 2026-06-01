@@ -731,6 +731,7 @@
   "ImportDialogFilterAll": "Tous les formats|*.json;*.mxtsessions;*.mobaconf;*.ini;*.xml;*.rdg;*.rdp|JSON|*.json|MobaXterm|*.mxtsessions;*.mobaconf;*.ini|mRemoteNG|*.xml|RDCMan|*.rdg|Fichiers RDP|*.rdp|Tous les fichiers|*.*",
   "ConfirmImportMobaXtermMessage": "Importer {0} session(s) depuis MobaXterm ? Les mots de passe ne peuvent pas \u00eatre import\u00e9s et devront \u00eatre ressaisis.",
   "ImportMobaXtermPasswordNotice": "Les mots de passe MobaXterm sont chiffr\u00e9s avec un algorithme propri\u00e9taire et n'ont pas pu \u00eatre import\u00e9s. Veuillez ressaisir les identifiants pour chaque session.",
+  "ImportMobaXtermPasswordNoticeDetected": "{0} mot(s) de passe stock\u00e9(s) d\u00e9tect\u00e9(s) dans le fichier MobaXterm. MobaXterm les chiffre avec un algorithme propri\u00e9taire : ils n'ont pas \u00e9t\u00e9 import\u00e9s \u2014 veuillez ressaisir les identifiants des sessions concern\u00e9es.",
   "ImportMobaXtermWarnings": "{0} session(s) n'ont pas pu \u00eatre analys\u00e9es :",
   "ImportErrorUnknownExtension": "Type de fichier d'import non pris en charge : {0}.",
   "ImportSkippedInvalidHostname": "Ignor\u00e9 '{0}' : format de nom d'h\u00f4te invalide.",

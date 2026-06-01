@@ -107,6 +107,36 @@ public class MobaXtermImporterTests
     }
 
     [Fact]
+    public void Parse_WithCredentialSections_CountsStoredCredentials()
+    {
+        const string ini = """
+            [Bookmarks]
+            SubRep=Production
+            ImgNum=42
+            WebServer= #109#0%web01.example.com%22%admin%
+            [Passwords]
+            web01.example.com=encrypted-password-1
+            db01.example.com=encrypted-password-2
+            [Credentials]
+            production-admin=encrypted-credential-1
+            """;
+
+        MobaXtermImportResult result = MobaXtermImporter.Parse(ini);
+
+        Assert.Equal(3, result.StoredCredentialCount);
+        ServerProfileDto server = Assert.Single(result.Servers);
+        Assert.Equal("WebServer", server.DisplayName);
+    }
+
+    [Fact]
+    public void Parse_WithoutCredentialSections_StoredCredentialCountIsZero()
+    {
+        MobaXtermImportResult result = MobaXtermImporter.Parse(SampleIni);
+
+        Assert.Equal(0, result.StoredCredentialCount);
+    }
+
+    [Fact]
     public void Parse_AssignsUniqueIds()
     {
         var result = MobaXtermImporter.Parse(SampleIni);

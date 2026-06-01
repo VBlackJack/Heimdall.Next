@@ -731,6 +731,7 @@
   "ImportDialogFilterAll": "All Supported|*.json;*.mxtsessions;*.mobaconf;*.ini;*.xml;*.rdg;*.rdp|JSON|*.json|MobaXterm|*.mxtsessions;*.mobaconf;*.ini|mRemoteNG|*.xml|RDCMan|*.rdg|RDP Files|*.rdp|All Files|*.*",
   "ConfirmImportMobaXtermMessage": "Import {0} session(s) from MobaXterm? Passwords cannot be imported and must be re-entered.",
   "ImportMobaXtermPasswordNotice": "MobaXterm passwords are encrypted with a proprietary algorithm and could not be imported. Please re-enter credentials for each session.",
+  "ImportMobaXtermPasswordNoticeDetected": "Detected {0} stored password(s) in the MobaXterm file. MobaXterm encrypts them with a proprietary algorithm, so they were not imported \u2014 please re-enter credentials for the affected sessions.",
   "ImportMobaXtermWarnings": "{0} session(s) could not be parsed:",
   "ImportErrorUnknownExtension": "Unsupported import file type: {0}.",
   "ImportSkippedInvalidHostname": "Skipped '{0}': invalid hostname format.",

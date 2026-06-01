@@ -39,6 +39,9 @@ namespace Heimdall.Core.Configuration;
 /// </remarks>
 public static partial class MobaXtermImporter
 {
+    private const string PasswordsSection = "Passwords";
+    private const string CredentialsSection = "Credentials";
+
     // MobaXterm protocol/icon codes mapped to Heimdall ConnectionType strings.
     // Multiple codes per protocol to handle version differences.
     private static readonly Dictionary<int, string> ProtocolMap = new()
@@ -74,6 +77,7 @@ public static partial class MobaXtermImporter
 
         var result = new MobaXtermImportResult();
         var sections = ParseIniSections(content);
+        result.StoredCredentialCount = CountStoredCredentialEntries(sections);
 
         foreach (var section in sections)
         {
@@ -109,6 +113,23 @@ public static partial class MobaXtermImporter
         }
 
         return result;
+    }
+
+    private static int CountStoredCredentialEntries(Dictionary<string, Dictionary<string, string>> sections)
+    {
+        // These sections contain proprietary-encrypted secrets; count them only for user warning.
+        int count = 0;
+        if (sections.TryGetValue(PasswordsSection, out Dictionary<string, string>? passwords))
+        {
+            count += passwords.Count;
+        }
+
+        if (sections.TryGetValue(CredentialsSection, out Dictionary<string, string>? credentials))
+        {
+            count += credentials.Count;
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -424,4 +445,10 @@ public sealed class MobaXtermImportResult
 
     /// <summary>Non-fatal warnings for sessions that could not be parsed.</summary>
     public List<string> Warnings { get; } = [];
+
+    /// <summary>
+    /// Number of entries found in MobaXterm [Passwords]/[Credentials] sections,
+    /// exposed only to warn the user; values are never decrypted.
+    /// </summary>
+    public int StoredCredentialCount { get; internal set; }
 }

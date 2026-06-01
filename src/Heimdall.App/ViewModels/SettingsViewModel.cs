@@ -103,6 +103,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     private readonly PinManager _pinManager;
     private readonly IProfileImportService? _profileImportService;
     private bool _disposed;
+    private int _mobaStoredCredentialCount;
 
     private string _originalTheme = "";
     private string _originalAccentTint = "Default";
@@ -1051,6 +1052,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
                 return;
             }
 
+            _mobaStoredCredentialCount = 0;
             var (imported, importWarnings) = ext switch
             {
                 ".mxtsessions" or ".ini" or ".mobaconf" => await ImportMobaXtermAsync(filePath, cancellationToken),
@@ -1153,7 +1155,10 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
             if (ext is ".mxtsessions" or ".ini" or ".mobaconf")
             {
-                statusMessage += "\n\n" + _localizer["ImportMobaXtermPasswordNotice"];
+                string passwordNotice = _mobaStoredCredentialCount > 0
+                    ? _localizer.Format("ImportMobaXtermPasswordNoticeDetected", _mobaStoredCredentialCount)
+                    : _localizer["ImportMobaXtermPasswordNotice"];
+                statusMessage += "\n\n" + passwordNotice;
                 _dialogService.ShowWarning(_localizer["ImportDialogTitle"], statusMessage);
             }
             else
@@ -1214,6 +1219,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             ? System.Text.Encoding.UTF8.GetString(bytes)
             : System.Text.Encoding.GetEncoding(1252).GetString(bytes);
         var mobaResult = MobaXtermImporter.Parse(content);
+        _mobaStoredCredentialCount = mobaResult.StoredCredentialCount;
         return (mobaResult.Servers, mobaResult.Warnings);
     }
 

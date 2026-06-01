@@ -781,6 +781,54 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ImportConfigCommand_MobaXtermStoredCredentials_ShowsDetectedPasswordNotice()
+    {
+        FakeConfigManager config = new();
+        FakeDialogService dialog = new() { ConfirmResult = true };
+        LocalizationManager localizer = new();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        SettingsViewModel viewModel = CreateViewModel(config, dialog, localizer: localizer);
+        string importRoot = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-settings-import-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(importRoot);
+        string importPath = Path.Combine(importRoot, "servers.ini");
+        const string content = """
+            [Bookmarks]
+            SubRep=Production
+            ImgNum=42
+            WebServer= #109#0%web01.example.com%22%admin%
+            [Passwords]
+            web01.example.com=encrypted-password-1
+            db01.example.com=encrypted-password-2
+            """;
+
+        try
+        {
+            await File.WriteAllTextAsync(importPath, content);
+            viewModel.ImportFilePathProvider = () => importPath;
+
+            await viewModel.ImportConfigCommand.ExecuteAsync(null);
+
+            Assert.NotNull(config.SavedServers);
+            ServerProfileDto savedServer = Assert.Single(config.SavedServers);
+            Assert.Equal("WebServer", savedServer.DisplayName);
+            (string Title, string Message) warning = Assert.Single(dialog.WarningCalls);
+            Assert.Contains("Detected 2 stored password(s)", warning.Message, StringComparison.Ordinal);
+            Assert.Contains("MobaXterm encrypts them with a proprietary algorithm", warning.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(importRoot))
+            {
+                Directory.Delete(importRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesExternalToolTracking()
     {
         SettingsViewModel viewModel = CreateViewModel(new FakeConfigManager());
@@ -842,9 +890,10 @@ public sealed class SettingsViewModelTests
     private static SettingsViewModel CreateViewModel(
         FakeConfigManager config,
         FakeDialogService? dialog = null,
-        IProfileImportService? profileImportService = null)
+        IProfileImportService? profileImportService = null,
+        LocalizationManager? localizer = null)
     {
-        var localizer = new LocalizationManager();
+        localizer ??= new LocalizationManager();
         dialog ??= new FakeDialogService();
         var trustedHostKeys = new TrustedHostKeysSettingsViewModel(
             new HostKeyTrustService(new HostKeyStore()),
