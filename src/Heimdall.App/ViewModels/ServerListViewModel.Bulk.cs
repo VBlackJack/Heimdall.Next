@@ -15,6 +15,7 @@
  */
 
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.Core.Codecs;
 using Heimdall.Core.Configuration;
 
 namespace Heimdall.App.ViewModels;
@@ -950,7 +951,7 @@ public partial class ServerListViewModel
                     continue;
                 }
 
-                var sessionId = $"{candidate.Server.Id}_{Guid.NewGuid().ToString("N")[..8]}";
+                string sessionId = SessionIdCodec.Create(candidate.Server.Id);
                 Core.Logging.FileLogger.Info(
                     $"ConnectServersBulkCoreAsync: {candidate.Server.DisplayName} type={candidate.ServerDto.ConnectionType} gateway={candidate.ServerDto.SshGatewayId} sessionId={sessionId}");
 

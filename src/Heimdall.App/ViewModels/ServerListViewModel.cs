@@ -23,6 +23,7 @@ using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
 using Heimdall.App.Services.Import;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Codecs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -278,8 +279,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
             if (stored is null)
             {
-                string inventoryId = ResolveExecutionTrustInventoryId(profile.Id);
-                if (!string.Equals(inventoryId, profile.Id, StringComparison.Ordinal))
+                if (SessionIdCodec.TryGetInventoryId(profile.Id, out string inventoryId))
                 {
                     stored = servers.FirstOrDefault(
                         server => string.Equals(server.Id, inventoryId, StringComparison.Ordinal));
@@ -297,36 +297,6 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             Core.Logging.FileLogger.Warn(
                 $"Failed to persist execution-trust for '{profile.DisplayName}': {ex.Message}");
         }
-    }
-
-    private static string ResolveExecutionTrustInventoryId(string profileId)
-    {
-        if (string.IsNullOrWhiteSpace(profileId))
-        {
-            return profileId;
-        }
-
-        int separatorIndex = profileId.LastIndexOf('_');
-        if (separatorIndex <= 0 || separatorIndex + 9 != profileId.Length)
-        {
-            return profileId;
-        }
-
-        for (int index = separatorIndex + 1; index < profileId.Length; index++)
-        {
-            char value = profileId[index];
-            bool isHex =
-                (value >= '0' && value <= '9') ||
-                (value >= 'a' && value <= 'f') ||
-                (value >= 'A' && value <= 'F');
-
-            if (!isHex)
-            {
-                return profileId;
-            }
-        }
-
-        return profileId[..separatorIndex];
     }
 
     /// <summary>
@@ -748,7 +718,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
             // Generate a unique session ID so duplicate connections to the same server
             // get independent state tracking (tunnel lifecycle, error recovery)
-            var sessionId = $"{server.Id}_{Guid.NewGuid().ToString("N")[..8]}";
+            string sessionId = SessionIdCodec.Create(server.Id);
 
             Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId} sessionId={sessionId}");
 
