@@ -57,6 +57,34 @@ public static class ImportedProfileValidator
         return errors;
     }
 
+    public static (List<ServerProfileDto> Valid, List<string> Failures) FilterValid(
+        IEnumerable<ServerProfileDto> profiles,
+        IReadOnlySet<string> supportedConnectionTypes)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        ArgumentNullException.ThrowIfNull(supportedConnectionTypes);
+
+        List<ServerProfileDto> valid = [];
+        List<string> failures = [];
+
+        foreach (ServerProfileDto profile in profiles)
+        {
+            IReadOnlyList<string> errors = Validate(profile, supportedConnectionTypes);
+            if (errors.Count == 0)
+            {
+                valid.Add(profile);
+                continue;
+            }
+
+            string displayName = string.IsNullOrWhiteSpace(profile.DisplayName)
+                ? "<unnamed profile>"
+                : profile.DisplayName.Trim();
+            failures.Add($"{displayName}: {string.Join("; ", errors)}");
+        }
+
+        return (valid, failures);
+    }
+
     private static void ValidateRequiredPort(List<string> errors, int value, string fieldName)
     {
         if (value is < MinPort or > MaxPort)

@@ -707,6 +707,57 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task ImportConfigCommand_LegacyInvalidPort_FiltersBeforePersistence()
+    {
+        FakeConfigManager config = new();
+        FakeDialogService dialog = new() { ConfirmResult = true };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog);
+        string importRoot = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-settings-import-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(importRoot);
+        string importPath = Path.Combine(importRoot, "servers.rdg");
+        const string content = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <RDCMan programVersion="2.7" schemaVersion="3">
+              <file>
+                <name>Root</name>
+                <server>
+                  <name>bad.example.com</name>
+                  <displayName>Bad Port</displayName>
+                  <connectionSettings>
+                    <port>70000</port>
+                  </connectionSettings>
+                </server>
+              </file>
+            </RDCMan>
+            """;
+
+        try
+        {
+            await File.WriteAllTextAsync(importPath, content);
+            viewModel.ImportFilePathProvider = () => importPath;
+
+            await viewModel.ImportConfigCommand.ExecuteAsync(null);
+
+            Assert.Null(config.SavedServers);
+            Assert.Empty(config.Servers);
+            Assert.Empty(dialog.ConfirmCalls);
+            (string Title, string Message) warning = Assert.Single(dialog.WarningCalls);
+            Assert.Contains("Bad Port", warning.Message, StringComparison.Ordinal);
+            Assert.Contains(nameof(ServerProfileDto.RemotePort), warning.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(importRoot))
+            {
+                Directory.Delete(importRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesExternalToolTracking()
     {
         SettingsViewModel viewModel = CreateViewModel(new FakeConfigManager());
@@ -946,6 +997,8 @@ public sealed class SettingsViewModelTests
 
         public List<(string Title, string Message)> ErrorCalls { get; } = [];
 
+        public List<(string Title, string Message)> WarningCalls { get; } = [];
+
         public PinSetupResult? PinSetupResultToReturn { get; set; }
 
         public PinSetupDialogViewModel? LastPinSetupViewModel { get; private set; }
@@ -1035,6 +1088,7 @@ public sealed class SettingsViewModelTests
 
         public void ShowWarning(string title, string message)
         {
+            WarningCalls.Add((title, message));
         }
     }
 

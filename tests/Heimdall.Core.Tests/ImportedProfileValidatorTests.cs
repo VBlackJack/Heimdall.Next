@@ -155,6 +155,59 @@ public sealed class ImportedProfileValidatorTests
         Assert.Contains(errors, error => error.Contains(nameof(ServerProfileDto.ConnectionType), StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void FilterValid_OutOfRangePort_AddsFailureAndExcludesProfile()
+    {
+        ServerProfileDto profile = CreateValidProfile();
+        profile.DisplayName = "Bad Port";
+        profile.SshPort = 70000;
+
+        (List<ServerProfileDto> valid, List<string> failures) =
+            ImportedProfileValidator.FilterValid([profile], SupportedConnectionTypes);
+
+        Assert.Empty(valid);
+        string failure = Assert.Single(failures);
+        Assert.Contains("Bad Port", failure, StringComparison.Ordinal);
+        Assert.Contains(nameof(ServerProfileDto.SshPort), failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FilterValid_UnsupportedConnectionType_AddsFailureAndExcludesProfile()
+    {
+        ServerProfileDto profile = CreateValidProfile();
+        profile.DisplayName = "Bad Type";
+        profile.ConnectionType = "TOOL:CHMOD";
+
+        (List<ServerProfileDto> valid, List<string> failures) =
+            ImportedProfileValidator.FilterValid([profile], SupportedConnectionTypes);
+
+        Assert.Empty(valid);
+        string failure = Assert.Single(failures);
+        Assert.Contains("Bad Type", failure, StringComparison.Ordinal);
+        Assert.Contains(nameof(ServerProfileDto.ConnectionType), failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FilterValid_MixedInput_PartitionsProfilesAndPreservesValidInstances()
+    {
+        ServerProfileDto validProfile = CreateValidProfile();
+        validProfile.Id = "valid";
+        validProfile.DisplayName = "Valid";
+        ServerProfileDto invalidProfile = CreateValidProfile();
+        invalidProfile.Id = "invalid";
+        invalidProfile.DisplayName = "Invalid";
+        invalidProfile.ConnectionType = "garbage";
+
+        (List<ServerProfileDto> valid, List<string> failures) =
+            ImportedProfileValidator.FilterValid([validProfile, invalidProfile], SupportedConnectionTypes);
+
+        ServerProfileDto imported = Assert.Single(valid);
+        Assert.Same(validProfile, imported);
+        string failure = Assert.Single(failures);
+        Assert.Contains("Invalid", failure, StringComparison.Ordinal);
+        Assert.Contains(nameof(ServerProfileDto.ConnectionType), failure, StringComparison.Ordinal);
+    }
+
     private static ServerProfileDto CreateValidProfile() =>
         new()
         {

@@ -1061,6 +1061,34 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
             ImportedProfileSanitizer.Sanitize(imported);
 
+            (List<ServerProfileDto> validImported, List<string> validationFailures) =
+                ImportedProfileValidator.FilterValid(imported, ProfileImportService.SupportedConnectionTypes);
+            imported = validImported;
+            if (validationFailures.Count > 0)
+            {
+                importWarnings ??= new List<string>();
+                importWarnings.AddRange(validationFailures);
+            }
+
+            if (imported.Count == 0)
+            {
+                if (validationFailures.Count > 0)
+                {
+                    string warningText = string.Join("\n", validationFailures.Take(10));
+                    string warningMessage = _localizer.Format("ImportMobaXtermWarnings", validationFailures.Count)
+                        + "\n" + warningText;
+                    _dialogService.ShowWarning(_localizer["ImportDialogTitle"], warningMessage);
+                }
+                else
+                {
+                    _dialogService.ShowInfo(
+                        _localizer["ImportDialogTitle"],
+                        _localizer["ImportNoSessionsFound"]);
+                }
+
+                return;
+            }
+
             var confirmMessage = ext is ".mxtsessions" or ".ini" or ".mobaconf"
                 ? _localizer.Format("ConfirmImportMobaXtermMessage", imported.Count)
                 : _localizer.Format("ConfirmImportMessage", imported.Count);
