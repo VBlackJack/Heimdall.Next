@@ -348,8 +348,7 @@ internal sealed class SshHandler : IProtocolHandler
                 server.SshX11Forwarding,
                 targetPort,
                 target);
-            string arguments = string.Join(' ', psi.ArgumentList);
-            Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} {arguments}");
+            Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} for {targetHost}:{targetPort}");
 
             System.Diagnostics.Process? process = System.Diagnostics.Process.Start(psi);
 
@@ -538,7 +537,8 @@ internal sealed class SshHandler : IProtocolHandler
                 passwordFilePath);
 
             Heimdall.Terminal.PipeModeSession terminalSession = new Heimdall.Terminal.PipeModeSession();
-            Core.Logging.FileLogger.Info($"SSH via Plink ({terminalSession.GetType().Name}): {plinkPath} {args}");
+            Core.Logging.FileLogger.Info(
+                $"SSH via Plink ({terminalSession.GetType().Name}) using {plinkPath} for {targetHost}:{targetPort}");
 
             if (!string.IsNullOrEmpty(passwordFilePath))
             {
