@@ -139,8 +139,9 @@ public partial class ConnectionViewModel : ObservableObject
     private async Task CloseAllSessions()
     {
         // Count connected sessions to decide whether to prompt
-        var connectedCount = ActiveSessions.Count(s =>
-            string.Equals(s.Status, "Connected", StringComparison.Ordinal));
+        int connectedCount = ActiveSessions.Count(s =>
+            Core.Models.SplitTreeHelper.EnumerateLeaves(s.RootContent)
+                .Any(p => string.Equals(p.Status, "Connected", StringComparison.Ordinal)));
 
         if (connectedCount > 0)
         {
