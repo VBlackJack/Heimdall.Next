@@ -124,18 +124,18 @@ public sealed class SplitLayoutMemory
         try
         {
             if (!File.Exists(_filePath)) return;
-            var json = File.ReadAllText(_filePath);
+            string json = File.ReadAllText(_filePath);
 
-            // Try versioned format first, fall back to legacy array format
-            var wrapper = JsonSerializer.Deserialize<SplitLayoutFile>(json, JsonOptions);
-            if (wrapper?.Entries is not null)
-            {
-                _entries = wrapper.Entries;
-            }
-            else
+            using JsonDocument document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind == JsonValueKind.Array)
             {
                 // Legacy format: bare array without version wrapper
                 _entries = JsonSerializer.Deserialize<List<SplitLayoutEntry>>(json, JsonOptions) ?? [];
+            }
+            else
+            {
+                SplitLayoutFile? wrapper = JsonSerializer.Deserialize<SplitLayoutFile>(json, JsonOptions);
+                _entries = wrapper?.Entries ?? [];
             }
         }
         catch (Exception ex)
@@ -154,16 +154,16 @@ public sealed class SplitLayoutMemory
         string? tempPath = null;
         try
         {
-            var dir = Path.GetDirectoryName(_filePath);
+            string? dir = Path.GetDirectoryName(_filePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
-            var wrapper = new SplitLayoutFile
+            SplitLayoutFile wrapper = new SplitLayoutFile
             {
                 Version = CurrentSchemaVersion,
                 Entries = _entries
             };
-            var json = JsonSerializer.Serialize(wrapper, JsonOptions);
+            string json = JsonSerializer.Serialize(wrapper, JsonOptions);
             tempPath = Path.Combine(dir ?? ".", $"split-layouts.{Guid.NewGuid():N}.tmp");
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, _filePath, overwrite: true);
