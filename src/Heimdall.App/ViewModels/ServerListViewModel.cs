@@ -1457,98 +1457,6 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task AddServerToGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
-    {
-        if (group is null)
-        {
-            return;
-        }
-
-        await AddServerAsync(
-            new ServerDialogSeed(group.ProjectId, group.IsVirtualGroup ? string.Empty : group.GroupName),
-            cancellationToken);
-    }
-
-
-    [RelayCommand]
-    private async Task RenameGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
-    {
-        if (group is null || group.IsVirtualGroup)
-        {
-            return;
-        }
-
-        var newName = await _dialogService.ShowInputAsync(
-            _localizer["RenameGroupDialogTitle"],
-            _localizer["ServerFieldGroup"],
-            group.GroupName);
-
-        if (string.IsNullOrWhiteSpace(newName))
-        {
-            return;
-        }
-
-        newName = newName.Trim();
-        if (string.Equals(group.GroupName, newName, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-
-        foreach (var serverDto in servers.Where(dto => MatchesGroup(dto, group.ProjectId, group.GroupName)))
-        {
-            serverDto.Group = newName;
-        }
-
-        await _configManager.SaveServersAsync(servers);
-
-        foreach (var server in _allServers.Where(item => MatchesGroup(item, group.ProjectId, group.GroupName)))
-        {
-            server.Group = newName;
-        }
-
-        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
-        ApplyFilter(SelectedServer?.Id);
-    }
-
-    [RelayCommand]
-    private async Task DeleteGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
-    {
-        if (group is null || group.IsVirtualGroup)
-        {
-            return;
-        }
-
-        var confirmed = await _dialogService.ShowConfirmAsync(
-            _localizer["TreeCtxDeleteGroup"],
-            _localizer.Format("TreeCtxDeleteGroupConfirm", group.GroupName),
-            "warning");
-
-        if (!confirmed)
-        {
-            return;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-
-        foreach (var serverDto in servers.Where(dto => MatchesGroup(dto, group.ProjectId, group.GroupName)))
-        {
-            serverDto.Group = null;
-        }
-
-        await _configManager.SaveServersAsync(servers);
-
-        foreach (var server in _allServers.Where(item => MatchesGroup(item, group.ProjectId, group.GroupName)))
-        {
-            server.Group = string.Empty;
-        }
-
-        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
-        ApplyFilter(SelectedServer?.Id);
-    }
-
-    [RelayCommand]
     private void ToggleSidebar()
     {
         IsSidebarVisible = !IsSidebarVisible;
@@ -1934,18 +1842,6 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         server.ProjectColor = project?.Color ?? string.Empty;
     }
 
-    private static bool MatchesGroup(ServerProfileDto server, string? projectId, string groupName)
-    {
-        return string.Equals(server.ProjectId ?? string.Empty, projectId ?? string.Empty, StringComparison.Ordinal)
-            && string.Equals(server.Group ?? string.Empty, groupName, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool MatchesGroup(ServerItemViewModel server, string? projectId, string groupName)
-    {
-        return string.Equals(server.ProjectId, projectId ?? string.Empty, StringComparison.Ordinal)
-            && string.Equals(server.Group, groupName, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static string ResolveProjectNodeName(
         IGrouping<string, ServerItemViewModel> projectGroup,
         string noProjectLabel)
@@ -1997,12 +1893,6 @@ public sealed record ServerDialogSeed(string? ProjectId, string? GroupName);
 public sealed record ServerMoveToProjectRequest(ServerItemViewModel Server, string? ProjectId);
 
 public sealed record ServerMoveToGroupRequest(ServerItemViewModel Server, string? GroupName);
-
-public sealed record ServerGroupContext(
-    string? ProjectId,
-    string ProjectName,
-    string GroupName,
-    bool IsVirtualGroup);
 
 public sealed record ProjectTarget(
     string Id,

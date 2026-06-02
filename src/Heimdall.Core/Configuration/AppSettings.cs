@@ -208,7 +208,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Empty groups persisted so they remain visible in the TreeView even without servers.
-    /// Each entry is "projectId|groupPath" (e.g., "abc123|Infrastructure/Linux").
+    /// Each entry is a raw group path (the full folder path), e.g. "Infrastructure/Linux".
     /// </summary>
     public List<string> EmptyGroups { get; set; } = new();
 
