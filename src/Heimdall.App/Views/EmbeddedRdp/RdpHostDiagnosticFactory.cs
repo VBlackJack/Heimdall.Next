@@ -25,9 +25,13 @@ namespace Heimdall.App.Views.EmbeddedRdp;
 internal static class RdpHostDiagnosticFactory
 {
     internal static SessionDiagnostic FromDisconnect(int reason)
+        => FromDisconnect(reason, RdpActiveXHost.NoExtendedDisconnectReason);
+
+    internal static SessionDiagnostic FromDisconnect(int reason, int extendedReason)
     {
-        var suffix = RdpActiveXHost.GetDisconnectReasonKey(reason);
-        var messageKey = suffix is not null
+        string? suffix = RdpActiveXHost.GetExtendedDisconnectReasonKey(extendedReason)
+            ?? RdpActiveXHost.GetDisconnectReasonKey(reason);
+        string messageKey = suffix is not null
             ? $"RdpDisconnect{suffix}"
             : "RdpDisconnectUnknownCode";
 

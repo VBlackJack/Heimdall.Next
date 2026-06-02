@@ -53,6 +53,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// can override it within the [1,60] MsTscAx range.
     /// </summary>
     public const int MaxAutoReconnectAttempts = 20;
+    public const int NoExtendedDisconnectReason = (int)ExtendedDisconnectReasonCode.NoInfo;
 
     private const int MinAutoReconnectAttempts = 1;
     private const int MaxAutoReconnectAttemptsLimit = 60;
@@ -191,6 +192,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     [System.ComponentModel.Browsable(false)]
     public bool InitialSmartSizing { get; set; } = true;
+
+    public int LastExtendedDisconnectReason { get; private set; } = NoExtendedDisconnectReason;
 
     public RdpActiveXHost(string? activeXClsid = null)
         : base(activeXClsid ?? DefaultMsTscAxClsid)
@@ -660,6 +663,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         try
         {
             IsConnected = true;
+            LastExtendedDisconnectReason = NoExtendedDisconnectReason;
             try
             {
                 Connected?.Invoke();
@@ -683,6 +687,9 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         try
         {
             IsConnected = false;
+            LastExtendedDisconnectReason = ReadExtendedDisconnectReason();
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.RaiseDisconnected: reason={discReason} extendedReason={LastExtendedDisconnectReason}");
             StopPostConnectStripTimerOnUiThread($"OnDisconnected reason={discReason}");
             try
             {
@@ -760,6 +767,9 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         try
         {
             IsConnected = false;
+            LastExtendedDisconnectReason = ReadExtendedDisconnectReason();
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.RaiseAutoReconnecting: reason={disconnectReason} extendedReason={LastExtendedDisconnectReason} attempt={attemptCount}");
             try
             {
                 AutoReconnecting?.Invoke(disconnectReason, attemptCount);
@@ -780,6 +790,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         try
         {
             IsConnected = true;
+            LastExtendedDisconnectReason = NoExtendedDisconnectReason;
             try
             {
                 AutoReconnected?.Invoke();
@@ -1007,6 +1018,26 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         _ => null
     };
 
+    public static string? GetExtendedDisconnectReasonKey(int extendedReason)
+    {
+        ExtendedDisconnectReasonCode extendedDisconnectReason =
+            (ExtendedDisconnectReasonCode)extendedReason;
+
+        return extendedDisconnectReason switch
+        {
+            ExtendedDisconnectReasonCode.ServerDeniedConnection
+                or ExtendedDisconnectReasonCode.ServerDeniedConnectionFips
+                or ExtendedDisconnectReasonCode.ServerInsufficientPrivileges
+                or ExtendedDisconnectReasonCode.ServerFreshCredsRequired
+                => "BadCredentials",
+            ExtendedDisconnectReasonCode.ServerLogonTimeout
+                => "ServerLogonTimeout",
+            _ when IsLicenseExtendedDisconnectReason(extendedReason)
+                => "LicenseError",
+            _ => null
+        };
+    }
+
     /// <summary>
     /// Formats a disconnect reason as a symbolic support code plus the raw numeric value.
     /// </summary>
@@ -1122,6 +1153,30 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"[RdpActiveXHost] {propertyName}: {ex.Message}");
+        }
+    }
+
+    private int ReadExtendedDisconnectReason()
+    {
+        object? ocx = GetActiveXInstance();
+        if (ocx is null)
+        {
+            return NoExtendedDisconnectReason;
+        }
+
+        try
+        {
+            object? rawExtendedReason = ((dynamic)ocx).ExtendedDisconnectReason;
+            int extendedReason = Convert.ToInt32(
+                rawExtendedReason,
+                System.Globalization.CultureInfo.InvariantCulture);
+            return extendedReason;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"RdpActiveXHost.ReadExtendedDisconnectReason threw {FormatExceptionForLog(ex)} ocx={DescribeComObject(ocx)}");
+            return NoExtendedDisconnectReason;
         }
     }
 

@@ -40,6 +40,24 @@ public sealed class RdpHostDiagnosticFactoryTests
         Assert.Null(diagnostic.Detail);
     }
 
+    [Theory]
+    [InlineData(2308, 9, "RdpDisconnectBadCredentials")]
+    [InlineData(2308, 4, "RdpDisconnectServerLogonTimeout")]
+    [InlineData(2308, 257, "RdpDisconnectLicenseError")]
+    [InlineData(516, 0, "RdpDisconnectSocketConnectFailed")]
+    public void FromDisconnect_MapsExtendedReasonToMessageKey(
+        int code,
+        int extendedReason,
+        string expectedKey)
+    {
+        SessionDiagnostic diagnostic = RdpHostDiagnosticFactory.FromDisconnect(code, extendedReason);
+
+        Assert.Equal(SessionFailureStage.RdpActiveXDisconnect, diagnostic.Stage);
+        Assert.Equal(expectedKey, diagnostic.MessageKey);
+        Assert.Equal(code, diagnostic.Code);
+        Assert.Null(diagnostic.Detail);
+    }
+
     [Fact]
     public void FromFatalError_UsesFatalErrorDetailMessageKey()
     {

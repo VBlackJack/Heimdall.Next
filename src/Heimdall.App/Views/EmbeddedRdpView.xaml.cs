@@ -72,6 +72,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private const string HealthFaultedGlyph = "\uE783";
     private const string HealthTransitionalGlyph = "\uE7BA";
     private const string HealthIdleGlyph = "\uE946";
+    private int _lastExtendedDisconnectReason = RdpActiveXHost.NoExtendedDisconnectReason;
     private readonly record struct RdpDisplayUpdateSettings(
         uint PhysicalWidthMm,
         uint PhysicalHeightMm,
@@ -1570,6 +1571,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         _comDrivenStatusActive = true;
+        _lastExtendedDisconnectReason = RdpActiveXHost.NoExtendedDisconnectReason;
         TryTransitionConnectionState(ConnectionState.Connected);
 
         Dispatcher.Invoke(() =>
@@ -1680,7 +1682,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void OnRdpDisconnected(int reason)
     {
-        Core.Logging.FileLogger.Info($"EmbeddedRDP OnDisconnected fired: reason={reason}");
+        int extendedReason = _rdpHost?.LastExtendedDisconnectReason
+            ?? RdpActiveXHost.NoExtendedDisconnectReason;
+        _lastExtendedDisconnectReason = extendedReason;
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP OnDisconnected fired: reason={reason} extendedReason={extendedReason}");
         if (_disposed)
         {
             return;
@@ -1716,7 +1722,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
             SetPaneDiagnostic(
                 TryBuildTunnelFailureDiagnostic(reason)
-                ?? RdpHostDiagnosticFactory.FromDisconnect(reason));
+                ?? RdpHostDiagnosticFactory.FromDisconnect(reason, extendedReason));
             UpdateSessionStatus(RdpSessionStatus.Disconnected);
             UpdateHealthDot(wasUserInitiated);
             ShowReconnectOverlay();
@@ -1772,7 +1778,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     private void OnRdpAutoReconnecting(int disconnectReason, int attemptCount)
     {
-        Core.Logging.FileLogger.Info($"EmbeddedRDP OnAutoReconnecting: reason={disconnectReason} attempt={attemptCount}");
+        int extendedReason = _rdpHost?.LastExtendedDisconnectReason
+            ?? RdpActiveXHost.NoExtendedDisconnectReason;
+        _lastExtendedDisconnectReason = extendedReason;
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP OnAutoReconnecting: reason={disconnectReason} extendedReason={extendedReason} attempt={attemptCount}");
         if (_disposed) return;
 
         SessionDiagnostic? gatewayDiagnostic = TryBuildTunnelFailureDiagnostic(disconnectReason);
@@ -1807,14 +1817,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             return;
         }
 
-        if (_rdpHost is not null && !RdpActiveXHost.AllowsAutoReconnect(disconnectReason))
+        if (_rdpHost is not null && !RdpActiveXHost.AllowsAutoReconnect(disconnectReason, extendedReason))
         {
             _rdpHost.CancelAutoReconnect = true;
             RdpActiveXHost.RdpDisconnectSeverity severity =
-                RdpActiveXHost.GetDisconnectSeverity(disconnectReason);
+                RdpActiveXHost.GetDisconnectSeverity(disconnectReason, extendedReason);
             Core.Logging.FileLogger.Info(
                 $"EmbeddedRDP auto-reconnect cancelled for non-transient disconnect: " +
-                $"reason={disconnectReason} severity={severity} attempt={attemptCount}");
+                $"reason={disconnectReason} extendedReason={extendedReason} severity={severity} attempt={attemptCount}");
             return;
         }
 
@@ -3117,7 +3127,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             primary = L("RdpDisconnectedMessage");
         }
 
-        var severity = ResolveOverlaySeverity(diagnostic);
+        RdpActiveXHost.RdpDisconnectSeverity severity =
+            ResolveOverlaySeverity(diagnostic, _lastExtendedDisconnectReason);
         var prefixKey = severity switch
         {
             RdpActiveXHost.RdpDisconnectSeverity.Transient => "RdpDisconnectSeverityPrefixNotice",
@@ -3307,7 +3318,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     }
 
     private static RdpActiveXHost.RdpDisconnectSeverity ResolveOverlaySeverity(
-        Core.SessionDiagnostics.SessionDiagnostic? diagnostic)
+        Core.SessionDiagnostics.SessionDiagnostic? diagnostic,
+        int extendedReason)
     {
         if (diagnostic?.MessageKey == "RdpStatusFatalErrorDetail")
         {
@@ -3315,7 +3327,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         return diagnostic?.Code is int code
-            ? RdpActiveXHost.GetDisconnectSeverity(code)
+            ? RdpActiveXHost.GetDisconnectSeverity(code, extendedReason)
             : RdpActiveXHost.RdpDisconnectSeverity.TerminalError;
     }
 
