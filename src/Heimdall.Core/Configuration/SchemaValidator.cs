@@ -35,6 +35,9 @@ public static partial class SchemaValidator
     private const int DisabledRdpResizeDelayMs = 0;
     private const int MinRdpResizeDelayMs = 1000;
     private const int MaxRdpResizeDelayMs = 60000;
+    private const int DisabledRdpConnectWatchdogTimeoutMs = 0;
+    private const int MinRdpConnectWatchdogTimeoutMs = 5000;
+    private const int MaxRdpConnectWatchdogTimeoutMs = 600000;
     private const int MaxEmbeddedSessionsLimit = 20;
     private const int MinAntiIdleInterval = 10;
     private const int MaxAntiIdleInterval = 600;
@@ -108,6 +111,8 @@ public static partial class SchemaValidator
             nameof(settings.RdpArtifactCleanupDelayMs));
         ValidateRdpResizeDelay(errors, settings.RdpResizeEnableDelayMs,
             nameof(settings.RdpResizeEnableDelayMs));
+        ValidateRdpConnectWatchdogTimeout(errors, settings.RdpConnectWatchdogTimeoutMs,
+            nameof(settings.RdpConnectWatchdogTimeoutMs));
         ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
             nameof(settings.SshKeepAliveIntervalSeconds));
         ValidateRange(errors, settings.SshAutoReconnectAttempts, 1, 10,
@@ -254,6 +259,21 @@ public static partial class SchemaValidator
         }
 
         ValidateRange(errors, value, MinRdpResizeDelayMs, MaxRdpResizeDelayMs, fieldName);
+    }
+
+    private static void ValidateRdpConnectWatchdogTimeout(List<string> errors, int value, string fieldName)
+    {
+        if (value == DisabledRdpConnectWatchdogTimeoutMs)
+        {
+            return;
+        }
+
+        ValidateRange(
+            errors,
+            value,
+            MinRdpConnectWatchdogTimeoutMs,
+            MaxRdpConnectWatchdogTimeoutMs,
+            fieldName);
     }
 
     /// <summary>

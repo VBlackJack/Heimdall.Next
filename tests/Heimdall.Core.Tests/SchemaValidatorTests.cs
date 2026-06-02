@@ -313,6 +313,34 @@ public class SchemaValidatorTests
 
         Assert.True(result.IsValid);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(4999)]
+    [InlineData(600001)]
+    public void ValidateSettings_RdpConnectWatchdogTimeoutMs_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { RdpConnectWatchdogTimeoutMs = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.RdpConnectWatchdogTimeoutMs)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5000)]
+    [InlineData(600000)]
+    public void ValidateSettings_RdpConnectWatchdogTimeoutMs_BoundaryValues_IsValid(int value)
+    {
+        AppSettings settings = new() { RdpConnectWatchdogTimeoutMs = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(21)]
