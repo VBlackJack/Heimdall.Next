@@ -202,6 +202,30 @@ public sealed class SessionCoordinatorPreMountTests
     }
 
     [Fact]
+    public async Task ReconnectSession_FallsBackToServerId_WhenOriginalServerIdIsEmpty()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        SessionTabViewModel tab = new SessionTabViewModel
+        {
+            ServerId = server.Id,
+            OriginalServerId = "",
+            ConnectionType = "SSH",
+            Title = "fallback"
+        };
+
+        harness.Main.Session.ReconnectSession(tab);
+
+        CancellationToken token = await sshHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(token.IsCancellationRequested);
+
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 1);
+    }
+
+    [Fact]
     public async Task ReconnectSession_ServerMissingFromInventory_SetsServerNotFoundStatus()
     {
         using TestHarness harness = TestHarness.Create();
