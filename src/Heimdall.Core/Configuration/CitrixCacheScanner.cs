@@ -36,11 +36,16 @@ public static class CitrixCacheScanner
     /// <returns>List of discovered Citrix resources with launch metadata.</returns>
     public static CitrixScanResult Scan()
     {
-        var result = new CitrixScanResult();
-
-        var cacheDir = Path.Combine(
+        string cacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Citrix", "SelfService");
+
+        return ScanDirectory(cacheDir);
+    }
+
+    internal static CitrixScanResult ScanDirectory(string cacheDir)
+    {
+        CitrixScanResult result = new CitrixScanResult();
 
         if (!Directory.Exists(cacheDir))
         {
@@ -48,14 +53,14 @@ public static class CitrixCacheScanner
             return result;
         }
 
-        var cacheFiles = Directory.GetFiles(cacheDir, "*_Cache.xml");
+        string[] cacheFiles = Directory.GetFiles(cacheDir, "*_Cache.xml");
         if (cacheFiles.Length == 0)
         {
             result.Warnings.Add("No Citrix cache files found. Open Citrix Workspace and connect to a store first.");
             return result;
         }
 
-        foreach (var file in cacheFiles)
+        foreach (string file in cacheFiles)
         {
             try
             {
