@@ -165,6 +165,11 @@ public sealed class SessionCoordinatorPreMountTests
         await WaitUntilAsync(() => !harness.Main.Connection.ActiveSessions.Contains(oldTab));
 
         Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+
+        CancellationToken reconnectToken = await sshHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(reconnectToken.IsCancellationRequested);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 2);
     }
 
     [Fact]
