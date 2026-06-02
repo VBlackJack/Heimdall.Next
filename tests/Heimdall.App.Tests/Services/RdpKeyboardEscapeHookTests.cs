@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Windows.Input;
 using Heimdall.App.Services;
 
 namespace Heimdall.App.Tests.Services;
@@ -92,5 +93,53 @@ public sealed class RdpKeyboardEscapeHookTests : IDisposable
         Assert.Single(warnings);
         Assert.Contains("release-focus", warnings[0], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("precedence", warnings[0], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ShortcutRouter_CtrlK_OpensCommandPalette()
+    {
+        var action = RdpKeyboardHookShortcutRouter.Resolve(
+            Key.K,
+            ModifierKeys.Control,
+            RdpShortcutParser.DefaultShortcut,
+            RdpShortcutParser.DefaultFullscreenShortcut);
+
+        Assert.Equal(RdpKeyboardHookAction.OpenCommandPalette, action);
+    }
+
+    [Fact]
+    public void ShortcutRouter_CtrlK_WhenReleaseFocusUsesCtrlK_ReleasesFocus()
+    {
+        var action = RdpKeyboardHookShortcutRouter.Resolve(
+            Key.K,
+            ModifierKeys.Control,
+            new RdpShortcut(ModifierKeys.Control, Key.K),
+            RdpShortcutParser.DefaultFullscreenShortcut);
+
+        Assert.Equal(RdpKeyboardHookAction.ReleaseFocus, action);
+    }
+
+    [Fact]
+    public void ShortcutRouter_CtrlShiftK_PassesThrough()
+    {
+        var action = RdpKeyboardHookShortcutRouter.Resolve(
+            Key.K,
+            ModifierKeys.Control | ModifierKeys.Shift,
+            RdpShortcutParser.DefaultShortcut,
+            RdpShortcutParser.DefaultFullscreenShortcut);
+
+        Assert.Equal(RdpKeyboardHookAction.None, action);
+    }
+
+    [Fact]
+    public void ShortcutRouter_F11_PreservesFullscreenToggle()
+    {
+        var action = RdpKeyboardHookShortcutRouter.Resolve(
+            Key.F11,
+            ModifierKeys.None,
+            RdpShortcutParser.DefaultShortcut,
+            RdpShortcutParser.DefaultFullscreenShortcut);
+
+        Assert.Equal(RdpKeyboardHookAction.ToggleFullscreen, action);
     }
 }

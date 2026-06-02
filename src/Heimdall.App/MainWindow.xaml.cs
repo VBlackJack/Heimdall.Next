@@ -236,6 +236,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         // Wire split button callback from embedded views
         viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
+        viewModel.EmbeddedSessionManager.CommandPaletteRequestedCallback = OpenCommandPalette;
 
         Loaded += async (_, _) =>
         {
@@ -1283,14 +1284,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             canExecute: () => !IsTerminalFocusedContext());
 
         // Ctrl+K: open command palette
-        _keyboardShortcutService.Register(Key.K, ModifierKeys.Control, () =>
-        {
-            if (GetMainVm() is { } vm)
-            {
-                vm.CommandPalette.OpenCommand.Execute(null);
-                BeginFocusCommandPalette();
-            }
-        }, canExecute: () => !IsTerminalFocusedContext());
+        _keyboardShortcutService.Register(
+            Key.K,
+            ModifierKeys.Control,
+            OpenCommandPalette,
+            canExecute: () => !IsTerminalFocusedContext());
 
         // ── Ctrl+Shift combos (NOT terminal-gated) ───────────────────
         // Ctrl+Shift+S: screenshot active session
@@ -1388,6 +1386,17 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     private MainViewModel? GetMainVm() => DataContext as MainViewModel;
+
+    private void OpenCommandPalette()
+    {
+        if (GetMainVm() is not { } vm)
+        {
+            return;
+        }
+
+        vm.CommandPalette.OpenCommand.Execute(null);
+        BeginFocusCommandPalette();
+    }
 
     private bool IsTerminalFocusedContext()
         => KeyboardShortcutService.IsTerminalFocused(_lastKeyEventSource ?? new object(), IsEmbeddedContentFocused);
@@ -2483,11 +2492,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.CommandPalette.OpenCommand.Execute(null);
-            BeginFocusCommandPalette();
-        }
+        OpenCommandPalette();
     }
 
     // ── Quick File Server (FileShareService bridge) ──────────────────

@@ -205,27 +205,44 @@ internal static class RdpKeyboardEscapeHook
         {
             if (code == HcAction && IsKeyDown(lParam))
             {
-                if (MatchesShortcut(wParam, _escapeShortcut))
+                var key = KeyInterop.KeyFromVirtualKey(wParam.ToInt32());
+                var modifiers = ReadCurrentModifiers();
+                var action = RdpKeyboardHookShortcutRouter.Resolve(
+                    key,
+                    modifiers,
+                    _escapeShortcut,
+                    _fullscreenShortcut);
+
+                if (action != RdpKeyboardHookAction.None)
                 {
                     var view = FindFocusedRdpView();
-                    if (view is not null)
+                    if (view is null)
                     {
-                        _ = view.Dispatcher.BeginInvoke(
-                            DispatcherPriority.Input,
-                            new Action(view.FocusRdpToolbarFromEscapeHook));
-                        return new IntPtr(1);
+                        return CallNextHookEx(_hookHandle, code, wParam, lParam);
                     }
-                }
-                else if (MatchesShortcut(wParam, _fullscreenShortcut))
-                {
-                    var view = FindFocusedRdpView();
-                    if (view is not null)
+
+                    switch (action)
                     {
-                        _ = view.Dispatcher.BeginInvoke(
-                            DispatcherPriority.Input,
-                            new Action(view.ToggleFullscreen));
-                        return new IntPtr(1);
+                        case RdpKeyboardHookAction.ReleaseFocus:
+                            _ = view.Dispatcher.BeginInvoke(
+                                DispatcherPriority.Input,
+                                new Action(view.FocusRdpToolbarFromEscapeHook));
+                            break;
+
+                        case RdpKeyboardHookAction.ToggleFullscreen:
+                            _ = view.Dispatcher.BeginInvoke(
+                                DispatcherPriority.Input,
+                                new Action(view.ToggleFullscreen));
+                            break;
+
+                        case RdpKeyboardHookAction.OpenCommandPalette:
+                            _ = view.Dispatcher.BeginInvoke(
+                                DispatcherPriority.Input,
+                                new Action(view.RequestCommandPaletteFromKeyboardHook));
+                            break;
                     }
+
+                    return new IntPtr(1);
                 }
             }
         }
@@ -240,12 +257,6 @@ internal static class RdpKeyboardEscapeHook
     private static bool IsKeyDown(IntPtr lParam)
     {
         return ((lParam.ToInt64() >> 31) & 1) == 0;
-    }
-
-    private static bool MatchesShortcut(IntPtr wParam, RdpShortcut shortcut)
-    {
-        return wParam.ToInt32() == shortcut.VirtualKey
-            && IsCurrentModifierState(shortcut.Modifiers);
     }
 
     private static void WarnOnceIfShortcutsOverlap()
@@ -267,7 +278,7 @@ internal static class RdpKeyboardEscapeHook
         FileLogger.Warn(message);
     }
 
-    private static bool IsCurrentModifierState(ModifierKeys expected)
+    private static ModifierKeys ReadCurrentModifiers()
     {
         var current = ModifierKeys.None;
         if (IsVirtualKeyPressed(VkControl))
@@ -290,7 +301,7 @@ internal static class RdpKeyboardEscapeHook
             current |= ModifierKeys.Windows;
         }
 
-        return current == expected;
+        return current;
     }
 
     private static bool IsVirtualKeyPressed(int virtualKey)
@@ -367,9 +378,51 @@ internal static class RdpKeyboardEscapeHook
 
 internal sealed record RdpHookShortcuts(string? EscapeShortcut, string? FullscreenShortcut);
 
+internal enum RdpKeyboardHookAction
+{
+    None,
+    ReleaseFocus,
+    ToggleFullscreen,
+    OpenCommandPalette
+}
+
 internal readonly record struct RdpShortcut(ModifierKeys Modifiers, Key Key)
 {
     public int VirtualKey => KeyInterop.VirtualKeyFromKey(Key);
+}
+
+internal static class RdpKeyboardHookShortcutRouter
+{
+    private static readonly RdpShortcut CommandPaletteShortcut = new(ModifierKeys.Control, Key.K);
+
+    public static RdpKeyboardHookAction Resolve(
+        Key key,
+        ModifierKeys modifiers,
+        RdpShortcut releaseFocusShortcut,
+        RdpShortcut fullscreenShortcut)
+    {
+        if (MatchesShortcut(key, modifiers, releaseFocusShortcut))
+        {
+            return RdpKeyboardHookAction.ReleaseFocus;
+        }
+
+        if (MatchesShortcut(key, modifiers, fullscreenShortcut))
+        {
+            return RdpKeyboardHookAction.ToggleFullscreen;
+        }
+
+        if (MatchesShortcut(key, modifiers, CommandPaletteShortcut))
+        {
+            return RdpKeyboardHookAction.OpenCommandPalette;
+        }
+
+        return RdpKeyboardHookAction.None;
+    }
+
+    private static bool MatchesShortcut(Key key, ModifierKeys modifiers, RdpShortcut shortcut)
+    {
+        return key == shortcut.Key && modifiers == shortcut.Modifiers;
+    }
 }
 
 internal static class RdpShortcutParser

@@ -42,6 +42,12 @@ public interface IEmbeddedSessionManager
     Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when an embedded view requests the shell
+    /// command palette from a native child-HWND keyboard hook.
+    /// </summary>
+    Action? CommandPaletteRequestedCallback { get; set; }
+
+    /// <summary>
     /// Func that returns the current broadcast mode state.
     /// Wired by MainViewModel so newly created views show the badge immediately.
     /// </summary>
