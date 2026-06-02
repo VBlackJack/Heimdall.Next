@@ -168,6 +168,85 @@ public sealed class SessionCoordinatorPreMountTests
     }
 
     [Fact]
+    public void ReconnectSession_NullTab_DoesNothing()
+    {
+        using TestHarness harness = TestHarness.Create();
+        string initialStatus = harness.Main.StatusText;
+
+        harness.Main.Session.ReconnectSession(null);
+
+        Assert.Empty(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(initialStatus, harness.Main.StatusText);
+    }
+
+    [Fact]
+    public void ReconnectSession_TabWithEmptyServerId_DoesNothing()
+    {
+        using TestHarness harness = TestHarness.Create();
+        LocalizationManager localizer = harness.Main.GetLocalizer();
+        SessionTabViewModel bareTab = new SessionTabViewModel
+        {
+            Title = "Bare",
+            ConnectionType = "SSH"
+        };
+
+        harness.Main.Session.ReconnectSession(bareTab);
+
+        Assert.Empty(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(localizer["StatusReady"], harness.Main.StatusText);
+    }
+
+    [Fact]
+    public async Task ReconnectSession_ServerMissingFromInventory_SetsServerNotFoundStatus()
+    {
+        using TestHarness harness = TestHarness.Create();
+        LocalizationManager localizer = harness.Main.GetLocalizer();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        BulkConnectOutcome firstOutcome = await harness.RunPipelineAsync(
+            server,
+            "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        SessionTabViewModel oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        await WaitUntilAsync(() => harness.Main.StatusText == localizer["ErrorServerNotFound"]);
+        Assert.Equal(localizer["ErrorServerNotFound"], harness.Main.StatusText);
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+    }
+
+    [Fact]
+    public async Task ReconnectSession_ServerPresent_StartsNewConnection()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        BulkConnectOutcome firstOutcome = await harness.RunPipelineAsync(
+            server,
+            "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        SessionTabViewModel oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        harness.ResetHandler("SSH");
+        ControlledProtocolHandler reconnectHandler = harness.GetHandler("SSH");
+
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        CancellationToken newConnectToken = await reconnectHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(newConnectToken.IsCancellationRequested);
+        await WaitUntilAsync(() => !harness.Main.Connection.ActiveSessions.Contains(oldTab));
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+
+        reconnectHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 2);
+    }
+
+    [Fact]
     public async Task CloseSessionCommand_WhileSshConnecting_CancelsPipelineToken()
     {
         using var harness = TestHarness.Create();
