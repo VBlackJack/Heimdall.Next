@@ -106,7 +106,6 @@ public sealed class RdpActiveXHostTests
     [InlineData(516)]
     [InlineData(772)]
     [InlineData(2308)]
-    [InlineData(2825)]
     [InlineData(3080)]
     [InlineData(4360)]
     public void GetDisconnectSeverity_TransientCode_ReturnsTransient(int reason)
@@ -131,6 +130,7 @@ public sealed class RdpActiveXHostTests
 
     [Theory]
     [InlineData(3)]
+    [InlineData(2825)]
     [InlineData(9999)]
     public void GetDisconnectSeverity_TerminalCode_ReturnsTerminalError(int reason)
     {
@@ -145,7 +145,6 @@ public sealed class RdpActiveXHostTests
     [InlineData(516)]
     [InlineData(772)]
     [InlineData(2308)]
-    [InlineData(2825)]
     [InlineData(3080)]
     [InlineData(4360)]
     public void AllowsAutoReconnect_TransientCode_ReturnsTrue(int reason)
@@ -153,6 +152,96 @@ public sealed class RdpActiveXHostTests
         bool actual = RdpActiveXHost.AllowsAutoReconnect(reason);
 
         Assert.True(actual);
+    }
+
+    [Theory]
+    [InlineData(2308, 4)]
+    [InlineData(2308, 7)]
+    [InlineData(2308, 8)]
+    [InlineData(2308, 9)]
+    [InlineData(2308, 10)]
+    public void GetDisconnectSeverity_AuthExtendedReason_ReturnsAuthIssue(
+        int reason,
+        int extendedReason)
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual =
+            RdpActiveXHost.GetDisconnectSeverity(reason, extendedReason);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.AuthIssue, actual);
+    }
+
+    [Theory]
+    [InlineData(2308, 9)]
+    [InlineData(2308, 7)]
+    [InlineData(2308, 8)]
+    [InlineData(2308, 10)]
+    [InlineData(2308, 4)]
+    public void AllowsAutoReconnect_AuthExtendedReason_ReturnsFalse(
+        int reason,
+        int extendedReason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason, extendedReason);
+
+        Assert.False(actual);
+    }
+
+    [Theory]
+    [InlineData(2308, 256)]
+    [InlineData(2308, 260)]
+    [InlineData(2308, 265)]
+    public void GetDisconnectSeverity_LicenseExtendedReason_ReturnsTerminalError(
+        int reason,
+        int extendedReason)
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual =
+            RdpActiveXHost.GetDisconnectSeverity(reason, extendedReason);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
+    }
+
+    [Theory]
+    [InlineData(2308, 256)]
+    [InlineData(2308, 260)]
+    [InlineData(2308, 265)]
+    public void AllowsAutoReconnect_LicenseExtendedReason_ReturnsFalse(
+        int reason,
+        int extendedReason)
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(reason, extendedReason);
+
+        Assert.False(actual);
+    }
+
+    [Fact]
+    public void GetDisconnectSeverity_NoExtendedInfo_PreservesSocketClosedAsTransient()
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(2308, 0);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.Transient, actual);
+    }
+
+    [Fact]
+    public void AllowsAutoReconnect_NoExtendedInfo_PreservesSocketClosedRetry()
+    {
+        bool actual = RdpActiveXHost.AllowsAutoReconnect(2308, 0);
+
+        Assert.True(actual);
+    }
+
+    [Fact]
+    public void GetDisconnectSeverity_NoExtendedInfo_PreservesBadCredentialsAsAuthIssue()
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(2055, 0);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.AuthIssue, actual);
+    }
+
+    [Fact]
+    public void GetDisconnectSeverity_NoExtendedInfo_PreservesConnectionTimeoutAsTransient()
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(264, 0);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.Transient, actual);
     }
 
     [Theory]

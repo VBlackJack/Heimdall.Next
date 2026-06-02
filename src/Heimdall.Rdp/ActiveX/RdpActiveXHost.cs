@@ -1056,12 +1056,35 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// </summary>
     public static RdpDisconnectSeverity GetDisconnectSeverity(int reason) => reason switch
     {
-        260 or 264 or 516 or 772 or 2308 or 2825 or 3080 or 4360
+        260 or 264 or 516 or 772 or 2308 or 3080 or 4360
             => RdpDisconnectSeverity.Transient,
         2055 or 2567 or 3335 or 3591 or 3847
             => RdpDisconnectSeverity.AuthIssue,
         _ => RdpDisconnectSeverity.TerminalError
     };
+
+    /// <summary>
+    /// Translates a high-level MsTscAx disconnect reason and the optional
+    /// ExtendedDisconnectReason into an overlay severity.
+    /// </summary>
+    public static RdpDisconnectSeverity GetDisconnectSeverity(int reason, int extendedReason)
+    {
+        ExtendedDisconnectReasonCode extendedDisconnectReason =
+            (ExtendedDisconnectReasonCode)extendedReason;
+
+        return extendedDisconnectReason switch
+        {
+            ExtendedDisconnectReasonCode.ServerLogonTimeout
+                or ExtendedDisconnectReasonCode.ServerDeniedConnection
+                or ExtendedDisconnectReasonCode.ServerDeniedConnectionFips
+                or ExtendedDisconnectReasonCode.ServerInsufficientPrivileges
+                or ExtendedDisconnectReasonCode.ServerFreshCredsRequired
+                => RdpDisconnectSeverity.AuthIssue,
+            _ when IsLicenseExtendedDisconnectReason(extendedReason)
+                => RdpDisconnectSeverity.TerminalError,
+            _ => GetDisconnectSeverity(reason)
+        };
+    }
 
     /// <summary>
     /// Fail-closed auto-reconnect policy: only transient (network-level) disconnects
@@ -1071,6 +1094,16 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     /// </summary>
     public static bool AllowsAutoReconnect(int reason)
         => GetDisconnectSeverity(reason) == RdpDisconnectSeverity.Transient;
+
+    /// <summary>
+    /// Fail-closed auto-reconnect policy using the optional extended disconnect reason.
+    /// </summary>
+    public static bool AllowsAutoReconnect(int reason, int extendedReason)
+        => GetDisconnectSeverity(reason, extendedReason) == RdpDisconnectSeverity.Transient;
+
+    private static bool IsLicenseExtendedDisconnectReason(int extendedReason)
+        => extendedReason >= (int)ExtendedDisconnectReasonCode.LicenseInternal
+            && extendedReason <= (int)ExtendedDisconnectReasonCode.LicenseCantUpgradeLicense;
 
     #endregion
 

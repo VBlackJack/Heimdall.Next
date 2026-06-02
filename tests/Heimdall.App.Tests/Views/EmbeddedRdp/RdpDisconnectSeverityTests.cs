@@ -26,12 +26,11 @@ public sealed class RdpDisconnectSeverityTests
     [InlineData(516)]
     [InlineData(772)]
     [InlineData(2308)]
-    [InlineData(2825)]
     [InlineData(3080)]
     [InlineData(4360)]
     public void GetDisconnectSeverity_MapsTransientCodes(int reason)
     {
-        var actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
 
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.Transient, actual);
     }
@@ -44,7 +43,7 @@ public sealed class RdpDisconnectSeverityTests
     [InlineData(3847)]
     public void GetDisconnectSeverity_MapsAuthIssueCodes(int reason)
     {
-        var actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
 
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.AuthIssue, actual);
     }
@@ -55,11 +54,12 @@ public sealed class RdpDisconnectSeverityTests
     [InlineData(1796)]
     [InlineData(2056)]
     [InlineData(2311)]
+    [InlineData(2825)]
     [InlineData(2822)]
     [InlineData(3848)]
     public void GetDisconnectSeverity_MapsTerminalErrorCodes(int reason)
     {
-        var actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
 
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
     }
@@ -67,7 +67,7 @@ public sealed class RdpDisconnectSeverityTests
     [Fact]
     public void GetDisconnectSeverity_MapsUnknownCodeToTerminalError()
     {
-        var actual = RdpActiveXHost.GetDisconnectSeverity(9999);
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(9999);
 
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
     }
@@ -79,7 +79,7 @@ public sealed class RdpDisconnectSeverityTests
     [InlineData(3)]
     public void GetDisconnectSeverity_MapsSuppressedCleanExitCodesToTerminalError(int reason)
     {
-        var actual = RdpActiveXHost.GetDisconnectSeverity(reason);
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(reason);
 
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
     }
