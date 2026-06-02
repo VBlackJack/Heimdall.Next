@@ -109,6 +109,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     private DispatcherTimer? _letterboxHintTimer;
     private DispatcherTimer? _stabilizationTimer;
     private DispatcherTimer? _reconnectElapsedTimer;
+    private DispatcherTimer? _connectWatchdogTimer;
     private RdpActiveXHost? _rdpHost;
     private RdpRedirectionOptions? _pendingRedirections;
     private ServerProfileDto? _server;
@@ -477,6 +478,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _stabilizationCts = null;
         StopReconnectElapsedTracking();
         StopAntiIdleTimer();
+        StopConnectWatchdog();
         ReleaseSleepPrevention();
         CancelAutofill();
         TransitionPhase(RdpConnectionPhase.None);
@@ -2156,6 +2158,15 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         _connectionPhase = newPhase;
+        if (RdpConnectWatchdogPolicy.ShouldCancel(newPhase))
+        {
+            StopConnectWatchdog();
+        }
+        else if (RdpConnectWatchdogPolicy.ShouldArm(newPhase))
+        {
+            StartConnectWatchdog();
+        }
+
         UpdatePhaseStepper();
         UpdateVisibilityForPhase();
 
@@ -3687,6 +3698,83 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         {
             AntiIdleBadge.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void StartConnectWatchdog()
+    {
+        StopConnectWatchdog();
+
+        int configuredTimeoutMs = _settings?.RdpConnectWatchdogTimeoutMs
+            ?? RdpConnectWatchdogPolicy.DefaultTimeoutMs;
+        int timeoutMs = RdpConnectWatchdogPolicy.ResolveTimeoutMs(configuredTimeoutMs);
+        if (timeoutMs == RdpConnectWatchdogPolicy.DisabledTimeoutMs)
+        {
+            Core.Logging.FileLogger.Info("RDP connect watchdog disabled");
+            return;
+        }
+
+        _connectWatchdogTimer = new DispatcherTimer(
+            TimeSpan.FromMilliseconds(timeoutMs),
+            DispatcherPriority.Background,
+            OnConnectWatchdogTick,
+            Dispatcher);
+        _connectWatchdogTimer.Start();
+        Core.Logging.FileLogger.Info(
+            $"RDP connect watchdog started phase={_connectionPhase} timeoutMs={timeoutMs}");
+    }
+
+    private void StopConnectWatchdog()
+    {
+        if (_connectWatchdogTimer is null)
+        {
+            return;
+        }
+
+        _connectWatchdogTimer.Stop();
+        _connectWatchdogTimer.Tick -= OnConnectWatchdogTick;
+        _connectWatchdogTimer = null;
+        Core.Logging.FileLogger.Info("RDP connect watchdog stopped");
+    }
+
+    private void OnConnectWatchdogTick(object? sender, EventArgs e)
+    {
+        if (_disposed)
+        {
+            StopConnectWatchdog();
+            return;
+        }
+
+        if (!RdpConnectWatchdogPolicy.ShouldArm(_connectionPhase))
+        {
+            StopConnectWatchdog();
+            return;
+        }
+
+        RdpConnectionPhase expiredPhase = _connectionPhase;
+        Core.Logging.FileLogger.Warn(
+            $"EmbeddedRDP connect watchdog expired phase={expiredPhase}");
+        StopConnectWatchdog();
+
+        if (_rdpHost is not null)
+        {
+            _rdpHost.CancelAutoReconnect = true;
+        }
+
+        string timeoutMessage = L("RdpDisconnectConnectTimeout");
+        SetConnectionStateError(timeoutMessage);
+        CancelAutofill();
+        _autofillRetryContext = null;
+        UpdateAutofillState(RdpAutofillState.None);
+        StopAntiIdleTimer();
+        StopStabilizationCountdown();
+        StopReconnectElapsedTracking();
+        ReleaseSleepPrevention();
+        TransitionPhase(RdpConnectionPhase.None);
+        HideRedirectionIndicators();
+        _allowResolutionUpdates = false;
+        SetPaneDiagnostic(RdpHostDiagnosticFactory.FromConnectTimeout());
+        UpdateSessionStatus(RdpSessionStatus.Error);
+        ShowReconnectOverlay();
     }
 
     [SupportedOSPlatform("windows")]

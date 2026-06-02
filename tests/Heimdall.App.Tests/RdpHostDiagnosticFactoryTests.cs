@@ -70,6 +70,17 @@ public sealed class RdpHostDiagnosticFactoryTests
     }
 
     [Fact]
+    public void FromConnectTimeout_UsesConnectTimeoutDiagnostic()
+    {
+        SessionDiagnostic diagnostic = RdpHostDiagnosticFactory.FromConnectTimeout();
+
+        Assert.Equal(SessionFailureStage.RdpActiveXConnect, diagnostic.Stage);
+        Assert.Equal("RdpDisconnectConnectTimeout", diagnostic.MessageKey);
+        Assert.Null(diagnostic.Code);
+        Assert.Null(diagnostic.Detail);
+    }
+
+    [Fact]
     public void FromTunnelForwardedPortFailure_UsesGatewayTargetDiagnostic()
     {
         var failure = new TunnelForwardedPortFailure(

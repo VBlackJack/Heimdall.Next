@@ -2691,6 +2691,7 @@
   "RdpDisconnectLicensingError": "A licensing error occurred on the remote computer. Contact your administrator; the Remote Desktop Services license server may be unreachable or out of CALs.",
   "RdpDisconnectServerLogonTimeout": "The server timed out while validating the logon. Verify the account state and credentials, then try reconnecting.",
   "RdpDisconnectLicenseError": "A Remote Desktop licensing error blocked the session. Contact your administrator; the license server may be unreachable or out of CALs.",
+  "RdpDisconnectConnectTimeout": "The connection timed out while starting the session. The remote computer did not respond. Check the host and network, then try reconnecting.",
   "RdpDisconnectSocketClosed": "The network connection was lost. Check your network connection or VPN and try reconnecting.",
   "RdpDisconnectGatewayTargetUnreachable": "The gateway could not reach {0}. The target host or its RDP port is unreachable from the SSH gateway.",
   "RdpDisconnectCertificateWarning": "The remote computer's certificate could not be verified. The certificate may be self-signed, expired, or untrusted; ask your administrator to install the certificate's CA in the local trusted store, or import it manually.",

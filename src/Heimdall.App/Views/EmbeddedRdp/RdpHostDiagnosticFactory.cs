@@ -51,6 +51,15 @@ internal static class RdpHostDiagnosticFactory
             null);
     }
 
+    internal static SessionDiagnostic FromConnectTimeout()
+    {
+        return new SessionDiagnostic(
+            SessionFailureStage.RdpActiveXConnect,
+            "RdpDisconnectConnectTimeout",
+            null,
+            null);
+    }
+
     /// <summary>
     /// Builds a diagnostic for a tunneled session dropped because the SSH
     /// gateway could not reach the forward's target. The target endpoint is
