@@ -2208,9 +2208,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         SessionPaneModel pane,
         Views.EmbeddedRdpView rdpView)
     {
-        var lookupId = !string.IsNullOrWhiteSpace(pane.OriginalServerId)
-            ? pane.OriginalServerId
-            : pane.ServerId;
+        string lookupId = pane.ProfileLookupServerId;
         if (string.IsNullOrWhiteSpace(lookupId))
         {
             vm.StatusText = vm.Localize("RdpResolutionSaveDefaultUnavailable");

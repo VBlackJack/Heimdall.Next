@@ -144,9 +144,7 @@ public sealed class SessionTabContextMenuFactory
         var duplicateItem = new MenuItem { Header = vm.Localize("SessionDuplicateTab") };
         duplicateItem.Click += (_, _) =>
         {
-            var lookupId = !string.IsNullOrEmpty(session.OriginalServerId)
-                ? session.OriginalServerId
-                : session.ServerId;
+            string lookupId = session.ProfileLookupServerId;
 
             if (!string.IsNullOrEmpty(lookupId) && vm.ServerList.ConnectCommand is not null)
             {
@@ -515,10 +513,8 @@ public sealed class SessionTabContextMenuFactory
                     var sourceTab = other;
                     var sessionMenu = new MenuItem { Header = sourceTab.Title };
 
-                    // Use OriginalServerId as stable lookup key (ServerId may be empty during connection)
-                    var mergeId = !string.IsNullOrEmpty(sourceTab.OriginalServerId)
-                        ? sourceTab.OriginalServerId
-                        : sourceTab.ServerId;
+                    // Use the profile lookup key; ServerId may be empty during connection.
+                    string mergeId = sourceTab.ProfileLookupServerId;
 
                     var mergeH = new MenuItem { Header = vm.Localize("OrientationHorizontal") };
                     mergeH.Click += (_, _) => vm.MergeExistingSession(

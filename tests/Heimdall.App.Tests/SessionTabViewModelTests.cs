@@ -98,6 +98,22 @@ public sealed class SessionTabViewModelTests
     }
 
     [Fact]
+    public void ProfileLookupServerId_UsesPrimaryPaneFallbackRule()
+    {
+        SessionTabViewModel vm = new SessionTabViewModel
+        {
+            ServerId = "server-1",
+            OriginalServerId = ""
+        };
+
+        Assert.Equal("server-1", vm.ProfileLookupServerId);
+
+        vm.OriginalServerId = "profile-1";
+
+        Assert.Equal("profile-1", vm.ProfileLookupServerId);
+    }
+
+    [Fact]
     public void TunnelsPanelManualOverride_DefaultsToNullAndRaisesPropertyChanged()
     {
         var vm = new SessionTabViewModel();

@@ -120,14 +120,30 @@ public partial class SessionTabViewModel : ObservableObject
     public string ServerId
     {
         get => PrimaryPane.ServerId;
-        set { PrimaryPane.ServerId = value; OnPropertyChanged(); }
+        set
+        {
+            PrimaryPane.ServerId = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ProfileLookupServerId));
+        }
     }
 
     public string OriginalServerId
     {
         get => PrimaryPane.OriginalServerId;
-        set { PrimaryPane.OriginalServerId = value; OnPropertyChanged(); }
+        set
+        {
+            PrimaryPane.OriginalServerId = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ProfileLookupServerId));
+        }
     }
+
+    /// <summary>
+    /// Profile-scoped lookup id for this tab's primary pane.
+    /// See <see cref="SessionPaneModel.ProfileLookupServerId"/>.
+    /// </summary>
+    public string ProfileLookupServerId => PrimaryPane.ProfileLookupServerId;
 
     public string Title
     {
@@ -373,6 +389,7 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(PrimaryPane));
         OnPropertyChanged(nameof(ServerId));
         OnPropertyChanged(nameof(OriginalServerId));
+        OnPropertyChanged(nameof(ProfileLookupServerId));
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(DisplayTitle));
         OnPropertyChanged(nameof(ConnectionType));

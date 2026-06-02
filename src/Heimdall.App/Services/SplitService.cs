@@ -498,8 +498,7 @@ public sealed class SplitService : ISplitService
         }
         else if (!string.IsNullOrEmpty(pane.ServerId))
         {
-            var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
-                ? pane.OriginalServerId : pane.ServerId;
+            string historyId = pane.ProfileLookupServerId;
             Core.Logging.ConnectionHistory.RecordDisconnect(
                 historyId, pane.Title, pane.ConnectionType);
 
@@ -815,8 +814,7 @@ public sealed class SplitService : ISplitService
             if (!pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrEmpty(pane.ServerId))
             {
-                var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
-                    ? pane.OriginalServerId : pane.ServerId;
+                string historyId = pane.ProfileLookupServerId;
                 Core.Logging.ConnectionHistory.RecordDisconnect(
                     historyId, pane.Title, pane.ConnectionType);
 

@@ -167,7 +167,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             view.ReconnectRequested += () =>
                 ReconnectRequestedCallback?.Invoke(
                     sessionTab,
-                    !string.IsNullOrEmpty(sessionTab.OriginalServerId) ? sessionTab.OriginalServerId : sessionTab.ServerId,
+                    sessionTab.ProfileLookupServerId,
                     sessionTab.ConnectionType);
             view.DisconnectRequested += () =>
                 DisconnectRequestedCallback?.Invoke(
@@ -780,7 +780,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         view.ReconnectRequested += () =>
             ReconnectRequestedCallback?.Invoke(
                 tab,
-                !string.IsNullOrEmpty(tab.OriginalServerId) ? tab.OriginalServerId : tab.ServerId,
+                tab.ProfileLookupServerId,
                 tab.ConnectionType);
         view.CloseRequested += () => CloseRequestedCallback?.Invoke(tab);
     }
@@ -810,7 +810,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         view.RequestReconnect += (_) =>
             ReconnectRequestedCallback?.Invoke(
                 tab,
-                !string.IsNullOrEmpty(tab.OriginalServerId) ? tab.OriginalServerId : tab.ServerId,
+                tab.ProfileLookupServerId,
                 tab.ConnectionType);
     }
 

@@ -519,9 +519,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             return;
         }
 
-        var serverId = !string.IsNullOrEmpty(tab.OriginalServerId)
-            ? tab.OriginalServerId
-            : tab.ServerId;
+        string serverId = tab.ProfileLookupServerId;
 
         if (string.IsNullOrEmpty(serverId))
         {

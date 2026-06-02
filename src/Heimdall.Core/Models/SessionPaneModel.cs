@@ -43,6 +43,7 @@ public partial class SessionPaneModel : ObservableObject, ISplitContent
     /// Session-scoped ID used for state machine keying and tunnel tracking.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ProfileLookupServerId))]
     private string _serverId = "";
 
     /// <summary>
@@ -50,6 +51,7 @@ public partial class SessionPaneModel : ObservableObject, ISplitContent
     /// duplicate-tab, auto-SFTP).
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ProfileLookupServerId))]
     private string _originalServerId = "";
 
     [ObservableProperty]
@@ -72,6 +74,26 @@ public partial class SessionPaneModel : ObservableObject, ISplitContent
     [NotifyPropertyChangedFor(nameof(HasFailureCode))]
     [NotifyPropertyChangedFor(nameof(HasFailureDetail))]
     private SessionDiagnostic? _failureDetails;
+
+    /// <summary>
+    /// Server inventory id to use for profile-scoped lookups (reconnect, duplicate-tab,
+    /// merge, connection history, saved RDP defaults). Prefers <see cref="OriginalServerId"/>
+    /// (the stable inventory id) and falls back to <see cref="ServerId"/> only when the
+    /// original is blank (for example ad-hoc sessions never tied to a profile). This is NOT
+    /// a state-machine or tunnel key; those must keep using <see cref="ServerId"/> directly.
+    /// </summary>
+    public string ProfileLookupServerId
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(OriginalServerId))
+            {
+                return OriginalServerId;
+            }
+
+            return ServerId;
+        }
+    }
 
     /// <summary>
     /// True when this pane has structured failure diagnostics to display.
