@@ -1000,6 +1000,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         772 => "NetworkError",
         1030 => "SecurityError",
         1796 => "InternalError",
+        1800 => "ConsoleSessionInProgress",
         2055 => "BadCredentials",
         2056 => "LicensingError",
         2308 => "SocketClosed",

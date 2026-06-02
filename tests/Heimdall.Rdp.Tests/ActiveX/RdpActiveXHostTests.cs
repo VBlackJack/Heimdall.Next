@@ -60,6 +60,7 @@ public sealed class RdpActiveXHostTests
     [InlineData(0, "NoInfo")]
     [InlineData(3, "AdminDisconnect")]
     [InlineData(260, "DnsLookupFailed")]
+    [InlineData(1800, "ConsoleSessionInProgress")]
     [InlineData(2055, "BadCredentials")]
     [InlineData(2308, "SocketClosed")]
     [InlineData(3848, "CredSspPolicyError")]
@@ -82,6 +83,7 @@ public sealed class RdpActiveXHostTests
     }
 
     [Theory]
+    [InlineData(1800, "RDP_CONSOLE_SESSION_IN_PROGRESS · 1800")]
     [InlineData(2308, "RDP_SOCKET_CLOSED · 2308")]
     [InlineData(3848, "RDP_CRED_SSP_POLICY_ERROR · 3848")]
     [InlineData(0, "RDP_NO_INFO · 0")]
@@ -130,6 +132,7 @@ public sealed class RdpActiveXHostTests
 
     [Theory]
     [InlineData(3)]
+    [InlineData(1800)]
     [InlineData(2825)]
     [InlineData(9999)]
     public void GetDisconnectSeverity_TerminalCode_ReturnsTerminalError(int reason)
@@ -244,6 +247,14 @@ public sealed class RdpActiveXHostTests
         Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.Transient, actual);
     }
 
+    [Fact]
+    public void GetDisconnectSeverity_NoExtendedInfo_PreservesConsoleSessionInProgressAsTerminalError()
+    {
+        RdpActiveXHost.RdpDisconnectSeverity actual = RdpActiveXHost.GetDisconnectSeverity(1800, 0);
+
+        Assert.Equal(RdpActiveXHost.RdpDisconnectSeverity.TerminalError, actual);
+    }
+
     [Theory]
     [InlineData(2055)]
     [InlineData(2567)]
@@ -260,6 +271,7 @@ public sealed class RdpActiveXHostTests
     [Theory]
     [InlineData(1030)]
     [InlineData(1796)]
+    [InlineData(1800)]
     [InlineData(2056)]
     [InlineData(2311)]
     [InlineData(2822)]

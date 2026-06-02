@@ -28,6 +28,7 @@ public sealed class RdpHostDiagnosticFactoryTests
     [Theory]
     [InlineData(0, "RdpDisconnectNoInfo")]
     [InlineData(516, "RdpDisconnectSocketConnectFailed")]
+    [InlineData(1800, "RdpDisconnectConsoleSessionInProgress")]
     [InlineData(2055, "RdpDisconnectBadCredentials")]
     [InlineData(99999, "RdpDisconnectUnknownCode")]
     public void FromDisconnect_MapsReasonToMessageKey(int code, string expectedKey)
@@ -45,6 +46,7 @@ public sealed class RdpHostDiagnosticFactoryTests
     [InlineData(2308, 4, "RdpDisconnectServerLogonTimeout")]
     [InlineData(2308, 257, "RdpDisconnectLicenseError")]
     [InlineData(516, 0, "RdpDisconnectSocketConnectFailed")]
+    [InlineData(1800, 0, "RdpDisconnectConsoleSessionInProgress")]
     public void FromDisconnect_MapsExtendedReasonToMessageKey(
         int code,
         int extendedReason,
