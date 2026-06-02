@@ -1,0 +1,158 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using Heimdall.App.ViewModels;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+
+namespace Heimdall.App.Tests;
+
+public sealed partial class SessionCoordinatorPreMountTests
+{
+    [Fact]
+    public async Task ReconnectSession_Ssh_RemovesOldTabBeforeNewConnect()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        // Establish first session and wait for tab to be present
+        BulkConnectOutcome firstOutcome = await harness.RunPipelineAsync(server, "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        SessionTabViewModel oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+
+        // Reset the handler so the reconnect attempt can be observed independently
+        harness.ResetHandler("SSH");
+
+        // Trigger reconnect via the same entry point as the tab context menu
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        // The old tab must be removed synchronously (Close is sync via CloseSessionInternal)
+        await WaitUntilAsync(() => !harness.Main.Connection.ActiveSessions.Contains(oldTab));
+
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+
+        CancellationToken reconnectToken = await sshHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(reconnectToken.IsCancellationRequested);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 2);
+    }
+
+    [Fact]
+    public void ReconnectSession_NullTab_DoesNothing()
+    {
+        using TestHarness harness = TestHarness.Create();
+        string initialStatus = harness.Main.StatusText;
+
+        harness.Main.Session.ReconnectSession(null);
+
+        Assert.Empty(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(initialStatus, harness.Main.StatusText);
+    }
+
+    [Fact]
+    public void ReconnectSession_TabWithEmptyServerId_DoesNothing()
+    {
+        using TestHarness harness = TestHarness.Create();
+        LocalizationManager localizer = harness.Main.GetLocalizer();
+        SessionTabViewModel bareTab = new SessionTabViewModel
+        {
+            Title = "Bare",
+            ConnectionType = "SSH"
+        };
+
+        harness.Main.Session.ReconnectSession(bareTab);
+
+        Assert.Empty(harness.Main.Connection.ActiveSessions);
+        Assert.Equal(localizer["StatusReady"], harness.Main.StatusText);
+    }
+
+    [Fact]
+    public async Task ReconnectSession_FallsBackToServerId_WhenOriginalServerIdIsEmpty()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        SessionTabViewModel tab = new SessionTabViewModel
+        {
+            ServerId = server.Id,
+            OriginalServerId = "",
+            ConnectionType = "SSH",
+            Title = "fallback"
+        };
+
+        harness.Main.Session.ReconnectSession(tab);
+
+        CancellationToken token = await sshHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(token.IsCancellationRequested);
+
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 1);
+    }
+
+    [Fact]
+    public async Task ReconnectSession_ServerMissingFromInventory_SetsServerNotFoundStatus()
+    {
+        using TestHarness harness = TestHarness.Create();
+        LocalizationManager localizer = harness.Main.GetLocalizer();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        BulkConnectOutcome firstOutcome = await harness.RunPipelineAsync(
+            server,
+            "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        SessionTabViewModel oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        await WaitUntilAsync(() => harness.Main.StatusText == localizer["ErrorServerNotFound"]);
+        Assert.Equal(localizer["ErrorServerNotFound"], harness.Main.StatusText);
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+    }
+
+    [Fact]
+    public async Task ReconnectSession_ServerPresent_StartsNewConnection()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sshHandler = harness.GetHandler("SSH");
+        ServerProfileDto server = harness.CreateServer("SSH");
+        await harness.PersistServerAsync(server);
+        sshHandler.Result.SetResult(SuccessWithTerminalSession());
+
+        BulkConnectOutcome firstOutcome = await harness.RunPipelineAsync(
+            server,
+            "session-ssh-first").WaitAsync(TestTimeout);
+        Assert.Equal(BulkConnectOutcomeStatus.Success, firstOutcome.Status);
+        SessionTabViewModel oldTab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        harness.ResetHandler("SSH");
+        ControlledProtocolHandler reconnectHandler = harness.GetHandler("SSH");
+
+        harness.Main.Session.ReconnectSession(oldTab);
+
+        CancellationToken newConnectToken = await reconnectHandler.Started.Task.WaitAsync(TestTimeout);
+        Assert.False(newConnectToken.IsCancellationRequested);
+        await WaitUntilAsync(() => !harness.Main.Connection.ActiveSessions.Contains(oldTab));
+        Assert.DoesNotContain(oldTab, harness.Main.Connection.ActiveSessions);
+
+        reconnectHandler.Result.SetResult(SuccessWithTerminalSession());
+        await WaitUntilAsync(() => harness.EmbeddedSessionManager.AttachSshSessionCalls == 2);
+    }
+}
