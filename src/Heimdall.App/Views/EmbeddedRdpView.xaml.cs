@@ -229,6 +229,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
     public void ToggleFullscreen()
     {
+        if (Window.GetWindow(this) is ISessionTabContextCallbacks callbacks)
+        {
+            callbacks.ToggleFullscreen();
+            return;
+        }
+
         SetFullscreen(!_isFullscreen);
     }
 
