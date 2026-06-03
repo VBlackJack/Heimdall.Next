@@ -746,11 +746,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
                 {
                     _disconnectConfirmInFlight = true;
                     var confirmed = await dialogService.ShowConfirmAsync(
-                        _localizer?["RdpConfirmDisconnectTitle"] ?? "Disconnect",
+                        _localizer?["RdpConfirmDisconnectTitle"] ?? "RdpConfirmDisconnectTitle",
                         _localizer?.Format(
                             "RdpConfirmDisconnectMessage",
                             _server?.DisplayName ?? string.Empty)
-                        ?? "Disconnect from this session?",
+                        ?? "RdpConfirmDisconnectMessage",
                         "warning");
 
                     if (!confirmed)
@@ -1407,7 +1407,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             if (result == RdpDisplayUpdateResult.ReconnectFallback)
             {
                 ShowTransientToast(_localizer?["RdpResolutionReconnectFallbackToast"]
-                    ?? "Resolution change required reconnect.");
+                    ?? "RdpResolutionReconnectFallbackToast");
             }
         }
         catch (Exception ex)
@@ -1434,9 +1434,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         {
             _resolutionReconnectConfirmInFlight = true;
             return await dialogService.ShowConfirmAsync(
-                _localizer?["RdpConfirmResolutionReconnectTitle"] ?? "Reconnect required",
+                _localizer?["RdpConfirmResolutionReconnectTitle"] ?? "RdpConfirmResolutionReconnectTitle",
                 _localizer?.Format("RdpConfirmResolutionReconnectMessage", width, height)
-                    ?? $"Changing resolution to {width}x{height} requires reconnect. Continue?",
+                    ?? "RdpConfirmResolutionReconnectMessage",
                 "warning");
         }
         catch (Exception ex)
@@ -1784,7 +1784,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         }
 
         var fatalMessage = _localizer?.Format("RdpStatusFatalErrorDetail", errorCode)
-            ?? $"Remote Desktop reported a fatal error ({errorCode}).";
+            ?? "RdpStatusFatalErrorDetail";
         SetConnectionStateError(fatalMessage);
 
         Dispatcher.Invoke(() =>
@@ -2942,7 +2942,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
                 {
                     _rdpHost?.SetSmartSizing(true);
                     ShowTransientToast(_localizer?["RdpResolutionScaledToFitToast"]
-                        ?? "Larger than window - image will be scaled.");
+                        ?? "RdpResolutionScaledToFitToast");
                 }
 
                 Core.Logging.FileLogger.Info($"RDP resolution set to: {choice.Width}x{choice.Height}");
@@ -3940,7 +3940,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
         var localPort = _tunnelPort ?? server.LocalPort;
         var format = _localizer?["RdpEndpointTunneledFormat"]
-            ?? "{0}:{1} via localhost:{2}";
+            ?? "RdpEndpointTunneledFormat";
         return string.Format(
             format,
             server.RemoteServer,

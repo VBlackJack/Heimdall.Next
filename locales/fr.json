@@ -2611,7 +2611,7 @@
   "RdpAutofillSearching": "Recherche de l'invite de connexion Windows\u2026",
   "RdpAutofillTimedOut": "Impossible de trouver l'invite de saisie des identifiants \u2014 saisissez votre mot de passe manuellement. Si vous utilisez Windows Hello, une carte \u00e0 puce ou FIDO, c'est normal.",
   "RdpEndpointTunneledFormat": "{0}:{1} via localhost:{2}",
-  "RdpFullscreenExitHint": "Mode plein \u00e9cran. Appuyez sur \u00c9chap ou Ctrl+Maj+F11 pour quitter.",
+  "RdpFullscreenExitHint": "Mode plein \u00e9cran. Appuyez sur F11, \u00c9chap ou Ctrl+Maj+F11 pour quitter.",
   "RdpHealthDotFaulted": "En erreur",
   "RdpHealthDotHealthy": "Connect\u00e9e",
   "RdpHealthDotIdle": "Inactive",

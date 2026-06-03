@@ -2614,7 +2614,7 @@
   "RdpAutofillSearching": "Looking for the Windows credentials prompt\u2026",
   "RdpAutofillTimedOut": "Couldn't find the credentials prompt \u2014 type your password manually. If you use Windows Hello, smart card, or FIDO, this is expected.",
   "RdpEndpointTunneledFormat": "{0}:{1} via localhost:{2}",
-  "RdpFullscreenExitHint": "Fullscreen mode. Press Esc or Ctrl+Shift+F11 to exit.",
+  "RdpFullscreenExitHint": "Fullscreen mode. Press F11, Esc, or Ctrl+Shift+F11 to exit.",
   "RdpHealthDotFaulted": "Faulted",
   "RdpHealthDotHealthy": "Connected",
   "RdpHealthDotIdle": "Idle",
