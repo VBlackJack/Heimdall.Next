@@ -508,6 +508,8 @@
                     Visibility="Collapsed"
                     Focusable="True"
                     KeyboardNavigation.IsTabStop="False"
+                    KeyboardNavigation.TabNavigation="Cycle"
+                    KeyboardNavigation.ControlTabNavigation="Cycle"
                     Background="{DynamicResource OverlayBackground}"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"

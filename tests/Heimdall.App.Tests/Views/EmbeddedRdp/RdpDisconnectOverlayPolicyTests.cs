@@ -24,10 +24,11 @@ public sealed class RdpDisconnectOverlayPolicyTests
     [InlineData(true, 0, true, "user-initiated trumps any reason")]
     [InlineData(true, 516, true, "user-initiated trumps SocketConnectFailed")]
     [InlineData(true, 2055, true, "user-initiated trumps BadCredentials")]
+    [InlineData(true, 3, true, "user-initiated trumps AdminDisconnect")]
     [InlineData(false, 0, true, "NoInfo is a clean exit")]
     [InlineData(false, 1, true, "LocalUser is a clean exit")]
     [InlineData(false, 2, true, "UserLogoff is a clean exit")]
-    [InlineData(false, 3, true, "AdminDisconnect is a clean exit")]
+    [InlineData(false, 3, false, "AdminDisconnect warrants the overlay")]
     [InlineData(false, 4, false, "code 4 is not a clean-exit code")]
     [InlineData(false, 264, false, "ConnectionTimeout warrants the overlay")]
     [InlineData(false, 516, false, "SocketConnectFailed warrants the overlay")]
@@ -41,7 +42,7 @@ public sealed class RdpDisconnectOverlayPolicyTests
     {
         _ = description;
 
-        var actual = EmbeddedRdpView.ShouldSuppressReconnectOverlay(userInitiated, reason);
+        bool actual = EmbeddedRdpView.ShouldSuppressReconnectOverlay(userInitiated, reason);
 
         Assert.Equal(expected, actual);
     }

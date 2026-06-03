@@ -3962,7 +3962,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     /// Suppresses the reconnect overlay for explicit user disconnects and clean-exit COM codes.
     /// </summary>
     internal static bool ShouldSuppressReconnectOverlay(bool userInitiated, int reason)
-        => userInitiated || reason is 0 or 1 or 2 or 3;
+        => userInitiated || reason is 0 or 1 or 2;
 
     internal static bool ShouldHandleStateChange(
         string serverId,
