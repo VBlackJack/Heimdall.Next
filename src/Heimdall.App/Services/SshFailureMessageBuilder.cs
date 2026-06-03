@@ -27,19 +27,10 @@ internal static class SshFailureMessageBuilder
         string presentedFingerprint)
     {
         string message = localizer[SshLocalizationKeys.ErrorHostKeyMismatch];
-        if (string.Equals(message, SshLocalizationKeys.ErrorHostKeyMismatch, StringComparison.Ordinal))
-        {
-            message = "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.";
-        }
-
         string detail = localizer.Format(
             SshLocalizationKeys.ErrorHostKeyMismatchDetail,
             storedFingerprint,
             presentedFingerprint);
-        if (string.Equals(detail, SshLocalizationKeys.ErrorHostKeyMismatchDetail, StringComparison.Ordinal))
-        {
-            detail = $"Stored: {storedFingerprint}. Presented: {presentedFingerprint}.";
-        }
 
         return $"{message} {detail}";
     }
@@ -47,16 +38,12 @@ internal static class SshFailureMessageBuilder
     public static string HostKeyUnavailable(LocalizationManager localizer)
     {
         string message = localizer[SshLocalizationKeys.ErrorSshHostKeyUnavailable];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshHostKeyUnavailable, StringComparison.Ordinal)
-            ? "Heimdall could not verify the gateway host key. Refusing to fall back to plink's local cache."
-            : message;
+        return message;
     }
 
     public static string Cancelled(LocalizationManager localizer)
     {
         string message = localizer[SshLocalizationKeys.ErrorSshCancelled];
-        return string.Equals(message, SshLocalizationKeys.ErrorSshCancelled, StringComparison.Ordinal)
-            ? "Connection was cancelled."
-            : message;
+        return message;
     }
 }

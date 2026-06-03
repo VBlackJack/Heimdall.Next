@@ -857,7 +857,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             {
                 ShowWebViewUnavailable(
                     _localizer?["ErrorWebView2NotFound"]
-                    ?? "WebView2 Runtime not found. Place a Fixed Version Runtime in runtimes/webview2/ or install the Evergreen Runtime.");
+                    ?? "ErrorWebView2NotFound");
                 return;
             }
 
@@ -893,7 +893,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            ShowWebViewUnavailable($"WebView2 could not be initialized. {ex.Message}");
+            ShowWebViewUnavailable(
+                _localizer?["ErrorWebView2InitUnavailable"]
+                ?? "ErrorWebView2InitUnavailable");
             Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 initialization failed: {ex.Message}");
         }
     }
@@ -901,7 +903,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private void OnWebViewProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
     {
         Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 process failed: {e.ProcessFailedKind}");
-        ShowWebViewUnavailable(_localizer?["ErrorTerminalRendererCrashed"] ?? "The embedded terminal renderer crashed.");
+        ShowWebViewUnavailable(_localizer?["ErrorTerminalRendererCrashed"] ?? "ErrorTerminalRendererCrashed");
     }
 
     private void OnWebViewNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs navArgs)

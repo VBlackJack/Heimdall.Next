@@ -325,15 +325,16 @@ internal sealed class SshHandler : IProtocolHandler
 
             if (!InputValidator.ValidatePortRange(targetPort))
             {
-                const string msg = "Invalid SSH target port.";
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetPort];
                 _connectionSm.SetError(server.Id, msg);
-                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
+                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorInvalidTargetPort, msg));
             }
 
-            if (!TryValidateKeyPath(server.SshKeyPath, out string keyPathError))
+            if (!TryValidateKeyPath(server.SshKeyPath, out SshKeyPathValidationError keyPathError))
             {
-                _connectionSm.SetError(server.Id, keyPathError);
-                return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
+                string keyPathMessage = LocalizeKeyPathError(keyPathError, server.SshKeyPath);
+                _connectionSm.SetError(server.Id, keyPathMessage);
+                return new ConnectionResult(false, keyPathMessage, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathMessage));
             }
 
             string target = !string.IsNullOrEmpty(server.SshUsername)
@@ -460,15 +461,16 @@ internal sealed class SshHandler : IProtocolHandler
 
             if (!InputValidator.ValidatePortRange(targetPort))
             {
-                const string msg = "Invalid SSH target port.";
+                string msg = _localizer[SshLocalizationKeys.ErrorInvalidTargetPort];
                 _connectionSm.SetError(server.Id, msg);
-                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, msg));
+                return new ConnectionResult(false, msg, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorInvalidTargetPort, msg));
             }
 
-            if (!TryValidateKeyPath(server.SshKeyPath, out string keyPathError))
+            if (!TryValidateKeyPath(server.SshKeyPath, out SshKeyPathValidationError keyPathError))
             {
-                _connectionSm.SetError(server.Id, keyPathError);
-                return new ConnectionResult(false, keyPathError, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathError));
+                string keyPathMessage = LocalizeKeyPathError(keyPathError, server.SshKeyPath);
+                _connectionSm.SetError(server.Id, keyPathMessage);
+                return new ConnectionResult(false, keyPathMessage, null, SshSessionDiagnosticFactory.CreatePlinkFallbackFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathMessage));
             }
 
             string target = !string.IsNullOrEmpty(server.SshUsername)
@@ -737,34 +739,53 @@ internal sealed class SshHandler : IProtocolHandler
         return string.Join(' ', argParts);
     }
 
-    internal static bool TryValidateKeyPath(string? keyPath, out string errorMessage)
+    internal static bool TryValidateKeyPath(
+        string? keyPath,
+        out SshKeyPathValidationError error)
     {
         if (string.IsNullOrWhiteSpace(keyPath))
         {
-            errorMessage = string.Empty;
+            error = SshKeyPathValidationError.None;
             return true;
         }
 
         if (keyPath.Contains('\0') || keyPath.Contains('"'))
         {
-            errorMessage = $"Invalid SSH key path: {keyPath}";
+            error = SshKeyPathValidationError.InvalidCharacters;
             return false;
         }
 
         if (!Path.IsPathRooted(keyPath))
         {
-            errorMessage = $"SSH key path must be absolute: {keyPath}";
+            error = SshKeyPathValidationError.NotAbsolute;
             return false;
         }
 
         if (!File.Exists(keyPath))
         {
-            errorMessage = $"SSH key file not found: {keyPath}";
+            error = SshKeyPathValidationError.FileNotFound;
             return false;
         }
 
-        errorMessage = string.Empty;
+        error = SshKeyPathValidationError.None;
         return true;
+    }
+
+    private string LocalizeKeyPathError(
+        SshKeyPathValidationError error,
+        string? keyPath)
+    {
+        string displayPath = keyPath ?? string.Empty;
+        return error switch
+        {
+            SshKeyPathValidationError.InvalidCharacters =>
+                _localizer.Format(SshLocalizationKeys.ErrorSshKeyPathInvalid, displayPath),
+            SshKeyPathValidationError.NotAbsolute =>
+                _localizer.Format(SshLocalizationKeys.ErrorSshKeyPathNotAbsolute, displayPath),
+            SshKeyPathValidationError.FileNotFound =>
+                _localizer.Format(SshLocalizationKeys.ErrorSshKeyFileNotFound, displayPath),
+            _ => string.Empty,
+        };
     }
 
     private ConnectionResult BuildPlinkHostKeyRejectionResult(

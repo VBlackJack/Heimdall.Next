@@ -25,10 +25,38 @@ public sealed class SshHandlerTests
     [Fact]
     public void TryValidateKeyPath_RejectsQuoteInjection()
     {
-        var isValid = SshHandler.TryValidateKeyPath("C:\\keys\\id\" --corrupt.ppk", out var errorMessage);
+        bool isValid = SshHandler.TryValidateKeyPath(
+            "C:\\keys\\id\" --corrupt.ppk",
+            out SshKeyPathValidationError error);
 
         Assert.False(isValid);
-        Assert.Contains("Invalid SSH key path", errorMessage);
+        Assert.Equal(SshKeyPathValidationError.InvalidCharacters, error);
+    }
+
+    [Fact]
+    public void TryValidateKeyPath_RejectsRelativePath()
+    {
+        bool isValid = SshHandler.TryValidateKeyPath(
+            "keys\\id_ed25519",
+            out SshKeyPathValidationError error);
+
+        Assert.False(isValid);
+        Assert.Equal(SshKeyPathValidationError.NotAbsolute, error);
+    }
+
+    [Fact]
+    public void TryValidateKeyPath_RejectsMissingAbsolutePath()
+    {
+        string missingPath = Path.Combine(
+            Path.GetTempPath(),
+            $"heimdall-missing-key-{Guid.NewGuid():N}.ppk");
+
+        bool isValid = SshHandler.TryValidateKeyPath(
+            missingPath,
+            out SshKeyPathValidationError error);
+
+        Assert.False(isValid);
+        Assert.Equal(SshKeyPathValidationError.FileNotFound, error);
     }
 
     [Fact]

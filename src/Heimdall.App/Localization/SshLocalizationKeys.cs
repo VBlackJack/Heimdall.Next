@@ -29,6 +29,7 @@ internal static class SshLocalizationKeys
     public const string ErrorHostKeyMismatchDetail = "ErrorHostKeyMismatchDetail";
     public const string ErrorInvalidSshUsername = "ErrorInvalidSshUsername";
     public const string ErrorInvalidTargetHost = "ErrorInvalidTargetHost";
+    public const string ErrorInvalidTargetPort = "ErrorInvalidTargetPort";
     public const string ErrorPlinkNotConfigured = "ErrorPlinkNotConfigured";
     public const string ErrorPlinkNotConfiguredWithReason = "ErrorPlinkNotConfiguredWithReason";
     public const string ErrorPlinkOpenSshAgentUnsupported = "ErrorPlinkOpenSshAgentUnsupported";
@@ -37,6 +38,9 @@ internal static class SshLocalizationKeys
     public const string ErrorPuttyNotConfigured = "ErrorPuttyNotConfigured";
     public const string ErrorSshCancelled = "ErrorSshCancelled";
     public const string ErrorSshHostKeyUnavailable = "ErrorSshHostKeyUnavailable";
+    public const string ErrorSshKeyFileNotFound = "ErrorSshKeyFileNotFound";
+    public const string ErrorSshKeyPathInvalid = "ErrorSshKeyPathInvalid";
+    public const string ErrorSshKeyPathNotAbsolute = "ErrorSshKeyPathNotAbsolute";
     public const string ErrorTunnelFailed = "ErrorTunnelFailed";
     public const string ErrorTunnelPortConcurrent = "ErrorTunnelPortConcurrent";
     public const string StatusSshRetryingViaPlink = "StatusSshRetryingViaPlink";
