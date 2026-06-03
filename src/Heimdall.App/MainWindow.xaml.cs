@@ -2856,6 +2856,21 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 throw;
             }
         }
+
+        // If this pass is cancelling the close (for example while the
+        // unsaved-settings dialog is shown), do not arm the shutdown guard.
+        if (e.Cancel)
+        {
+            return;
+        }
+
+        // This window will close on the current pass. Arm the shutdown guard
+        // before WPF broadcasts Unloaded to the visual tree, so session panes
+        // skip reparenting teardown during application shutdown.
+        if (Application.Current is Heimdall.App.App app)
+        {
+            app.IsShuttingDown = true;
+        }
     }
 
     /// <inheritdoc />
