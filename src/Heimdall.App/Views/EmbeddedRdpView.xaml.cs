@@ -570,6 +570,40 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
         _ = Keyboard.Focus(DisconnectButton);
     }
 
+    private void FocusRdpSurfaceIfAppropriate()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(FocusRdpSurfaceIfAppropriate));
+            return;
+        }
+
+        bool viewVisible = IsVisible;
+        bool reconnectOverlayVisible = ReconnectOverlay.Visibility == System.Windows.Visibility.Visible;
+        bool windowIsForeground = System.Windows.Window.GetWindow(this)?.IsActive == true;
+        bool autofillInFlight = _autofillAttemptInFlight;
+
+        if (RdpSurfaceFocusPolicy.ShouldFocusSurface(
+            viewVisible,
+            reconnectOverlayVisible,
+            windowIsForeground,
+            autofillInFlight))
+        {
+            _rdpHost?.FocusRdpSurface();
+            return;
+        }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP focus skipped: viewVisible={viewVisible} reconnectOverlayVisible={reconnectOverlayVisible} windowIsForeground={windowIsForeground} autofillInFlight={autofillInFlight}");
+    }
+
     internal void RequestCommandPaletteFromKeyboardHook()
     {
         if (_disposed)
@@ -1621,6 +1655,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             {
                 _allowResolutionUpdates = true;
             }
+
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(FocusRdpSurfaceIfAppropriate));
         });
     }
 
@@ -1871,6 +1909,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             {
                 _allowResolutionUpdates = true;
             }
+
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(FocusRdpSurfaceIfAppropriate));
         });
     }
 

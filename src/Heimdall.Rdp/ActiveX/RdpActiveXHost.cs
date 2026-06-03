@@ -148,6 +148,9 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         EnumChildProc enumFunc,
         IntPtr lParam);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetFocus(IntPtr hwnd);
+
     /// <inheritdoc />
     public event Action? Connected;
 
@@ -235,6 +238,32 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         _activeX = GetOcx();
         Core.Logging.FileLogger.Info(
             $"RdpActiveXHost.AttachInterfaces: handle=0x{HostHandle.ToInt64():X} ocxType={_activeX?.GetType().FullName ?? "null"} clsid={_activeXClsid}");
+    }
+
+    /// <summary>
+    /// Gives keyboard focus to the ActiveX child HWND used by the embedded RDP surface.
+    /// </summary>
+    public void FocusRdpSurface()
+    {
+        if (_disposed || !IsHandleCreated)
+        {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.FocusRdpSurface skipped: disposed={_disposed} handleCreated={IsHandleCreated}");
+            return;
+        }
+
+        try
+        {
+            IntPtr handle = Handle;
+            _ = Focus();
+            _ = SetFocus(handle);
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.FocusRdpSurface: focused handle=0x{handle.ToInt64():X}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.FocusRdpSurface failed: {ex.Message}");
+        }
     }
 
     /// <inheritdoc />
