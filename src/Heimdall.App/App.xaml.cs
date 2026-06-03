@@ -783,6 +783,11 @@ public partial class App : System.Windows.Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        // Some WPF teardown paths can unload visual children after window
+        // closing has completed. Keep the shutdown guard armed for those
+        // late Unloaded broadcasts as well.
+        IsShuttingDown = true;
+
         if (_serviceProvider is not null)
         {
             try

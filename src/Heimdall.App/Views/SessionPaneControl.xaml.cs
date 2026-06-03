@@ -237,6 +237,12 @@ public partial class SessionPaneControl : UserControl
 
     private static bool IsApplicationShuttingDown()
     {
-        return (Application.Current as Heimdall.App.App)?.IsShuttingDown == true;
+        Application? current = Application.Current;
+        if (current is null)
+        {
+            return true;
+        }
+
+        return current is Heimdall.App.App app && app.IsShuttingDown;
     }
 }
