@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
 using Heimdall.Core.Configuration;
@@ -71,6 +72,36 @@ public sealed class RdpHandlerTests
         Assert.Equal(1, launcher.LaunchCalls);
         Assert.False(string.IsNullOrWhiteSpace(launcher.LastRdpFilePath));
         Assert.Equal("Embedded", server.RdpMode);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_ForceExternalLaunchExceptionReturnsLocalizedMstscError()
+    {
+        const string rawExceptionMessage = "raw mstsc launch exception";
+        TrackingRdpExternalClientLauncher launcher = new TrackingRdpExternalClientLauncher
+        {
+            ExceptionToThrow = new InvalidOperationException(rawExceptionMessage)
+        };
+        LocalizationManager localizer = new LocalizationManager();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        RdpHandler handler = CreateHandler(new PassThroughTunnelService(), localizer, launcher);
+        ServerProfileDto server = CreateServer("Embedded");
+        AppSettings settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.False(result.Success);
+        Assert.Equal("mstsc.exe did not start.", result.ErrorMessage);
+        Assert.NotEqual(rawExceptionMessage, result.ErrorMessage);
+        Assert.Equal(1, launcher.LaunchCalls);
     }
 
     [Fact]
@@ -230,10 +261,18 @@ public sealed class RdpHandlerTests
         ITunnelService tunnelService,
         IRdpExternalClientLauncher launcher)
     {
+        return CreateHandler(tunnelService, new LocalizationManager(), launcher);
+    }
+
+    private static RdpHandler CreateHandler(
+        ITunnelService tunnelService,
+        LocalizationManager localizer,
+        IRdpExternalClientLauncher launcher)
+    {
         return new RdpHandler(
             tunnelService,
             new ConnectionStateMachine(),
-            new LocalizationManager(),
+            localizer,
             launcher);
     }
 
@@ -311,10 +350,17 @@ public sealed class RdpHandlerTests
 
         public ILaunchedRdpClientProcess? ProcessToReturn { get; init; }
 
+        public Exception? ExceptionToThrow { get; init; }
+
         public ILaunchedRdpClientProcess? Launch(string rdpFilePath)
         {
             LaunchCalls++;
             LastRdpFilePath = rdpFilePath;
+            if (ExceptionToThrow is not null)
+            {
+                throw ExceptionToThrow;
+            }
+
             return ProcessToReturn;
         }
     }

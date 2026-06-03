@@ -171,7 +171,7 @@ internal sealed class RdpHandler : IProtocolHandler
                         Core.Logging.FileLogger.Error("Failed to write .rdp file", writeEx);
                         return new ConnectionResult(
                             false,
-                            writeEx.Message,
+                            _localizer["RdpErrorRdpFileWrite"],
                             null,
                             RdpSessionDiagnosticFactory.FromRdpFileWriteException(writeEx));
                     }
@@ -198,7 +198,7 @@ internal sealed class RdpHandler : IProtocolHandler
                     Core.Logging.FileLogger.Error("Failed to write .rdp file", writeEx);
                     return new ConnectionResult(
                         false,
-                        writeEx.Message,
+                        _localizer["RdpErrorRdpFileWrite"],
                         null,
                         RdpSessionDiagnosticFactory.FromRdpFileWriteException(writeEx));
                 }
@@ -214,7 +214,7 @@ internal sealed class RdpHandler : IProtocolHandler
                 Core.Logging.FileLogger.Error("RDP launch failed", launchEx);
                 return new ConnectionResult(
                     false,
-                    launchEx.Message,
+                    _localizer["RdpErrorMstscLaunch"],
                     null,
                     RdpSessionDiagnosticFactory.FromMstscLaunchException(launchEx));
             }
@@ -342,7 +342,7 @@ internal sealed class RdpHandler : IProtocolHandler
             Core.Logging.FileLogger.Error("RDP launch failed", ex);
             return new ConnectionResult(
                 false,
-                ex.Message,
+                _localizer["RdpErrorLaunchFailed"],
                 null,
                 RdpSessionDiagnosticFactory.FromGenericException(ex));
         }
@@ -401,8 +401,10 @@ internal sealed class RdpHandler : IProtocolHandler
         {
             File.Delete(rdpFile);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
+            Core.Logging.FileLogger.Warn(
+                $"RDP artifact cleanup: failed to delete temp .rdp file '{rdpFile}': {ex.Message}");
         }
 
         if (credCleanupTarget is not null)
