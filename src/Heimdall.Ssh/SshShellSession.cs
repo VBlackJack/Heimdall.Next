@@ -50,10 +50,10 @@ public sealed class SshShellSession : IDisposable
     public event Action<byte[]>? DataReceived;
 
     /// <summary>
-    /// Raised when the session is disconnected. The argument contains an error
-    /// message if the disconnect was unexpected, or null for a clean disconnect.
+    /// Raised when the session is disconnected. The argument contains the
+    /// classified SSH failure when one is available.
     /// </summary>
-    public event Action<string?>? Disconnected;
+    public event Action<SshSessionDisconnectInfo>? Disconnected;
 
     /// <summary>
     /// Raised when a security-relevant failure occurs. Fired in addition to <see cref="Disconnected"/>.
@@ -231,7 +231,7 @@ public sealed class SshShellSession : IDisposable
         CleanupStream();
         DisconnectClient();
 
-        Disconnected?.Invoke(null);
+        Disconnected?.Invoke(SshSessionDisconnectInfo.Clean());
     }
 
     public void Dispose()

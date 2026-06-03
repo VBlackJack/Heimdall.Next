@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Renci.SshNet.Common;
+
 namespace Heimdall.Ssh.Tests;
 
 public sealed class SshSessionFailureDispatcherTests
@@ -29,12 +31,12 @@ public sealed class SshSessionFailureDispatcherTests
             "SHA256:OLD");
 
         SshSessionSecurityEvent? captured = null;
-        string? disconnectMessage = null;
+        SshSessionDisconnectInfo? disconnect = null;
 
         SshSessionFailureDispatcher.Dispatch(
             ex,
             evt => captured = evt,
-            msg => disconnectMessage = msg);
+            info => disconnect = info);
 
         Assert.NotNull(captured);
         Assert.Equal(SshFailureCode.HostKeyMismatch, captured!.Code);
@@ -43,7 +45,8 @@ public sealed class SshSessionFailureDispatcherTests
         Assert.Equal("ssh-ed25519", captured.Algorithm);
         Assert.Equal("SHA256:NEW", captured.PresentedFingerprint);
         Assert.Equal("SHA256:OLD", captured.StoredFingerprint);
-        Assert.NotNull(disconnectMessage);
+        Assert.NotNull(disconnect);
+        Assert.Equal(SshFailureCode.HostKeyMismatch, disconnect!.Failure?.Code);
     }
 
     [Fact]
@@ -57,16 +60,17 @@ public sealed class SshSessionFailureDispatcherTests
             storedFingerprint: null);
 
         SshSessionSecurityEvent? captured = null;
-        string? disconnectMessage = null;
+        SshSessionDisconnectInfo? disconnect = null;
 
         SshSessionFailureDispatcher.Dispatch(
             ex,
             evt => captured = evt,
-            msg => disconnectMessage = msg);
+            info => disconnect = info);
 
         Assert.NotNull(captured);
         Assert.Equal(SshFailureCode.Cancelled, captured!.Code);
-        Assert.NotNull(disconnectMessage);
+        Assert.NotNull(disconnect);
+        Assert.Equal(SshFailureCode.Cancelled, disconnect!.Failure?.Code);
     }
 
     [Fact]
@@ -75,15 +79,34 @@ public sealed class SshSessionFailureDispatcherTests
         var ex = new InvalidOperationException("connection reset");
 
         SshSessionSecurityEvent? captured = null;
-        string? disconnectMessage = null;
+        SshSessionDisconnectInfo? disconnect = null;
 
         SshSessionFailureDispatcher.Dispatch(
             ex,
             evt => captured = evt,
-            msg => disconnectMessage = msg);
+            info => disconnect = info);
 
         Assert.Null(captured);
-        Assert.Equal("connection reset", disconnectMessage);
+        Assert.Equal("connection reset", disconnect?.Message);
+        Assert.Equal(SshFailureCode.Unknown, disconnect?.Failure?.Code);
+    }
+
+    [Fact]
+    public void Dispatch_AuthenticationException_RaisesTypedAuthDisconnect()
+    {
+        var ex = new SshAuthenticationException("Permission denied.");
+
+        SshSessionSecurityEvent? captured = null;
+        SshSessionDisconnectInfo? disconnect = null;
+
+        SshSessionFailureDispatcher.Dispatch(
+            ex,
+            evt => captured = evt,
+            info => disconnect = info);
+
+        Assert.Null(captured);
+        Assert.NotNull(disconnect);
+        Assert.Equal(SshFailureCode.AuthRejected, disconnect!.Failure?.Code);
     }
 
     [Fact]
@@ -96,14 +119,14 @@ public sealed class SshSessionFailureDispatcherTests
             "SHA256:NEW",
             "SHA256:OLD");
 
-        string? disconnectMessage = null;
+        SshSessionDisconnectInfo? disconnect = null;
 
         SshSessionFailureDispatcher.Dispatch(
             ex,
             securityHandler: null,
-            disconnectedHandler: msg => disconnectMessage = msg);
+            disconnectedHandler: info => disconnect = info);
 
-        Assert.NotNull(disconnectMessage);
+        Assert.NotNull(disconnect);
     }
 
     [Fact]

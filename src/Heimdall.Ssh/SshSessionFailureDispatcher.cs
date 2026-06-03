@@ -17,7 +17,7 @@
 namespace Heimdall.Ssh;
 
 /// <summary>
-/// Routes raw session exceptions to typed security and legacy disconnect handlers.
+/// Routes raw session exceptions to typed security and disconnect handlers.
 /// </summary>
 public static class SshSessionFailureDispatcher
 {
@@ -27,22 +27,20 @@ public static class SshSessionFailureDispatcher
     /// </summary>
     /// <param name="ex">The exception captured by the SSH/SFTP layer.</param>
     /// <param name="securityHandler">Optional handler for typed security events.</param>
-    /// <param name="disconnectedHandler">Optional legacy disconnect handler.</param>
+    /// <param name="disconnectedHandler">Optional disconnect handler.</param>
     public static void Dispatch(
         Exception ex,
         Action<SshSessionSecurityEvent>? securityHandler,
-        Action<string?>? disconnectedHandler)
+        Action<SshSessionDisconnectInfo>? disconnectedHandler)
     {
         ArgumentNullException.ThrowIfNull(ex);
 
+        var failure = FailureClassifier.Classify(ex);
+
         if (ex is HostKeyRejectedException hostKeyRejected)
         {
-            var code = hostKeyRejected.IsMismatch
-                ? SshFailureCode.HostKeyMismatch
-                : SshFailureCode.Cancelled;
-
             securityHandler?.Invoke(new SshSessionSecurityEvent(
-                code,
+                failure.Code,
                 hostKeyRejected.Message,
                 hostKeyRejected.Host,
                 hostKeyRejected.Port,
@@ -51,6 +49,6 @@ public static class SshSessionFailureDispatcher
                 hostKeyRejected.StoredFingerprint));
         }
 
-        disconnectedHandler?.Invoke(ex.Message);
+        disconnectedHandler?.Invoke(SshSessionDisconnectInfo.FromFailure(failure));
     }
 }

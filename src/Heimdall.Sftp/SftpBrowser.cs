@@ -533,7 +533,7 @@ public sealed class SftpBrowser : IRemoteBrowser
         SshSessionFailureDispatcher.Dispatch(
             e.Exception,
             SecurityEventOccurred,
-            Disconnected);
+            info => Disconnected?.Invoke(info.Message));
     }
 
     private static (ISftpFile Entry, string DeletePath) GetEntryWithoutFollowingTarget(SftpClient client, string path)

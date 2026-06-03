@@ -1178,8 +1178,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         PostTerminalMessage(message);
     }
 
-    private void OnDisconnected(string? errorMessage)
+    private void OnDisconnected(SshSessionDisconnectInfo disconnectInfo)
     {
+        ArgumentNullException.ThrowIfNull(disconnectInfo);
+
         BeginInvokeIfAvailable(() =>
         {
             if (_disposed)
@@ -1187,6 +1189,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 return;
             }
 
+            string? errorMessage = disconnectInfo.Message;
             if (!string.IsNullOrWhiteSpace(errorMessage))
             {
                 string template = L("SshTerminalDisconnectMarker");
@@ -1212,6 +1215,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             if (_userInitiatedDisconnect)
             {
+                return;
+            }
+
+            if (!SshReconnectPolicy.AllowsAutoReconnect(disconnectInfo))
+            {
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedSSH auto-reconnect skipped for disconnect: " +
+                    $"code={disconnectInfo.Failure?.Code.ToString() ?? "none"} clean={disconnectInfo.IsClean}");
+                ShowReconnectOverlay();
                 return;
             }
 
@@ -1254,7 +1266,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnTerminalProcessExited(int exitCode)
     {
-        OnDisconnected($"Process exited with code {exitCode}");
+        var disconnectInfo = exitCode == 0
+            ? SshSessionDisconnectInfo.Clean($"Process exited with code {exitCode}")
+            : SshSessionDisconnectInfo.Unclassified($"Process exited with code {exitCode}");
+        OnDisconnected(disconnectInfo);
     }
 
     private void ResizeSession(int columns, int rows)
