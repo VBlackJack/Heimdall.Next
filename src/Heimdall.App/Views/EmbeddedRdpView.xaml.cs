@@ -1871,6 +1871,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             Core.Logging.FileLogger.Info(
                 $"EmbeddedRDP auto-reconnect cancelled for non-transient disconnect: " +
                 $"reason={disconnectReason} extendedReason={extendedReason} severity={severity} attempt={attemptCount}");
+            TryTransitionConnectionState(ConnectionState.Disconnected);
+
+            Dispatcher.Invoke(() =>
+            {
+                CancelAutofill();
+                _autofillRetryContext = null;
+                UpdateAutofillState(RdpAutofillState.None);
+                StopAntiIdleTimer();
+                StopStabilizationCountdown();
+                StopReconnectElapsedTracking();
+                ReleaseSleepPrevention();
+                TransitionPhase(RdpConnectionPhase.None);
+                HideRedirectionIndicators();
+                _allowResolutionUpdates = false;
+                SetPaneDiagnostic(RdpHostDiagnosticFactory.FromDisconnect(disconnectReason, extendedReason));
+                UpdateSessionStatus(RdpSessionStatus.Disconnected);
+                UpdateHealthDot(false);
+                ShowReconnectOverlay();
+            });
             return;
         }
 
