@@ -159,6 +159,7 @@ public sealed class SettingsViewModelTests
         viewModel.RdpResizeEnableDelayMs = 5000;
         viewModel.RdpArtifactCleanupDelayMs = 7000;
         viewModel.RdpCredentialAutofillTimeoutMs = 60000;
+        viewModel.RdpKeepAliveIntervalMs = 300000;
 
         await viewModel.SaveCommand.ExecuteAsync(null);
 
@@ -167,6 +168,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal(5000, saved.RdpResizeEnableDelayMs);
         Assert.Equal(7000, saved.RdpArtifactCleanupDelayMs);
         Assert.Equal(60000, saved.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(300000, saved.RdpKeepAliveIntervalMs);
 
         var reloaded = CreateViewModel(new FakeConfigManager());
         reloaded.LoadFromSettings(saved);
@@ -175,6 +177,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal(5000, reloaded.RdpResizeEnableDelayMs);
         Assert.Equal(7000, reloaded.RdpArtifactCleanupDelayMs);
         Assert.Equal(60000, reloaded.RdpCredentialAutofillTimeoutMs);
+        Assert.Equal(300000, reloaded.RdpKeepAliveIntervalMs);
     }
 
     [Fact]
@@ -959,6 +962,7 @@ public sealed class SettingsViewModelTests
         viewModel.RdpDefaultBitmapCaching = false;
         viewModel.RdpDefaultCompression = false;
         viewModel.RdpDefaultAudioMode = 2;
+        viewModel.RdpKeepAliveIntervalMs = 5000;
     }
 
     private static void AssertRdpDefaultsMatch(SettingsViewModel viewModel, AppSettings expected)
@@ -982,6 +986,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal(expected.RdpDefaultBitmapCaching, viewModel.RdpDefaultBitmapCaching);
         Assert.Equal(expected.RdpDefaultCompression, viewModel.RdpDefaultCompression);
         Assert.Equal(expected.RdpDefaultAudioMode, viewModel.RdpDefaultAudioMode);
+        Assert.Equal(expected.RdpKeepAliveIntervalMs, viewModel.RdpKeepAliveIntervalMs);
     }
 
     private sealed class FakeConfigManager : IConfigManager

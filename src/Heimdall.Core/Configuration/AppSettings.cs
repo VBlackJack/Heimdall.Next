@@ -54,6 +54,7 @@ public sealed class AppSettings
     public int RdpArtifactCleanupDelayMs { get; set; } = 10000;
     public int RdpResizeEnableDelayMs { get; set; } = 10000;
     public int RdpConnectWatchdogTimeoutMs { get; set; } = 45000;
+    public int RdpKeepAliveIntervalMs { get; set; } = 60000;
     public int SshKeepAliveIntervalSeconds { get; set; } = 30;
     public int PlinkPortCheckIntervalMs { get; set; } = 2000;
     public int PlinkKillGracePeriodMs { get; set; } = 2000;

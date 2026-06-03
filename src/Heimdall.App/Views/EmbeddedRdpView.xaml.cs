@@ -1520,6 +1520,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             _lastAppliedHeight = height;
             _pendingRedirections = RdpProfileResolver.BuildRedirections(_server, settings);
             _rdpHost.SetRedirections(_pendingRedirections);
+            _rdpHost.SetResilienceOptions(
+                RdpActiveXHost.MaxAutoReconnectAttempts,
+                settings.RdpKeepAliveIntervalMs);
 
             if (!_eventSinkAttached)
             {

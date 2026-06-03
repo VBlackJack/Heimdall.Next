@@ -20,6 +20,7 @@
     "rdpArtifactCleanupDelayMs": 10000,
     "rdpResizeEnableDelayMs": 10000,
     "rdpConnectWatchdogTimeoutMs": 45000,
+    "rdpKeepAliveIntervalMs": 60000,
     "sshKeepAliveIntervalSeconds": 30,
     "plinkPortCheckIntervalMs": 2000,
     "plinkKillGracePeriodMs": 2000,

@@ -342,6 +342,33 @@ public class SchemaValidatorTests
     }
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(4999)]
+    [InlineData(300001)]
+    public void ValidateSettings_RdpKeepAliveIntervalMs_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { RdpKeepAliveIntervalMs = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.RdpKeepAliveIntervalMs)));
+    }
+
+    [Theory]
+    [InlineData(5000)]
+    [InlineData(300000)]
+    public void ValidateSettings_RdpKeepAliveIntervalMs_BoundaryValues_IsValid(int value)
+    {
+        AppSettings settings = new() { RdpKeepAliveIntervalMs = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(21)]
     [InlineData(-1)]

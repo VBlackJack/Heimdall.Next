@@ -420,6 +420,11 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     [ObservableProperty]
     private int _rdpCredentialAutofillTimeoutMs = 90000;
 
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(5000, 300000, ErrorMessage = "RDP keep-alive interval must be between 5000 and 300000 ms.")]
+    private int _rdpKeepAliveIntervalMs = 60000;
+
     // --- Session Health Monitor ---
 
     [ObservableProperty]
@@ -673,6 +678,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         RdpResizeEnableDelayMs = settings.RdpResizeEnableDelayMs;
         RdpArtifactCleanupDelayMs = settings.RdpArtifactCleanupDelayMs;
         RdpCredentialAutofillTimeoutMs = settings.RdpCredentialAutofillTimeoutMs;
+        RdpKeepAliveIntervalMs = settings.RdpKeepAliveIntervalMs;
 
         UnsubscribeExternalToolTracking();
 
@@ -845,6 +851,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             settings.RdpResizeEnableDelayMs = RdpResizeEnableDelayMs;
             settings.RdpArtifactCleanupDelayMs = RdpArtifactCleanupDelayMs;
             settings.RdpCredentialAutofillTimeoutMs = RdpCredentialAutofillTimeoutMs;
+            settings.RdpKeepAliveIntervalMs = RdpKeepAliveIntervalMs;
 
             // UI state
             settings.ShowToolsPanel = ShowToolsPanel;
@@ -958,6 +965,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         RdpDefaultBitmapCaching = defaults.RdpDefaultBitmapCaching;
         RdpDefaultCompression = defaults.RdpDefaultCompression;
         RdpDefaultAudioMode = defaults.RdpDefaultAudioMode;
+        RdpKeepAliveIntervalMs = defaults.RdpKeepAliveIntervalMs;
     }
 
     [RelayCommand]

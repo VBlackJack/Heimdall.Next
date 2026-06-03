@@ -38,6 +38,8 @@ public static partial class SchemaValidator
     private const int DisabledRdpConnectWatchdogTimeoutMs = 0;
     private const int MinRdpConnectWatchdogTimeoutMs = 5000;
     private const int MaxRdpConnectWatchdogTimeoutMs = 600000;
+    private const int MinRdpKeepAliveIntervalMs = 5000;
+    private const int MaxRdpKeepAliveIntervalMs = 300000;
     private const int MaxEmbeddedSessionsLimit = 20;
     private const int MinAntiIdleInterval = 10;
     private const int MaxAntiIdleInterval = 600;
@@ -113,6 +115,9 @@ public static partial class SchemaValidator
             nameof(settings.RdpResizeEnableDelayMs));
         ValidateRdpConnectWatchdogTimeout(errors, settings.RdpConnectWatchdogTimeoutMs,
             nameof(settings.RdpConnectWatchdogTimeoutMs));
+        ValidateRange(errors, settings.RdpKeepAliveIntervalMs,
+            MinRdpKeepAliveIntervalMs, MaxRdpKeepAliveIntervalMs,
+            nameof(settings.RdpKeepAliveIntervalMs));
         ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
             nameof(settings.SshKeepAliveIntervalSeconds));
         ValidateRange(errors, settings.SshAutoReconnectAttempts, 1, 10,
