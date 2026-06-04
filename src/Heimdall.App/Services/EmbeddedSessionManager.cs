@@ -72,7 +72,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
     public Func<bool>? IsBroadcastActive { get; set; }
 
     /// <summary>
-    /// Optional callback invoked when an embedded SSH view requests reconnection.
+    /// Optional callback invoked when an embedded session view requests reconnection.
     /// Parameters: (SessionTabViewModel session, string serverId, string connectionType).
     /// Wired by MainViewModel to restart the connection using the original server.
     /// </summary>
@@ -772,6 +772,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         };
 
         WireSplitRequested(view, tab);
+        WireReconnectRequested(view, tab);
         return view;
     }
 
@@ -783,6 +784,15 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 tab.ProfileLookupServerId,
                 tab.ConnectionType);
         view.CloseRequested += () => CloseRequestedCallback?.Invoke(tab);
+    }
+
+    private void WireReconnectRequested(EmbeddedSftpView view, SessionTabViewModel tab)
+    {
+        view.ReconnectRequested += () =>
+            ReconnectRequestedCallback?.Invoke(
+                tab,
+                tab.ProfileLookupServerId,
+                tab.ConnectionType);
     }
 
     private void WireSplitRequested(EmbeddedSshView view, SessionTabViewModel tab)

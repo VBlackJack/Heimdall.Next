@@ -54,7 +54,7 @@ public interface IEmbeddedSessionManager
     Func<bool>? IsBroadcastActive { get; set; }
 
     /// <summary>
-    /// Optional callback invoked when an embedded SSH view requests reconnection.
+    /// Optional callback invoked when an embedded session view requests reconnection.
     /// Parameters: (SessionTabViewModel session, string serverId, string connectionType).
     /// Wired by MainViewModel to restart the connection using the original server.
     /// </summary>

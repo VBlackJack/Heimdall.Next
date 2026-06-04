@@ -44,8 +44,8 @@ namespace Heimdall.App.Views;
 /// <c>GridView</c> column sizing and sort-header management; the embedded-editor
 /// hand-off (<c>EditFileAsync</c> creates an <c>EmbeddedEditorView</c> and swaps
 /// panes in the split tree); the bookmarks overflow <c>ContextMenu</c> built in
-/// code; and session lifecycle — browser/editor creation, reconnect, the
-/// health-check timer, and the browser/editor event relays into the ViewModel.
+/// code; and session lifecycle — browser/editor creation, reconnect requests,
+/// the health-check timer, and the browser/editor event relays into the ViewModel.
 /// </remarks>
 public partial class EmbeddedSftpView : UserControl, IDisposable
 {
@@ -93,6 +93,11 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         add => _viewModel.OpenInTerminalRequested += value;
         remove => _viewModel.OpenInTerminalRequested -= value;
     }
+
+    /// <summary>
+    /// Raised when the user asks the shared pane lifecycle to reconnect this session.
+    /// </summary>
+    public event Action? ReconnectRequested;
 
     public EmbeddedSftpView()
     {
@@ -943,94 +948,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         UpdateStatus(_localizer?["SftpStatusDisconnected"] ?? "Disconnected");
     }
 
-    private async void OnReconnectClick(object sender, RoutedEventArgs e)
+    private void OnReconnectClick(object sender, RoutedEventArgs e)
     {
-        if (_disposed || _sshParams is null)
+        if (_disposed)
         {
             return;
         }
 
-        string reconnectPath = _viewModel.CurrentPath;
+        Core.Logging.FileLogger.Info("EmbeddedSFTP reconnect requested by user");
         UpdateStatus(_localizer?["SftpStatusReconnecting"] ?? "Reconnecting...");
-
-        try
-        {
-            // Detach event handlers from the old browser instance
-            if (_browser is not null)
-            {
-                _browser.DirectoryChanged -= OnDirectoryChanged;
-                _browser.TransferProgress -= OnTransferProgress;
-                _browser.Disconnected -= OnBrowserDisconnected;
-                if (_browser is SftpBrowser sftpBrowser)
-                {
-                    sftpBrowser.SecurityEventOccurred -= OnBrowserSecurityEvent;
-                }
-                StopHealthTimer();
-
-                try { _browser.Dispose(); }
-                catch (ObjectDisposedException) { /* already disposed */ }
-            }
-
-            // Create a fresh browser and reconnect
-            var newBrowser = new SftpBrowser();
-            await newBrowser.ConnectAsync(
-                _sshParams,
-                _hostKeyStore,
-                _hostKeyVerifier);
-
-            _browser = newBrowser;
-            _browser.DirectoryChanged += OnDirectoryChanged;
-            _browser.TransferProgress += OnTransferProgress;
-            _browser.Disconnected += OnBrowserDisconnected;
-            newBrowser.SecurityEventOccurred += OnBrowserSecurityEvent;
-
-            // Recreate editor with new browser
-            if (_editor is not null)
-            {
-                _editor.FileUploaded -= OnEditorFileUploaded;
-                _editor.HostKeyRotatedDuringUpload -= OnHostKeyRotatedDuringUpload;
-                _editor.Dispose();
-            }
-            _editor = new RemoteFileEditor(
-                newBrowser,
-                hostKeyStore: _hostKeyStore,
-                hostKeyVerifier: _hostKeyVerifier);
-            _editor.FileUploaded += OnEditorFileUploaded;
-            _editor.HostKeyRotatedDuringUpload += OnHostKeyRotatedDuringUpload;
-            _viewModel.Initialize(
-                newBrowser,
-                _sessionTab ?? throw new InvalidOperationException("Session tab not available."),
-                SessionTitleText.Text,
-                EndpointTextBlock.Text,
-                _localizer ?? throw new InvalidOperationException("Localizer not available."),
-                _dialogService ?? throw new InvalidOperationException("Dialog service not available."),
-                _hostKeyStore,
-                _hostKeyVerifier,
-                _sshParams);
-            _viewModel.CurrentPath = reconnectPath;
-
-            StartHealthTimer();
-
-            UpdateStatus(_localizer?["SftpStatusConnected"] ?? "Connected");
-            _ = RefreshRemoteAsync();
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"EmbeddedSFTP reconnection failed: {ex.Message}");
-
-            if (_editor is not null)
-            {
-                _editor.FileUploaded -= OnEditorFileUploaded;
-                _editor.HostKeyRotatedDuringUpload -= OnHostKeyRotatedDuringUpload;
-                try { _editor.Dispose(); }
-                catch (ObjectDisposedException) { /* already disposed */ }
-                _editor = null;
-            }
-
-            _browser = null;
-            ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message)
-                ?? $"Reconnection failed: {ex.Message}");
-        }
+        ReconnectRequested?.Invoke();
     }
 
     private void OnBrowserDisconnected(string? errorMessage)
