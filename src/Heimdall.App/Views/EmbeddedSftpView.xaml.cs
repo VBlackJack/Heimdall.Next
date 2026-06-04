@@ -692,17 +692,48 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                     isSaving = true;
                     try
                     {
-                        // Write to temp, then upload
-                        await File.WriteAllTextAsync(localPath, savedContent);
-                        await _browser.UploadFileAsync(localPath, remotePath);
-                        UpdateStatus(_localizer?.Format("SftpStatusAutoUploaded", file.Name)
-                            ?? $"Uploaded: {file.Name}");
-                        editorView.ConfirmRemoteSaved();
-                    }
-                    catch (Exception uploadEx)
-                    {
-                        ShowError(_localizer?.Format("SftpStatusTransferFailed", uploadEx.Message)
-                            ?? uploadEx.Message);
+                        try
+                        {
+                            await File.WriteAllTextAsync(localPath, savedContent);
+                        }
+                        catch (Exception localWriteEx)
+                        {
+                            ShowError(_localizer?.Format("SftpStatusTransferFailed", localWriteEx.Message)
+                                ?? localWriteEx.Message);
+                            return;
+                        }
+
+                        try
+                        {
+                            await _browser.UploadFileAsync(localPath, remotePath);
+                            UpdateStatus(_localizer?.Format("SftpStatusAutoUploaded", file.Name)
+                                ?? $"Uploaded: {file.Name}");
+                            editorView.ConfirmRemoteSaved();
+                        }
+                        catch (Exception uploadEx)
+                            when (_sshParams is not null && EmbeddedSftpViewModel.IsPermissionDenied(uploadEx))
+                        {
+                            Core.Logging.FileLogger.Info(
+                                $"EmbeddedSFTP inline save permission denied, falling back to sudo for {file.Name}");
+
+                            try
+                            {
+                                await _viewModel.UploadViaSudoAsync(localPath, remotePath, CancellationToken.None);
+                                UpdateStatus(_localizer?.Format("SftpStatusUploadedViaSudo", file.Name)
+                                    ?? $"Saved via sudo: {file.Name}");
+                                editorView.ConfirmRemoteSaved();
+                            }
+                            catch (Exception sudoEx)
+                            {
+                                ShowError(_localizer?.Format("SftpStatusTransferFailed", sudoEx.Message)
+                                    ?? sudoEx.Message);
+                            }
+                        }
+                        catch (Exception uploadEx)
+                        {
+                            ShowError(_localizer?.Format("SftpStatusTransferFailed", uploadEx.Message)
+                                ?? uploadEx.Message);
+                        }
                     }
                     finally
                     {
