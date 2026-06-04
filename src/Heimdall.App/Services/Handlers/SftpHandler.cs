@@ -98,7 +98,7 @@ internal sealed class SftpHandler : IProtocolHandler
 
         if (!tunnelOk)
         {
-            return new ConnectionResult(false, tunnelError, null);
+            return new ConnectionResult(false, tunnelError, null, SshSessionDiagnosticFactory.CreateGatewayFailure(tunnelError));
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingSftp);
@@ -163,7 +163,7 @@ internal sealed class SftpHandler : IProtocolHandler
             var failure = FailureClassifier.Classify(ex, sshParams);
             Core.Logging.FileLogger.Warn($"SFTP connect failed: {failure.Code} - {ex.Message}");
             _connectionSm.SetError(server.Id, failure.Message);
-            return new ConnectionResult(false, failure.Message, null);
+            return new ConnectionResult(false, failure.Message, null, SshSessionDiagnosticFactory.FromClassifiedFailure(failure));
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
