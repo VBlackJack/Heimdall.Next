@@ -40,6 +40,14 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public sealed partial class EmbeddedSftpViewModel : ObservableObject
 {
+    internal enum SftpDownloadOutcome
+    {
+        Completed,
+        CompletedWithSkippedDirectories,
+        OnlyDirectoriesSkipped,
+        Empty
+    }
+
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private const string SudoStderrTerminalRequired = "a terminal is required";
     private const string SudoStderrNoTtyPresent = "no tty present";
@@ -729,6 +737,8 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
         TransferProgressValue = 0;
         IsTransferInProgress = true;
+        var downloadedFiles = 0;
+        var skippedDirectories = 0;
 
         try
         {
@@ -739,6 +749,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 SftpFileInfo file = files[i];
                 if (file.IsDirectory)
                 {
+                    skippedDirectories++;
                     continue;
                 }
 
@@ -758,9 +769,29 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                         $"EmbeddedSFTP download permission denied, falling back to sudo for {file.Name}");
                     await DownloadViaSudoAsync(file.FullPath, localPath, ct);
                 }
+
+                downloadedFiles++;
             }
 
-            UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
+            switch (ClassifyDownloadOutcome(downloadedFiles, skippedDirectories))
+            {
+                case SftpDownloadOutcome.CompletedWithSkippedDirectories:
+                    UpdateStatus(_localizer?.Format(
+                        "SftpStatusDownloadCompleteWithSkipped",
+                        downloadedFiles,
+                        skippedDirectories)
+                        ?? $"Downloaded {downloadedFiles} file(s); skipped {skippedDirectories} folder(s) (folders aren't supported).");
+                    break;
+                case SftpDownloadOutcome.OnlyDirectoriesSkipped:
+                    UpdateStatus(_localizer?["SftpStatusDownloadNoFilesFoldersSkipped"]
+                        ?? "No files downloaded \u2014 folders aren't supported.");
+                    break;
+                case SftpDownloadOutcome.Completed:
+                case SftpDownloadOutcome.Empty:
+                default:
+                    UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
+                    break;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -1385,6 +1416,22 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     /// Formats a byte count using the shared file-size formatter.
     /// </summary>
     public static string FormatSize(long bytes) => FileSize.Format(bytes);
+
+    internal static SftpDownloadOutcome ClassifyDownloadOutcome(
+        int downloadedFiles,
+        int skippedDirectories)
+    {
+        if (downloadedFiles > 0)
+        {
+            return skippedDirectories > 0
+                ? SftpDownloadOutcome.CompletedWithSkippedDirectories
+                : SftpDownloadOutcome.Completed;
+        }
+
+        return skippedDirectories > 0
+            ? SftpDownloadOutcome.OnlyDirectoriesSkipped
+            : SftpDownloadOutcome.Empty;
+    }
 
     /// <summary>
     /// Determines whether the provided exception represents a permission error.

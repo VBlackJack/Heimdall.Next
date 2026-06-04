@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Reflection;
 using Heimdall.App.ViewModels;
 using Heimdall.Sftp;
@@ -378,6 +379,41 @@ public sealed class EmbeddedSftpViewModelTests
         Assert.False(viewModel.IsErrorStatus);
     }
 
+    [Theory]
+    [InlineData(1, 0, (int)EmbeddedSftpViewModel.SftpDownloadOutcome.Completed)]
+    [InlineData(2, 1, (int)EmbeddedSftpViewModel.SftpDownloadOutcome.CompletedWithSkippedDirectories)]
+    [InlineData(0, 3, (int)EmbeddedSftpViewModel.SftpDownloadOutcome.OnlyDirectoriesSkipped)]
+    [InlineData(0, 0, (int)EmbeddedSftpViewModel.SftpDownloadOutcome.Empty)]
+    public void ClassifyDownloadOutcome_ReturnsExpectedOutcome(
+        int downloadedFiles,
+        int skippedDirectories,
+        int expected)
+    {
+        var actual = EmbeddedSftpViewModel.ClassifyDownloadOutcome(
+            downloadedFiles,
+            skippedDirectories);
+
+        Assert.Equal((EmbeddedSftpViewModel.SftpDownloadOutcome)expected, actual);
+    }
+
+    [Fact]
+    public async Task DownloadFilesAsync_DirectoryOnlySelection_DoesNotDownloadAndReportsSkippedFolders()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+
+        await viewModel.DownloadFilesAsync(
+            [CreateRemoteEntry("logs", "/var/log", isDirectory: true)],
+            Path.GetTempPath());
+
+        Assert.Equal(0, browser.DownloadCallCount);
+        Assert.Equal("No files downloaded \u2014 folders aren't supported.", viewModel.StatusText);
+        Assert.False(viewModel.IsErrorStatus);
+        Assert.False(viewModel.IsTransferInProgress);
+    }
+
     [Fact]
     public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
     {
@@ -443,6 +479,22 @@ public sealed class EmbeddedSftpViewModelTests
         return task ?? throw new InvalidOperationException("RunOnUiAsync did not return a Task.");
     }
 
+    private static SftpFileInfo CreateRemoteEntry(
+        string name,
+        string fullPath,
+        bool isDirectory)
+    {
+        return new SftpFileInfo(
+            name,
+            fullPath,
+            isDirectory,
+            0,
+            DateTime.UnixEpoch,
+            isDirectory ? "rwxr-xr-x" : "rw-r--r--",
+            "1000",
+            "1000");
+    }
+
     private static void SetBrowser(EmbeddedSftpViewModel viewModel, IRemoteBrowser browser)
     {
         FieldInfo? field = typeof(EmbeddedSftpViewModel).GetField(
@@ -454,6 +506,7 @@ public sealed class EmbeddedSftpViewModelTests
 
     private sealed class FakeRemoteBrowser : IRemoteBrowser
     {
+        private int _downloadCallCount;
         private int _uploadCallCount;
 
         public event Action<string>? DirectoryChanged
@@ -477,6 +530,8 @@ public sealed class EmbeddedSftpViewModelTests
         public string CurrentDirectory => "/";
 
         public bool IsConnected => true;
+
+        public int DownloadCallCount => Volatile.Read(ref _downloadCallCount);
 
         public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
 
@@ -509,6 +564,7 @@ public sealed class EmbeddedSftpViewModelTests
             string localPath,
             CancellationToken ct = default)
         {
+            Interlocked.Increment(ref _downloadCallCount);
             return Task.CompletedTask;
         }
 
