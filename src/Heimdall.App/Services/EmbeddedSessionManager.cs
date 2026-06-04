@@ -427,7 +427,8 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 displayName,
                 0,
                 settings,
-                endpoint: winRmResult.Endpoint);
+                endpoint: winRmResult.Endpoint,
+                connectedStatus: "RemoteSessionHandedOff");
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
@@ -723,10 +724,17 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         int keepAliveIntervalSeconds,
         AppSettings? settings = null,
         bool isElevated = false,
-        string? endpoint = null)
+        string? endpoint = null,
+        string connectedStatus = "Connected")
     {
         var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
-        view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds, endpoint);
+        view.InitializeTerminalSession(
+            terminalSession,
+            tab,
+            displayName,
+            keepAliveIntervalSeconds,
+            endpoint,
+            connectedStatus);
         if (isElevated)
         {
             view.SetElevatedIndicator(true);

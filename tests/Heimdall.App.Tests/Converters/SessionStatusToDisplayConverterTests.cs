@@ -34,6 +34,7 @@ public sealed class SessionStatusToDisplayConverterTests
 
     [Theory]
     [InlineData("Connected", "SessionStatusConnected")]
+    [InlineData("RemoteSessionHandedOff", "SessionStatusRemoteSessionHandedOff")]
     [InlineData("Connecting", "SessionStatusConnecting")]
     [InlineData("Disconnected", "SessionStatusDisconnected")]
     [InlineData("Disconnecting", "SessionStatusDisconnecting")]

@@ -34,6 +34,7 @@ public sealed class ConnectionStateToGeometryConverter : IValueConverter
         string resourceKey = stateStr switch
         {
             "Connected" => "Geo.Status.Connected",
+            "RemoteSessionHandedOff" => "Geo.Status.Connected",
             "Error" => "Geo.Status.Error",
             _ => "Geo.Status.Disconnected"
         };

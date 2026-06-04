@@ -129,14 +129,24 @@ public partial class ServerItemViewModel : ObservableObject
         && !string.Equals(ConnectionState, "Disconnected", StringComparison.OrdinalIgnoreCase);
 
     public string ConnectionStateDisplayName =>
-        string.Equals(ConnectionState, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
-            ? L("StatusLaunchedExternalClient")
-            : ConnectionState;
+        ConnectionState switch
+        {
+            { } state when string.Equals(state, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
+                => L("StatusLaunchedExternalClient"),
+            { } state when string.Equals(state, "RemoteSessionHandedOff", StringComparison.OrdinalIgnoreCase)
+                => L("StatusRemoteSessionHandedOff"),
+            _ => ConnectionState
+        };
 
     public string ConnectionStateTooltip =>
-        string.Equals(ConnectionState, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
-            ? L("StatusLaunchedExternalClientTooltip")
-            : ConnectionStateDisplayName;
+        ConnectionState switch
+        {
+            { } state when string.Equals(state, "LaunchedExternalClient", StringComparison.OrdinalIgnoreCase)
+                => L("StatusLaunchedExternalClientTooltip"),
+            { } state when string.Equals(state, "RemoteSessionHandedOff", StringComparison.OrdinalIgnoreCase)
+                => L("StatusRemoteSessionHandedOffTooltip"),
+            _ => ConnectionStateDisplayName
+        };
 
     public string SidebarDisplayName => SidebarDisplayNameFormatter.Format(DisplayName) ?? "";
 

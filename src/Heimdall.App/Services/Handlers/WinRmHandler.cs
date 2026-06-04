@@ -143,7 +143,7 @@ internal sealed class WinRmHandler : IProtocolHandler
             Core.Logging.FileLogger.Info(
                 $"WinRM terminal started for host '{server.RemoteServer}'");
 
-            _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+            _connectionSm.TryTransition(server.Id, ConnectionState.RemoteSessionHandedOff);
             string? warning = usesTunnel && server.WinRmIdentityMode == WinRmIdentityMode.CurrentUser
                 ? _localizer["WarnWinRmGatewayKerberos"]
                 : null;

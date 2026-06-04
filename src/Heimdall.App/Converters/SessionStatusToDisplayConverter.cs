@@ -63,6 +63,11 @@ public sealed class SessionStatusToDisplayConverter : IValueConverter
             return "SessionStatusConnected";
         }
 
+        if (string.Equals(status, "RemoteSessionHandedOff", StringComparison.OrdinalIgnoreCase))
+        {
+            return "SessionStatusRemoteSessionHandedOff";
+        }
+
         if (string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase))
         {
             return "SessionStatusConnecting";

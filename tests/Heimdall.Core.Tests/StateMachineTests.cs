@@ -337,6 +337,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingSsh, "StatusLaunchingSsh", "LogSshLaunching", false, false, true)]
     [InlineData(ConnectionState.LaunchingSftp, "StatusLaunchingSftp", "LogSftpLaunching", false, false, true)]
     [InlineData(ConnectionState.Connected, "StatusConnected", "LogRdpConnection", false, true, false)]
+    [InlineData(ConnectionState.RemoteSessionHandedOff, "StatusRemoteSessionHandedOff", "LogRemoteSessionHandedOff", false, true, false)]
     [InlineData(ConnectionState.Disconnecting, "StatusDisconnecting", "LogDisconnecting", false, false, true)]
     [InlineData(ConnectionState.Error, "StatusError", "LogError", false, true, false)]
     public void GetMetadata_ReturnsCorrectValues(
@@ -420,6 +421,64 @@ public class ConnectionStateMachineTests
 
         Assert.Equal("StatusLaunchedExternalClient", metadata.DisplayKey);
         Assert.Equal("LogLaunchedExternalClient", metadata.LogKey);
+        Assert.False(metadata.IsTerminal);
+        Assert.True(metadata.AllowsUserAction);
+        Assert.False(metadata.IsProgress);
+    }
+
+    [Fact]
+    public void CanTransition_LaunchingLocal_ToRemoteSessionHandedOff()
+    {
+        ConnectionStateMachine sm = ArrangeAtLaunchingLocal("server-1");
+
+        bool transitioned = sm.TryTransition("server-1", ConnectionState.RemoteSessionHandedOff);
+
+        Assert.True(transitioned);
+        Assert.Equal(ConnectionState.RemoteSessionHandedOff, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void RemoteSessionHandedOff_CanTransitionToDisconnectingDisconnectedAndError()
+    {
+        ConnectionStateMachine disconnectingSm = ArrangeAtRemoteSessionHandedOff("disconnecting");
+        Assert.True(disconnectingSm.TryTransition("disconnecting", ConnectionState.Disconnecting));
+
+        ConnectionStateMachine disconnectedSm = ArrangeAtRemoteSessionHandedOff("disconnected");
+        Assert.True(disconnectedSm.TryTransition("disconnected", ConnectionState.Disconnected));
+
+        ConnectionStateMachine errorSm = ArrangeAtRemoteSessionHandedOff("error");
+        Assert.True(errorSm.SetError("error", "terminal exited"));
+    }
+
+    [Fact]
+    public void RemoteSessionHandedOff_CannotTransitionBackToConnected()
+    {
+        ConnectionStateMachine sm = ArrangeAtRemoteSessionHandedOff("server-1");
+
+        Assert.False(sm.TryTransition("server-1", ConnectionState.Connected));
+        Assert.Equal(ConnectionState.RemoteSessionHandedOff, sm.GetState("server-1"));
+    }
+
+    [Fact]
+    public void RemoteSessionHandedOff_SetsConnectedAtAndCountsAsActive()
+    {
+        ConnectionStateMachine sm = ArrangeAtRemoteSessionHandedOff("server-1");
+
+        ConnectionStateData? data = sm.GetStateData("server-1");
+        IReadOnlyDictionary<string, ConnectionStateData> active = sm.GetActiveConnections();
+
+        Assert.NotNull(data);
+        Assert.NotNull(data.ConnectedAtUtc);
+        Assert.True(active.ContainsKey("server-1"));
+    }
+
+    [Fact]
+    public void RemoteSessionHandedOff_Metadata_UsesDedicatedStatusKey()
+    {
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(ConnectionState.RemoteSessionHandedOff);
+
+        Assert.Equal("StatusRemoteSessionHandedOff", metadata.DisplayKey);
+        Assert.Equal("LogRemoteSessionHandedOff", metadata.LogKey);
         Assert.False(metadata.IsTerminal);
         Assert.True(metadata.AllowsUserAction);
         Assert.False(metadata.IsProgress);
@@ -515,10 +574,15 @@ public class ConnectionStateMachineTests
     [Theory]
     [InlineData(ConnectionState.ValidatingConfig, ConnectionState.LaunchingLocal, true)]
     [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.RemoteSessionHandedOff, true)]
     [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Error, true)]
     [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Disconnecting, true)]
     [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Disconnected, false)]
     [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Initializing, false)]
+    [InlineData(ConnectionState.RemoteSessionHandedOff, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.RemoteSessionHandedOff, ConnectionState.Disconnected, true)]
+    [InlineData(ConnectionState.RemoteSessionHandedOff, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.RemoteSessionHandedOff, ConnectionState.Connected, false)]
     public void LaunchingLocal_TransitionTable(ConnectionState from, ConnectionState to, bool expected)
     {
         Assert.Equal(expected, ConnectionStateMachine.IsValidTransition(from, to));
@@ -782,6 +846,22 @@ public class ConnectionStateMachineTests
         Assert.True(sm.TryTransition(serverId, ConnectionState.ValidatingConfig));
         Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchingRdp));
         Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchedExternalClient));
+        return sm;
+    }
+
+    private static ConnectionStateMachine ArrangeAtLaunchingLocal(string serverId)
+    {
+        ConnectionStateMachine sm = new ConnectionStateMachine();
+        Assert.True(sm.TryTransition(serverId, ConnectionState.Initializing));
+        Assert.True(sm.TryTransition(serverId, ConnectionState.ValidatingConfig));
+        Assert.True(sm.TryTransition(serverId, ConnectionState.LaunchingLocal));
+        return sm;
+    }
+
+    private static ConnectionStateMachine ArrangeAtRemoteSessionHandedOff(string serverId)
+    {
+        ConnectionStateMachine sm = ArrangeAtLaunchingLocal(serverId);
+        Assert.True(sm.TryTransition(serverId, ConnectionState.RemoteSessionHandedOff));
         return sm;
     }
 }

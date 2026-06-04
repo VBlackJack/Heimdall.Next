@@ -55,6 +55,35 @@ public sealed class WinRmHandlerGatewayTests
     }
 
     [Fact]
+    public async Task ConnectAsync_TunneledProfile_MarksSessionHandedOffInsteadOfConnected()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = true,
+            TargetHost = "127.0.0.1",
+            TargetPort = 55985
+        };
+        ConnectionStateMachine stateMachine = new ConnectionStateMachine();
+        Assert.True(stateMachine.TryTransition("winrm-gateway-test", ConnectionState.Initializing));
+        CapturingTerminalSession terminalSession = new CapturingTerminalSession();
+        WinRmHandler handler = CreateHandler(
+            tunnelService,
+            new CountingWinRmPreflight(),
+            terminalSession,
+            stateMachine: stateMachine);
+
+        ConnectionResult result = await handler.ConnectAsync(
+            CreateGatewayServer(),
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.IsType<TerminalSessionResult>(result.Session);
+        Assert.Equal(ConnectionState.RemoteSessionHandedOff, stateMachine.GetState("winrm-gateway-test"));
+        Assert.NotEqual(ConnectionState.Connected, stateMachine.GetState("winrm-gateway-test"));
+    }
+
+    [Fact]
     public async Task ConnectAsync_TunneledHttpsProfile_FailsFastAndReleasesTunnel()
     {
         FakeTunnelService tunnelService = new FakeTunnelService
@@ -167,11 +196,12 @@ public sealed class WinRmHandlerGatewayTests
         FakeTunnelService tunnelService,
         CountingWinRmPreflight preflight,
         CapturingTerminalSession terminalSession,
-        Func<WinRmCredentialBootstrap>? credentialBootstrapFactory = null)
+        Func<WinRmCredentialBootstrap>? credentialBootstrapFactory = null,
+        ConnectionStateMachine? stateMachine = null)
     {
         return new WinRmHandler(
             tunnelService,
-            new ConnectionStateMachine(),
+            stateMachine ?? new ConnectionStateMachine(),
             new LocalizationManager(),
             preflight.Create(),
             () => terminalSession,

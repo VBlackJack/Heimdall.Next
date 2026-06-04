@@ -76,7 +76,7 @@ public sealed class ConnectionStateToBrushConverter : IValueConverter, IMultiVal
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "launchingrdp" or "launchingssh" or "launchingsftp"
                 or "launchedexternalclient" or "disconnecting" => "WarningBrush",
-            "tunnelestablished" => "InfoBrush",
+            "tunnelestablished" or "remotesessionhandedoff" => "InfoBrush",
             _ => "TextSecondaryBrush"
         };
 

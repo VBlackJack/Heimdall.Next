@@ -36,7 +36,8 @@ public enum ConnectionState
     LaunchedExternalClient,
     Connected,
     Disconnecting,
-    Error
+    Error,
+    RemoteSessionHandedOff
 }
 
 public enum ApplicationStatus

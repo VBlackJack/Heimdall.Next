@@ -294,14 +294,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         SessionTabViewModel sessionTab,
         string displayName,
         int keepAliveIntervalSeconds = 240,
-        string? endpoint = null)
+        string? endpoint = null,
+        string connectedStatus = "Connected")
     {
         var endpointLabel = string.IsNullOrWhiteSpace(endpoint)
             ? L("SshEndpointViaPlink")
             : endpoint;
 
         InitializeConnecting(sessionTab, displayName, endpointLabel);
-        AttachTerminalSession(terminalSession, keepAliveIntervalSeconds);
+        AttachTerminalSession(terminalSession, keepAliveIntervalSeconds, connectedStatus);
     }
 
     /// <summary>
@@ -378,11 +379,12 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// <summary>
     /// Phase 2 variant: wires a freshly-connected terminal session to the view.
     /// Hooks terminal events, starts keepalive, acquires sleep prevention, and
-    /// transitions tab status to "Connected".
+    /// transitions tab status to the supplied connected-status key.
     /// </summary>
     public void AttachTerminalSession(
         Heimdall.Terminal.ITerminalSession terminalSession,
-        int keepAliveIntervalSeconds = 240)
+        int keepAliveIntervalSeconds = 240,
+        string connectedStatus = "Connected")
     {
         ArgumentNullException.ThrowIfNull(terminalSession);
 
@@ -417,7 +419,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         PostTerminalMessage(MsgSetConvertEol
             + (terminalSession is Heimdall.Terminal.PipeModeSession ? "true" : "false"));
 
-        UpdateStatus("Connected");
+        UpdateStatus(connectedStatus);
         StartKeepAliveTimer(keepAliveIntervalSeconds);
         AcquireSleepPrevention();
         _autoReconnectAttempt = 0;
@@ -1924,6 +1926,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             "Disconnected" => L("SshSessionStatusDisconnected"),
             "Error" => L("SshSessionStatusError"),
             "Connecting" => L("SshSessionStatusConnecting"),
+            "RemoteSessionHandedOff" => L("SshSessionStatusRemoteSessionHandedOff"),
             _ => status
         };
         StatusTextBlock.Text = displayText;

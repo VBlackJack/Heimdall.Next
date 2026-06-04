@@ -1879,7 +1879,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                 // and RDP-DISC-05 (Recents). LaunchedExternalClient counts because
                 // it indicates a user-initiated session attempt completed dispatch.
                 if (newState == Heimdall.Core.Models.ConnectionState.Connected
-                    || newState == Heimdall.Core.Models.ConnectionState.LaunchedExternalClient)
+                    || newState == Heimdall.Core.Models.ConnectionState.LaunchedExternalClient
+                    || newState == Heimdall.Core.Models.ConnectionState.RemoteSessionHandedOff)
                 {
                     _recentConnections.Record(server.RemoteServer, server.ConnectionType);
                 }

@@ -71,6 +71,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
         return connectionState switch
         {
             "connected" => ResolveBrush("SuccessBrush", Brushes.Green),
+            "remotesessionhandedoff" => ResolveBrush("InfoBrush", Brushes.Cyan),
             "launchedexternalclient" => ResolveBrush("WarningBrush", Brushes.Orange),
             "error" => ResolveBrush("ErrorBrush", Brushes.Red),
             "initializing" or "validatingconfig" or "establishingtunnel"

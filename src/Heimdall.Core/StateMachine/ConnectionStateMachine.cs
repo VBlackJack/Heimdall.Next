@@ -37,13 +37,14 @@ public sealed class ConnectionStateMachine
         [ConnectionState.LaunchingRdp] = [ConnectionState.Connected, ConnectionState.LaunchedExternalClient, ConnectionState.Error, ConnectionState.Disconnecting, ConnectionState.Disconnected],
         [ConnectionState.LaunchingSsh] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingSftp] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
-        [ConnectionState.LaunchingLocal] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
+        [ConnectionState.LaunchingLocal] = [ConnectionState.Connected, ConnectionState.RemoteSessionHandedOff, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingVnc] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingFtp] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingTelnet] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchingCitrix] = [ConnectionState.Connected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.LaunchedExternalClient] = [ConnectionState.Disconnected, ConnectionState.Error, ConnectionState.Disconnecting],
         [ConnectionState.Connected] = [ConnectionState.Disconnecting, ConnectionState.Disconnected, ConnectionState.Error],
+        [ConnectionState.RemoteSessionHandedOff] = [ConnectionState.Disconnecting, ConnectionState.Disconnected, ConnectionState.Error],
         [ConnectionState.Disconnecting] = [ConnectionState.Disconnected, ConnectionState.Error],
         [ConnectionState.Error] = [ConnectionState.Disconnected, ConnectionState.Initializing],
     };
@@ -65,6 +66,7 @@ public sealed class ConnectionStateMachine
         [ConnectionState.LaunchingCitrix] = new("StatusCitrixConnecting", "LogCitrixLaunching", IsTerminal: false, AllowsUserAction: false, IsProgress: true),
         [ConnectionState.LaunchedExternalClient] = new("StatusLaunchedExternalClient", "LogLaunchedExternalClient", IsTerminal: false, AllowsUserAction: true, IsProgress: false),
         [ConnectionState.Connected] = new("StatusConnected", "LogRdpConnection", IsTerminal: false, AllowsUserAction: true, IsProgress: false),
+        [ConnectionState.RemoteSessionHandedOff] = new("StatusRemoteSessionHandedOff", "LogRemoteSessionHandedOff", IsTerminal: false, AllowsUserAction: true, IsProgress: false),
         [ConnectionState.Disconnecting] = new("StatusDisconnecting", "LogDisconnecting", IsTerminal: false, AllowsUserAction: false, IsProgress: true),
         [ConnectionState.Error] = new("StatusError", "LogError", IsTerminal: false, AllowsUserAction: true, IsProgress: false),
     };
@@ -129,7 +131,8 @@ public sealed class ConnectionStateMachine
                 data.ConnectedAtUtc = null;
             }
 
-            if (newState == ConnectionState.Connected)
+            if (newState == ConnectionState.Connected
+                || newState == ConnectionState.RemoteSessionHandedOff)
             {
                 data.ConnectedAtUtc = DateTime.UtcNow;
             }

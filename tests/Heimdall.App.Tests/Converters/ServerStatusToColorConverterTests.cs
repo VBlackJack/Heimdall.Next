@@ -58,6 +58,27 @@ public sealed class ServerStatusToColorConverterTests
     }
 
     [Fact]
+    public void ServerStatus_RemoteSessionHandedOff_UsesInfoBrushKey()
+    {
+        string? requestedKey = null;
+        var infoBrush = Brushes.Cyan;
+        var converter = new ServerStatusToColorConverter(key =>
+        {
+            requestedKey = key;
+            return infoBrush;
+        });
+
+        var result = converter.Convert(
+            ["WINRM", "RemoteSessionHandedOff"],
+            typeof(Brush),
+            parameter: null!,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal("InfoBrush", requestedKey);
+        Assert.Same(infoBrush, result);
+    }
+
+    [Fact]
     public void TwoValues_DisconnectedSsh_FallsBackToConnectionTypePalette()
     {
         var converter = MakeConverter(out var keys);
@@ -156,5 +177,26 @@ public sealed class ServerStatusToColorConverterTests
 
         Assert.Equal("WarningBrush", requestedKey);
         Assert.Same(warningBrush, result);
+    }
+
+    [Fact]
+    public void ConnectionState_RemoteSessionHandedOff_UsesInfoBrushKey()
+    {
+        string? requestedKey = null;
+        var infoBrush = Brushes.Cyan;
+        var converter = new ConnectionStateToBrushConverter(key =>
+        {
+            requestedKey = key;
+            return infoBrush;
+        });
+
+        var result = converter.Convert(
+            "RemoteSessionHandedOff",
+            typeof(Brush),
+            parameter: null!,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal("InfoBrush", requestedKey);
+        Assert.Same(infoBrush, result);
     }
 }
