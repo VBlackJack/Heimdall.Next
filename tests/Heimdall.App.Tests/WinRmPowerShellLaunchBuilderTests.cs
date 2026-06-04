@@ -76,7 +76,10 @@ public sealed class WinRmPowerShellLaunchBuilderTests
         ServerProfileDto server = CreateServer();
         server.WinRmIdentityMode = WinRmIdentityMode.Credential;
 
-        Assert.Throws<ArgumentException>(() => builder.Build(server));
+        WinRmConfigurationException ex =
+            Assert.Throws<WinRmConfigurationException>(() => builder.Build(server));
+
+        Assert.Equal("ErrorWinRmBootstrapPathMissing", ex.LocalizationKey);
     }
 
     [Fact]
@@ -151,7 +154,10 @@ public sealed class WinRmPowerShellLaunchBuilderTests
         ServerProfileDto server = CreateServer();
         server.RemoteServer = "bad host; Remove-Item";
 
-        Assert.Throws<ArgumentException>(() => builder.Build(server));
+        WinRmConfigurationException ex =
+            Assert.Throws<WinRmConfigurationException>(() => builder.Build(server));
+
+        Assert.Equal("ErrorWinRmInvalidHost", ex.LocalizationKey);
     }
 
     private static ServerProfileDto CreateServer()

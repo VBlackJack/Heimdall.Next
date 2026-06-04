@@ -66,9 +66,10 @@ internal sealed class WinRmPowerShellLaunchBuilder
         {
             if (string.IsNullOrWhiteSpace(bootstrapScriptPath))
             {
-                throw new ArgumentException(
-                    "A bootstrap script path is required for WinRM stored-credential sessions.",
-                    nameof(bootstrapScriptPath));
+                throw new WinRmConfigurationException(
+                    "ErrorWinRmBootstrapPathMissing",
+                    [],
+                    "A bootstrap script path is required for WinRM stored-credential sessions.");
             }
 
             return new WinRmPowerShellLaunchSpec(
@@ -202,17 +203,26 @@ internal sealed class WinRmPowerShellLaunchBuilder
 
         if (!string.Equals(server.ConnectionType, "WINRM", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("Server profile is not a WinRM profile.", nameof(server));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmProfileInvalid",
+                [],
+                "Server profile is not a WinRM profile.");
         }
 
         if (!IsValidHost(server.RemoteServer))
         {
-            throw new ArgumentException("Invalid WinRM host.", nameof(server));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmInvalidHost",
+                [],
+                "Invalid WinRM host.");
         }
 
         if (!InputValidator.ValidatePortRange(ResolvePort(server)))
         {
-            throw new ArgumentOutOfRangeException(nameof(server), "Invalid WinRM port.");
+            throw new WinRmConfigurationException(
+                "ErrorWinRmInvalidPort",
+                [],
+                "Invalid WinRM port.");
         }
     }
 
@@ -220,12 +230,18 @@ internal sealed class WinRmPowerShellLaunchBuilder
     {
         if (!IsValidHost(computerName))
         {
-            throw new ArgumentException("Invalid WinRM computer name.", nameof(computerName));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmInvalidHost",
+                [],
+                "Invalid WinRM computer name.");
         }
 
         if (!InputValidator.ValidatePortRange(port))
         {
-            throw new ArgumentOutOfRangeException(nameof(port), "Invalid WinRM port.");
+            throw new WinRmConfigurationException(
+                "ErrorWinRmInvalidPort",
+                [],
+                "Invalid WinRM port.");
         }
     }
 

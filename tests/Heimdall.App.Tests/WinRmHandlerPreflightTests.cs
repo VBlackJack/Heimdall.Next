@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Net.Sockets;
 using Heimdall.App.Services;
 using Heimdall.App.Services.Handlers;
@@ -48,6 +49,28 @@ public sealed class WinRmHandlerPreflightTests
         Assert.Null(result.Session);
     }
 
+    [Fact]
+    public async Task ConnectAsync_WithInvalidHost_ReturnsLocalizedFrenchConfigurationFailure()
+    {
+        LocalizationManager localizer = await CreateLocalizerAsync("fr");
+        WinRmHandler handler = new WinRmHandler(
+            new PassThroughTunnelService(),
+            new ConnectionStateMachine(),
+            localizer);
+        ServerProfileDto server = CreateServer();
+        server.RemoteServer = "bad host; Remove-Item";
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("L'h\u00f4te WinRM est invalide.", result.ErrorMessage);
+        Assert.DoesNotContain("Invalid WinRM host", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Null(result.Session);
+    }
+
     private static Task DnsFailureProbeAsync(
         string host,
         int port,
@@ -68,6 +91,13 @@ public sealed class WinRmHandlerPreflightTests
             WinRmUseSsl = false,
             WinRmIdentityMode = WinRmIdentityMode.CurrentUser
         };
+
+    private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
+    {
+        LocalizationManager manager = new LocalizationManager();
+        await manager.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), locale);
+        return manager;
+    }
 
     private sealed class PassThroughTunnelService : ITunnelService
     {

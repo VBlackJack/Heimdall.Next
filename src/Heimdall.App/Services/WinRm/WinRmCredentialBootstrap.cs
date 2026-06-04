@@ -174,20 +174,27 @@ internal sealed class WinRmCredentialBootstrap
 
         if (server.WinRmIdentityMode != WinRmIdentityMode.Credential)
         {
-            throw new ArgumentException(
-                "WinRM bootstrap is only valid for stored-credential profiles.",
-                nameof(server));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmProfileInvalid",
+                [],
+                "WinRM bootstrap is only valid for stored-credential profiles.");
         }
 
         if (string.IsNullOrWhiteSpace(server.WinRmUsername)
             || !InputValidator.Validate(server.WinRmUsername, "Username"))
         {
-            throw new ArgumentException("Invalid WinRM username.", nameof(server));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmInvalidUsername",
+                [],
+                "Invalid WinRM username.");
         }
 
         if (string.IsNullOrWhiteSpace(server.WinRmPasswordEncrypted))
         {
-            throw new ArgumentException("WinRM stored credential is missing.", nameof(server));
+            throw new WinRmConfigurationException(
+                "ErrorWinRmCredentialMissing",
+                [],
+                "WinRM stored credential is missing.");
         }
 
         _ = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(server, "$credential");

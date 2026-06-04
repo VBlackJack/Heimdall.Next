@@ -169,6 +169,18 @@ internal sealed class WinRmHandler : IProtocolHandler
             _connectionSm.SetError(server.Id, message);
             return new ConnectionResult(false, message, null);
         }
+        catch (WinRmConfigurationException ex)
+        {
+            DeleteBootstrap(bootstrap, bootstrapScriptPath);
+            session?.Dispose();
+            ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
+
+            string message = _localizer.Format(ex.LocalizationKey, ex.LocalizationArguments);
+            Core.Logging.FileLogger.Warn(
+                $"WinRM configuration failed for host '{server.RemoteServer}': {ex.Message}");
+            _connectionSm.SetError(server.Id, message);
+            return new ConnectionResult(false, message, null);
+        }
         catch (ArgumentOutOfRangeException ex)
         {
             return BuildFailureResult(
@@ -203,11 +215,12 @@ internal sealed class WinRmHandler : IProtocolHandler
                 usesTunnel,
                 tunnelLocalPort,
                 "ErrorWinRmCredentialUnavailable",
-                ex,
-                includeExceptionMessage: false);
+                ex);
         }
         catch (Exception ex)
         {
+            Core.Logging.FileLogger.Error(
+                $"WinRM launch failed for host '{server.RemoteServer}': {ex}");
             return BuildFailureResult(
                 server,
                 session,
@@ -228,17 +241,15 @@ internal sealed class WinRmHandler : IProtocolHandler
         bool usesTunnel,
         int tunnelLocalPort,
         string localizationKey,
-        Exception exception,
-        bool includeExceptionMessage = true)
+        Exception exception)
     {
         DeleteBootstrap(bootstrap, bootstrapScriptPath);
         session?.Dispose();
 
-        string message = includeExceptionMessage
-            ? _localizer.Format(localizationKey, exception.Message)
-            : _localizer[localizationKey];
+        string message = _localizer[localizationKey];
 
-        Core.Logging.FileLogger.Warn($"WinRM connection failed for host '{server.RemoteServer}'");
+        Core.Logging.FileLogger.Warn(
+            $"WinRM connection failed for host '{server.RemoteServer}': {exception.Message}");
         ReleaseTunnelIfNeeded(usesTunnel, tunnelLocalPort);
         _connectionSm.SetError(server.Id, message);
         return new ConnectionResult(false, message, null);

@@ -99,7 +99,10 @@ public sealed class WinRmCredentialBootstrapTests
         ServerProfileDto server = CreateCredentialServer();
         server.WinRmIdentityMode = WinRmIdentityMode.CurrentUser;
 
-        Assert.Throws<ArgumentException>(() => bootstrap.Write(server));
+        WinRmConfigurationException ex =
+            Assert.Throws<WinRmConfigurationException>(() => bootstrap.Write(server));
+
+        Assert.Equal("ErrorWinRmProfileInvalid", ex.LocalizationKey);
     }
 
     [Fact]
