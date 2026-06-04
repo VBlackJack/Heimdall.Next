@@ -206,7 +206,13 @@ public sealed class WinRmHandlerGatewayTests
             preflight.Create(),
             () => terminalSession,
             new WinRmPowerShellLaunchBuilder(_ => "powershell.exe"),
-            credentialBootstrapFactory);
+            credentialBootstrapFactory,
+            CreateNoOpJanitor());
+    }
+
+    private static WinRmBootstrapJanitor CreateNoOpJanitor()
+    {
+        return new WinRmBootstrapJanitor(enumerateScripts: _ => Array.Empty<string>());
     }
 
     private static WinRmCredentialBootstrap CreateTestBootstrap()

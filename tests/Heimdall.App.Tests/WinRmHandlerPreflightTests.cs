@@ -37,7 +37,8 @@ public sealed class WinRmHandlerPreflightTests
             new PassThroughTunnelService(),
             new ConnectionStateMachine(),
             new LocalizationManager(),
-            preflight);
+            preflight,
+            bootstrapJanitor: CreateNoOpJanitor());
 
         ConnectionResult result = await handler.ConnectAsync(
             CreateServer(),
@@ -56,7 +57,8 @@ public sealed class WinRmHandlerPreflightTests
         WinRmHandler handler = new WinRmHandler(
             new PassThroughTunnelService(),
             new ConnectionStateMachine(),
-            localizer);
+            localizer,
+            bootstrapJanitor: CreateNoOpJanitor());
         ServerProfileDto server = CreateServer();
         server.RemoteServer = "bad host; Remove-Item";
 
@@ -91,6 +93,11 @@ public sealed class WinRmHandlerPreflightTests
             WinRmUseSsl = false,
             WinRmIdentityMode = WinRmIdentityMode.CurrentUser
         };
+
+    private static WinRmBootstrapJanitor CreateNoOpJanitor()
+    {
+        return new WinRmBootstrapJanitor(enumerateScripts: _ => Array.Empty<string>());
+    }
 
     private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
     {

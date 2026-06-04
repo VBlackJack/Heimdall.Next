@@ -32,6 +32,9 @@ internal sealed record WinRmCredentialBootstrapResult(string ScriptPath);
 /// </summary>
 internal sealed class WinRmCredentialBootstrap
 {
+    internal const string ScriptFilePrefix = "heimdall_winrm_";
+    internal const string ScriptSearchPattern = "heimdall_winrm_*.ps1";
+
     private readonly Func<string> _createScriptPath;
     private readonly Action<string, string> _writeAndProtect;
     private readonly Func<string?, byte[]?> _unprotectStoredPasswordBytes;
@@ -108,7 +111,7 @@ internal sealed class WinRmCredentialBootstrap
     }
 
     internal static string CreateDefaultScriptPath()
-        => Path.Combine(Path.GetTempPath(), $"heimdall_winrm_{Guid.NewGuid():N}.ps1");
+        => Path.Combine(Path.GetTempPath(), $"{ScriptFilePrefix}{Guid.NewGuid():N}.ps1");
 
     internal static string BuildScript(ServerProfileDto server, string dpapiPasswordBlob)
     {

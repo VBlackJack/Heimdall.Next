@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Threading;
+using System.Threading.Tasks;
 using Heimdall.App.Services.WinRm;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -36,6 +38,7 @@ internal sealed class WinRmHandler : IProtocolHandler
     private readonly Func<ITerminalSession> _terminalSessionFactory;
     private readonly WinRmPowerShellLaunchBuilder _launchBuilder;
     private readonly Func<WinRmCredentialBootstrap> _credentialBootstrapFactory;
+    private readonly WinRmBootstrapJanitor _bootstrapJanitor;
 
     public WinRmHandler(
         ITunnelService tunnelService,
@@ -44,7 +47,8 @@ internal sealed class WinRmHandler : IProtocolHandler
         WinRmPreflight? preflight = null,
         Func<ITerminalSession>? terminalSessionFactory = null,
         WinRmPowerShellLaunchBuilder? launchBuilder = null,
-        Func<WinRmCredentialBootstrap>? credentialBootstrapFactory = null)
+        Func<WinRmCredentialBootstrap>? credentialBootstrapFactory = null,
+        WinRmBootstrapJanitor? bootstrapJanitor = null)
     {
         _tunnelService = tunnelService ?? throw new ArgumentNullException(nameof(tunnelService));
         _connectionSm = connectionSm;
@@ -53,6 +57,8 @@ internal sealed class WinRmHandler : IProtocolHandler
         _terminalSessionFactory = terminalSessionFactory ?? CreateDefaultTerminalSession;
         _launchBuilder = launchBuilder ?? new WinRmPowerShellLaunchBuilder();
         _credentialBootstrapFactory = credentialBootstrapFactory ?? (() => new WinRmCredentialBootstrap());
+        _bootstrapJanitor = bootstrapJanitor ?? new WinRmBootstrapJanitor();
+        _ = Task.Run(SweepStaleBootstrapScripts);
     }
 
     public string Protocol => "WINRM";
@@ -144,6 +150,7 @@ internal sealed class WinRmHandler : IProtocolHandler
                 $"WinRM terminal started for host '{server.RemoteServer}'");
 
             _connectionSm.TryTransition(server.Id, ConnectionState.RemoteSessionHandedOff);
+            ScheduleBootstrapCleanupOnExit(session, bootstrap, bootstrapScriptPath);
             string? warning = usesTunnel && server.WinRmIdentityMode == WinRmIdentityMode.CurrentUser
                 ? _localizer["WarnWinRmGatewayKerberos"]
                 : null;
@@ -272,6 +279,19 @@ internal sealed class WinRmHandler : IProtocolHandler
             : new PipeModeSession();
     }
 
+    private void SweepStaleBootstrapScripts()
+    {
+        try
+        {
+            _bootstrapJanitor.SweepStale();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[WinRmHandler] Startup bootstrap sweep failed: {ex.Message}");
+        }
+    }
+
     private static void DeleteBootstrap(
         WinRmCredentialBootstrap? bootstrap,
         string? bootstrapScriptPath)
@@ -282,5 +302,38 @@ internal sealed class WinRmHandler : IProtocolHandler
         }
 
         bootstrap.Delete(bootstrapScriptPath);
+    }
+
+    private static void ScheduleBootstrapCleanupOnExit(
+        ITerminalSession session,
+        WinRmCredentialBootstrap? bootstrap,
+        string? bootstrapScriptPath)
+    {
+        if (bootstrap is null || string.IsNullOrWhiteSpace(bootstrapScriptPath))
+        {
+            return;
+        }
+
+        WinRmCredentialBootstrap capturedBootstrap = bootstrap;
+        string capturedPath = bootstrapScriptPath;
+        int cleaned = 0;
+
+        void OnProcessExited(int exitCode)
+        {
+            if (Interlocked.Exchange(ref cleaned, 1) != 0)
+            {
+                return;
+            }
+
+            session.ProcessExited -= OnProcessExited;
+            capturedBootstrap.Delete(capturedPath);
+        }
+
+        session.ProcessExited += OnProcessExited;
+
+        if (!session.IsRunning)
+        {
+            OnProcessExited(0);
+        }
     }
 }
