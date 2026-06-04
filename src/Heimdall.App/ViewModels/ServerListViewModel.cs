@@ -126,7 +126,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     public event Action<string>? SessionStartFailed;
 
     /// <summary>
-    /// Raised when an SSH connection fails with structured diagnostics and should surface a failed tab.
+    /// Raised when a connection fails with structured diagnostics and should surface a failed tab.
     /// Parameters: sessionId, originalServerId, displayName, connectionType, user-facing status text, diagnostic payload.
     /// </summary>
     public event Action<string, string, string, string, string, SessionDiagnostic>? SessionFailed;
@@ -758,7 +758,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return outcome.Status switch
             {
                 BulkConnectOutcomeStatus.Success => true,
-                BulkConnectOutcomeStatus.PreflightFailed => ShowSshFailureAndConnectionError(
+                BulkConnectOutcomeStatus.PreflightFailed => PublishFailureAndShowError(
                     serverDto,
                     sessionId,
                     originalId,
@@ -766,7 +766,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                     outcome,
                     _localizer["ErrorPreflightTitle"],
                     outcome.ErrorMessage ?? _localizer["ErrorPreflightFailed"]),
-                BulkConnectOutcomeStatus.ConnectionFailed => ShowSshFailureAndConnectionError(
+                BulkConnectOutcomeStatus.ConnectionFailed => PublishFailureAndShowError(
                     serverDto,
                     sessionId,
                     originalId,
@@ -1074,7 +1074,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         return false;
     }
 
-    private bool ShowSshFailureAndConnectionError(
+    private bool PublishFailureAndShowError(
         ServerProfileDto serverDto,
         string sessionId,
         string originalId,
@@ -1083,19 +1083,18 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         string title,
         string message)
     {
-        PublishSshFailureSession(serverDto, sessionId, originalId, server, outcome);
+        PublishFailedSession(serverDto, sessionId, originalId, server, outcome);
         return ShowConnectionError(title, message);
     }
 
-    private void PublishSshFailureSession(
+    private void PublishFailedSession(
         ServerProfileDto serverDto,
         string sessionId,
         string originalId,
         ServerItemViewModel server,
         BulkConnectOutcome outcome)
     {
-        if (!string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase)
-            || outcome.Failure is null)
+        if (outcome.Failure is null)
         {
             return;
         }

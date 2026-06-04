@@ -70,12 +70,14 @@ public sealed partial class SessionCoordinatorPreMountTests
             string rootPath,
             MainViewModel main,
             FakeUiDispatcher dispatcher,
+            FakeDialogService dialogService,
             FakeEmbeddedSessionManager embeddedSessionManager,
             IReadOnlyDictionary<string, ControlledProtocolHandler> handlers)
         {
             _rootPath = rootPath;
             Main = main;
             Dispatcher = dispatcher;
+            DialogService = dialogService;
             EmbeddedSessionManager = embeddedSessionManager;
             Handlers = handlers;
         }
@@ -83,6 +85,8 @@ public sealed partial class SessionCoordinatorPreMountTests
         public MainViewModel Main { get; }
 
         public FakeUiDispatcher Dispatcher { get; }
+
+        public FakeDialogService DialogService { get; }
 
         public FakeEmbeddedSessionManager EmbeddedSessionManager { get; }
 
@@ -112,7 +116,8 @@ public sealed partial class SessionCoordinatorPreMountTests
             Dictionary<string, ControlledProtocolHandler> handlers = new Dictionary<string, ControlledProtocolHandler>(StringComparer.OrdinalIgnoreCase)
             {
                 ["SSH"] = new("SSH"),
-                ["RDP"] = new("RDP")
+                ["RDP"] = new("RDP"),
+                ["SFTP"] = new("SFTP")
             };
             ConnectionService connectionService = new ConnectionService(
                 configManager,
@@ -171,7 +176,7 @@ public sealed partial class SessionCoordinatorPreMountTests
                 settings,
                 new ServiceCollection().BuildServiceProvider());
 
-            return new TestHarness(rootPath, main, dispatcher, embeddedSessionManager, handlers);
+            return new TestHarness(rootPath, main, dispatcher, dialogService, embeddedSessionManager, handlers);
         }
 
         public ControlledProtocolHandler GetHandler(string protocol) => Handlers[protocol];
@@ -514,6 +519,8 @@ public sealed partial class SessionCoordinatorPreMountTests
 
     private sealed class FakeDialogService : IDialogService
     {
+        public int ErrorCallCount { get; private set; }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
         {
             return Task.FromResult(true);
@@ -639,6 +646,7 @@ public sealed partial class SessionCoordinatorPreMountTests
 
         public void ShowError(string title, string message)
         {
+            ErrorCallCount++;
         }
 
         public void ShowInfo(string title, string message)

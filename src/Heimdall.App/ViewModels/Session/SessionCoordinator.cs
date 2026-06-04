@@ -464,7 +464,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Creates a failed SSH tab so diagnostics can be inspected after the connection flow aborts.
+    /// Creates a failed session tab so diagnostics can be inspected after the connection flow aborts.
     /// </summary>
     private void OnSessionFailed(
         string sessionId,

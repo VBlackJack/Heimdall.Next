@@ -174,4 +174,78 @@ public sealed partial class SessionCoordinatorPreMountTests
         Assert.Same(diagnostic, tab.FailureDetails);
         Assert.Equal("Access denied", harness.Main.StatusText);
     }
+
+    [Fact]
+    public async Task RestoreServerAsync_SftpFailureWithDiagnostic_RaisesFailedSession()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sftpHandler = harness.GetHandler("SFTP");
+        ServerProfileDto server = harness.CreateServer("SFTP");
+        await harness.PersistServerAsync(server);
+        SessionDiagnostic diagnostic = new(
+            SessionFailureStage.SshGateway,
+            "ErrorConnectionFailed",
+            null,
+            "gateway refused");
+        int failedSessionEvents = 0;
+        (string SessionId, string OriginalId, string DisplayName, string ConnectionType, string StatusText, SessionDiagnostic Failure)? failed = null;
+        harness.Main.ServerList.SessionFailed += (
+            sessionId,
+            originalId,
+            displayName,
+            connectionType,
+            statusText,
+            failure) =>
+        {
+            failedSessionEvents++;
+            failed = (sessionId, originalId, displayName, connectionType, statusText, failure);
+        };
+
+        // Real producer: src/Heimdall.App/Services/Handlers/SftpHandler.cs:101 and :166
+        // now attach SFTP tunnel/generic diagnostics to ConnectionResult.Failure.
+        sftpHandler.Result.SetResult(new ConnectionResult(false, "gateway refused", null, diagnostic));
+
+        bool restored = await harness.Main.ServerList
+            .RestoreServerAsync(server.Id, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.False(restored);
+        Assert.Equal(1, failedSessionEvents);
+        Assert.NotNull(failed);
+        Assert.False(string.IsNullOrWhiteSpace(failed.Value.SessionId));
+        Assert.Equal(server.Id, failed.Value.OriginalId);
+        Assert.Equal("Demo SFTP", failed.Value.DisplayName);
+        Assert.Equal("SFTP", failed.Value.ConnectionType);
+        Assert.Equal("gateway refused", failed.Value.StatusText);
+        Assert.Same(diagnostic, failed.Value.Failure);
+        Assert.Equal(1, harness.DialogService.ErrorCallCount);
+
+        SessionTabViewModel tab = Assert.Single(harness.Main.Connection.ActiveSessions);
+        Assert.Equal("SFTP", tab.ConnectionType);
+        Assert.Equal(server.Id, tab.OriginalServerId);
+        Assert.Equal("gateway refused", tab.Status);
+        Assert.Same(diagnostic, tab.FailureDetails);
+    }
+
+    [Fact]
+    public async Task RestoreServerAsync_SftpFailureWithoutDiagnostic_SuppressesFailedSession()
+    {
+        using TestHarness harness = TestHarness.Create();
+        ControlledProtocolHandler sftpHandler = harness.GetHandler("SFTP");
+        ServerProfileDto server = harness.CreateServer("SFTP");
+        await harness.PersistServerAsync(server);
+        int failedSessionEvents = 0;
+        harness.Main.ServerList.SessionFailed += (_, _, _, _, _, _) => failedSessionEvents++;
+
+        sftpHandler.Result.SetResult(new ConnectionResult(false, "plain failure", null));
+
+        bool restored = await harness.Main.ServerList
+            .RestoreServerAsync(server.Id, CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        Assert.False(restored);
+        Assert.Equal(0, failedSessionEvents);
+        Assert.Equal(1, harness.DialogService.ErrorCallCount);
+        Assert.Empty(harness.Main.Connection.ActiveSessions);
+    }
 }
