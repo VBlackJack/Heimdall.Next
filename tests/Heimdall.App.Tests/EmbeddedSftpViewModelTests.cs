@@ -238,6 +238,39 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public async Task LoadDirectoryAsync_MarkDisposedDuringList_CancelsWithoutErrorAndClearsLoading()
+    {
+        FakeUiDispatcher dispatcher = new();
+        TaskCompletionSource<CancellationToken> capturedToken = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        FakeRemoteBrowser browser = new()
+        {
+            ListDirectoryHandler = async (_, ct) =>
+            {
+                capturedToken.TrySetResult(ct);
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+                return [];
+            }
+        };
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetBrowser(viewModel, browser);
+
+        Task loadTask = viewModel.LoadDirectoryAsync("/slow");
+        CancellationToken listingToken = await capturedToken.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(viewModel.IsLoading);
+        Assert.False(listingToken.IsCancellationRequested);
+
+        viewModel.MarkDisposed();
+        await loadTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(listingToken.IsCancellationRequested);
+        Assert.False(viewModel.IsLoading);
+        Assert.False(viewModel.IsErrorStatus);
+        Assert.Equal("Ready", viewModel.StatusText);
+    }
+
+    [Fact]
     public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
     {
         FakeUiDispatcher dispatcher = new();
@@ -339,10 +372,17 @@ public sealed class EmbeddedSftpViewModelTests
 
         public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
 
+        public Func<string?, CancellationToken, Task<IReadOnlyList<SftpFileInfo>>>? ListDirectoryHandler { get; set; }
+
         public Task<IReadOnlyList<SftpFileInfo>> ListDirectoryAsync(
             string? path = null,
             CancellationToken ct = default)
         {
+            if (ListDirectoryHandler is not null)
+            {
+                return ListDirectoryHandler(path, ct);
+            }
+
             return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
         }
 

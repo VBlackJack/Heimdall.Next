@@ -59,6 +59,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private System.Threading.Timer? _errorHighlightTimer;
+    private CancellationTokenSource? _lifecycleCts = new();
     private CancellationTokenSource? _transferCts;
     private bool _disposed;
 
@@ -272,8 +273,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     {
         _disposed = true;
         DisposeErrorHighlightTimer();
+        _lifecycleCts?.Cancel();
+        _lifecycleCts?.Dispose();
+        _lifecycleCts = null;
         _transferCts?.Cancel();
         _transferCts?.Dispose();
+        _transferCts = null;
         IsConnected = false;
     }
 
@@ -794,11 +799,19 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             _sshParams.Port,
             pinnedVerifier);
 
-        await Task.Run(() =>
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            ssh.Connect();
-        }, ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                ssh.Connect();
+            }, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            ssh.Dispose();
+            throw;
+        }
 
         return ssh;
     }
@@ -1357,11 +1370,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
     private async Task LoadDirectoryCoreAsync(string path, bool pushToHistory)
     {
+        CancellationTokenSource? lifecycleCts = _lifecycleCts;
         if (_disposed || _browser is null || !_browser.IsConnected || IsLoading)
         {
             return;
         }
 
+        CancellationToken ct = lifecycleCts?.Token ?? CancellationToken.None;
         await RunOnUiAsync(() => IsLoading = true);
 
         try
@@ -1372,19 +1387,19 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
             if (SudoMode && _sshParams is not null)
             {
-                entries = await ListDirectoryViaSudoAsync(path).ConfigureAwait(false);
+                entries = await ListDirectoryViaSudoAsync(path, ct).ConfigureAwait(false);
             }
             else
             {
                 try
                 {
-                    entries = await _browser.ListDirectoryAsync(path).ConfigureAwait(false);
+                    entries = await _browser.ListDirectoryAsync(path, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
                 {
                     Core.Logging.FileLogger.Info(
                         $"EmbeddedSFTP listdir permission denied, falling back to sudo for {path}");
-                    entries = await ListDirectoryViaSudoAsync(path).ConfigureAwait(false);
+                    entries = await ListDirectoryViaSudoAsync(path, ct).ConfigureAwait(false);
                 }
             }
 
@@ -1402,6 +1417,11 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                 UpdateStatus(_localizer?["SftpStatusReady"] ?? "Ready");
             });
         }
+        catch (OperationCanceledException)
+        {
+            Core.Logging.FileLogger.Debug("SFTP listing cancelled");
+            await RunOnUiAsync(() => UpdateStatus(_localizer?["SftpStatusReady"] ?? "Ready"));
+        }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"EmbeddedSFTP LoadDirectory failed: {ex.Message}");
@@ -1414,15 +1434,17 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
     }
 
-    private async Task<IReadOnlyList<SftpFileInfo>> ListDirectoryViaSudoAsync(string path)
+    private async Task<IReadOnlyList<SftpFileInfo>> ListDirectoryViaSudoAsync(
+        string path,
+        CancellationToken ct)
     {
         string escaped = PathEscaper.EscapeForShell(path);
         string privilegedBody = $"ls -la --time-style=long-iso {escaped}";
-        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync().ConfigureAwait(false);
+        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
 
         try
         {
-            using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody)
+            using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, privilegedBody, ct)
                 .ConfigureAwait(false);
 
             EnsureSudoSucceeded(cmd, "ls");
