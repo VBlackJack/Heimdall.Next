@@ -305,37 +305,68 @@ public sealed class SftpBrowser : IRemoteBrowser
         string fileName = Path.GetFileName(localPath);
         var fileInfo = new FileInfo(localPath);
         long totalBytes = fileInfo.Length;
+        string tempRemotePath = SftpAtomicUpload.CreateRemoteTempPath(remotePath);
 
         await _clientLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await using var fileStream = new FileStream(
-                localPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 81920,
-                useAsync: true);
-            using CancellationAwareStream inputStream = new(fileStream, ct);
-
-            await Task.Run(() =>
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                client.UploadFile(inputStream, remotePath, bytesTransferred =>
-                {
-                    if (ct.IsCancellationRequested)
-                    {
-                        return;
-                    }
+                await using var fileStream = new FileStream(
+                    localPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 81920,
+                    useAsync: true);
+                using CancellationAwareStream inputStream = new(fileStream, ct);
 
-                    TransferProgress?.Invoke(new SftpTransferProgress(
-                        fileName,
-                        (long)bytesTransferred,
-                        totalBytes,
-                        IsUpload: true));
-                });
-                ct.ThrowIfCancellationRequested();
-            }, ct).ConfigureAwait(false);
+                await Task.Run(() =>
+                {
+                    ct.ThrowIfCancellationRequested();
+                    client.UploadFile(inputStream, tempRemotePath, bytesTransferred =>
+                    {
+                        if (ct.IsCancellationRequested)
+                        {
+                            return;
+                        }
+
+                        TransferProgress?.Invoke(new SftpTransferProgress(
+                            fileName,
+                            (long)bytesTransferred,
+                            totalBytes,
+                            IsUpload: true));
+                    });
+                    ct.ThrowIfCancellationRequested();
+                    SftpAtomicUpload.CommitRename(
+                        tempRemotePath,
+                        remotePath,
+                        atomicRename: (temp, final) => client.RenameFile(temp, final, isPosix: true),
+                        plainRename: (temp, final) => client.RenameFile(temp, final),
+                        deleteFinalIfExists: final =>
+                        {
+                            if (client.Exists(final))
+                            {
+                                client.DeleteFile(final);
+                            }
+                        });
+                }, ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                await Task.Run(
+                        () => SftpAtomicUpload.Rollback(
+                            tempRemotePath,
+                            temp =>
+                            {
+                                if (client.Exists(temp))
+                                {
+                                    client.DeleteFile(temp);
+                                }
+                            }))
+                    .ConfigureAwait(false);
+                throw;
+            }
         }
         finally
         {
