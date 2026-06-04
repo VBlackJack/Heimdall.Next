@@ -900,6 +900,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     internal async Task DownloadViaSudoAsync(string remotePath, string localPath, CancellationToken ct)
     {
         string privilegedBody = BuildSudoBase64DownloadBody(remotePath);
+        string tempPath = AtomicLocalFile.CreateTempPath(localPath);
         using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
 
         try
@@ -910,7 +911,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             EnsureSudoSucceeded(cmd, "base64");
 
             byte[] bytes = DecodeSudoBase64(cmd.Result ?? string.Empty);
-            await File.WriteAllBytesAsync(localPath, bytes, ct).ConfigureAwait(false);
+            try
+            {
+                await File.WriteAllBytesAsync(tempPath, bytes, ct).ConfigureAwait(false);
+                AtomicLocalFile.Commit(tempPath, localPath);
+            }
+            catch
+            {
+                AtomicLocalFile.Rollback(tempPath);
+                throw;
+            }
         }
         finally
         {

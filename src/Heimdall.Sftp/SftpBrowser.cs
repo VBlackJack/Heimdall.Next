@@ -227,6 +227,7 @@ public sealed class SftpBrowser : IRemoteBrowser
 
         string fileName = Path.GetFileName(remotePath);
         long totalBytes = 0;
+        string tempPath = AtomicLocalFile.CreateTempPath(localPath);
 
         await _clientLock.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -242,7 +243,7 @@ public sealed class SftpBrowser : IRemoteBrowser
             try
             {
                 await using (var fileStream = new FileStream(
-                    localPath,
+                    tempPath,
                     FileMode.Create,
                     FileAccess.Write,
                     FileShare.None,
@@ -270,10 +271,12 @@ public sealed class SftpBrowser : IRemoteBrowser
                         ct.ThrowIfCancellationRequested();
                     }, ct).ConfigureAwait(false);
                 }
+
+                AtomicLocalFile.Commit(tempPath, localPath);
             }
             catch
             {
-                TryDeleteLocalFile(localPath);
+                AtomicLocalFile.Rollback(tempPath);
                 throw;
             }
         }
@@ -570,22 +573,6 @@ public sealed class SftpBrowser : IRemoteBrowser
 
         throw new Renci.SshNet.Common.SftpPathNotFoundException(
             $"Remote path not found: {path}");
-    }
-
-    private static void TryDeleteLocalFile(string localPath)
-    {
-        try
-        {
-            if (File.Exists(localPath))
-            {
-                File.Delete(localPath);
-            }
-        }
-        catch (Exception ex)
-        {
-            Heimdall.Core.Logging.FileLogger.Warn(
-                $"[SftpBrowser] failed to delete partial download {localPath}: {ex.Message}");
-        }
     }
 
     /// <summary>
