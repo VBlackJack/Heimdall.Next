@@ -56,6 +56,26 @@ public sealed class SshShellSessionTeardownTests
     }
 
     [Fact]
+    public void CreateShellEofDisconnectInfo_ConnectedTransport_ReturnsCleanDisconnect()
+    {
+        var disconnect = SshShellSession.CreateShellEofDisconnectInfo(transportConnected: true);
+
+        Assert.True(disconnect.IsClean);
+        Assert.Null(disconnect.Failure);
+        Assert.False(SshReconnectPolicy.AllowsAutoReconnect(disconnect));
+    }
+
+    [Fact]
+    public void CreateShellEofDisconnectInfo_DisconnectedTransport_ReturnsTransientDisconnect()
+    {
+        var disconnect = SshShellSession.CreateShellEofDisconnectInfo(transportConnected: false);
+
+        Assert.False(disconnect.IsClean);
+        Assert.Equal(SshFailureCode.SessionDisconnected, disconnect.Failure?.Code);
+        Assert.True(SshReconnectPolicy.AllowsAutoReconnect(disconnect));
+    }
+
+    [Fact]
     public void Dispose_DoesNotBlockBeyondTotalWait()
     {
         var session = new SshShellSession();

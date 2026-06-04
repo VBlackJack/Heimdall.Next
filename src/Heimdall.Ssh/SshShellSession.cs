@@ -44,6 +44,7 @@ public sealed class SshShellSession : IDisposable
     private ShellStream? _stream;
     private CancellationTokenSource? _readCts;
     private Task? _readLoopTask;
+    private int _disconnectNotified;
     private bool _disposed;
 
     /// <summary>Raised when data is received from the remote shell.</summary>
@@ -99,6 +100,8 @@ public sealed class SshShellSession : IDisposable
         {
             throw new InvalidOperationException("Session is already connected. Call Disconnect() first.");
         }
+
+        _disconnectNotified = 0;
 
         var pinnedVerifier = await SshConnectionFactory.ResolveHostKeyAsync(
                 connectionParams,
@@ -231,7 +234,7 @@ public sealed class SshShellSession : IDisposable
         CleanupStream();
         DisconnectClient();
 
-        Disconnected?.Invoke(SshSessionDisconnectInfo.Clean());
+        NotifyDisconnected(SshSessionDisconnectInfo.Clean());
     }
 
     public void Dispose()
@@ -276,6 +279,8 @@ public sealed class SshShellSession : IDisposable
     private async Task ReadLoopAsync(CancellationToken cancellationToken)
     {
         var buffer = new byte[ReadBufferSize];
+        SshSessionDisconnectInfo? disconnectInfo = null;
+        Exception? disconnectException = null;
 
         try
         {
@@ -290,6 +295,11 @@ public sealed class SshShellSession : IDisposable
                 }
                 catch (ObjectDisposedException)
                 {
+                    if (!_disposed && !cancellationToken.IsCancellationRequested)
+                    {
+                        disconnectInfo = CreateShellEofDisconnectInfo(_client?.IsConnected == true);
+                    }
+
                     break;
                 }
 
@@ -300,6 +310,7 @@ public sealed class SshShellSession : IDisposable
 
                 if (bytesRead <= 0)
                 {
+                    disconnectInfo = CreateShellEofDisconnectInfo(_client?.IsConnected == true);
                     break;
                 }
 
@@ -316,12 +327,62 @@ public sealed class SshShellSession : IDisposable
         {
             if (!_disposed)
             {
-                SshSessionFailureDispatcher.Dispatch(
-                    ex,
-                    SecurityEventOccurred,
-                    Disconnected);
+                disconnectException = ex;
             }
         }
+
+        if (_disposed || cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (disconnectException is not null || disconnectInfo is not null)
+        {
+            CleanupAfterRemoteDisconnect();
+        }
+
+        if (disconnectException is not null)
+        {
+            SshSessionFailureDispatcher.Dispatch(
+                disconnectException,
+                SecurityEventOccurred,
+                NotifyDisconnected);
+            return;
+        }
+
+        if (disconnectInfo is not null)
+        {
+            NotifyDisconnected(disconnectInfo);
+        }
+    }
+
+    internal static SshSessionDisconnectInfo CreateShellEofDisconnectInfo(bool transportConnected)
+    {
+        if (transportConnected)
+        {
+            return SshSessionDisconnectInfo.Clean("Remote shell exited.");
+        }
+
+        var failure = new SshFailureInfo(
+            SshFailureCode.SessionDisconnected,
+            "SSH session disconnected.",
+            IsFatal: false);
+        return SshSessionDisconnectInfo.FromFailure(failure);
+    }
+
+    private void NotifyDisconnected(SshSessionDisconnectInfo disconnectInfo)
+    {
+        if (Interlocked.Exchange(ref _disconnectNotified, 1) == 0)
+        {
+            Disconnected?.Invoke(disconnectInfo);
+        }
+    }
+
+    private void CleanupAfterRemoteDisconnect()
+    {
+        DisposeReadLoopCancellationSource();
+        CleanupStream();
+        DisconnectClient();
     }
 
     /// <summary>
@@ -375,53 +436,50 @@ public sealed class SshShellSession : IDisposable
 
     private void DisposeReadLoopCancellationSource()
     {
-        if (_readCts is not null)
+        var cts = Interlocked.Exchange(ref _readCts, null);
+        if (cts is not null)
         {
             try
             {
-                _readCts.Dispose();
+                cts.Dispose();
             }
             catch (ObjectDisposedException)
             {
             }
         }
-
-        _readCts = null;
     }
 
     /// <summary>Closes and disposes the shell stream.</summary>
     private void CleanupStream()
     {
-        if (_stream is not null)
+        var stream = Interlocked.Exchange(ref _stream, null);
+        if (stream is not null)
         {
             try
             {
-                _stream.Close();
-                _stream.Dispose();
+                stream.Close();
+                stream.Dispose();
             }
             catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
-
-            _stream = null;
         }
     }
 
     /// <summary>Disconnects and disposes the SSH client.</summary>
     private void DisconnectClient()
     {
-        if (_client is not null)
+        var client = Interlocked.Exchange(ref _client, null);
+        if (client is not null)
         {
             try
             {
-                if (_client.IsConnected)
+                if (client.IsConnected)
                 {
-                    _client.Disconnect();
+                    client.Disconnect();
                 }
 
-                _client.Dispose();
+                client.Dispose();
             }
             catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
-
-            _client = null;
         }
     }
 }
