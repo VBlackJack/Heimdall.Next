@@ -432,6 +432,75 @@ public sealed class SplitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ReconnectPaneAsync_FailedConnectionWithDiagnostic_CopiesFailureDetails()
+    {
+        var diagnostic = new SessionDiagnostic(
+            SessionFailureStage.SshGateway,
+            "ErrorConnectionFailed",
+            null,
+            "gateway refused");
+        var sut = CreateSplitService(
+            new RecordingConnectionService(
+                failureResult: new ConnectionResult(false, "gateway refused", null, diagnostic)));
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "RDP"
+            }
+        });
+
+        var pane = MakePane(paneId: "pane-1", serverId: "old-session", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.HostControl = new DisposableHost();
+        var session = new SessionTabViewModel { RootContent = pane };
+        sut.ActiveSessionsProvider = () => new ObservableCollection<SessionTabViewModel> { session };
+
+        // Producer covered: SplitService.ReconnectPaneAsync post-connect failure branch
+        // copies ConnectionResult.Failure into the pane around src/Heimdall.App/Services/SplitService.cs:602.
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.Equal("Error", pane.Status);
+        Assert.Same(diagnostic, pane.FailureDetails);
+    }
+
+    [Fact]
+    public async Task ReconnectPaneAsync_FailedConnectionWithoutDiagnostic_LeavesFailureDetailsNull()
+    {
+        var staleDiagnostic = new SessionDiagnostic(
+            SessionFailureStage.SshGateway,
+            "StaleFailure",
+            null,
+            "stale");
+        var sut = CreateSplitService(new RecordingConnectionService());
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "RDP"
+            }
+        });
+
+        var pane = MakePane(paneId: "pane-1", serverId: "old-session", connectionType: "RDP");
+        pane.OriginalServerId = "server-1";
+        pane.HostControl = new DisposableHost();
+        pane.FailureDetails = staleDiagnostic;
+        var session = new SessionTabViewModel { RootContent = pane };
+        sut.ActiveSessionsProvider = () => new ObservableCollection<SessionTabViewModel> { session };
+
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.Equal("Error", pane.Status);
+        Assert.Null(pane.FailureDetails);
+    }
+
+    [Fact]
     public async Task ReconnectPaneAsync_Success_PreservesFreshConnectionState_WhenServerIdIsReused()
     {
         var newSession = new DisposableSessionResult();
@@ -907,10 +976,14 @@ public sealed class SplitServiceTests : IDisposable
     private sealed class RecordingConnectionService : IConnectionService
     {
         private readonly ISessionResult? _successfulSftpSession;
+        private readonly ConnectionResult? _failureResult;
 
-        public RecordingConnectionService(ISessionResult? successfulSftpSession = null)
+        public RecordingConnectionService(
+            ISessionResult? successfulSftpSession = null,
+            ConnectionResult? failureResult = null)
         {
             _successfulSftpSession = successfulSftpSession;
+            _failureResult = failureResult;
         }
 
         public bool ConnectInvoked { get; private set; }
@@ -989,7 +1062,7 @@ public sealed class SplitServiceTests : IDisposable
         private Task<ConnectionResult> RecordConnectAsync()
         {
             ConnectInvoked = true;
-            return Task.FromResult(new ConnectionResult(false, "unexpected connect", null));
+            return Task.FromResult(_failureResult ?? new ConnectionResult(false, "unexpected connect", null));
         }
     }
 

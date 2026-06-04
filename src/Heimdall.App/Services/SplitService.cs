@@ -600,6 +600,7 @@ public sealed class SplitService : ISplitService
             if (!result.Success || result.Session is null)
             {
                 pane.Status = "Error";
+                pane.FailureDetails = result.Failure;
                 SetStatusText?.Invoke(result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"]);
                 Core.Logging.FileLogger.Warn(
                     $"ReconnectPane failed for '{serverDto.DisplayName}': {result.ErrorMessage}");
