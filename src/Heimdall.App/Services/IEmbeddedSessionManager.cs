@@ -98,7 +98,8 @@ public interface IEmbeddedSessionManager
         string displayName,
         string connectionType,
         ISessionResult session,
-        AppSettings? settings = null);
+        AppSettings? settings = null,
+        string? initialRemotePath = null);
 
     /// <summary>
     /// Tears down a hosted pane through the shared disconnect lifecycle.

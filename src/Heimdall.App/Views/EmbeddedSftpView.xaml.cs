@@ -123,7 +123,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         LocalizationManager localizer,
         IDialogService dialogService,
         Heimdall.Ssh.HostKeyStore hostKeyStore,
-        SshConnectionParams? sshParams = null)
+        SshConnectionParams? sshParams = null,
+        string? initialRemotePath = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -186,8 +187,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         UpdateStatus(_localizer["SftpStatusConnected"]);
         StartHealthTimer();
 
-        _ = NavigateRemoteAsync(browser.CurrentDirectory);
+        _ = NavigateInitialAsync(initialRemotePath);
     }
+
+    public string CurrentPath => _viewModel.CurrentPath;
 
     public void Dispose()
     {
@@ -1132,6 +1135,11 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private Task NavigateRemoteAsync(string path)
     {
         return _viewModel.NavigateToPath(path);
+    }
+
+    private Task NavigateInitialAsync(string? initialRemotePath)
+    {
+        return _viewModel.NavigateInitialAsync(initialRemotePath);
     }
 
     private Task RefreshRemoteAsync()

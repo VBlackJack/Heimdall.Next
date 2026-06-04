@@ -437,7 +437,7 @@ public sealed class SplitServiceTests : IDisposable
         var newSession = new DisposableSessionResult();
         var hostManager = new FakeEmbeddedSessionManager();
         var newHost = new DisposableHost();
-        hostManager.CreateHostControlCallback = (_, _, _, sessionResult, _) =>
+        hostManager.CreateHostControlCallback = (_, _, _, sessionResult, _, _) =>
         {
             Assert.Same(newSession, sessionResult);
             return newHost;
@@ -485,11 +485,63 @@ public sealed class SplitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ReconnectPaneAsync_PassesSftpReconnectPathHintToHostFactoryAndClearsIt()
+    {
+        var newSession = new DisposableSessionResult();
+        var hostManager = new FakeEmbeddedSessionManager();
+        var newHost = new DisposableHost();
+        string? capturedInitialRemotePath = null;
+        hostManager.CreateHostControlCallback = (_, _, connectionType, sessionResult, _, initialRemotePath) =>
+        {
+            Assert.Equal("SFTP", connectionType);
+            Assert.Same(newSession, sessionResult);
+            capturedInitialRemotePath = initialRemotePath;
+            return newHost;
+        };
+
+        var sut = CreateSplitService(
+            new RecordingConnectionService(successfulSftpSession: newSession),
+            hostManager);
+
+        await _configManager.SaveServersAsync(new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "server-1",
+                DisplayName = "Server 1",
+                ConnectionType = "SFTP"
+            }
+        });
+
+        var oldHost = new DisposableHost();
+        var pane = MakePane(paneId: "pane-1", serverId: "server-1", connectionType: "SFTP");
+        pane.OriginalServerId = "server-1";
+        pane.Title = "Server 1";
+        pane.HostControl = oldHost;
+        pane.SftpReconnectPathHint = "/var/log";
+
+        var session = new SessionTabViewModel { RootContent = pane };
+        session.Title = "SFTP tab";
+        var activeSessions = new ObservableCollection<SessionTabViewModel> { session };
+        sut.ActiveSessionsProvider = () => activeSessions;
+
+        var ex = await Record.ExceptionAsync(() => sut.ReconnectPaneAsync(session, pane.PaneId));
+
+        Assert.Null(ex);
+        Assert.True(oldHost.Disposed);
+        Assert.False(newSession.Disposed);
+        Assert.Same(newHost, pane.HostControl);
+        Assert.Equal("/var/log", capturedInitialRemotePath);
+        Assert.Null(pane.SftpReconnectPathHint);
+        Assert.Equal("Connected", pane.Status);
+    }
+
+    [Fact]
     public async Task ReconnectPaneAsync_HostFactoryFailure_DisposesNewSessionAndResetsNewState()
     {
         var newSession = new DisposableSessionResult();
         var hostManager = new FakeEmbeddedSessionManager();
-        hostManager.CreateHostControlCallback = (_, _, _, _, _) =>
+        hostManager.CreateHostControlCallback = (_, _, _, _, _, _) =>
             throw new InvalidOperationException("factory failed");
 
         var sut = CreateSplitService(
@@ -854,6 +906,13 @@ public sealed class SplitServiceTests : IDisposable
 
     private sealed class RecordingConnectionService : IConnectionService
     {
+        private readonly ISessionResult? _successfulSftpSession;
+
+        public RecordingConnectionService(ISessionResult? successfulSftpSession = null)
+        {
+            _successfulSftpSession = successfulSftpSession;
+        }
+
         public bool ConnectInvoked { get; private set; }
 
         public AppSettings? CurrentSettings => null;
@@ -878,7 +937,16 @@ public sealed class SplitServiceTests : IDisposable
             ServerProfileDto server,
             AppSettings settings,
             CancellationToken ct = default)
-            => RecordConnectAsync();
+        {
+            if (_successfulSftpSession is null)
+            {
+                return RecordConnectAsync();
+            }
+
+            ct.ThrowIfCancellationRequested();
+            ConnectInvoked = true;
+            return Task.FromResult(new ConnectionResult(true, null, _successfulSftpSession));
+        }
 
         public Task<ConnectionResult> ConnectVncAsync(
             ServerProfileDto server,
@@ -1093,7 +1161,7 @@ public sealed class SplitServiceTests : IDisposable
 
     private sealed class FakeEmbeddedSessionManager : IEmbeddedSessionManager
     {
-        public Func<SessionTabViewModel, string, string, ISessionResult, AppSettings?, object>? CreateHostControlCallback { get; set; }
+        public Func<SessionTabViewModel, string, string, ISessionResult, AppSettings?, string?, object>? CreateHostControlCallback { get; set; }
         public Action<byte[], object?>? BroadcastCallback { get; set; }
         public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
         public Action? CommandPaletteRequestedCallback { get; set; }
@@ -1109,11 +1177,18 @@ public sealed class SplitServiceTests : IDisposable
             string displayName,
             string connectionType,
             ISessionResult session,
-            AppSettings? settings = null)
+            AppSettings? settings = null,
+            string? initialRemotePath = null)
         {
             if (CreateHostControlCallback is not null)
             {
-                return CreateHostControlCallback(sessionTab, displayName, connectionType, session, settings);
+                return CreateHostControlCallback(
+                    sessionTab,
+                    displayName,
+                    connectionType,
+                    session,
+                    settings,
+                    initialRemotePath);
             }
 
             throw new NotSupportedException();

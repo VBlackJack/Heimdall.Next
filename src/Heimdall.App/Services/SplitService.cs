@@ -565,6 +565,8 @@ public sealed class SplitService : ISplitService
 
         try
         {
+            CaptureSftpReconnectPathHint(pane);
+
             // Dispose current host control through the shared teardown order before
             // replacing it with the reconnect placeholder state.
             _sessionManager.DisconnectSession(pane, DisconnectReason.ReconnectInitiated);
@@ -620,9 +622,16 @@ public sealed class SplitService : ISplitService
             object hostControl;
             try
             {
-                hostControl = _sessionManager.CreateHostControl(
-                    session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
-                    result.Session, settings);
+                try
+                {
+                    hostControl = _sessionManager.CreateHostControl(
+                        session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
+                        result.Session, settings, pane.SftpReconnectPathHint);
+                }
+                finally
+                {
+                    pane.SftpReconnectPathHint = null;
+                }
             }
             catch (Exception ex)
             {
@@ -658,6 +667,20 @@ public sealed class SplitService : ISplitService
             ReleaseOldConnectionStateOnce("ReconnectPane exception");
             Core.Logging.FileLogger.Error($"ReconnectPane error: {ex.Message}", ex);
             SetStatusText?.Invoke(_localizer["ErrorSplitSessionFailed"] + $" — {ex.Message}");
+        }
+    }
+
+    private static void CaptureSftpReconnectPathHint(SessionPaneModel pane)
+    {
+        if (pane.HostControl is not EmbeddedSftpView sftpView)
+        {
+            return;
+        }
+
+        string currentPath = sftpView.CurrentPath;
+        if (!string.IsNullOrWhiteSpace(currentPath))
+        {
+            pane.SftpReconnectPathHint = currentPath;
         }
     }
 

@@ -129,7 +129,8 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         string displayName,
         string connectionType,
         ISessionResult session,
-        AppSettings? settings = null)
+        AppSettings? settings = null,
+        string? initialRemotePath = null)
     {
         ArgumentNullException.ThrowIfNull(sessionTab);
         ArgumentNullException.ThrowIfNull(session);
@@ -345,13 +346,23 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         if (string.Equals(connectionType, "SFTP", StringComparison.OrdinalIgnoreCase) &&
             session is SftpSessionBundle bundle)
         {
-            return CreateSftpView(sessionTab, bundle.Browser, displayName, bundle.SshParams);
+            return CreateSftpView(
+                sessionTab,
+                bundle.Browser,
+                displayName,
+                bundle.SshParams,
+                initialRemotePath);
         }
 
         if (string.Equals(connectionType, "FTP", StringComparison.OrdinalIgnoreCase) &&
             session is FtpSessionBundle ftpBundle)
         {
-            return CreateSftpView(sessionTab, ftpBundle.Browser, displayName, null);
+            return CreateSftpView(
+                sessionTab,
+                ftpBundle.Browser,
+                displayName,
+                null,
+                initialRemotePath);
         }
 
         if (string.Equals(connectionType, "CITRIX", StringComparison.OrdinalIgnoreCase)
@@ -750,12 +761,13 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         SessionTabViewModel tab,
         IRemoteBrowser browser,
         string displayName,
-        SshConnectionParams? sshParams)
+        SshConnectionParams? sshParams,
+        string? initialRemotePath = null)
     {
         var view = new EmbeddedSftpView();
         view.InitializeSession(
             browser, tab, displayName, string.Empty,
-            _localizer, _dialogService, _hostKeyStore, sshParams);
+            _localizer, _dialogService, _hostKeyStore, sshParams, initialRemotePath);
 
         // Wire "Open in Terminal" to send a cd command to any SSH terminal
         // in the same tab's split tree.

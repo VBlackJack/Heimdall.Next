@@ -271,6 +271,114 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public async Task NavigateInitialAsync_PreferredPath_LoadsPreferredPathWithoutHistory()
+    {
+        FakeUiDispatcher dispatcher = new();
+        List<string?> requestedPaths = [];
+        FakeRemoteBrowser browser = new()
+        {
+            ListDirectoryHandler = (path, _) =>
+            {
+                requestedPaths.Add(path);
+                return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
+            }
+        };
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetBrowser(viewModel, browser);
+
+        await viewModel.NavigateInitialAsync("/var/log");
+
+        Assert.Collection(requestedPaths, path => Assert.Equal("/var/log", path));
+        Assert.Equal("/var/log", viewModel.CurrentPath);
+        Assert.False(viewModel.CanGoBack);
+        Assert.False(viewModel.IsErrorStatus);
+    }
+
+    [Fact]
+    public async Task NavigateInitialAsync_MissingPreferredPath_FallsBackToHomeWithoutError()
+    {
+        FakeUiDispatcher dispatcher = new();
+        List<string?> requestedPaths = [];
+        FakeRemoteBrowser browser = new()
+        {
+            ListDirectoryHandler = (path, _) =>
+            {
+                requestedPaths.Add(path);
+                if (string.Equals(path, "/missing", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("gone");
+                }
+
+                return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
+            }
+        };
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetBrowser(viewModel, browser);
+
+        await viewModel.NavigateInitialAsync("/missing");
+
+        Assert.Collection(
+            requestedPaths,
+            path => Assert.Equal("/missing", path),
+            path => Assert.Equal("/", path));
+        Assert.Equal("/", viewModel.CurrentPath);
+        Assert.False(viewModel.CanGoBack);
+        Assert.False(viewModel.IsErrorStatus);
+        Assert.Equal("Ready", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task NavigateInitialAsync_MissingPreferredPath_DoesNotSetErrorDuringFallback()
+    {
+        FakeUiDispatcher dispatcher = new();
+        bool errorWasSetBeforeHomeListing = false;
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        FakeRemoteBrowser browser = new()
+        {
+            ListDirectoryHandler = (path, _) =>
+            {
+                if (string.Equals(path, "/missing", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("gone");
+                }
+
+                errorWasSetBeforeHomeListing |= viewModel.IsErrorStatus;
+                return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
+            }
+        };
+        SetBrowser(viewModel, browser);
+
+        await viewModel.NavigateInitialAsync("/missing");
+
+        Assert.False(errorWasSetBeforeHomeListing);
+        Assert.False(viewModel.IsErrorStatus);
+        Assert.Equal("/", viewModel.CurrentPath);
+    }
+
+    [Fact]
+    public async Task NavigateInitialAsync_BlankPreferredPath_LoadsHome()
+    {
+        FakeUiDispatcher dispatcher = new();
+        List<string?> requestedPaths = [];
+        FakeRemoteBrowser browser = new()
+        {
+            ListDirectoryHandler = (path, _) =>
+            {
+                requestedPaths.Add(path);
+                return Task.FromResult<IReadOnlyList<SftpFileInfo>>([]);
+            }
+        };
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetBrowser(viewModel, browser);
+
+        await viewModel.NavigateInitialAsync("   ");
+
+        Assert.Collection(requestedPaths, path => Assert.Equal("/", path));
+        Assert.Equal("/", viewModel.CurrentPath);
+        Assert.False(viewModel.IsErrorStatus);
+    }
+
+    [Fact]
     public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
     {
         FakeUiDispatcher dispatcher = new();

@@ -58,6 +58,9 @@ public partial class SessionPaneModel : ObservableObject, ISplitContent
     private string _connectionType = "";
 
     [ObservableProperty]
+    private string? _sftpReconnectPathHint;
+
+    [ObservableProperty]
     private string _title = "";
 
     [ObservableProperty]

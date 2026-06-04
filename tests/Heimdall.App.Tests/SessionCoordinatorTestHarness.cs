@@ -306,7 +306,8 @@ public sealed partial class SessionCoordinatorPreMountTests
             string displayName,
             string connectionType,
             ISessionResult session,
-            AppSettings? settings = null)
+            AppSettings? settings = null,
+            string? initialRemotePath = null)
         {
             CreateHostControlCalls++;
             return new object();

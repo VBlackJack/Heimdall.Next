@@ -396,6 +396,35 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             : LoadDirectoryCoreAsync(path.Trim(), pushToHistory: true);
     }
 
+    /// <summary>
+    /// Loads the first directory for a newly mounted SFTP view.
+    /// </summary>
+    public async Task NavigateInitialAsync(string? preferredPath)
+    {
+        string homePath = HomeDirectory;
+        string? targetPath = string.IsNullOrWhiteSpace(preferredPath)
+            ? null
+            : preferredPath.Trim();
+
+        if (!string.IsNullOrWhiteSpace(targetPath)
+            && !string.Equals(targetPath, homePath, StringComparison.Ordinal))
+        {
+            await LoadDirectoryCoreAsync(
+                targetPath,
+                pushToHistory: false,
+                suppressErrorStatus: true).ConfigureAwait(false);
+            if (string.Equals(CurrentPath, targetPath, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedSFTP initial path restore failed for '{targetPath}', falling back to '{homePath}'.");
+        }
+
+        await LoadDirectoryCoreAsync(homePath, pushToHistory: false).ConfigureAwait(false);
+    }
+
     [RelayCommand]
     private Task GoToPath() => NavigateToPath(PathBarText);
 
@@ -1368,7 +1397,10 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             or UnauthorizedAccessException;
     }
 
-    private async Task LoadDirectoryCoreAsync(string path, bool pushToHistory)
+    private async Task LoadDirectoryCoreAsync(
+        string path,
+        bool pushToHistory,
+        bool suppressErrorStatus = false)
     {
         CancellationTokenSource? lifecycleCts = _lifecycleCts;
         if (_disposed || _browser is null || !_browser.IsConnected || IsLoading)
@@ -1424,9 +1456,16 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Warn($"EmbeddedSFTP LoadDirectory failed: {ex.Message}");
-            await RunOnUiAsync(() =>
-                SetTransferError(ex));
+            if (suppressErrorStatus)
+            {
+                Core.Logging.FileLogger.Info($"EmbeddedSFTP LoadDirectory failed silently: {ex.Message}");
+            }
+            else
+            {
+                Core.Logging.FileLogger.Warn($"EmbeddedSFTP LoadDirectory failed: {ex.Message}");
+                await RunOnUiAsync(() =>
+                    SetTransferError(ex));
+            }
         }
         finally
         {
