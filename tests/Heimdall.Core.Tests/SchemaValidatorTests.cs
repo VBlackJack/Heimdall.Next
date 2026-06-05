@@ -450,6 +450,31 @@ public class SchemaValidatorTests
     }
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(3601)]
+    public void ValidateSettings_SshTmoutResetIntervalSeconds_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { SshTmoutResetIntervalSeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.SshTmoutResetIntervalSeconds)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3600)]
+    public void ValidateSettings_SshTmoutResetIntervalSeconds_BoundaryValues_AreValid(int value)
+    {
+        AppSettings settings = new() { SshTmoutResetIntervalSeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(21)]
     [InlineData(-1)]

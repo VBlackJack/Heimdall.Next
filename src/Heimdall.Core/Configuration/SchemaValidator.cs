@@ -130,6 +130,8 @@ public static partial class SchemaValidator
             nameof(settings.SshAutoReconnectSubsequentDelaySeconds));
         ValidateRange(errors, settings.SshConnectTimeExitWindowSeconds, 0, 600,
             nameof(settings.SshConnectTimeExitWindowSeconds));
+        ValidateRange(errors, settings.SshTmoutResetIntervalSeconds, 0, 3600,
+            nameof(settings.SshTmoutResetIntervalSeconds));
         ValidateRange(errors, settings.PlinkPortCheckIntervalMs, 500, 30000,
             nameof(settings.PlinkPortCheckIntervalMs));
         ValidateRange(errors, settings.PlinkKillGracePeriodMs, 500, 30000,

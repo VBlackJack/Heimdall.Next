@@ -283,7 +283,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         SessionTabViewModel sessionTab,
         string displayName,
         string endpoint,
-        int keepAliveIntervalSeconds = 240)
+        int keepAliveIntervalSeconds = AppSettings.DefaultSshTmoutResetIntervalSeconds)
     {
         InitializeConnecting(sessionTab, displayName, endpoint);
         AttachSession(session, keepAliveIntervalSeconds);
@@ -296,7 +296,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         Heimdall.Terminal.ITerminalSession terminalSession,
         SessionTabViewModel sessionTab,
         string displayName,
-        int keepAliveIntervalSeconds = 240,
+        int keepAliveIntervalSeconds = AppSettings.DefaultSshTmoutResetIntervalSeconds,
         string? endpoint = null,
         string connectedStatus = "Connected",
         bool autoReconnectOnProcessExit = true)
@@ -353,7 +353,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// </summary>
     public void AttachSession(
         SshShellSession session,
-        int keepAliveIntervalSeconds = 240)
+        int keepAliveIntervalSeconds = AppSettings.DefaultSshTmoutResetIntervalSeconds)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -391,7 +391,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// </summary>
     public void AttachTerminalSession(
         Heimdall.Terminal.ITerminalSession terminalSession,
-        int keepAliveIntervalSeconds = 240,
+        int keepAliveIntervalSeconds = AppSettings.DefaultSshTmoutResetIntervalSeconds,
         string connectedStatus = "Connected",
         bool autoReconnectOnProcessExit = true)
     {

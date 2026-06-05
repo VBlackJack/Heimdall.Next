@@ -102,7 +102,8 @@ public sealed class AppSettings
     public SshAgentPreference SshAgentPreference { get; set; } = SshAgentPreference.AutoOpenSshFirst;
     public bool SyncKnownHostsAtStartup { get; set; }
     public int AntiIdleIntervalSeconds { get; set; } = 60;
-    public int SshTmoutResetIntervalSeconds { get; set; } = 240;
+    public const int DefaultSshTmoutResetIntervalSeconds = 240;
+    public int SshTmoutResetIntervalSeconds { get; set; } = DefaultSshTmoutResetIntervalSeconds;
     public bool SshAutoReconnect { get; set; }
     public int SshAutoReconnectAttempts { get; set; } = 3;
     public int SshAutoReconnectFirstDelaySeconds { get; set; } = 2;

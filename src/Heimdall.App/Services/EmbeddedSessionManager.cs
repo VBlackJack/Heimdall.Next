@@ -130,7 +130,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         ArgumentNullException.ThrowIfNull(session);
 
         var antiIdleInterval = settings?.AntiIdleIntervalSeconds ?? 60;
-        var sshKeepAliveInterval = settings?.SshTmoutResetIntervalSeconds ?? 240;
+        var sshKeepAliveInterval = settings?.SshTmoutResetIntervalSeconds ?? AppSettings.DefaultSshTmoutResetIntervalSeconds;
 
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase) &&
             session is RdpSessionResult rdp)
@@ -673,7 +673,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 "AttachSshSession expects the tab's HostControl to be an EmbeddedSshView created by CreateConnectingSshHostControl.");
         }
 
-        var keepAlive = settings?.SshTmoutResetIntervalSeconds ?? 240;
+        var keepAlive = settings?.SshTmoutResetIntervalSeconds ?? AppSettings.DefaultSshTmoutResetIntervalSeconds;
         switch (sessionResult)
         {
             case SshSessionResult sshResult:
