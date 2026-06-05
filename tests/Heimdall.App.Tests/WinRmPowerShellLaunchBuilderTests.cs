@@ -99,6 +99,55 @@ public sealed class WinRmPowerShellLaunchBuilderTests
     }
 
     [Fact]
+    public void BuildEnterPSSessionCommand_WithSslAndSkipCertificateCheck_AddsSessionOption()
+    {
+        ServerProfileDto server = CreateServer();
+        server.WinRmSkipCertificateCheck = true;
+
+        string command = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
+            server,
+            credentialExpression: null);
+
+        Assert.Contains(
+            "-SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)",
+            command,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildEnterPSSessionCommand_WithSslAndStrictCertificateCheck_OmitsSessionOption()
+    {
+        ServerProfileDto server = CreateServer();
+        server.WinRmSkipCertificateCheck = false;
+
+        string command = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
+            server,
+            credentialExpression: null);
+
+        Assert.DoesNotContain("-SessionOption", command, StringComparison.Ordinal);
+        Assert.DoesNotContain("SkipCACheck", command, StringComparison.Ordinal);
+        Assert.DoesNotContain("SkipCNCheck", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildEnterPSSessionCommand_WithHttpAndSkipCertificateCheck_OmitsSessionOption()
+    {
+        ServerProfileDto server = CreateServer();
+        server.WinRmUseSsl = false;
+        server.WinRmPort = DefaultPorts.WinRmHttp;
+        server.WinRmSkipCertificateCheck = true;
+
+        string command = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(
+            server,
+            credentialExpression: null);
+
+        Assert.DoesNotContain("-UseSSL", command, StringComparison.Ordinal);
+        Assert.DoesNotContain("-SessionOption", command, StringComparison.Ordinal);
+        Assert.DoesNotContain("SkipCACheck", command, StringComparison.Ordinal);
+        Assert.DoesNotContain("SkipCNCheck", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void QuoteCommandLineArgument_WithPath_DoesNotDoubleBackslashes()
     {
         string quoted = WinRmPowerShellLaunchBuilder.QuoteCommandLineArgument(

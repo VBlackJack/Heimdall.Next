@@ -1861,6 +1861,7 @@
   "ErrorWinRmPreflightUnreachable": "L'h\u00f4te WinRM '{0}' est injoignable sur le port {1} (connexion refus\u00e9e ou d\u00e9lai d\u00e9pass\u00e9).",
   "ErrorWinRmPreflightTlsFailed": "La connexion TLS WinRM vers '{0}' sur le port {1} a \u00e9chou\u00e9 (certificat non approuv\u00e9 ou erreur de n\u00e9gociation).",
   "WarnWinRmGatewayKerberos": "WinRM via une passerelle : Kerberos indisponible, l'authentification bascule sur NTLM.",
+  "WarnWinRmSkipCertificateCheck": "La validation du certificat TLS WinRM a \u00e9t\u00e9 ignor\u00e9e pour cette session.",
 
   "SessionDisconnect": "Deconnecter",
   "SessionAspectStretch": "Étirer",
@@ -2171,6 +2172,8 @@
   "ServerDialogWinRmIdentityMode": "Identit\u00e9",
   "ServerDialogWinRmIdentityCurrentUser": "Identit\u00e9 Windows courante",
   "ServerDialogWinRmIdentityCredential": "Identifiant stock\u00e9",
+  "ServerDialogWinRmSkipCertCheck": "Ignorer la validation du certificat (non s\u00fbr)",
+  "ServerDialogWinRmSkipCertCheckHint": "D\u00e9sactive la v\u00e9rification du certificat TLS. \u00c0 utiliser uniquement pour des h\u00f4tes internes de confiance avec certificats auto-sign\u00e9s.",
   "ServerDialogWinRmUseSsl": "Utiliser SSL",
   "ServerDialogWinRmUseSslHint": "Utilise WinRM en HTTPS, normalement sur le port 5986. HTTP utilise normalement le port 5985.",
   "ServerDialogWinRmUseSslGatewayHint": "SSL WinRM est d\u00e9sactiv\u00e9 lorsqu'une passerelle SSH est s\u00e9lectionn\u00e9e. WinRM via passerelle utilise HTTP sur le tunnel SSH local.",

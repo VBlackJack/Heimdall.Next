@@ -126,6 +126,12 @@ internal sealed class WinRmPowerShellLaunchBuilder
             parts.Add("-UseSSL");
         }
 
+        if (server.WinRmUseSsl && server.WinRmSkipCertificateCheck)
+        {
+            parts.Add("-SessionOption");
+            parts.Add("(New-PSSessionOption -SkipCACheck -SkipCNCheck)");
+        }
+
         if (!string.IsNullOrWhiteSpace(credentialExpression))
         {
             parts.Add("-Credential");

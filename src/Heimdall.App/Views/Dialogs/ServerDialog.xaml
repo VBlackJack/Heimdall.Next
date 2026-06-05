@@ -663,6 +663,16 @@
                                                           Visibility="{Binding IsWinRmConnection, Converter={StaticResource BoolToVisibilityConverter}}"
                                                           Style="{StaticResource DialogFormCheckBoxStyle}"
                                                           Margin="0,8,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_WinRmSkipCertCb"
+                                                          TabIndex="5"
+                                                          Content="{loc:Translate ServerDialogWinRmSkipCertCheck}"
+                                                          AutomationProperties.Name="{loc:Translate ServerDialogWinRmSkipCertCheck}"
+                                                          AutomationProperties.HelpText="{loc:Translate ServerDialogWinRmSkipCertCheckHint}"
+                                                          IsChecked="{Binding WinRmSkipCertificateCheck}"
+                                                          IsEnabled="{Binding CanSkipWinRmCertificate}"
+                                                          Visibility="{Binding IsWinRmConnection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                          Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                          Margin="0,8,0,0"/>
                                             </StackPanel>
                                             <!-- Inline validation: Server address -->
                                             <TextBlock Grid.Row="5" Grid.Column="0"
@@ -696,6 +706,12 @@
                                                    Style="{StaticResource DialogHintTextStyle}"
                                                    Margin="0,4,0,0"
                                                    TextWrapping="Wrap"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWinRmSkipCertCheckHint}"
+                                                   AutomationProperties.Name="{loc:Translate ServerDialogWinRmSkipCertCheckHint}"
+                                                   Visibility="{Binding IsWinRmConnection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                   Style="{StaticResource DialogHintTextStyle}"
+                                                   Margin="0,4,0,0"
+                                                   TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
 
@@ -703,7 +719,7 @@
                                 <Border Style="{StaticResource DialogSectionCardStyle}">
                                     <StackPanel>
                                         <TextBlock x:Name="DlgSrv_ProjectLabel" Style="{StaticResource LabelStyle}"/>
-                                        <ComboBox x:Name="DlgSrv_ProjectCmb" TabIndex="5"
+                                        <ComboBox x:Name="DlgSrv_ProjectCmb" TabIndex="6"
                                                   AutomationProperties.Name="{loc:Translate ServerDialogLabelProject}"
                                                   ItemsSource="{Binding AvailableProjects}"
                                                   SelectedValue="{Binding SelectedProjectId}"

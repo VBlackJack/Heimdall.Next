@@ -101,6 +101,19 @@ public sealed class ServerDialogWinRmTests
     }
 
     [Fact]
+    public void WinRmSkipCertificateCheck_ClearsWhenSslIsDisabled()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel { ConnectionType = "WINRM" };
+        vm.WinRmUseSsl = true;
+        vm.WinRmSkipCertificateCheck = true;
+
+        vm.WinRmUseSsl = false;
+
+        Assert.False(vm.WinRmSkipCertificateCheck);
+        Assert.False(vm.CanSkipWinRmCertificate);
+    }
+
+    [Fact]
     public void FromDto_WinRmGatewayWithSsl_ClearsUnsupportedSsl()
     {
         ServerDialogViewModel vm = ServerDialogViewModel.FromDto(new ServerProfileDto
@@ -141,6 +154,7 @@ public sealed class ServerDialogWinRmTests
             ConnectionType = "WINRM",
             WinRmPort = DefaultPorts.WinRmHttps,
             WinRmUseSsl = true,
+            WinRmSkipCertificateCheck = true,
             WinRmIdentityMode = WinRmIdentityMode.Credential,
             WinRmUsername = @"CONTOSO\admin",
             ExistingWinRmPasswordEncrypted = "encrypted-password"
@@ -151,6 +165,7 @@ public sealed class ServerDialogWinRmTests
         Assert.Equal("WINRM", dto.ConnectionType);
         Assert.Equal(DefaultPorts.WinRmHttps, dto.WinRmPort);
         Assert.True(dto.WinRmUseSsl);
+        Assert.True(dto.WinRmSkipCertificateCheck);
         Assert.Equal(WinRmIdentityMode.Credential, dto.WinRmIdentityMode);
         Assert.Equal(@"CONTOSO\admin", dto.WinRmUsername);
         Assert.Equal("encrypted-password", dto.WinRmPasswordEncrypted);
@@ -159,6 +174,8 @@ public sealed class ServerDialogWinRmTests
 
         Assert.Equal(DefaultPorts.WinRmHttps, roundTripped.WinRmPort);
         Assert.True(roundTripped.WinRmUseSsl);
+        Assert.True(roundTripped.WinRmSkipCertificateCheck);
+        Assert.True(roundTripped.CanSkipWinRmCertificate);
         Assert.True(roundTripped.IsWinRmCredentialIdentity);
         Assert.Equal(@"CONTOSO\admin", roundTripped.WinRmUsername);
         Assert.Equal("encrypted-password", roundTripped.ExistingWinRmPasswordEncrypted);

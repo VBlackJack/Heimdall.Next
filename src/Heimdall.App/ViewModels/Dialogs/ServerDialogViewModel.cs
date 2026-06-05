@@ -82,6 +82,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             OnPropertyChanged(nameof(SessionKindLabel));
             OnPropertyChanged(nameof(GatewayToServerLabel));
             OnPropertyChanged(nameof(WinRmUseSslHelpText));
+            OnPropertyChanged(nameof(CanSkipWinRmCertificate));
             OnPropertyChanged(nameof(RdpResizeEnableDelayPlaceholder));
             RefreshAvailableMonitors();
             RefreshAgentChipIfNeeded();
@@ -257,6 +258,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _winRmUseSsl;
 
     [ObservableProperty]
+    private bool _winRmSkipCertificateCheck;
+
+    [ObservableProperty]
     private WinRmIdentityMode _winRmIdentityMode = WinRmIdentityMode.CurrentUser;
 
     public string? ExistingWinRmPasswordEncrypted { get; set; }
@@ -384,6 +388,11 @@ public partial class ServerDialogViewModel : ObservableValidator
             return;
         }
 
+        if (!value)
+        {
+            WinRmSkipCertificateCheck = false;
+        }
+
         if (!_isInitializing)
         {
             if (value && WinRmPort == DefaultPorts.WinRmHttp)
@@ -396,6 +405,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             }
         }
 
+        OnPropertyChanged(nameof(CanSkipWinRmCertificate));
         RaisePortDerivedStateChanged();
     }
 
@@ -1001,6 +1011,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(AvailableProjects),
         nameof(ConnectionTypeDisplayName),
         nameof(CanUseWinRmSsl),
+        nameof(CanSkipWinRmCertificate),
         nameof(WinRmUseSslHelpText),
         nameof(SessionKindLabel),
         nameof(GatewayToServerLabel),
@@ -1142,6 +1153,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         : ConnectionType;
 
     public bool CanUseWinRmSsl => IsWinRmConnection && !UsesGateway;
+
+    public bool CanSkipWinRmCertificate => IsWinRmConnection && WinRmUseSsl;
 
     public string WinRmUseSslHelpText => IsWinRmConnection && UsesGateway
         ? L("ServerDialogWinRmUseSslGatewayHint")
@@ -1650,6 +1663,7 @@ public partial class ServerDialogViewModel : ObservableValidator
                 ? ExistingWinRmPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(WinRmPassword),
             WinRmUseSsl = WinRmUseSsl,
+            WinRmSkipCertificateCheck = WinRmSkipCertificateCheck,
             WinRmIdentityMode = WinRmIdentityMode,
             SshUsername = string.IsNullOrWhiteSpace(SshUsername) ? null : SshUsername,
             SshPort = SshPort,
@@ -1789,6 +1803,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.WinRmUsername = dto.WinRmUsername ?? "";
         vm.ExistingWinRmPasswordEncrypted = dto.WinRmPasswordEncrypted;
         vm.WinRmUseSsl = dto.WinRmUseSsl;
+        vm.WinRmSkipCertificateCheck = dto.WinRmSkipCertificateCheck;
         vm.WinRmIdentityMode = dto.WinRmIdentityMode;
         vm.SshUsername = dto.SshUsername ?? "";
         vm.SshPort = dto.SshPort;
@@ -2109,6 +2124,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsWinRmCredentialIdentity));
         OnPropertyChanged(nameof(ConnectionTypeDisplayName));
         OnPropertyChanged(nameof(CanUseWinRmSsl));
+        OnPropertyChanged(nameof(CanSkipWinRmCertificate));
         OnPropertyChanged(nameof(WinRmUseSslHelpText));
         OnPropertyChanged(nameof(IsLocalConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));

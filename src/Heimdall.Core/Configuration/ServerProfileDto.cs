@@ -55,6 +55,7 @@ public sealed class ServerProfileDto
     public string? WinRmUsername { get; set; }
     public string? WinRmPasswordEncrypted { get; set; }
     public bool WinRmUseSsl { get; set; }
+    public bool WinRmSkipCertificateCheck { get; set; }
 
     [JsonConverter(typeof(JsonStringEnumConverter<WinRmIdentityMode>))]
     public WinRmIdentityMode WinRmIdentityMode { get; set; } = WinRmIdentityMode.CurrentUser;

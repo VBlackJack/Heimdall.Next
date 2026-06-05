@@ -131,6 +131,53 @@ public sealed class WinRmHandlerGatewayTests
 
         Assert.True(result.Success);
         Assert.Equal(1, preflight.TcpProbeCount);
+        Assert.Null(result.Warning);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_DirectHttpsProfileWithSkipCertificateCheck_ReturnsWarning()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = false
+        };
+        CountingWinRmPreflight preflight = new CountingWinRmPreflight();
+        CapturingTerminalSession terminalSession = new CapturingTerminalSession();
+        WinRmHandler handler = CreateHandler(tunnelService, preflight, terminalSession);
+        ServerProfileDto server = CreateDirectHttpsServer(skipCertificateCheck: true);
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("WarnWinRmSkipCertificateCheck", result.Warning);
+        Assert.Equal(1, preflight.TlsProbeCount);
+        Assert.True(preflight.LastSkipCertValidation);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_DirectHttpsProfileWithStrictCertificateCheck_DoesNotReturnSkipWarning()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService
+        {
+            UsesTunnel = false
+        };
+        CountingWinRmPreflight preflight = new CountingWinRmPreflight();
+        CapturingTerminalSession terminalSession = new CapturingTerminalSession();
+        WinRmHandler handler = CreateHandler(tunnelService, preflight, terminalSession);
+        ServerProfileDto server = CreateDirectHttpsServer(skipCertificateCheck: false);
+
+        ConnectionResult result = await handler.ConnectAsync(
+            server,
+            new AppSettings(),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Null(result.Warning);
+        Assert.Equal(1, preflight.TlsProbeCount);
+        Assert.False(preflight.LastSkipCertValidation);
     }
 
     [Fact]
@@ -256,13 +303,26 @@ public sealed class WinRmHandlerGatewayTests
         };
     }
 
+    private static ServerProfileDto CreateDirectHttpsServer(bool skipCertificateCheck)
+    {
+        ServerProfileDto server = CreateDirectServer();
+        server.WinRmPort = DefaultPorts.WinRmHttps;
+        server.WinRmUseSsl = true;
+        server.WinRmSkipCertificateCheck = skipCertificateCheck;
+        return server;
+    }
+
     private sealed class CountingWinRmPreflight
     {
         public int TcpProbeCount { get; private set; }
+        public int TlsProbeCount { get; private set; }
+        public bool LastSkipCertValidation { get; private set; }
 
         public WinRmPreflight Create()
         {
-            return new WinRmPreflight(tcpProbe: ProbeTcpAsync);
+            return new WinRmPreflight(
+                tcpProbe: ProbeTcpAsync,
+                tlsProbe: ProbeTlsAsync);
         }
 
         private Task ProbeTcpAsync(
@@ -272,6 +332,18 @@ public sealed class WinRmHandlerGatewayTests
             CancellationToken token)
         {
             TcpProbeCount++;
+            return Task.CompletedTask;
+        }
+
+        private Task ProbeTlsAsync(
+            string host,
+            int port,
+            TimeSpan timeout,
+            bool skipCertValidation,
+            CancellationToken token)
+        {
+            TlsProbeCount++;
+            LastSkipCertValidation = skipCertValidation;
             return Task.CompletedTask;
         }
     }

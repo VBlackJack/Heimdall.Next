@@ -518,6 +518,7 @@ public partial class ServerDialog : Window
         DlgSrv_WinRmIdentityCurrent.Content = _localizer["ServerDialogWinRmIdentityCurrentUser"];
         DlgSrv_WinRmIdentityCredential.Content = _localizer["ServerDialogWinRmIdentityCredential"];
         DlgSrv_WinRmSslCb.Content = _localizer["ServerDialogWinRmUseSsl"];
+        DlgSrv_WinRmSkipCertCb.Content = _localizer["ServerDialogWinRmSkipCertCheck"];
         DlgSrv_BasicWinRmUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
         DlgSrv_BasicWinRmPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
         System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_WinRmIdentityCombo, DlgSrv_WinRmIdentityLabel);

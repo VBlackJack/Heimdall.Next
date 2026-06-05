@@ -27,11 +27,11 @@ internal sealed class WinRmPreflight
 
     private readonly TimeSpan _probeTimeout;
     private readonly Func<string, int, TimeSpan, CancellationToken, Task> _tcpProbe;
-    private readonly Func<string, int, TimeSpan, CancellationToken, Task> _tlsProbe;
+    private readonly Func<string, int, TimeSpan, bool, CancellationToken, Task> _tlsProbe;
 
     public WinRmPreflight(
         Func<string, int, TimeSpan, CancellationToken, Task>? tcpProbe = null,
-        Func<string, int, TimeSpan, CancellationToken, Task>? tlsProbe = null,
+        Func<string, int, TimeSpan, bool, CancellationToken, Task>? tlsProbe = null,
         TimeSpan? probeTimeout = null)
     {
         _probeTimeout = probeTimeout ?? TimeSpan.FromMilliseconds(DefaultProbeTimeoutMs);
@@ -55,7 +55,8 @@ internal sealed class WinRmPreflight
         await RunTcpProbeAsync(host, port, ct).ConfigureAwait(false);
         if (server.WinRmUseSsl)
         {
-            await RunTlsProbeAsync(host, port, ct).ConfigureAwait(false);
+            await RunTlsProbeAsync(host, port, server.WinRmSkipCertificateCheck, ct)
+                .ConfigureAwait(false);
         }
     }
 
@@ -83,11 +84,16 @@ internal sealed class WinRmPreflight
         }
     }
 
-    private async Task RunTlsProbeAsync(string host, int port, CancellationToken ct)
+    private async Task RunTlsProbeAsync(
+        string host,
+        int port,
+        bool skipCertValidation,
+        CancellationToken ct)
     {
         try
         {
-            await _tlsProbe(host, port, _probeTimeout, ct).ConfigureAwait(false);
+            await _tlsProbe(host, port, _probeTimeout, skipCertValidation, ct)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

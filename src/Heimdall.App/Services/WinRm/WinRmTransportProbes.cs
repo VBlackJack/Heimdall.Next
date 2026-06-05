@@ -36,6 +36,7 @@ internal static class WinRmTransportProbes
         string host,
         int port,
         TimeSpan timeout,
+        bool skipCertValidation,
         CancellationToken ct)
     {
         using TcpClient tcpClient = new TcpClient();
@@ -44,7 +45,12 @@ internal static class WinRmTransportProbes
         using SslStream sslStream = new SslStream(
             tcpClient.GetStream(),
             leaveInnerStreamOpen: false,
-            ValidateServerCertificate);
+            (sender, certificate, chain, sslPolicyErrors) => ValidateServerCertificate(
+                sender,
+                certificate,
+                chain,
+                sslPolicyErrors,
+                skipCertValidation));
         SslClientAuthenticationOptions options = new SslClientAuthenticationOptions
         {
             TargetHost = host,
@@ -82,17 +88,37 @@ internal static class WinRmTransportProbes
         }
     }
 
+    public static bool ShouldAcceptServerCertificate(
+        SslPolicyErrors sslPolicyErrors,
+        bool skipCertValidation)
+    {
+        return skipCertValidation || sslPolicyErrors == SslPolicyErrors.None;
+    }
+
     private static bool ValidateServerCertificate(
         object sender,
         X509Certificate? certificate,
         X509Chain? chain,
-        SslPolicyErrors sslPolicyErrors)
+        SslPolicyErrors sslPolicyErrors,
+        bool skipCertValidation)
     {
-        if (sslPolicyErrors != SslPolicyErrors.None)
+        bool accepted = ShouldAcceptServerCertificate(sslPolicyErrors, skipCertValidation);
+        if (sslPolicyErrors == SslPolicyErrors.None)
         {
-            Core.Logging.FileLogger.Warn($"WinRM TLS certificate validation failed: {sslPolicyErrors}");
+            return accepted;
         }
 
-        return sslPolicyErrors == SslPolicyErrors.None;
+        if (accepted)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"WinRM TLS certificate validation skipped despite errors: {sslPolicyErrors}");
+        }
+        else
+        {
+            Core.Logging.FileLogger.Warn(
+                $"WinRM TLS certificate validation failed: {sslPolicyErrors}");
+        }
+
+        return accepted;
     }
 }

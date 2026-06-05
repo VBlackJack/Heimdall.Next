@@ -70,6 +70,7 @@ public class ServerProfileDtoTests
 
         Assert.Equal(5985, dto.WinRmPort);
         Assert.False(dto.WinRmUseSsl);
+        Assert.False(dto.WinRmSkipCertificateCheck);
         Assert.Equal(WinRmIdentityMode.CurrentUser, dto.WinRmIdentityMode);
         Assert.Null(dto.WinRmUsername);
         Assert.Null(dto.WinRmPasswordEncrypted);
@@ -165,6 +166,7 @@ public class ServerProfileDtoTests
             WinRmUsername = @"CORP\operator",
             WinRmPasswordEncrypted = "encrypted-winrm-password",
             WinRmUseSsl = true,
+            WinRmSkipCertificateCheck = true,
             WinRmIdentityMode = WinRmIdentityMode.Credential,
             SshUsername = "deploy",
             SshPort = 2222,
@@ -206,6 +208,7 @@ public class ServerProfileDtoTests
         Assert.Equal(original.WinRmUsername, deserialized.WinRmUsername);
         Assert.Equal(original.WinRmPasswordEncrypted, deserialized.WinRmPasswordEncrypted);
         Assert.Equal(original.WinRmUseSsl, deserialized.WinRmUseSsl);
+        Assert.Equal(original.WinRmSkipCertificateCheck, deserialized.WinRmSkipCertificateCheck);
         Assert.Equal(original.WinRmIdentityMode, deserialized.WinRmIdentityMode);
         Assert.Equal(original.SshUsername, deserialized.SshUsername);
         Assert.Equal(original.SshPort, deserialized.SshPort);
@@ -356,10 +359,31 @@ public class ServerProfileDtoTests
         Assert.Equal("Embedded", dto.RdpMode);
         Assert.Equal("Embedded", dto.SshMode);
         Assert.False(dto.LocalShellElevated);
+        Assert.False(dto.WinRmSkipCertificateCheck);
         Assert.Equal(RdpResolutionMode.FitWindow, dto.RdpResolutionMode);
         Assert.False(dto.HasRdpResolutionModeField);
         Assert.True(dto.RdpInitialSmartSizing);
         Assert.Null(dto.RdpResizeEnableDelayMs);
+    }
+
+    [Fact]
+    public void JsonDeserialization_WinRmProfileWithoutSkipCertificateCheck_DefaultsFalse()
+    {
+        var json = """
+        {
+            "ConnectionType": "WINRM",
+            "DisplayName": "WinRM Server",
+            "RemoteServer": "server01.contoso.local",
+            "WinRmUseSsl": true
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<ServerProfileDto>(json);
+
+        Assert.NotNull(dto);
+        Assert.Equal("WINRM", dto.ConnectionType);
+        Assert.True(dto.WinRmUseSsl);
+        Assert.False(dto.WinRmSkipCertificateCheck);
     }
 
     [Fact]

@@ -120,6 +120,12 @@ internal sealed class WinRmHandler : IProtocolHandler
                         "ErrorWinRmSslGatewayUnsupported"));
             }
 
+            if (server.WinRmUseSsl && server.WinRmSkipCertificateCheck)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"WinRM TLS certificate validation is being skipped for host '{server.RemoteServer}' protocol=WINRM");
+            }
+
             if (!usesTunnel)
             {
                 await _preflight.EnsureReachableAsync(server, ct).ConfigureAwait(false);
@@ -151,9 +157,16 @@ internal sealed class WinRmHandler : IProtocolHandler
 
             _connectionSm.TryTransition(server.Id, ConnectionState.RemoteSessionHandedOff);
             ScheduleBootstrapCleanupOnExit(session, bootstrap, bootstrapScriptPath);
-            string? warning = usesTunnel && server.WinRmIdentityMode == WinRmIdentityMode.CurrentUser
-                ? _localizer["WarnWinRmGatewayKerberos"]
-                : null;
+            string? warning = null;
+            if (server.WinRmUseSsl && server.WinRmSkipCertificateCheck)
+            {
+                warning = _localizer["WarnWinRmSkipCertificateCheck"];
+            }
+            else if (usesTunnel && server.WinRmIdentityMode == WinRmIdentityMode.CurrentUser)
+            {
+                warning = _localizer["WarnWinRmGatewayKerberos"];
+            }
+
             return new ConnectionResult(
                 true,
                 null,

@@ -1861,6 +1861,7 @@
   "ErrorWinRmPreflightUnreachable": "WinRM host '{0}' is unreachable on port {1} (connection refused or timed out).",
   "ErrorWinRmPreflightTlsFailed": "The WinRM TLS connection to '{0}' on port {1} failed (untrusted certificate or handshake error).",
   "WarnWinRmGatewayKerberos": "WinRM over a gateway: Kerberos is unavailable, authentication falls back to NTLM.",
+  "WarnWinRmSkipCertificateCheck": "WinRM TLS certificate validation was skipped for this session.",
 
   "SessionDisconnect": "Disconnect",
   "SessionAspectStretch": "Stretch",
@@ -2171,6 +2172,8 @@
   "ServerDialogWinRmIdentityMode": "Identity",
   "ServerDialogWinRmIdentityCurrentUser": "Current Windows identity",
   "ServerDialogWinRmIdentityCredential": "Stored credential",
+  "ServerDialogWinRmSkipCertCheck": "Skip certificate validation (insecure)",
+  "ServerDialogWinRmSkipCertCheckHint": "Disables TLS certificate verification. Use only for trusted internal hosts with self-signed certificates.",
   "ServerDialogWinRmUseSsl": "Use SSL",
   "ServerDialogWinRmUseSslHint": "Uses WinRM over HTTPS, normally port 5986. HTTP normally uses port 5985.",
   "ServerDialogWinRmUseSslGatewayHint": "WinRM SSL is disabled when an SSH gateway is selected. Gateway-routed WinRM uses HTTP over the local SSH tunnel.",

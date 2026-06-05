@@ -76,8 +76,8 @@ public sealed class WinRmPreflightTests
     public async Task EnsureReachableAsync_NonSsl_SkipsTlsProbe()
     {
         bool tlsInvoked = false;
-        Func<string, int, TimeSpan, CancellationToken, Task> tlsProbe =
-            (string host, int port, TimeSpan timeout, CancellationToken token) =>
+        Func<string, int, TimeSpan, bool, CancellationToken, Task> tlsProbe =
+            (string host, int port, TimeSpan timeout, bool skipCertValidation, CancellationToken token) =>
             {
                 tlsInvoked = true;
                 return Task.CompletedTask;
@@ -89,6 +89,27 @@ public sealed class WinRmPreflightTests
         await preflight.EnsureReachableAsync(CreateServer(useSsl: false), CancellationToken.None);
 
         Assert.False(tlsInvoked);
+    }
+
+    [Fact]
+    public async Task EnsureReachableAsync_Ssl_PassesSkipCertificateCheckToTlsProbe()
+    {
+        bool? observedSkipCertValidation = null;
+        Func<string, int, TimeSpan, bool, CancellationToken, Task> tlsProbe =
+            (string host, int port, TimeSpan timeout, bool skipCertValidation, CancellationToken token) =>
+            {
+                observedSkipCertValidation = skipCertValidation;
+                return Task.CompletedTask;
+            };
+        WinRmPreflight preflight = new WinRmPreflight(
+            tcpProbe: SucceedProbeAsync,
+            tlsProbe: tlsProbe);
+        ServerProfileDto server = CreateServer(useSsl: true);
+        server.WinRmSkipCertificateCheck = true;
+
+        await preflight.EnsureReachableAsync(server, CancellationToken.None);
+
+        Assert.True(observedSkipCertValidation);
     }
 
     [Fact]
@@ -129,6 +150,7 @@ public sealed class WinRmPreflightTests
         string host,
         int port,
         TimeSpan timeout,
+        bool skipCertValidation,
         CancellationToken token)
     {
         throw new AuthenticationException("Authentication failed.");
