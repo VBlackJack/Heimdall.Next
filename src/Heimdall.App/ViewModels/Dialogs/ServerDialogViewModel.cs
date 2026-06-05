@@ -880,6 +880,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _rdpNla = true;
 
     [ObservableProperty]
+    private bool _rdpStrictServerAuthentication;
+
+    [ObservableProperty]
     private string _rdpAspectRatio = "Stretch";
 
     [ObservableProperty]
@@ -1741,6 +1744,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpInitialSmartSizing = RdpInitialSmartSizing,
             RdpResizeEnableDelayMs = RdpResizeEnableDelayMs,
             RdpNla = RdpNla,
+            RdpStrictServerAuthentication = RdpStrictServerAuthentication,
             RdpAspectRatio = RdpAspectRatio,
             RdpColorDepth = RdpColorDepth,
             RdpBitmapCaching = RdpBitmapCaching,
@@ -1864,6 +1868,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RefreshAvailableMonitors(dto.RdpSelectedMonitorIndices);
         vm.RdpDynamicResolution = dto.RdpDynamicResolution;
         vm.RdpNla = dto.RdpNla;
+        vm.RdpStrictServerAuthentication = dto.RdpStrictServerAuthentication;
         vm.RdpAspectRatio = dto.RdpAspectRatio;
         vm.RdpColorDepth = dto.RdpColorDepth;
         vm.RdpBitmapCaching = dto.RdpBitmapCaching;

@@ -1804,7 +1804,9 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         adv.AudioCaptureRedirectionMode = _pendingRedirections.AudioCapture ? 1 : 0;
 
         // NLA - shared resolver keeps the embedded host in parity with the .rdp generator
-        RdpAuthenticationSettings auth = RdpAuthenticationResolver.Resolve(_pendingRedirections.Nla);
+        RdpAuthenticationSettings auth = RdpAuthenticationResolver.Resolve(
+            _pendingRedirections.Nla,
+            _pendingRedirections.StrictServerAuthentication);
         adv.EnableCredSspSupport = auth.EnableCredSspSupport;
         adv.AuthenticationLevel = auth.AuthenticationLevel;
 

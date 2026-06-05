@@ -57,6 +57,9 @@ public sealed class RdpRedirectionOptions
     /// <summary>Require Network Level Authentication before connecting.</summary>
     public bool Nla { get; set; } = true;
 
+    /// <summary>Fail closed when the RDP server identity cannot be authenticated.</summary>
+    public bool StrictServerAuthentication { get; set; }
+
     /// <summary>Enable bitmap caching for improved rendering performance.</summary>
     public bool BitmapCaching { get; set; } = true;
 

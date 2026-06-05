@@ -165,8 +165,28 @@ public sealed class RdpImportServiceTests
         Assert.True(candidate.RdpMultiMonitor);
         Assert.Equal(24, candidate.RdpColorDepth);
         Assert.True(candidate.RdpNla);
+        Assert.False(candidate.RdpStrictServerAuthentication);
         Assert.Equal("rdgw.example.com", candidate.RdpGateway);
         Assert.Equal(2, candidate.RdpAudioMode);
+    }
+
+    [Fact]
+    public async Task PreviewAsync_MapsAuthenticationLevel1ToStrictServerAuthentication()
+    {
+        using RdpImportFixture fixture = new RdpImportFixture();
+        string path = await fixture.WriteRdpAsync(
+            "StrictAuth.rdp",
+            """
+            full address:s:rdp.example.com
+            authentication level:i:1
+            """
+        );
+
+        RdpImportPreview preview = await fixture.Service.PreviewAsync([path], CancellationToken.None);
+        ServerProfileDto candidate = preview.Entries[0].Candidate;
+
+        Assert.True(candidate.RdpNla);
+        Assert.True(candidate.RdpStrictServerAuthentication);
     }
 
     [Fact]

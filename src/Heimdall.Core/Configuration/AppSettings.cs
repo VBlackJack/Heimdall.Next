@@ -120,6 +120,7 @@ public sealed class AppSettings
     public bool RdpDefaultMultiMonitor { get; set; }
     public bool RdpDefaultDynamicResolution { get; set; } = true;
     public bool RdpDefaultNla { get; set; } = true;
+    public bool RdpDefaultStrictServerAuthentication { get; set; }
     public int RdpDefaultColorDepth { get; set; } = 32;
     public bool RdpDefaultBitmapCaching { get; set; } = true;
     public bool RdpDefaultCompression { get; set; } = true;

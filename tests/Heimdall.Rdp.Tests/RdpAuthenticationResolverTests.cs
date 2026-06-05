@@ -30,9 +30,31 @@ public sealed class RdpAuthenticationResolverTests
     }
 
     [Fact]
+    public void Resolve_WithNlaEnabledAndStrictServerAuthentication_ReturnsAuthLevel1AndCredSsp()
+    {
+        RdpAuthenticationSettings settings = RdpAuthenticationResolver.Resolve(
+            nlaEnabled: true,
+            strictServerAuthentication: true);
+
+        Assert.Equal(1, settings.AuthenticationLevel);
+        Assert.True(settings.EnableCredSspSupport);
+    }
+
+    [Fact]
     public void Resolve_WithNlaDisabled_ReturnsAuthLevel0AndDisablesCredSsp()
     {
         RdpAuthenticationSettings settings = RdpAuthenticationResolver.Resolve(false);
+
+        Assert.Equal(0, settings.AuthenticationLevel);
+        Assert.False(settings.EnableCredSspSupport);
+    }
+
+    [Fact]
+    public void Resolve_WithNlaDisabledAndStrictServerAuthentication_ReturnsAuthLevel0()
+    {
+        RdpAuthenticationSettings settings = RdpAuthenticationResolver.Resolve(
+            nlaEnabled: false,
+            strictServerAuthentication: true);
 
         Assert.Equal(0, settings.AuthenticationLevel);
         Assert.False(settings.EnableCredSspSupport);

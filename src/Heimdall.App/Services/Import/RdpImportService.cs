@@ -299,6 +299,7 @@ public sealed class RdpImportService(IConfigManager configManager, LocalizationM
         if (schema.AuthenticationLevel.HasValue)
         {
             candidate.RdpNla = schema.AuthenticationLevel.Value > 0;
+            candidate.RdpStrictServerAuthentication = schema.AuthenticationLevel.Value == 1;
         }
 
         if (!string.IsNullOrWhiteSpace(schema.GatewayHostname)
@@ -436,6 +437,7 @@ public sealed class RdpImportService(IConfigManager configManager, LocalizationM
             RdpSelectedMonitorIndices = [.. candidate.RdpSelectedMonitorIndices],
             RdpDynamicResolution = candidate.RdpDynamicResolution,
             RdpNla = candidate.RdpNla,
+            RdpStrictServerAuthentication = candidate.RdpStrictServerAuthentication,
             RdpColorDepth = candidate.RdpColorDepth,
             RdpBitmapCaching = candidate.RdpBitmapCaching,
             RdpCompression = candidate.RdpCompression,
@@ -487,6 +489,7 @@ public sealed class RdpImportService(IConfigManager configManager, LocalizationM
             RdpSelectedMonitorIndices = [.. candidate.RdpSelectedMonitorIndices],
             RdpDynamicResolution = candidate.RdpDynamicResolution,
             RdpNla = candidate.RdpNla,
+            RdpStrictServerAuthentication = candidate.RdpStrictServerAuthentication,
             RdpColorDepth = candidate.RdpColorDepth,
             RdpBitmapCaching = candidate.RdpBitmapCaching,
             RdpCompression = candidate.RdpCompression,

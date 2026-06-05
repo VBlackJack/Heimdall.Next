@@ -193,6 +193,7 @@ public sealed class ServerProfileDto
     public int[] RdpSelectedMonitorIndices { get; set; } = [];
     public bool RdpDynamicResolution { get; set; } = true;
     public bool RdpNla { get; set; } = true;
+    public bool RdpStrictServerAuthentication { get; set; }
     public int RdpColorDepth { get; set; } = 32;
     public bool RdpBitmapCaching { get; set; } = true;
     public bool RdpCompression { get; set; } = true;

@@ -337,28 +337,47 @@ public class RdpFileGeneratorTests
     [Fact]
     public void Generate_NlaEnabled_AuthLevel2()
     {
-        var options = new RdpFileOptions
+        RdpFileOptions options = new RdpFileOptions
         {
             Host = "srv",
             Redirections = new RdpRedirectionOptions { Nla = true }
         };
 
-        var content = RdpFileGenerator.Generate(options);
+        string content = RdpFileGenerator.Generate(options);
 
         Assert.Contains("authentication level:i:2", content);
         Assert.Contains("enablecredsspsupport:i:1", content);
     }
 
     [Fact]
+    public void Generate_NlaEnabledStrictServerAuthentication_AuthLevel1()
+    {
+        RdpFileOptions options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions
+            {
+                Nla = true,
+                StrictServerAuthentication = true
+            }
+        };
+
+        string content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("authentication level:i:1", content);
+        Assert.Contains("enablecredsspsupport:i:1", content);
+    }
+
+    [Fact]
     public void Generate_NlaDisabled_AuthLevel0()
     {
-        var options = new RdpFileOptions
+        RdpFileOptions options = new RdpFileOptions
         {
             Host = "srv",
             Redirections = new RdpRedirectionOptions { Nla = false }
         };
 
-        var content = RdpFileGenerator.Generate(options);
+        string content = RdpFileGenerator.Generate(options);
 
         Assert.Contains("authentication level:i:0", content);
         Assert.Contains("enablecredsspsupport:i:0", content);

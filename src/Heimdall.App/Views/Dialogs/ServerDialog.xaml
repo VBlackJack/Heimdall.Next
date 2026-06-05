@@ -1575,11 +1575,12 @@
                                                      AutomationProperties.Name="{loc:Translate ServerDialogRdpSubTabBehavior}"
                                                      Style="{DynamicResource SegmentedTabItemStyle}">
                                                 <StackPanel Margin="0,12,0,0">
-                                                    <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
-                                                               Style="{StaticResource LabelStyle}"
-                                                               Margin="0,0,0,4"/>
-                                                    <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                                    <CheckBox x:Name="DlgSrv_RdpAdminModeCb"
+                                                     <TextBlock Text="{loc:Translate ServerDialogRdpSecuritySection}"
+                                                                Style="{StaticResource LabelStyle}"
+                                                                Margin="0,0,0,4"/>
+                                                     <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                     <CheckBox x:Name="DlgSrv_StrictServerAuthCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpStrictServerAuthentication}" IsEnabled="{Binding RdpNla}" ToolTip="{loc:Translate RdpStrictServerAuthHint}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,8,0,0"/>
+                                                     <CheckBox x:Name="DlgSrv_RdpAdminModeCb"
                                                               TabIndex="88"
                                                               AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                               IsChecked="{Binding RdpAdminMode}"

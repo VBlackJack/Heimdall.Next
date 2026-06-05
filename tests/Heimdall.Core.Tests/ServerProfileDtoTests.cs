@@ -101,6 +101,7 @@ public class ServerProfileDtoTests
         Assert.True(dto.RdpRedirectClipboard);
         Assert.True(dto.RdpDynamicResolution);
         Assert.True(dto.RdpNla);
+        Assert.False(dto.RdpStrictServerAuthentication);
         Assert.Equal(32, dto.RdpColorDepth);
         Assert.True(dto.RdpBitmapCaching);
         Assert.True(dto.RdpCompression);
@@ -185,6 +186,7 @@ public class ServerProfileDtoTests
             RdpFixedHeight = 1440,
             RdpInitialSmartSizing = false,
             RdpResizeEnableDelayMs = 3000,
+            RdpStrictServerAuthentication = true,
             Environment = "Production",
             LocalShellExecutable = "pwsh.exe",
             LocalShellElevated = true,
@@ -229,6 +231,7 @@ public class ServerProfileDtoTests
         Assert.Equal(original.RdpFixedHeight, deserialized.RdpFixedHeight);
         Assert.Equal(original.RdpInitialSmartSizing, deserialized.RdpInitialSmartSizing);
         Assert.Equal(original.RdpResizeEnableDelayMs, deserialized.RdpResizeEnableDelayMs);
+        Assert.Equal(original.RdpStrictServerAuthentication, deserialized.RdpStrictServerAuthentication);
         Assert.Equal(original.Environment, deserialized.Environment);
         Assert.Equal(original.LocalShellExecutable, deserialized.LocalShellExecutable);
         Assert.Equal(original.LocalShellElevated, deserialized.LocalShellElevated);

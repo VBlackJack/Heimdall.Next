@@ -101,6 +101,7 @@ public sealed class RdpProfileResolverTests
             RdpMultiMonitor = true,
             RdpDynamicResolution = false,
             RdpNla = false,
+            RdpStrictServerAuthentication = false,
             RdpBitmapCaching = false,
             RdpCompression = false,
             RdpAutoReconnect = false
@@ -119,6 +120,7 @@ public sealed class RdpProfileResolverTests
             RdpDefaultMultiMonitor = false,
             RdpDefaultDynamicResolution = true,
             RdpDefaultNla = true,
+            RdpDefaultStrictServerAuthentication = true,
             RdpDefaultBitmapCaching = true,
             RdpDefaultCompression = true,
             RdpDefaultAutoReconnect = true
@@ -138,6 +140,7 @@ public sealed class RdpProfileResolverTests
         Assert.False(redirections.MultiMonitor);
         Assert.True(redirections.DynamicResolution);
         Assert.True(redirections.Nla);
+        Assert.True(redirections.StrictServerAuthentication);
         Assert.True(redirections.BitmapCaching);
         Assert.True(redirections.Compression);
         Assert.True(redirections.AutoReconnect);
@@ -161,6 +164,7 @@ public sealed class RdpProfileResolverTests
             RdpMultiMonitor = true,
             RdpDynamicResolution = false,
             RdpNla = false,
+            RdpStrictServerAuthentication = true,
             RdpBitmapCaching = false,
             RdpCompression = false,
             RdpAutoReconnect = false
@@ -179,6 +183,7 @@ public sealed class RdpProfileResolverTests
             RdpDefaultMultiMonitor = false,
             RdpDefaultDynamicResolution = true,
             RdpDefaultNla = true,
+            RdpDefaultStrictServerAuthentication = false,
             RdpDefaultBitmapCaching = true,
             RdpDefaultCompression = true,
             RdpDefaultAutoReconnect = true
@@ -198,6 +203,7 @@ public sealed class RdpProfileResolverTests
         Assert.True(redirections.MultiMonitor);
         Assert.False(redirections.DynamicResolution);
         Assert.False(redirections.Nla);
+        Assert.True(redirections.StrictServerAuthentication);
         Assert.False(redirections.BitmapCaching);
         Assert.False(redirections.Compression);
         Assert.False(redirections.AutoReconnect);

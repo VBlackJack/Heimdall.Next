@@ -38,6 +38,14 @@ public sealed class AppSettingsRdpDefaultsTests
     }
 
     [Fact]
+    public void RdpDefaultStrictServerAuthentication_DefaultsToDisabled()
+    {
+        AppSettings settings = new AppSettings();
+
+        Assert.False(settings.RdpDefaultStrictServerAuthentication);
+    }
+
+    [Fact]
     public void RdpShortcutSettings_AreNotExposed()
     {
         Assert.Null(typeof(AppSettings).GetProperty("RdpReleaseFocusShortcut"));

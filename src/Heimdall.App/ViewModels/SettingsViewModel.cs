@@ -246,6 +246,9 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     private bool _rdpDefaultNla = true;
 
     [ObservableProperty]
+    private bool _rdpDefaultStrictServerAuthentication;
+
+    [ObservableProperty]
     private int _rdpDefaultColorDepth = 32;
 
     [ObservableProperty]
@@ -643,6 +646,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         DefaultResolutionHeight = settings.DefaultResolutionHeight;
         RdpDefaultMode = settings.RdpDefaultMode;
         RdpDefaultNla = settings.RdpDefaultNla;
+        RdpDefaultStrictServerAuthentication = settings.RdpDefaultStrictServerAuthentication;
         RdpDefaultColorDepth = settings.RdpDefaultColorDepth;
         RdpDefaultDynamicResolution = settings.RdpDefaultDynamicResolution;
         RdpDefaultMultiMonitor = settings.RdpDefaultMultiMonitor;
@@ -817,6 +821,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             settings.DefaultResolutionHeight = DefaultResolutionHeight;
             settings.RdpDefaultMode = RdpDefaultMode;
             settings.RdpDefaultNla = RdpDefaultNla;
+            settings.RdpDefaultStrictServerAuthentication = RdpDefaultStrictServerAuthentication;
             settings.RdpDefaultColorDepth = RdpDefaultColorDepth;
             settings.RdpDefaultDynamicResolution = RdpDefaultDynamicResolution;
             settings.RdpDefaultMultiMonitor = RdpDefaultMultiMonitor;
@@ -950,6 +955,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         DefaultResolutionHeight = defaults.DefaultResolutionHeight;
         RdpDefaultMode = defaults.RdpDefaultMode;
         RdpDefaultNla = defaults.RdpDefaultNla;
+        RdpDefaultStrictServerAuthentication = defaults.RdpDefaultStrictServerAuthentication;
         RdpDefaultColorDepth = defaults.RdpDefaultColorDepth;
         RdpDefaultDynamicResolution = defaults.RdpDefaultDynamicResolution;
         RdpDefaultMultiMonitor = defaults.RdpDefaultMultiMonitor;

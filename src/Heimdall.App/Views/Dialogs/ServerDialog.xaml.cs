@@ -592,6 +592,7 @@ public partial class ServerDialog : Window
 
         // RDP checkboxes
         DlgSrv_NlaCb.Content = _localizer["ServerDialogNla"];
+        DlgSrv_StrictServerAuthCb.Content = _localizer["ServerDialogRdpStrictServerAuth"];
         DlgSrv_DynamicResCb.Content = _localizer["ServerDialogDynamicResolution"];
         DlgSrv_AudioCaptureCb.Content = _localizer["ServerDialogAudioCapture"];
 

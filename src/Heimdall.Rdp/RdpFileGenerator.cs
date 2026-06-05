@@ -102,7 +102,9 @@ public static class RdpFileGenerator
         sb.AppendLine($"audiocapturemode:i:{BoolToInt(r.AudioCapture)}");
 
         // NLA - shared resolver keeps this in parity with the embedded ActiveX host
-        RdpAuthenticationSettings auth = RdpAuthenticationResolver.Resolve(r.Nla);
+        RdpAuthenticationSettings auth = RdpAuthenticationResolver.Resolve(
+            r.Nla,
+            r.StrictServerAuthentication);
         sb.AppendLine($"authentication level:i:{auth.AuthenticationLevel}");
         sb.AppendLine($"enablecredsspsupport:i:{BoolToInt(auth.EnableCredSspSupport)}");
 

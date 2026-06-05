@@ -65,6 +65,7 @@
     "rdpDefaultMultiMonitor": false,
     "rdpDefaultDynamicResolution": true,
     "rdpDefaultNla": true,
+    "rdpDefaultStrictServerAuthentication": false,
     "rdpDefaultColorDepth": 32,
     "rdpDefaultBitmapCaching": true,
     "rdpDefaultCompression": true,

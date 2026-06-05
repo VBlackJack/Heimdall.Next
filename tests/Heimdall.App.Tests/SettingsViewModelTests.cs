@@ -108,6 +108,7 @@ public sealed class SettingsViewModelTests
         viewModel.RdpDefaultRedirectWebcam = true;
         viewModel.RdpDefaultRedirectUsb = true;
         viewModel.RdpDefaultAudioCapture = true;
+        viewModel.RdpDefaultStrictServerAuthentication = true;
 
         await viewModel.SaveCommand.ExecuteAsync(null);
 
@@ -117,6 +118,7 @@ public sealed class SettingsViewModelTests
         Assert.True(saved.RdpDefaultRedirectWebcam);
         Assert.True(saved.RdpDefaultRedirectUsb);
         Assert.True(saved.RdpDefaultAudioCapture);
+        Assert.True(saved.RdpDefaultStrictServerAuthentication);
 
         var reloaded = CreateViewModel(new FakeConfigManager());
         reloaded.LoadFromSettings(saved);
@@ -126,6 +128,7 @@ public sealed class SettingsViewModelTests
         Assert.True(reloaded.RdpDefaultRedirectWebcam);
         Assert.True(reloaded.RdpDefaultRedirectUsb);
         Assert.True(reloaded.RdpDefaultAudioCapture);
+        Assert.True(reloaded.RdpDefaultStrictServerAuthentication);
     }
 
     [Fact]
@@ -653,6 +656,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal(720, viewModel.DefaultResolutionHeight);
         Assert.Equal("External", viewModel.RdpDefaultMode);
         Assert.False(viewModel.RdpDefaultNla);
+        Assert.True(viewModel.RdpDefaultStrictServerAuthentication);
         Assert.False(viewModel.RdpDefaultRedirectClipboard);
         Assert.False(viewModel.RdpDefaultAutoReconnect);
     }
@@ -947,6 +951,7 @@ public sealed class SettingsViewModelTests
         viewModel.DefaultResolutionHeight = 720;
         viewModel.RdpDefaultMode = "External";
         viewModel.RdpDefaultNla = false;
+        viewModel.RdpDefaultStrictServerAuthentication = true;
         viewModel.RdpDefaultColorDepth = 16;
         viewModel.RdpDefaultDynamicResolution = false;
         viewModel.RdpDefaultMultiMonitor = true;
@@ -971,6 +976,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal(expected.DefaultResolutionHeight, viewModel.DefaultResolutionHeight);
         Assert.Equal(expected.RdpDefaultMode, viewModel.RdpDefaultMode);
         Assert.Equal(expected.RdpDefaultNla, viewModel.RdpDefaultNla);
+        Assert.Equal(expected.RdpDefaultStrictServerAuthentication, viewModel.RdpDefaultStrictServerAuthentication);
         Assert.Equal(expected.RdpDefaultColorDepth, viewModel.RdpDefaultColorDepth);
         Assert.Equal(expected.RdpDefaultDynamicResolution, viewModel.RdpDefaultDynamicResolution);
         Assert.Equal(expected.RdpDefaultMultiMonitor, viewModel.RdpDefaultMultiMonitor);

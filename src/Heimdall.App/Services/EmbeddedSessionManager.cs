@@ -548,6 +548,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             RdpSelectedMonitorIndices = [.. server.RdpSelectedMonitorIndices],
             RdpDynamicResolution = server.RdpDynamicResolution,
             RdpNla = server.RdpNla,
+            RdpStrictServerAuthentication = server.RdpStrictServerAuthentication,
             RdpColorDepth = server.RdpColorDepth,
             RdpBitmapCaching = server.RdpBitmapCaching,
             RdpCompression = server.RdpCompression,

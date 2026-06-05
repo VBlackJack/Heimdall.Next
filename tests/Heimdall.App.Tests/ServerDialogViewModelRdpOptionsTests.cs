@@ -55,6 +55,27 @@ public sealed class ServerDialogViewModelRdpOptionsTests
     }
 
     [Fact]
+    public void RdpStrictServerAuthentication_round_trips()
+    {
+        ServerDialogViewModel viewModel = new ServerDialogViewModel
+        {
+            DisplayName = "Server",
+            RemoteServer = "server.example.com",
+            ConnectionType = "RDP",
+            RdpNla = true,
+            RdpStrictServerAuthentication = true
+        };
+
+        ServerProfileDto dto = viewModel.ToDto();
+
+        Assert.True(dto.RdpStrictServerAuthentication);
+
+        ServerDialogViewModel roundTripped = ServerDialogViewModel.FromDto(dto);
+
+        Assert.True(roundTripped.RdpStrictServerAuthentication);
+    }
+
+    [Fact]
     public void RdpDomain_round_trips_and_empty_values_map_to_null()
     {
         ServerDialogViewModel vm = new ServerDialogViewModel
