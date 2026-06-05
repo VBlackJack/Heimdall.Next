@@ -103,6 +103,42 @@ public sealed class PlinkFailClosedTests
 
         Assert.True(decision.ShouldProceed);
         Assert.Equal("SHA256:stored", decision.Fingerprint);
+        Assert.Equal(1, probe.CallCount);
+        Assert.Equal(0, verifier.CallCount);
+        Assert.Equal(0, trust.TrustCallCount);
+        Assert.Equal(0, trust.TrustForSessionCallCount);
+    }
+
+    [Fact]
+    public async Task DecideAsync_NullPlinkPathWithStoredFingerprint_ProceedsWithoutProbe()
+    {
+        FakeProbe probe = new FakeProbe(Presentation("SHA256:ignored"));
+        FakeHostKeyVerifier verifier = new FakeHostKeyVerifier();
+        FakeHostKeyTrustService trust = new FakeHostKeyTrustService();
+
+        PlinkHostKeyDecision decision = await DecideAsync("SHA256:stored", probe, verifier, trust, plinkPath: null);
+
+        Assert.True(decision.ShouldProceed);
+        Assert.Equal("SHA256:stored", decision.Fingerprint);
+        Assert.Equal(0, probe.CallCount);
+        Assert.Equal(0, verifier.CallCount);
+        Assert.Equal(0, trust.TrustCallCount);
+        Assert.Equal(0, trust.TrustForSessionCallCount);
+    }
+
+    [Fact]
+    public async Task DecideAsync_BlankPlinkPathWithoutStoredFingerprint_RejectsHostKeyUnavailableWithoutProbe()
+    {
+        FakeProbe probe = new FakeProbe(Presentation("SHA256:ignored"));
+        FakeHostKeyVerifier verifier = new FakeHostKeyVerifier();
+        FakeHostKeyTrustService trust = new FakeHostKeyTrustService();
+
+        PlinkHostKeyDecision decision = await DecideAsync(null, probe, verifier, trust, plinkPath: " ");
+
+        Assert.False(decision.ShouldProceed);
+        Assert.Equal(SshFailureCode.HostKeyUnavailable, decision.FailureCode);
+        Assert.Equal(SshLocalizationKeys.ErrorSshHostKeyUnavailable, decision.FailureMessageKey);
+        Assert.Equal(0, probe.CallCount);
         Assert.Equal(0, verifier.CallCount);
         Assert.Equal(0, trust.TrustCallCount);
         Assert.Equal(0, trust.TrustForSessionCallCount);
@@ -277,13 +313,14 @@ public sealed class PlinkFailClosedTests
         string? storedFingerprint,
         IPlinkHostKeyProbe probe,
         IHostKeyVerifier verifier,
-        IHostKeyTrustService trustService)
+        IHostKeyTrustService trustService,
+        string? plinkPath = "plink.exe")
     {
         return PlinkHostKeyDecider.DecideAsync(
             "gateway.local",
             22,
             "user",
-            "plink.exe",
+            plinkPath,
             1000,
             storedFingerprint,
             probe,
