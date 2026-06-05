@@ -247,12 +247,6 @@ internal static class RdpKeyboardEscapeHook
                                 DispatcherPriority.Input,
                                 new Action(view.ToggleFullscreen));
                             break;
-
-                        case RdpKeyboardHookAction.OpenCommandPalette:
-                            _ = view.Dispatcher.BeginInvoke(
-                                DispatcherPriority.Input,
-                                new Action(view.RequestCommandPaletteFromKeyboardHook));
-                            break;
                     }
 
                     return new IntPtr(1);
@@ -469,8 +463,7 @@ internal enum RdpKeyboardHookAction
 {
     None,
     ReleaseFocus,
-    ToggleFullscreen,
-    OpenCommandPalette
+    ToggleFullscreen
 }
 
 internal readonly record struct RdpShortcut(ModifierKeys Modifiers, Key Key)
@@ -480,8 +473,6 @@ internal readonly record struct RdpShortcut(ModifierKeys Modifiers, Key Key)
 
 internal static class RdpKeyboardHookShortcutRouter
 {
-    private static readonly RdpShortcut CommandPaletteShortcut = new(ModifierKeys.Control, Key.K);
-
     public static RdpKeyboardHookAction Resolve(
         Key key,
         ModifierKeys modifiers,
@@ -496,11 +487,6 @@ internal static class RdpKeyboardHookShortcutRouter
         if (MatchesShortcut(key, modifiers, fullscreenShortcut))
         {
             return RdpKeyboardHookAction.ToggleFullscreen;
-        }
-
-        if (MatchesShortcut(key, modifiers, CommandPaletteShortcut))
-        {
-            return RdpKeyboardHookAction.OpenCommandPalette;
         }
 
         return RdpKeyboardHookAction.None;

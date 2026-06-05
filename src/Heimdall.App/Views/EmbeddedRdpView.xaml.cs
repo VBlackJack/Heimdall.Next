@@ -163,12 +163,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
     public event Action? SplitRequested;
 
     /// <summary>
-    /// Raised when the RDP child-HWND keyboard hook receives the shell
-    /// command-palette shortcut while the ActiveX surface owns focus.
-    /// </summary>
-    public event Action? CommandPaletteRequested;
-
-    /// <summary>
     /// Raised when the user clicks "Reconnect" in the disconnect overlay.
     /// The subscriber should close this session and open a new connection.
     /// </summary>
@@ -602,24 +596,6 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
 
         Core.Logging.FileLogger.Info(
             $"EmbeddedRDP focus skipped: viewVisible={viewVisible} reconnectOverlayVisible={reconnectOverlayVisible} windowIsForeground={windowIsForeground} autofillInFlight={autofillInFlight}");
-    }
-
-    internal void RequestCommandPaletteFromKeyboardHook()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (!Dispatcher.CheckAccess())
-        {
-            _ = Dispatcher.BeginInvoke(
-                DispatcherPriority.Input,
-                new Action(RequestCommandPaletteFromKeyboardHook));
-            return;
-        }
-
-        CommandPaletteRequested?.Invoke();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

@@ -236,7 +236,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         // Wire split button callback from embedded views
         viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
-        viewModel.EmbeddedSessionManager.CommandPaletteRequestedCallback = OpenCommandPalette;
 
         Loaded += async (_, _) =>
         {

@@ -292,7 +292,6 @@ public sealed partial class SessionCoordinatorPreMountTests
     {
         public Action<byte[], object?>? BroadcastCallback { get; set; }
         public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
-        public Action? CommandPaletteRequestedCallback { get; set; }
         public Func<bool>? IsBroadcastActive { get; set; }
         public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
         public Action<SessionTabViewModel, SessionPaneModel, DisconnectReason>? DisconnectRequestedCallback { get; set; }

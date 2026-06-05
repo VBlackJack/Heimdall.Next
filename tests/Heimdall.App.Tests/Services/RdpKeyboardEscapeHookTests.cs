@@ -102,7 +102,7 @@ public sealed class RdpKeyboardEscapeHookTests : IDisposable
     }
 
     [Fact]
-    public void ShortcutRouter_CtrlK_OpensCommandPalette()
+    public void ShortcutRouter_CtrlK_PassesThroughToLowLevelHook()
     {
         var action = RdpKeyboardHookShortcutRouter.Resolve(
             Key.K,
@@ -110,7 +110,7 @@ public sealed class RdpKeyboardEscapeHookTests : IDisposable
             RdpShortcutParser.DefaultShortcut,
             RdpShortcutParser.DefaultFullscreenShortcut);
 
-        Assert.Equal(RdpKeyboardHookAction.OpenCommandPalette, action);
+        Assert.Equal(RdpKeyboardHookAction.None, action);
     }
 
     [Fact]
