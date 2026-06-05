@@ -67,12 +67,22 @@ internal static class TerminalReconnectPolicy
         string? connectionType,
         bool isPipeModeSession,
         bool hasTerminalInput,
-        TimeSpan processRuntime)
+        TimeSpan processRuntime,
+        TimeSpan? connectTimeExitWindow = null)
     {
+        TimeSpan effectiveExitWindow = connectTimeExitWindow ?? ConnectTimeExitWindow;
+
         return string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
             && isPipeModeSession
             && !hasTerminalInput
             && processRuntime >= TimeSpan.Zero
-            && processRuntime <= ConnectTimeExitWindow;
+            && processRuntime <= effectiveExitWindow;
+    }
+
+    public static TimeSpan ResolveConnectTimeExitWindow(int? configuredSeconds)
+    {
+        return configuredSeconds.HasValue
+            ? TimeSpan.FromSeconds(configuredSeconds.Value)
+            : ConnectTimeExitWindow;
     }
 }

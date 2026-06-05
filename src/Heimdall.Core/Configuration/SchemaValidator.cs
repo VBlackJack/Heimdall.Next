@@ -122,6 +122,14 @@ public static partial class SchemaValidator
             nameof(settings.SshKeepAliveIntervalSeconds));
         ValidateRange(errors, settings.SshAutoReconnectAttempts, 1, 10,
             nameof(settings.SshAutoReconnectAttempts));
+        ValidateRange(errors, settings.SshAutoReconnectFirstDelaySeconds, 1, 600,
+            nameof(settings.SshAutoReconnectFirstDelaySeconds));
+        ValidateRange(errors, settings.SshAutoReconnectSecondDelaySeconds, 1, 600,
+            nameof(settings.SshAutoReconnectSecondDelaySeconds));
+        ValidateRange(errors, settings.SshAutoReconnectSubsequentDelaySeconds, 1, 600,
+            nameof(settings.SshAutoReconnectSubsequentDelaySeconds));
+        ValidateRange(errors, settings.SshConnectTimeExitWindowSeconds, 0, 600,
+            nameof(settings.SshConnectTimeExitWindowSeconds));
         ValidateRange(errors, settings.PlinkPortCheckIntervalMs, 500, 30000,
             nameof(settings.PlinkPortCheckIntervalMs));
         ValidateRange(errors, settings.PlinkKillGracePeriodMs, 500, 30000,

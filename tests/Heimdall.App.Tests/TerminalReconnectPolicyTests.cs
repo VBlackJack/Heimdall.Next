@@ -15,6 +15,8 @@
  */
 
 using Heimdall.App.Services;
+using Heimdall.App.Views;
+using Heimdall.Core.Configuration;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
@@ -130,6 +132,58 @@ public sealed class TerminalReconnectPolicyTests
             processRuntime: TerminalReconnectPolicy.ConnectTimeExitWindow + TimeSpan.FromMilliseconds(1));
 
         Assert.False(suppresses);
+    }
+
+    [Fact]
+    public void SuppressesConnectTimeProcessExit_CustomWindow_IsUsed()
+    {
+        bool suppresses = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            connectionType: "SSH",
+            isPipeModeSession: true,
+            hasTerminalInput: false,
+            processRuntime: TimeSpan.FromSeconds(20),
+            connectTimeExitWindow: TimeSpan.FromSeconds(30));
+
+        Assert.True(suppresses);
+    }
+
+    [Fact]
+    public void ResolveConnectTimeExitWindow_Null_ReturnsFallback()
+    {
+        TimeSpan window = TerminalReconnectPolicy.ResolveConnectTimeExitWindow(null);
+
+        Assert.Equal(TerminalReconnectPolicy.ConnectTimeExitWindow, window);
+    }
+
+    [Fact]
+    public void ResolveConnectTimeExitWindow_ConfiguredSeconds_ReturnsConfiguredWindow()
+    {
+        TimeSpan window = TerminalReconnectPolicy.ResolveConnectTimeExitWindow(0);
+
+        Assert.Equal(TimeSpan.Zero, window);
+    }
+
+    [Fact]
+    public void ComputeAutoReconnectDelaySeconds_NoSettings_UsesLegacyDelays()
+    {
+        Assert.Equal(2, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(null, 1));
+        Assert.Equal(5, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(null, 2));
+        Assert.Equal(15, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(null, 3));
+    }
+
+    [Fact]
+    public void ComputeAutoReconnectDelaySeconds_Settings_UsesConfiguredDelays()
+    {
+        AppSettings settings = new()
+        {
+            SshAutoReconnectFirstDelaySeconds = 4,
+            SshAutoReconnectSecondDelaySeconds = 8,
+            SshAutoReconnectSubsequentDelaySeconds = 16
+        };
+
+        Assert.Equal(4, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(settings, 1));
+        Assert.Equal(8, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(settings, 2));
+        Assert.Equal(16, EmbeddedSshView.ComputeAutoReconnectDelaySeconds(settings, 3));
     }
 
     [Theory]

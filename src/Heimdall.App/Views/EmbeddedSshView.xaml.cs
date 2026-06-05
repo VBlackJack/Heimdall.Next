@@ -760,13 +760,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ReconnectOverlay.Visibility = Visibility.Collapsed;
     }
 
-    private static int ComputeAutoReconnectDelaySeconds(int attempt)
+    internal static int ComputeAutoReconnectDelaySeconds(AppSettings? settings, int attempt)
     {
         return attempt switch
         {
-            1 => 2,
-            2 => 5,
-            _ => 15,
+            1 => settings?.SshAutoReconnectFirstDelaySeconds ?? 2,
+            2 => settings?.SshAutoReconnectSecondDelaySeconds ?? 5,
+            _ => settings?.SshAutoReconnectSubsequentDelaySeconds ?? 15,
         };
     }
 
@@ -1270,7 +1270,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 && _autoReconnectAttempt < maxAttempts)
             {
                 _autoReconnectAttempt++;
-                int delay = ComputeAutoReconnectDelaySeconds(_autoReconnectAttempt);
+                int delay = ComputeAutoReconnectDelaySeconds(TerminalSettings, _autoReconnectAttempt);
                 StartAutoReconnectCountdown(delay, _autoReconnectAttempt, maxAttempts);
                 return;
             }
@@ -1311,7 +1311,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _sessionTab?.ConnectionType,
             _terminalSession is Heimdall.Terminal.PipeModeSession,
             _terminalSessionHasInput,
-            runtime);
+            runtime,
+            TerminalReconnectPolicy.ResolveConnectTimeExitWindow(
+                TerminalSettings?.SshConnectTimeExitWindowSeconds));
         SshSessionDisconnectInfo disconnectInfo =
             TerminalReconnectPolicy.ClassifyProcessExit(
                 exitCode,

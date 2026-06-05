@@ -370,6 +370,87 @@ public class SchemaValidatorTests
 
     [Theory]
     [InlineData(0)]
+    [InlineData(601)]
+    public void ValidateSettings_SshAutoReconnectFirstDelaySeconds_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { SshAutoReconnectFirstDelaySeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.SshAutoReconnectFirstDelaySeconds)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(601)]
+    public void ValidateSettings_SshAutoReconnectSecondDelaySeconds_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { SshAutoReconnectSecondDelaySeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.SshAutoReconnectSecondDelaySeconds)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(601)]
+    public void ValidateSettings_SshAutoReconnectSubsequentDelaySeconds_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { SshAutoReconnectSubsequentDelaySeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.SshAutoReconnectSubsequentDelaySeconds)));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(600)]
+    public void ValidateSettings_SshAutoReconnectDelaySeconds_BoundaryValues_AreValid(int value)
+    {
+        AppSettings settings = new()
+        {
+            SshAutoReconnectFirstDelaySeconds = value,
+            SshAutoReconnectSecondDelaySeconds = value,
+            SshAutoReconnectSubsequentDelaySeconds = value
+        };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(601)]
+    public void ValidateSettings_SshConnectTimeExitWindowSeconds_OutOfRange_ReturnsError(int value)
+    {
+        AppSettings settings = new() { SshConnectTimeExitWindowSeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains(nameof(AppSettings.SshConnectTimeExitWindowSeconds)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(600)]
+    public void ValidateSettings_SshConnectTimeExitWindowSeconds_BoundaryValues_AreValid(int value)
+    {
+        AppSettings settings = new() { SshConnectTimeExitWindowSeconds = value };
+
+        ValidationResult result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData(0)]
     [InlineData(21)]
     [InlineData(-1)]
     public void ValidateSettings_MaxEmbeddedSessions_OutOfRange_ReturnsError(int value)

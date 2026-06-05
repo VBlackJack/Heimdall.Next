@@ -105,6 +105,10 @@ public sealed class AppSettings
     public int SshTmoutResetIntervalSeconds { get; set; } = 240;
     public bool SshAutoReconnect { get; set; }
     public int SshAutoReconnectAttempts { get; set; } = 3;
+    public int SshAutoReconnectFirstDelaySeconds { get; set; } = 2;
+    public int SshAutoReconnectSecondDelaySeconds { get; set; } = 5;
+    public int SshAutoReconnectSubsequentDelaySeconds { get; set; } = 15;
+    public int SshConnectTimeExitWindowSeconds { get; set; } = 15;
 
     // RDP defaults
     public string RdpDefaultMode { get; set; } = "Embedded";
