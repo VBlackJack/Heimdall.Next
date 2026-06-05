@@ -738,6 +738,17 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     {
         AutoReconnectOverlay.Visibility = Visibility.Collapsed;
         ReconnectOverlay.Visibility = Visibility.Visible;
+        BeginInvokeIfAvailable(
+            () =>
+            {
+                if (_disposed || ReconnectOverlay.Visibility != Visibility.Visible)
+                {
+                    return;
+                }
+
+                OverlayReconnectButton.Focus();
+            },
+            System.Windows.Threading.DispatcherPriority.Input);
     }
 
     private void HideReconnectOverlay()
@@ -778,6 +789,17 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             maxAttempts);
         UpdateAutoReconnectCountdownText();
         AutoReconnectOverlay.Visibility = Visibility.Visible;
+        BeginInvokeIfAvailable(
+            () =>
+            {
+                if (_disposed || AutoReconnectOverlay.Visibility != Visibility.Visible)
+                {
+                    return;
+                }
+
+                AutoReconnectCancelButton.Focus();
+            },
+            System.Windows.Threading.DispatcherPriority.Input);
 
         _autoReconnectTimer = new System.Threading.Timer(
             _ => BeginInvokeIfAvailable(OnAutoReconnectTick),
