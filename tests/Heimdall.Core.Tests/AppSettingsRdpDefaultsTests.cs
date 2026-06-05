@@ -46,6 +46,19 @@ public sealed class AppSettingsRdpDefaultsTests
     }
 
     [Fact]
+    public void SshTunnelTimingDefaults_MatchConstants()
+    {
+        AppSettings settings = new AppSettings();
+
+        Assert.Equal(30, AppSettings.DefaultSshKeepAliveIntervalSeconds);
+        Assert.Equal(AppSettings.DefaultSshKeepAliveIntervalSeconds, settings.SshKeepAliveIntervalSeconds);
+        Assert.Equal(2000, AppSettings.DefaultPlinkPortCheckIntervalMs);
+        Assert.Equal(AppSettings.DefaultPlinkPortCheckIntervalMs, settings.PlinkPortCheckIntervalMs);
+        Assert.Equal(2000, AppSettings.DefaultPlinkKillGracePeriodMs);
+        Assert.Equal(AppSettings.DefaultPlinkKillGracePeriodMs, settings.PlinkKillGracePeriodMs);
+    }
+
+    [Fact]
     public void RdpShortcutSettings_AreNotExposed()
     {
         Assert.Null(typeof(AppSettings).GetProperty("RdpReleaseFocusShortcut"));

@@ -226,7 +226,7 @@ public sealed class TunnelService : ITunnelService
         TunnelResult result;
         if (chain.Count == 1)
         {
-            int keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
+            int keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? AppSettings.DefaultSshKeepAliveIntervalSeconds;
             result = await _tunnelManager.OpenTunnelAsync(
                     chain[0],
                     remoteHost,
@@ -357,8 +357,8 @@ public sealed class TunnelService : ITunnelService
         string? fingerprint = hostKeyDecision.Fingerprint;
 
         PlinkTunnelRunner runner = new PlinkTunnelRunner(
-            _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
-            _currentSettings?.PlinkKillGracePeriodMs ?? 2000);
+            _currentSettings?.PlinkPortCheckIntervalMs ?? AppSettings.DefaultPlinkPortCheckIntervalMs,
+            _currentSettings?.PlinkKillGracePeriodMs ?? AppSettings.DefaultPlinkKillGracePeriodMs);
         PlinkTunnelResult result = await runner.StartAsync(
                 plinkPath,
                 gatewayParams.Host,

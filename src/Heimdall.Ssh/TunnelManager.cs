@@ -16,6 +16,7 @@
 
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Ssh;
 using Renci.SshNet;
 using Renci.SshNet.Common;
@@ -105,7 +106,7 @@ public sealed partial class TunnelManager : IDisposable
         HostKeyStore hostKeyStore,
         IHostKeyVerifier verifier,
         CancellationToken cancellationToken = default,
-        int keepAliveIntervalSeconds = 30,
+        int keepAliveIntervalSeconds = AppSettings.DefaultSshKeepAliveIntervalSeconds,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
         int remoteLocalPort = 0,

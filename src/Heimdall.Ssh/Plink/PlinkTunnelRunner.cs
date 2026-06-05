@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Ssh.Plink;
@@ -61,8 +62,8 @@ public sealed class PlinkTunnelRunner : IDisposable
     private static readonly TimeSpan DrainJoinTimeout = TimeSpan.FromMilliseconds(500);
 
     public PlinkTunnelRunner(
-        int portCheckIntervalMs = 2000,
-        int killGracePeriodMs = 2000)
+        int portCheckIntervalMs = AppSettings.DefaultPlinkPortCheckIntervalMs,
+        int killGracePeriodMs = AppSettings.DefaultPlinkKillGracePeriodMs)
         : this(new PlinkTunnelRunnerOptions(portCheckIntervalMs, killGracePeriodMs))
     {
     }

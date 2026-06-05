@@ -55,9 +55,12 @@ public sealed class AppSettings
     public int RdpResizeEnableDelayMs { get; set; } = 10000;
     public int RdpConnectWatchdogTimeoutMs { get; set; } = 45000;
     public int RdpKeepAliveIntervalMs { get; set; } = 60000;
-    public int SshKeepAliveIntervalSeconds { get; set; } = 30;
-    public int PlinkPortCheckIntervalMs { get; set; } = 2000;
-    public int PlinkKillGracePeriodMs { get; set; } = 2000;
+    public const int DefaultSshKeepAliveIntervalSeconds = 30;
+    public int SshKeepAliveIntervalSeconds { get; set; } = DefaultSshKeepAliveIntervalSeconds;
+    public const int DefaultPlinkPortCheckIntervalMs = 2000;
+    public int PlinkPortCheckIntervalMs { get; set; } = DefaultPlinkPortCheckIntervalMs;
+    public const int DefaultPlinkKillGracePeriodMs = 2000;
+    public int PlinkKillGracePeriodMs { get; set; } = DefaultPlinkKillGracePeriodMs;
     public int SftpUploadDebounceMs { get; set; } = 2000;
     public int ServerShutdownTimeoutMs { get; set; } = 2000;
     public int SleepPreventionIntervalSeconds { get; set; } = 60;
