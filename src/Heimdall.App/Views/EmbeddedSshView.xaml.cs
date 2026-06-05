@@ -213,6 +213,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _userInitiatedDisconnect;
     private bool _isRecording;
     private bool _localeChangeSubscribed;
+    private bool _autoReconnectOnProcessExit = true;
     private string? _pendingSecurityDisconnectMessage;
     private int _autoReconnectAttempt;
     private int _autoReconnectSecondsRemaining;
@@ -295,14 +296,19 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         string displayName,
         int keepAliveIntervalSeconds = 240,
         string? endpoint = null,
-        string connectedStatus = "Connected")
+        string connectedStatus = "Connected",
+        bool autoReconnectOnProcessExit = true)
     {
         var endpointLabel = string.IsNullOrWhiteSpace(endpoint)
             ? L("SshEndpointViaPlink")
             : endpoint;
 
         InitializeConnecting(sessionTab, displayName, endpointLabel);
-        AttachTerminalSession(terminalSession, keepAliveIntervalSeconds, connectedStatus);
+        AttachTerminalSession(
+            terminalSession,
+            keepAliveIntervalSeconds,
+            connectedStatus,
+            autoReconnectOnProcessExit);
     }
 
     /// <summary>
@@ -384,7 +390,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     public void AttachTerminalSession(
         Heimdall.Terminal.ITerminalSession terminalSession,
         int keepAliveIntervalSeconds = 240,
-        string connectedStatus = "Connected")
+        string connectedStatus = "Connected",
+        bool autoReconnectOnProcessExit = true)
     {
         ArgumentNullException.ThrowIfNull(terminalSession);
 
@@ -404,6 +411,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         _terminalSession = terminalSession;
+        _autoReconnectOnProcessExit = autoReconnectOnProcessExit;
         _terminalDataHandler = OnTerminalDataReceived;
         _terminalExitHandler = OnTerminalProcessExited;
 
@@ -1270,9 +1278,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnTerminalProcessExited(int exitCode)
     {
-        var disconnectInfo = exitCode == 0
-            ? SshSessionDisconnectInfo.Clean($"Process exited with code {exitCode}")
-            : SshSessionDisconnectInfo.Unclassified($"Process exited with code {exitCode}");
+        SshSessionDisconnectInfo disconnectInfo =
+            TerminalReconnectPolicy.ClassifyProcessExit(exitCode, _autoReconnectOnProcessExit);
         OnDisconnected(disconnectInfo);
     }
 

@@ -28,7 +28,7 @@ public static class SshReconnectPolicy
     {
         ArgumentNullException.ThrowIfNull(disconnect);
 
-        if (disconnect.IsClean)
+        if (disconnect.IsClean || disconnect.SuppressAutoReconnect)
         {
             return false;
         }

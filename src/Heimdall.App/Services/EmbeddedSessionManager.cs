@@ -686,7 +686,12 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 view.AttachSession(sshResult.Session, keepAlive);
                 break;
             case TerminalSessionResult terminalResult:
-                view.AttachTerminalSession(terminalResult.Session, keepAlive);
+                bool autoReconnectOnProcessExit = TerminalReconnectPolicy.ReconnectsOnProcessExit(
+                    sessionTab.ConnectionType);
+                view.AttachTerminalSession(
+                    terminalResult.Session,
+                    keepAlive,
+                    autoReconnectOnProcessExit: autoReconnectOnProcessExit);
                 break;
             default:
                 throw new InvalidOperationException(
@@ -728,13 +733,16 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
         string connectedStatus = "Connected")
     {
         var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
+        bool autoReconnectOnProcessExit = TerminalReconnectPolicy.ReconnectsOnProcessExit(
+            tab.ConnectionType);
         view.InitializeTerminalSession(
             terminalSession,
             tab,
             displayName,
             keepAliveIntervalSeconds,
             endpoint,
-            connectedStatus);
+            connectedStatus,
+            autoReconnectOnProcessExit);
         if (isElevated)
         {
             view.SetElevatedIndicator(true);

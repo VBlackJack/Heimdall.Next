@@ -27,6 +27,12 @@ public sealed record SshSessionDisconnectInfo(
     SshFailureInfo? Failure,
     bool IsClean)
 {
+    /// <summary>
+    /// True when a process-backed session ended in a way that must surface an error and a
+    /// manual reconnect overlay but must not trigger auto-reconnect.
+    /// </summary>
+    public bool SuppressAutoReconnect { get; init; }
+
     /// <summary>Creates a normal session-end disconnect.</summary>
     public static SshSessionDisconnectInfo Clean(string? message = null)
         => new(message, Failure: null, IsClean: true);
@@ -34,6 +40,13 @@ public sealed record SshSessionDisconnectInfo(
     /// <summary>Creates a disconnect with no reliable SSH failure code.</summary>
     public static SshSessionDisconnectInfo Unclassified(string? message)
         => new(message, Failure: null, IsClean: false);
+
+    /// <summary>
+    /// Creates a non-zero process-exit disconnect that is surfaced to the user but is not
+    /// eligible for auto-reconnect.
+    /// </summary>
+    public static SshSessionDisconnectInfo TerminalEnded(string? message)
+        => new(message, Failure: null, IsClean: false) { SuppressAutoReconnect = true };
 
     /// <summary>Creates a disconnect from classified SSH failure information.</summary>
     public static SshSessionDisconnectInfo FromFailure(SshFailureInfo failure)

@@ -65,6 +65,27 @@ public sealed class SshReconnectPolicyTests
     }
 
     [Fact]
+    public void AllowsAutoReconnect_SuppressedUnclassifiedDisconnect_ReturnsFalse()
+    {
+        SshSessionDisconnectInfo disconnect =
+            SshSessionDisconnectInfo.Unclassified("Process exited with code 1") with
+            {
+                SuppressAutoReconnect = true
+            };
+
+        Assert.False(SshReconnectPolicy.AllowsAutoReconnect(disconnect));
+    }
+
+    [Fact]
+    public void AllowsAutoReconnect_TerminalEndedDisconnect_ReturnsFalse()
+    {
+        SshSessionDisconnectInfo disconnect = SshSessionDisconnectInfo.TerminalEnded(
+            "Process exited with code 1");
+
+        Assert.False(SshReconnectPolicy.AllowsAutoReconnect(disconnect));
+    }
+
+    [Fact]
     public void AllowsAutoReconnect_ClassifiedAuthFailure_ReturnsFalse()
     {
         var failure = new SshFailureInfo(
