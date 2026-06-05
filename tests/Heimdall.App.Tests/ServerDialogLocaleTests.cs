@@ -142,6 +142,32 @@ public sealed class ServerDialogLocaleTests
     }
 
     [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public async Task SshProbeKeys_ExistInBothLocales(string locale)
+    {
+        LocalizationManager localizer = await CreateLocalizerAsync(locale);
+        string[] keys =
+        [
+            "SshProbeMissingBanner",
+            "SshProbeNonSshBanner",
+            "SshProbeConnectionTimedOut",
+            "SshProbeConnectionRefused",
+            "SshProbeNetworkUnreachable",
+            "SshProbeConnectionReset",
+            "SshProbeUnknownFailure"
+        ];
+
+        foreach (string key in keys)
+        {
+            string text = localizer[key];
+
+            Assert.False(string.IsNullOrWhiteSpace(text));
+            Assert.NotEqual(key, text);
+        }
+    }
+
+    [Theory]
     [InlineData("en", "ServerDialogProtocolWinRmName")]
     [InlineData("en", "ServerDialogProtocolWinRmDesc")]
     [InlineData("en", "ServerDialogWinRmCredentials")]

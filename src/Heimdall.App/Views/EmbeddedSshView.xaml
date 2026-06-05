@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d"
@@ -24,8 +25,10 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Disconnect"
+                        Content="{loc:Translate BtnDisconnectSession}"
                         Click="OnDisconnectClick"
+                        ToolTip="{loc:Translate TooltipDisconnectSession}"
+                        AutomationProperties.Name="{loc:Translate A11yDisconnectSession}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
@@ -33,8 +36,10 @@
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Reconnect"
+                        Content="{loc:Translate BtnReconnectSession}"
                         Click="OnReconnectClick"
+                        ToolTip="{loc:Translate TooltipReconnectSession}"
+                        AutomationProperties.Name="{loc:Translate A11yReconnectSession}"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
@@ -46,6 +51,8 @@
                         Content="&#xE9D9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnHealthToggleClick"
+                        ToolTip="{loc:Translate TooltipToggleHealthMonitoring}"
+                        AutomationProperties.Name="{loc:Translate A11yToggleHealthMonitoring}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
@@ -54,6 +61,8 @@
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
+                        ToolTip="{loc:Translate TooltipSplitSession}"
+                        AutomationProperties.Name="{loc:Translate A11ySplitSession}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
@@ -62,6 +71,8 @@
                         Content="&#xE7EF;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnElevateClick"
+                        ToolTip="{loc:Translate TooltipElevateToRoot}"
+                        AutomationProperties.Name="{loc:Translate A11yElevateToRoot}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         Visibility="Collapsed"/>
@@ -75,7 +86,7 @@
                         Margin="4,0"
                         VerticalAlignment="Center"
                         Visibility="Collapsed">
-                    <TextBlock x:Name="AdminBadgeText" Text="ADMIN"
+                    <TextBlock x:Name="AdminBadgeText" Text="{loc:Translate AdminBadgeLabel}"
                                FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="Bold"
                                Foreground="{DynamicResource BadgeTextBrush}"/>
                 </Border>
@@ -90,7 +101,7 @@
                         Margin="8,0,0,0"
                         VerticalAlignment="Center">
                     <TextBlock x:Name="BroadcastBadgeText"
-                               Text="BROADCAST"
+                               Text="{loc:Translate BroadcastBadgeLabel}"
                                FontSize="{StaticResource FontSizeSmallCaption}"
                                FontWeight="Bold"
                                Foreground="{DynamicResource ErrorTextBrush}"/>
@@ -171,7 +182,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="400">
                             <TextBlock x:Name="ReconnectMessageText"
-                                       Text="Session disconnected unexpectedly."
+                                       Text="{loc:Translate SshDisconnectedMessage}"
                                        FontSize="{StaticResource FontSizeSubtitle}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"
@@ -181,15 +192,17 @@
                                         HorizontalAlignment="Center"
                                         Margin="0,16,0,0">
                                 <Button x:Name="OverlayReconnectButton"
-                                        Content="Reconnect"
+                                        Content="{loc:Translate BtnReconnectSession}"
                                         Click="OnOverlayReconnectClick"
+                                        AutomationProperties.Name="{loc:Translate A11yReconnectSession}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="16,6"
                                         FontSize="{StaticResource FontSizeBodyLarge}"
                                         Margin="0,0,8,0"/>
                                 <Button x:Name="OverlayCloseButton"
-                                        Content="Dismiss"
+                                        Content="{loc:Translate BtnCloseOverlay}"
                                         Click="OnOverlayCloseClick"
+                                        AutomationProperties.Name="{loc:Translate A11yCloseOverlay}"
                                         Style="{DynamicResource SecondaryButtonStyle}"
                                         Padding="16,6"
                                         FontSize="{StaticResource FontSizeBodyLarge}"
@@ -209,7 +222,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="420">
                             <TextBlock x:Name="AutoReconnectMessageText"
-                                       Text="Reconnecting…"
+                                       Text="{loc:Translate SessionStatusReconnecting}"
                                        FontSize="{StaticResource FontSizeSubtitle}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"
@@ -228,8 +241,9 @@
                                          Background="Transparent"
                                          BorderThickness="0"/>
                             <Button x:Name="AutoReconnectCancelButton"
-                                    Content="Cancel"
+                                    Content="{loc:Translate BtnCancelAutoReconnect}"
                                     Click="OnAutoReconnectCancelClick"
+                                    AutomationProperties.Name="{loc:Translate A11yCancelAutoReconnect}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="16,6"
                                     FontSize="{StaticResource FontSizeBodyLarge}"
@@ -247,7 +261,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="400">
                             <TextBlock x:Name="ConnectingTitleText"
-                                       Text="Connecting…"
+                                       Text="{loc:Translate SshConnectingTitle}"
                                        FontSize="{StaticResource FontSizeSubtitle}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"

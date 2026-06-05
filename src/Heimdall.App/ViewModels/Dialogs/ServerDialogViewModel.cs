@@ -27,6 +27,7 @@ using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Rdp;
 using Heimdall.Rdp.Display;
+using Heimdall.Ssh;
 using Heimdall.Ssh.Agents;
 
 namespace Heimdall.App.ViewModels.Dialogs;
@@ -438,7 +439,7 @@ public partial class ServerDialogViewModel : ObservableValidator
                 return;
             }
 
-            Heimdall.Ssh.SshConnectionProbe.ProbeResult probe = await Heimdall.Ssh.SshConnectionProbe.ProbeAsync(
+            SshConnectionProbe.ProbeResult probe = await SshConnectionProbe.ProbeAsync(
                     RemoteServer,
                     SshPort,
                     timeoutMs: 5000,
@@ -459,7 +460,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             TestChipText = string.Format(
                 CultureInfo.CurrentCulture,
                 L("ServerDialogTestChipFailure"),
-                probe.Message ?? L("ErrorSshTestConnectionFailed"));
+                ResolveSshProbeMessage(probe));
         }
         catch (OperationCanceledException)
         {
@@ -622,6 +623,30 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
 
         return message;
+    }
+
+    private string ResolveSshProbeMessage(SshConnectionProbe.ProbeResult probe)
+    {
+        if (string.IsNullOrWhiteSpace(probe.MessageKey) || Localizer is null)
+        {
+            return L("ErrorSshTestConnectionFailed");
+        }
+
+        string template = Localizer[probe.MessageKey];
+        if (string.Equals(template, probe.MessageKey, StringComparison.Ordinal))
+        {
+            return L("ErrorSshTestConnectionFailed");
+        }
+
+        if (probe.MessageArguments.Count == 0)
+        {
+            return template;
+        }
+
+        return string.Format(
+            CultureInfo.CurrentCulture,
+            template,
+            probe.MessageArguments.ToArray());
     }
 
     private void ResetTestChip()

@@ -27,11 +27,30 @@ public static class SshConnectionProbe
 {
     private const int MaxBannerBytes = 512;
 
+    public const string MessageKeyMissingBanner = "SshProbeMissingBanner";
+    public const string MessageKeyNonSshBanner = "SshProbeNonSshBanner";
+    public const string MessageKeyConnectionTimedOut = "SshProbeConnectionTimedOut";
+    public const string MessageKeyConnectionRefused = "SshProbeConnectionRefused";
+    public const string MessageKeyNetworkUnreachable = "SshProbeNetworkUnreachable";
+    public const string MessageKeyConnectionReset = "SshProbeConnectionReset";
+    public const string MessageKeyUnknownFailure = "SshProbeUnknownFailure";
+
     public sealed record ProbeResult(
         bool Success,
         string? Banner,
         SshFailureCode? FailureCode,
-        string? Message);
+        string? MessageKey,
+        IReadOnlyList<object?> MessageArguments)
+    {
+        public ProbeResult(
+            bool success,
+            string? banner,
+            SshFailureCode? failureCode,
+            string? messageKey)
+            : this(success, banner, failureCode, messageKey, Array.Empty<object?>())
+        {
+        }
+    }
 
     public static async Task<ProbeResult> ProbeAsync(
         string host,
@@ -59,7 +78,7 @@ public static class SshConnectionProbe
                     false,
                     banner,
                     SshFailureCode.ProtocolError,
-                    "Server reached but did not send an SSH banner.");
+                    MessageKeyMissingBanner);
             }
 
             var trimmed = banner.Trim();
@@ -69,7 +88,7 @@ public static class SshConnectionProbe
                     false,
                     trimmed,
                     SshFailureCode.ProtocolError,
-                    "Server reached but is not an SSH server.");
+                    MessageKeyNonSshBanner);
             }
 
             return new ProbeResult(true, trimmed, null, null);
@@ -80,7 +99,7 @@ public static class SshConnectionProbe
                 false,
                 null,
                 SshFailureCode.NetworkTimedOut,
-                "Connection timed out.");
+                MessageKeyConnectionTimedOut);
         }
         catch (SocketException ex)
         {
@@ -124,29 +143,31 @@ public static class SshConnectionProbe
                 false,
                 null,
                 SshFailureCode.NetworkRefused,
-                "Connection refused."),
+                MessageKeyConnectionRefused),
             SocketError.TimedOut => new ProbeResult(
                 false,
                 null,
                 SshFailureCode.NetworkTimedOut,
-                "Connection timed out."),
+                MessageKeyConnectionTimedOut),
             SocketError.HostNotFound
                 or SocketError.HostUnreachable
                 or SocketError.NetworkUnreachable => new ProbeResult(
                     false,
                     null,
                     SshFailureCode.NetworkUnreachable,
-                    ex.Message),
+                    MessageKeyNetworkUnreachable,
+                    new object?[] { ex.Message }),
             SocketError.ConnectionReset => new ProbeResult(
                 false,
                 null,
                 SshFailureCode.NetworkReset,
-                "Connection reset."),
+                MessageKeyConnectionReset),
             _ => new ProbeResult(
                 false,
                 null,
                 SshFailureCode.Unknown,
-                ex.Message)
+                MessageKeyUnknownFailure,
+                new object?[] { ex.Message })
         };
     }
 }

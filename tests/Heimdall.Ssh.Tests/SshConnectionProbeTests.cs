@@ -33,6 +33,25 @@ public sealed class SshConnectionProbeTests
         Assert.True(
             result.FailureCode is SshFailureCode.NetworkRefused or SshFailureCode.NetworkTimedOut,
             $"Expected a network failure, got {result.FailureCode}.");
+        Assert.True(
+            result.MessageKey == SshConnectionProbe.MessageKeyConnectionRefused
+                || result.MessageKey == SshConnectionProbe.MessageKeyConnectionTimedOut,
+            $"Expected a network failure message key, got {result.MessageKey}.");
+    }
+
+    [Fact]
+    public async Task ProbeAsync_MissingBanner_ReturnsProtocolFailureMessageKey()
+    {
+        var (port, serverTask) = StartSingleResponseServer("");
+
+        var result = await SshConnectionProbe.ProbeAsync("127.0.0.1", port, 1000);
+        await serverTask;
+
+        Assert.False(result.Success);
+        Assert.Equal(SshFailureCode.ProtocolError, result.FailureCode);
+        Assert.Null(result.Banner);
+        Assert.Equal(SshConnectionProbe.MessageKeyMissingBanner, result.MessageKey);
+        Assert.Empty(result.MessageArguments);
     }
 
     [Fact]
@@ -46,7 +65,8 @@ public sealed class SshConnectionProbeTests
         Assert.False(result.Success);
         Assert.Equal(SshFailureCode.ProtocolError, result.FailureCode);
         Assert.Equal("HTTP/1.1 200 OK", result.Banner);
-        Assert.Equal("Server reached but is not an SSH server.", result.Message);
+        Assert.Equal(SshConnectionProbe.MessageKeyNonSshBanner, result.MessageKey);
+        Assert.Empty(result.MessageArguments);
     }
 
     [Fact]
@@ -60,7 +80,8 @@ public sealed class SshConnectionProbeTests
         Assert.True(result.Success);
         Assert.Equal("SSH-2.0-MockServer", result.Banner);
         Assert.Null(result.FailureCode);
-        Assert.Null(result.Message);
+        Assert.Null(result.MessageKey);
+        Assert.Empty(result.MessageArguments);
     }
 
     private static int GetClosedLoopbackPort()
