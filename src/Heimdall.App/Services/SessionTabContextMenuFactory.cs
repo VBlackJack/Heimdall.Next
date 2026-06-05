@@ -74,6 +74,7 @@ public sealed class SessionTabContextMenuFactory
         if (!isToolTab)
         {
             AppendConnectionActions(menu, session, vm, callbacks);
+            AppendProfileActions(menu, session, vm);
         }
 
         AppendDetachItem(menu, session, vm, callbacks);
@@ -168,6 +169,52 @@ public sealed class SessionTabContextMenuFactory
                 vm.ServerList.SaveAdHocAsProfileCommand.Execute(session.AdHocProfileSnapshot);
             menu.Items.Add(saveAsProfileItem);
         }
+    }
+
+    private static void AppendProfileActions(
+        ContextMenu menu,
+        SessionTabViewModel session,
+        MainViewModel vm)
+    {
+        string lookupId = session.ProfileLookupServerId;
+        ServerItemViewModel? serverVm = string.IsNullOrEmpty(lookupId)
+            ? null
+            : vm.ServerList.Servers.FirstOrDefault(
+                (ServerItemViewModel server) =>
+                    string.Equals(server.Id, lookupId, StringComparison.Ordinal));
+
+        if (serverVm is null)
+        {
+            return;
+        }
+
+        menu.Items.Add(new Separator());
+
+        MenuItem editItem = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxEdit"),
+            Command = vm.ServerList.EditServerCommand,
+            CommandParameter = serverVm,
+            InputGestureText = "Ctrl+E"
+        };
+        menu.Items.Add(editItem);
+
+        MenuItem copyHostnameItem = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxCopyHostname"),
+            Command = vm.ServerList.CopyHostnameCommand,
+            CommandParameter = serverVm
+        };
+        menu.Items.Add(copyHostnameItem);
+
+        MenuItem copyUsernameItem = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxCopyUsername"),
+            Command = vm.ServerList.CopyUsernameCommand,
+            CommandParameter = serverVm,
+            IsEnabled = !string.IsNullOrWhiteSpace(serverVm.Username)
+        };
+        menu.Items.Add(copyUsernameItem);
     }
 
     // ── Resolution menu (RDP only) ───────────────────────────────────
