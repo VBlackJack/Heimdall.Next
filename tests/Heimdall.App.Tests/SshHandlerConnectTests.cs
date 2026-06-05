@@ -113,6 +113,46 @@ public sealed class SshHandlerConnectTests
     }
 
     [Fact]
+    public async Task ConnectAsync_ExternalModeWithoutTrustedHostKey_RejectsBeforePuttyLaunch()
+    {
+        string puttyPath = Path.GetTempFileName();
+        try
+        {
+            FakeTunnelService tunnelService = new FakeTunnelService
+            {
+                UsesTunnel = false
+            };
+            FakePlinkHostKeyProbe probe = new FakePlinkHostKeyProbe(null);
+            SshHandler handler = CreateHandler(
+                tunnelService,
+                new NoStoredHostKeyTrustService(),
+                probe);
+            ServerProfileDto server = CreateExternalDirectServer();
+            AppSettings settings = new AppSettings
+            {
+                PuttyPath = puttyPath,
+                PlinkPath = Path.Combine(
+                    Path.GetTempPath(),
+                    $"heimdall-missing-plink-{Guid.NewGuid():N}.exe")
+            };
+
+            ConnectionResult result = await handler.ConnectAsync(
+                server,
+                settings,
+                CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal((int)SshFailureCode.HostKeyUnavailable, result.Failure?.Code);
+            Assert.Equal("ErrorSshHostKeyUnavailable", result.Failure?.MessageKey);
+            Assert.Equal(0, tunnelService.ReleaseCount);
+        }
+        finally
+        {
+            File.Delete(puttyPath);
+        }
+    }
+
+    [Fact]
     public async Task ConnectSshViaPlinkAsync_EarlyFailureWithTunnel_ReleasesTunnelReference()
     {
         const int targetPort = 13389;
@@ -163,19 +203,24 @@ public sealed class SshHandlerConnectTests
         Assert.Equal(0, tunnelService.ReleaseCount);
     }
 
-    private static SshHandler CreateHandler(FakeTunnelService tunnelService)
+    private static SshHandler CreateHandler(
+        FakeTunnelService tunnelService,
+        IHostKeyTrustService? hostKeyTrustService = null,
+        IPlinkHostKeyProbe? plinkHostKeyProbe = null)
     {
         LocalizationManager localizer = new LocalizationManager();
+        IHostKeyTrustService effectiveHostKeyTrustService =
+            hostKeyTrustService ?? new ThrowingHostKeyTrustService();
         return new SshHandler(
             tunnelService,
             new ConnectionStateMachine(),
             localizer,
             new HostKeyStore(),
-            new ThrowingHostKeyTrustService(),
+            effectiveHostKeyTrustService,
             AutoAcceptHostKeyVerifier.Instance,
             new X11ServerManager(new InMemoryConfigManager(), localizer),
             new ThrowingDialogService(),
-            plinkHostKeyProbe: null);
+            plinkHostKeyProbe: plinkHostKeyProbe);
     }
 
     private static ServerProfileDto CreateGatewayServer()
@@ -221,6 +266,21 @@ public sealed class SshHandlerConnectTests
             SshUsername = "invalid user",
             SshGatewayId = "gateway-01",
             UseDirectConnection = false
+        };
+    }
+
+    private static ServerProfileDto CreateExternalDirectServer()
+    {
+        return new ServerProfileDto
+        {
+            Id = "ssh-external-direct-test",
+            DisplayName = "SSH External Direct Test",
+            ConnectionType = "SSH",
+            RemoteServer = "127.0.0.1",
+            SshPort = DefaultPorts.Ssh,
+            SshMode = "External",
+            SshUsername = "operator",
+            UseDirectConnection = true
         };
     }
 
@@ -284,6 +344,86 @@ public sealed class SshHandlerConnectTests
             ReleaseCount++;
             ReleasedLocalPort = localPort;
         }
+    }
+
+    private sealed class FakePlinkHostKeyProbe : IPlinkHostKeyProbe
+    {
+        private readonly PlinkHostKeyPresentation? _presentation;
+
+        public FakePlinkHostKeyProbe(PlinkHostKeyPresentation? presentation)
+        {
+            _presentation = presentation;
+        }
+
+        public int CallCount { get; private set; }
+
+        public Task<PlinkHostKeyPresentation?> ProbeAsync(
+            string plinkPath,
+            string host,
+            int port,
+            string? username,
+            int timeoutMs,
+            CancellationToken ct)
+        {
+            CallCount++;
+            return Task.FromResult(_presentation);
+        }
+    }
+
+    private sealed class NoStoredHostKeyTrustService : IHostKeyTrustService
+    {
+        public event Action<string, HostKeyEntry>? EntryTrusted { add { } remove { } }
+        public event Action<string>? EntryRemoved { add { } remove { } }
+        public event Action<string, HostKeyEntry, HostKeyEntry>? EntryReplaced { add { } remove { } }
+
+        public HostKeyEntry? GetEntry(string host, int port) => null;
+
+        public HostKeyEntry? GetEffectiveEntry(string host, int port) => null;
+
+        public IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries() => [];
+
+        public HostKeyVerifyResult Verify(
+            string host,
+            int port,
+            string presentedFingerprint,
+            string algorithm)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void Trust(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            HostKeySource source,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void TrustForSession(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void Import(
+            string host,
+            int port,
+            string fingerprint,
+            string algorithm,
+            DateTimeOffset importedAt,
+            string? publicKeyBase64 = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Remove(string host, int port) => false;
     }
 
     private sealed class ThrowingHostKeyTrustService : IHostKeyTrustService

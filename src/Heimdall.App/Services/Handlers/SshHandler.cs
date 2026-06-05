@@ -111,7 +111,8 @@ internal sealed class SshHandler : IProtocolHandler
 
         if (string.Equals(sshMode, "External", StringComparison.OrdinalIgnoreCase))
         {
-            return ConnectSshExternal(server, settings, targetHost, targetPort, usesTunnel);
+            return await ConnectSshExternal(server, settings, targetHost, targetPort, usesTunnel, ct)
+                .ConfigureAwait(false);
         }
 
         var sshParams = new SshConnectionParams
@@ -278,12 +279,13 @@ internal sealed class SshHandler : IProtocolHandler
     /// Launches putty.exe as an external (non-embedded) SSH session.
     /// Used when <see cref="ServerProfileDto.SshMode"/> is "External".
     /// </summary>
-    private ConnectionResult ConnectSshExternal(
+    private async Task<ConnectionResult> ConnectSshExternal(
         ServerProfileDto server,
         AppSettings settings,
         string targetHost,
         int targetPort,
-        bool usesTunnel)
+        bool usesTunnel,
+        CancellationToken ct)
     {
         bool releaseTunnel = usesTunnel;
         try
@@ -337,6 +339,26 @@ internal sealed class SshHandler : IProtocolHandler
                 return new ConnectionResult(false, keyPathMessage, null, SshSessionDiagnosticFactory.CreatePreflightFailure(SshLocalizationKeys.ErrorConnectionFailed, keyPathMessage));
             }
 
+            string? plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
+            string? storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
+            PlinkHostKeyDecision hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
+                    targetHost,
+                    targetPort,
+                    server.SshUsername,
+                    plinkPath,
+                    settings.HostKeyProbeTimeoutMs,
+                    storedFingerprint,
+                    _plinkHostKeyProbe,
+                    _hostKeyVerifier,
+                    _hostKeyTrustService,
+                    ct)
+                .ConfigureAwait(false);
+            if (!hostKeyDecision.ShouldProceed)
+            {
+                return BuildPlinkHostKeyRejectionResult(server.Id, targetHost, targetPort, hostKeyDecision);
+            }
+
+            string? hostKeyArg = hostKeyDecision.Fingerprint;
             string target = !string.IsNullOrEmpty(server.SshUsername)
                 ? $"{server.SshUsername}@{targetHost}"
                 : targetHost;
@@ -348,7 +370,8 @@ internal sealed class SshHandler : IProtocolHandler
                 server.SshAgentForwarding,
                 server.SshX11Forwarding,
                 targetPort,
-                target);
+                target,
+                hostKeyArg);
             Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} for {targetHost}:{targetPort}");
 
             System.Diagnostics.Process? process = System.Diagnostics.Process.Start(psi);
@@ -652,9 +675,10 @@ internal sealed class SshHandler : IProtocolHandler
         bool agentForwarding,
         bool x11Forwarding,
         int port,
-        string target)
+        string target,
+        string? hostKeyFingerprint)
     {
-        var psi = new System.Diagnostics.ProcessStartInfo
+        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = puttyPath,
             UseShellExecute = false
@@ -684,6 +708,13 @@ internal sealed class SshHandler : IProtocolHandler
 
         psi.ArgumentList.Add("-P");
         psi.ArgumentList.Add(port.ToString());
+
+        if (!string.IsNullOrWhiteSpace(hostKeyFingerprint))
+        {
+            psi.ArgumentList.Add("-hostkey");
+            psi.ArgumentList.Add(hostKeyFingerprint);
+        }
+
         psi.ArgumentList.Add(target);
         return psi;
     }

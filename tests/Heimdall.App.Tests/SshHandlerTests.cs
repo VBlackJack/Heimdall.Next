@@ -62,18 +62,19 @@ public sealed class SshHandlerTests
     [Fact]
     public void BuildPuttyStartInfo_UsesArgumentListForValidInputs()
     {
-        var keyPath = Path.GetTempFileName();
+        string keyPath = Path.GetTempFileName();
 
         try
         {
-            var psi = SshHandler.BuildPuttyStartInfo(
+            System.Diagnostics.ProcessStartInfo psi = SshHandler.BuildPuttyStartInfo(
                 @"C:\tools\putty.exe",
                 keyPath,
                 compression: true,
                 agentForwarding: true,
                 x11Forwarding: false,
                 port: 22,
-                target: "user@example.com");
+                target: "user@example.com",
+                hostKeyFingerprint: null);
 
             Assert.Equal(@"C:\tools\putty.exe", psi.FileName);
             Assert.Contains("-i", psi.ArgumentList);
@@ -86,6 +87,48 @@ public sealed class SshHandlerTests
         {
             File.Delete(keyPath);
         }
+    }
+
+    [Fact]
+    public void BuildPuttyStartInfo_WithHostKey_AddsHostKeyBeforeTarget()
+    {
+        System.Diagnostics.ProcessStartInfo psi = SshHandler.BuildPuttyStartInfo(
+            @"C:\tools\putty.exe",
+            keyPath: null,
+            compression: false,
+            agentForwarding: false,
+            x11Forwarding: false,
+            port: 2222,
+            target: "user@example.com",
+            hostKeyFingerprint: "SHA256:abc123");
+
+        int hostKeyIndex = psi.ArgumentList.IndexOf("-hostkey");
+        int targetIndex = psi.ArgumentList.IndexOf("user@example.com");
+
+        Assert.True(hostKeyIndex >= 0);
+        Assert.Equal("SHA256:abc123", psi.ArgumentList[hostKeyIndex + 1]);
+        Assert.True(targetIndex > hostKeyIndex);
+        Assert.Equal(targetIndex - 2, hostKeyIndex);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void BuildPuttyStartInfo_WithoutHostKey_OmitsHostKeyArguments(string? hostKeyFingerprint)
+    {
+        System.Diagnostics.ProcessStartInfo psi = SshHandler.BuildPuttyStartInfo(
+            @"C:\tools\putty.exe",
+            keyPath: null,
+            compression: false,
+            agentForwarding: false,
+            x11Forwarding: false,
+            port: 22,
+            target: "user@example.com",
+            hostKeyFingerprint: hostKeyFingerprint);
+
+        Assert.DoesNotContain("-hostkey", psi.ArgumentList);
+        Assert.Contains("user@example.com", psi.ArgumentList);
     }
 
     [Fact]
