@@ -1270,7 +1270,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 TryExecute(vm.ServerList.EditServerCommand, selected);
         }, canExecute: () => !IsTerminalFocusedContext());
 
-        // ── Sidebar / filter / palette (terminal-gated) ──────────────
+        // ── Sidebar / filter (terminal-gated) / palette ──────────────
         // Ctrl+F: focus filter box
         _keyboardShortcutService.Register(Key.F, ModifierKeys.Control, () =>
         {
@@ -1283,12 +1283,13 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             ToggleSidebar,
             canExecute: () => !IsTerminalFocusedContext());
 
-        // Ctrl+K: open command palette
+        // Ctrl+K: open command palette (never terminal-gated; quick access must work
+        // from inside a session too, so the palette intentionally wins over the
+        // terminal's own Ctrl+K binding).
         _keyboardShortcutService.Register(
             Key.K,
             ModifierKeys.Control,
-            OpenCommandPalette,
-            canExecute: () => !IsTerminalFocusedContext());
+            OpenCommandPalette);
 
         // ── Ctrl+Shift combos (NOT terminal-gated) ───────────────────
         // Ctrl+Shift+S: screenshot active session
