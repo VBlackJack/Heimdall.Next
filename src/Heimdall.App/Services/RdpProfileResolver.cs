@@ -63,13 +63,13 @@ internal static class RdpProfileResolver
             return (string.Empty, null);
         }
 
-        // DOMAIN\user format (NetBIOS)
+        // DOMAIN\user format (NetBIOS) - keep the full down-level name in the username
+        // field; the RDP ActiveX accepts DOMAIN\user directly, exactly like a UPN. Splitting
+        // it into a separate Domain breaks NLA/CredSSP auto-logon on some hosts.
         int separatorIndex = rdpUsername.IndexOf('\\');
         if (separatorIndex > 0 && separatorIndex < rdpUsername.Length - 1)
         {
-            return (
-                rdpUsername[(separatorIndex + 1)..],
-                rdpUsername[..separatorIndex]);
+            return (rdpUsername, rdpUsername[..separatorIndex]);
         }
 
         // user@domain.com format (UPN) - pass the full UPN as the username

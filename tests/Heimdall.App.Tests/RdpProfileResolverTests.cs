@@ -35,14 +35,14 @@ public sealed class RdpProfileResolverTests
     }
 
     [Fact]
-    public void ResolveCredentialIdentity_NetBiosUsername_SplitsDomainAndUser()
+    public void ResolveCredentialIdentity_NetBiosUsername_KeepsFullUsernameAndExtractsDomain()
     {
         (string username, string? domain) = RdpProfileResolver.ResolveCredentialIdentity(
-            @"CORP\admin",
+            @"NSBF2\a150058",
             null);
 
-        Assert.Equal("admin", username);
-        Assert.Equal("CORP", domain);
+        Assert.Equal(@"NSBF2\a150058", username);
+        Assert.Equal("NSBF2", domain);
     }
 
     [Fact]
