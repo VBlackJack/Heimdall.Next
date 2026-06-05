@@ -57,6 +57,19 @@ public sealed class TerminalReconnectPolicyTests
         Assert.Equal("Process exited with code 1", disconnect.Message);
     }
 
+    [Fact]
+    public void ClassifyProcessExit_NonZeroExitWithSuppression_ReturnsSuppressedDisconnect()
+    {
+        SshSessionDisconnectInfo disconnect = TerminalReconnectPolicy.ClassifyProcessExit(
+            exitCode: 1,
+            autoReconnectOnProcessExit: true,
+            suppressAutoReconnect: true);
+
+        Assert.False(disconnect.IsClean);
+        Assert.True(disconnect.SuppressAutoReconnect);
+        Assert.Equal("Process exited with code 1", disconnect.Message);
+    }
+
     [Theory]
     [InlineData("WINRM")]
     [InlineData("winrm")]
@@ -81,5 +94,58 @@ public sealed class TerminalReconnectPolicyTests
         bool reconnects = TerminalReconnectPolicy.ReconnectsOnProcessExit(connectionType);
 
         Assert.True(reconnects);
+    }
+
+    [Fact]
+    public void SuppressesConnectTimeProcessExit_SshPipeNoInputWithinWindow_ReturnsTrue()
+    {
+        bool suppresses = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            connectionType: "SSH",
+            isPipeModeSession: true,
+            hasTerminalInput: false,
+            processRuntime: TerminalReconnectPolicy.ConnectTimeExitWindow);
+
+        Assert.True(suppresses);
+    }
+
+    [Fact]
+    public void SuppressesConnectTimeProcessExit_SshPipeWithInput_ReturnsFalse()
+    {
+        bool suppresses = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            connectionType: "SSH",
+            isPipeModeSession: true,
+            hasTerminalInput: true,
+            processRuntime: TimeSpan.FromSeconds(1));
+
+        Assert.False(suppresses);
+    }
+
+    [Fact]
+    public void SuppressesConnectTimeProcessExit_SshPipeOutsideWindow_ReturnsFalse()
+    {
+        bool suppresses = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            connectionType: "SSH",
+            isPipeModeSession: true,
+            hasTerminalInput: false,
+            processRuntime: TerminalReconnectPolicy.ConnectTimeExitWindow + TimeSpan.FromMilliseconds(1));
+
+        Assert.False(suppresses);
+    }
+
+    [Theory]
+    [InlineData("TELNET")]
+    [InlineData("LOCAL")]
+    [InlineData("WINRM")]
+    [InlineData(null)]
+    public void SuppressesConnectTimeProcessExit_NonSshConnection_ReturnsFalse(
+        string? connectionType)
+    {
+        bool suppresses = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            connectionType,
+            isPipeModeSession: true,
+            hasTerminalInput: false,
+            processRuntime: TimeSpan.FromSeconds(1));
+
+        Assert.False(suppresses);
     }
 }

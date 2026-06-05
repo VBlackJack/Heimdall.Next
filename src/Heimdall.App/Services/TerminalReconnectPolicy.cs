@@ -25,6 +25,8 @@ namespace Heimdall.App.Services;
 /// </summary>
 internal static class TerminalReconnectPolicy
 {
+    internal static readonly TimeSpan ConnectTimeExitWindow = TimeSpan.FromSeconds(15);
+
     public static bool ReconnectsOnProcessExit(string? connectionType)
     {
         // Local / handed-off process sessions: a non-zero exit means the process ended
@@ -47,7 +49,8 @@ internal static class TerminalReconnectPolicy
     /// </summary>
     public static SshSessionDisconnectInfo ClassifyProcessExit(
         int exitCode,
-        bool autoReconnectOnProcessExit)
+        bool autoReconnectOnProcessExit,
+        bool suppressAutoReconnect = false)
     {
         string message = $"Process exited with code {exitCode}";
         if (exitCode == 0)
@@ -55,8 +58,21 @@ internal static class TerminalReconnectPolicy
             return SshSessionDisconnectInfo.Clean(message);
         }
 
-        return autoReconnectOnProcessExit
+        return autoReconnectOnProcessExit && !suppressAutoReconnect
             ? SshSessionDisconnectInfo.Unclassified(message)
             : SshSessionDisconnectInfo.TerminalEnded(message);
+    }
+
+    public static bool SuppressesConnectTimeProcessExit(
+        string? connectionType,
+        bool isPipeModeSession,
+        bool hasTerminalInput,
+        TimeSpan processRuntime)
+    {
+        return string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+            && isPipeModeSession
+            && !hasTerminalInput
+            && processRuntime >= TimeSpan.Zero
+            && processRuntime <= ConnectTimeExitWindow;
     }
 }

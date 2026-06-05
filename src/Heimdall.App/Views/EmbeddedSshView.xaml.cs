@@ -214,7 +214,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _isRecording;
     private bool _localeChangeSubscribed;
     private bool _autoReconnectOnProcessExit = true;
+    private bool _terminalSessionHasInput;
     private string? _pendingSecurityDisconnectMessage;
+    private DateTimeOffset? _terminalSessionAttachedAtUtc;
     private int _autoReconnectAttempt;
     private int _autoReconnectSecondsRemaining;
 
@@ -412,6 +414,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _terminalSession = terminalSession;
         _autoReconnectOnProcessExit = autoReconnectOnProcessExit;
+        _terminalSessionHasInput = false;
+        _terminalSessionAttachedAtUtc = DateTimeOffset.UtcNow;
         _terminalDataHandler = OnTerminalDataReceived;
         _terminalExitHandler = OnTerminalProcessExited;
 
@@ -1300,8 +1304,19 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnTerminalProcessExited(int exitCode)
     {
+        TimeSpan runtime = _terminalSessionAttachedAtUtc is { } attachedAt
+            ? DateTimeOffset.UtcNow - attachedAt
+            : TimeSpan.Zero;
+        bool suppressAutoReconnect = TerminalReconnectPolicy.SuppressesConnectTimeProcessExit(
+            _sessionTab?.ConnectionType,
+            _terminalSession is Heimdall.Terminal.PipeModeSession,
+            _terminalSessionHasInput,
+            runtime);
         SshSessionDisconnectInfo disconnectInfo =
-            TerminalReconnectPolicy.ClassifyProcessExit(exitCode, _autoReconnectOnProcessExit);
+            TerminalReconnectPolicy.ClassifyProcessExit(
+                exitCode,
+                _autoReconnectOnProcessExit,
+                suppressAutoReconnect);
         OnDisconnected(disconnectInfo);
     }
 
@@ -1347,7 +1362,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
-    private void WriteToSession(byte[] data)
+    private void WriteToSession(byte[] data, bool marksTerminalInput = true)
     {
         if (_disposed || data.Length == 0)
         {
@@ -1374,6 +1389,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
         else
         {
+            if (marksTerminalInput && _terminalSession is not null)
+            {
+                _terminalSessionHasInput = true;
+            }
+
             _terminalSession?.Write(data);
         }
     }
@@ -1528,7 +1548,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
-    private void WriteToSession(string text)
+    private void WriteToSession(string text, bool marksTerminalInput = true)
     {
         if (_disposed || string.IsNullOrEmpty(text))
         {
@@ -1541,6 +1561,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
         else
         {
+            if (marksTerminalInput && _terminalSession is not null)
+            {
+                _terminalSessionHasInput = true;
+            }
+
             _terminalSession?.Write(text);
         }
     }
@@ -1915,7 +1940,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         try
         {
-            WriteToSession(KeepAliveCr);
+            WriteToSession(KeepAliveCr, marksTerminalInput: false);
         }
         catch (Exception ex)
         {
