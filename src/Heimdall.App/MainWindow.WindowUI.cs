@@ -338,9 +338,19 @@ public partial class MainWindow
 
     private bool OnLowLevelKeyboardHookKeyDown(Key key, ModifierKeys modifiers)
     {
-        var action = FullscreenShortcutRouter.Resolve(key, modifiers, _uiState.IsFullscreen);
+        FullscreenShortcutAction action = FullscreenShortcutRouter.Resolve(key, modifiers, _uiState.IsFullscreen);
         if (action == FullscreenShortcutAction.None)
         {
+            if (key == Key.K
+                && modifiers == ModifierKeys.Control
+                && RdpKeyboardEscapeHook.IsRegisteredRdpViewFocused())
+            {
+                Dispatcher.BeginInvoke(
+                    DispatcherPriority.Input,
+                    new Action(OpenCommandPalette));
+                return true;
+            }
+
             return false;
         }
 

@@ -32,6 +32,12 @@ public sealed class RdpKeyboardEscapeHookTests : IDisposable
     }
 
     [Fact]
+    public void IsRegisteredRdpViewFocused_NoRegisteredViews_ReturnsFalse()
+    {
+        Assert.False(RdpKeyboardEscapeHook.IsRegisteredRdpViewFocused());
+    }
+
+    [Fact]
     public void RegisterAndUnregister_InstallOnlyFirstAndUninstallOnlyLast()
     {
         var installEvents = new List<bool>();

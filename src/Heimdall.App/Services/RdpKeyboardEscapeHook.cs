@@ -61,6 +61,19 @@ internal static class RdpKeyboardEscapeHook
         }
     }
 
+    internal static bool IsRegisteredRdpViewFocused()
+    {
+        lock (SyncRoot)
+        {
+            if (RegisteredViews.Count == 0)
+            {
+                return false;
+            }
+        }
+
+        return FindFocusedRdpView() is not null;
+    }
+
     public static bool Register(EmbeddedRdpView view, string? shortcut = null)
         => Register(view, new RdpHookShortcuts(shortcut, null));
 
@@ -311,8 +324,8 @@ internal static class RdpKeyboardEscapeHook
 
     private static EmbeddedRdpView? FindFocusedRdpView()
     {
-        var focusedHwnd = GetFocus();
-        if (focusedHwnd == IntPtr.Zero)
+        List<IntPtr> focusedHandles = GetFocusedWindowHandles();
+        if (focusedHandles.Count == 0)
         {
             return null;
         }
@@ -335,13 +348,77 @@ internal static class RdpKeyboardEscapeHook
                 continue;
             }
 
-            if (focusedHwnd == hostHandle || IsChild(hostHandle, focusedHwnd))
+            foreach (IntPtr focusedHwnd in focusedHandles)
             {
-                return view;
+                if (focusedHwnd == hostHandle || IsChild(hostHandle, focusedHwnd))
+                {
+                    return view;
+                }
             }
         }
 
         return null;
+    }
+
+    private static List<IntPtr> GetFocusedWindowHandles()
+    {
+        List<IntPtr> handles = new();
+        IntPtr threadFocus = GetFocus();
+        if (threadFocus != IntPtr.Zero)
+        {
+            handles.Add(threadFocus);
+        }
+
+        IntPtr foregroundWindow = GetForegroundWindow();
+        if (foregroundWindow == IntPtr.Zero)
+        {
+            return handles;
+        }
+
+        uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, out _);
+        if (foregroundThreadId == 0)
+        {
+            return handles;
+        }
+
+        GuiThreadInfo guiThreadInfo = new()
+        {
+            CbSize = Marshal.SizeOf<GuiThreadInfo>()
+        };
+        if (!GetGUIThreadInfo(foregroundThreadId, ref guiThreadInfo))
+        {
+            return handles;
+        }
+
+        if (guiThreadInfo.HwndFocus != IntPtr.Zero && !handles.Contains(guiThreadInfo.HwndFocus))
+        {
+            handles.Add(guiThreadInfo.HwndFocus);
+        }
+
+        return handles;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct GuiThreadInfo
+    {
+        public int CbSize;
+        public uint Flags;
+        public IntPtr HwndActive;
+        public IntPtr HwndFocus;
+        public IntPtr HwndCapture;
+        public IntPtr HwndMenuOwner;
+        public IntPtr HwndMoveSize;
+        public IntPtr HwndCaret;
+        public Rect RcCaret;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Rect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 
     private sealed record RegisteredView(EmbeddedRdpView? View);
@@ -374,6 +451,16 @@ internal static class RdpKeyboardEscapeHook
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsChild(IntPtr hWndParent, IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetGUIThreadInfo(uint idThread, ref GuiThreadInfo lpgui);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 }
 
 internal sealed record RdpHookShortcuts(string? EscapeShortcut, string? FullscreenShortcut);
