@@ -420,6 +420,66 @@ public sealed class EmbeddedSftpViewModelTests
         Assert.False(viewModel.IsTransferInProgress);
     }
 
+    [Theory]
+    [InlineData("..")]
+    [InlineData("../secret.txt")]
+    [InlineData(@"..\secret.txt")]
+    [InlineData("nested/report.txt")]
+    [InlineData(@"nested\report.txt")]
+    public async Task DownloadFilesAsync_UnsafeRemoteFileName_DoesNotDownload(string fileName)
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+
+        await viewModel.DownloadFilesAsync(
+            [CreateRemoteEntry(fileName, $"/var/reports/{fileName}", isDirectory: false)],
+            Path.GetTempPath());
+
+        Assert.Equal(0, browser.DownloadCallCount);
+        Assert.False(viewModel.IsErrorStatus);
+        Assert.False(viewModel.IsTransferInProgress);
+    }
+
+    [Fact]
+    public void LocalDownloadPath_ValidFileName_ResolvesInsideTargetFolder()
+    {
+        string targetFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        bool resolved = LocalDownloadPath.TryResolveContained(
+            targetFolder,
+            "report.txt",
+            out string localPath);
+
+        Assert.True(resolved);
+        Assert.Equal(
+            Path.GetFullPath(Path.Combine(targetFolder, "report.txt")),
+            localPath);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("../secret.txt")]
+    [InlineData(@"..\secret.txt")]
+    [InlineData("nested/report.txt")]
+    [InlineData(@"nested\report.txt")]
+    public void LocalDownloadPath_UnsafeFileName_ReturnsFalse(string fileName)
+    {
+        string targetFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        bool resolved = LocalDownloadPath.TryResolveContained(
+            targetFolder,
+            fileName,
+            out string localPath);
+
+        Assert.False(resolved);
+        Assert.Equal(string.Empty, localPath);
+    }
+
     [Fact]
     public async Task UploadFilesAsync_WhenTransferAlreadyInProgress_DoesNotUpload()
     {

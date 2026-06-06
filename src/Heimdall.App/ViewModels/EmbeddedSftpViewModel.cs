@@ -753,7 +753,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
                     continue;
                 }
 
-                string localPath = Path.Combine(targetFolder, file.Name);
+                if (!LocalDownloadPath.TryResolveContained(targetFolder, file.Name, out string localPath))
+                {
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedSFTP skipped unsafe local download name '{file.Name}' for target folder '{targetFolder}'.");
+                    continue;
+                }
 
                 TransferStatusText = _localizer?.Format(
                     "SftpStatusDownloadingFile", file.Name,
