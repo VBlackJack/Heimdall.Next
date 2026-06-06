@@ -200,7 +200,21 @@ internal sealed class WinRmPowerShellLaunchBuilder
     private string ResolvePowerShellExecutable()
     {
         string? pwshPath = _findExecutable("pwsh.exe");
-        return string.IsNullOrWhiteSpace(pwshPath) ? "powershell.exe" : pwshPath;
+        if (!string.IsNullOrWhiteSpace(pwshPath))
+        {
+            return pwshPath;
+        }
+
+        string? windowsPowerShellPath = _findExecutable("powershell.exe");
+        if (!string.IsNullOrWhiteSpace(windowsPowerShellPath))
+        {
+            return windowsPowerShellPath;
+        }
+
+        throw new WinRmConfigurationException(
+            "ErrorWinRmNoPowerShellHost",
+            [],
+            "No PowerShell host executable was found. Install PowerShell 7 (pwsh.exe) or Windows PowerShell (powershell.exe), or add one to PATH.");
     }
 
     private static void ValidateWinRmProfile(ServerProfileDto server)

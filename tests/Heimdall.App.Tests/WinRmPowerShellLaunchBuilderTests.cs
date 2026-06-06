@@ -44,7 +44,7 @@ public sealed class WinRmPowerShellLaunchBuilderTests
     [Fact]
     public void Build_WhenPwshMissing_FallsBackToWindowsPowerShellName()
     {
-        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(FindWindowsPowerShellNameOnly);
 
         WinRmPowerShellLaunchSpec spec = builder.Build(CreateServer());
 
@@ -52,9 +52,40 @@ public sealed class WinRmPowerShellLaunchBuilderTests
     }
 
     [Fact]
-    public void Build_CredentialMode_UsesBootstrapFileArgument()
+    public void Build_WhenPwshFound_UsesPwshExecutable()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(FindPwshAndWindowsPowerShell);
+
+        WinRmPowerShellLaunchSpec spec = builder.Build(CreateServer());
+
+        Assert.Equal(@"C:\Tools\pwsh.exe", spec.Executable);
+    }
+
+    [Fact]
+    public void Build_WhenOnlyWindowsPowerShellFound_UsesWindowsPowerShellExecutable()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(FindWindowsPowerShellPathOnly);
+
+        WinRmPowerShellLaunchSpec spec = builder.Build(CreateServer());
+
+        Assert.Equal(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", spec.Executable);
+    }
+
+    [Fact]
+    public void Build_WhenNoPowerShellHostFound_Throws()
     {
         WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+
+        WinRmConfigurationException ex =
+            Assert.Throws<WinRmConfigurationException>(() => builder.Build(CreateServer()));
+
+        Assert.Equal("ErrorWinRmNoPowerShellHost", ex.LocalizationKey);
+    }
+
+    [Fact]
+    public void Build_CredentialMode_UsesBootstrapFileArgument()
+    {
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(FindWindowsPowerShellNameOnly);
         ServerProfileDto server = CreateServer();
         server.WinRmIdentityMode = WinRmIdentityMode.Credential;
         server.WinRmUsername = @"CONTOSO\operator";
@@ -72,7 +103,7 @@ public sealed class WinRmPowerShellLaunchBuilderTests
     [Fact]
     public void Build_CredentialModeWithoutBootstrapPath_Throws()
     {
-        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(_ => null);
+        WinRmPowerShellLaunchBuilder builder = new WinRmPowerShellLaunchBuilder(FindWindowsPowerShellNameOnly);
         ServerProfileDto server = CreateServer();
         server.WinRmIdentityMode = WinRmIdentityMode.Credential;
 
@@ -218,4 +249,33 @@ public sealed class WinRmPowerShellLaunchBuilderTests
             WinRmUseSsl = true,
             WinRmIdentityMode = WinRmIdentityMode.CurrentUser
         };
+
+    private static string? FindPwshAndWindowsPowerShell(string executableName)
+    {
+        if (string.Equals(executableName, "pwsh.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return @"C:\Tools\pwsh.exe";
+        }
+
+        if (string.Equals(executableName, "powershell.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+        }
+
+        return null;
+    }
+
+    private static string? FindWindowsPowerShellPathOnly(string executableName)
+    {
+        return string.Equals(executableName, "powershell.exe", StringComparison.OrdinalIgnoreCase)
+            ? @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+            : null;
+    }
+
+    private static string? FindWindowsPowerShellNameOnly(string executableName)
+    {
+        return string.Equals(executableName, "powershell.exe", StringComparison.OrdinalIgnoreCase)
+            ? "powershell.exe"
+            : null;
+    }
 }
