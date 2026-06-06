@@ -40,6 +40,7 @@ public sealed class RemoteFileEditor : IDisposable
     /// </remarks>
     public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
+    private const short OwnerReadWritePermissions = 600;
     private static readonly TimeSpan UploadDrainTimeout = TimeSpan.FromSeconds(2);
 
     private readonly IRemoteBrowser _browser;
@@ -580,6 +581,8 @@ public sealed class RemoteFileEditor : IDisposable
                 ct.ThrowIfCancellationRequested();
                 using var fileStream = File.OpenRead(session.LocalPath);
                 sftpClient.UploadFile(fileStream, tempRemotePath);
+                ct.ThrowIfCancellationRequested();
+                sftpClient.ChangePermissions(tempRemotePath, OwnerReadWritePermissions);
                 ct.ThrowIfCancellationRequested();
             }, ct).ConfigureAwait(false);
 
