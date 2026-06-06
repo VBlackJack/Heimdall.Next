@@ -97,8 +97,7 @@ public sealed class SftpBrowser : IRemoteBrowser
 
         SshConnectionFactory.AttachPinnedHostKeyVerification(
             client,
-            connectionParams.Host,
-            connectionParams.Port,
+            connectionParams,
             pinnedVerifier);
 
         client.ErrorOccurred += OnErrorOccurred;

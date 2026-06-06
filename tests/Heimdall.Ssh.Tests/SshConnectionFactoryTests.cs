@@ -57,6 +57,36 @@ public sealed class SshConnectionFactoryTests
     private static IEnumerable<string> MethodTypeNames(IEnumerable<AuthenticationMethod> methods)
         => methods.Select(m => m.GetType().Name);
 
+    [Fact]
+    public void HostKeyVerificationEndpoint_WithoutLogicalIdentity_UsesTransportEndpoint()
+    {
+        var connParams = new SshConnectionParams
+        {
+            Host = "127.0.0.1",
+            Port = 42022,
+            Username = "user"
+        };
+
+        Assert.Equal("127.0.0.1", connParams.HostKeyVerificationHost);
+        Assert.Equal(42022, connParams.HostKeyVerificationPort);
+    }
+
+    [Fact]
+    public void HostKeyVerificationEndpoint_WithLogicalIdentity_UsesLogicalEndpoint()
+    {
+        var connParams = new SshConnectionParams
+        {
+            Host = "127.0.0.1",
+            Port = 42022,
+            LogicalHost = "db.internal.example",
+            LogicalPort = 22,
+            Username = "user"
+        };
+
+        Assert.Equal("db.internal.example", connParams.HostKeyVerificationHost);
+        Assert.Equal(22, connParams.HostKeyVerificationPort);
+    }
+
     private static string CreateTempRsaPrivateKeyFile()
     {
         using var rsa = RSA.Create(2048);

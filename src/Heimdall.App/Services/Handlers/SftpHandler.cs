@@ -107,6 +107,8 @@ internal sealed class SftpHandler : IProtocolHandler
         {
             Host = targetHost,
             Port = targetPort,
+            LogicalHost = usesTunnel ? server.RemoteServer : null,
+            LogicalPort = usesTunnel ? port : null,
             Username = server.SshUsername ?? string.Empty,
             Password = ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted),
             KeyPassphrase = ConnectionHelpers.DecryptPassword(server.SshKeyPassphraseEncrypted),

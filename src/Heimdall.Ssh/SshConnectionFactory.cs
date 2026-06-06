@@ -137,6 +137,24 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
+    /// Attaches a strict host key pin using the connection's logical host
+    /// identity, while the SSH.NET client still connects to Host/Port.
+    /// </summary>
+    public static void AttachPinnedHostKeyVerification(
+        Renci.SshNet.BaseClient client,
+        SshConnectionParams connectionParams,
+        PinnedFingerprintVerifier verifier)
+    {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+
+        AttachPinnedHostKeyVerification(
+            client,
+            connectionParams.HostKeyVerificationHost,
+            connectionParams.HostKeyVerificationPort,
+            verifier);
+    }
+
+    /// <summary>
     /// Resolves a pinned verifier by probing the server host key before authentication.
     /// </summary>
     public static async Task<PinnedFingerprintVerifier> ResolveHostKeyAsync(
@@ -147,8 +165,8 @@ public static class SshConnectionFactory
     {
         return await ResolveHostKeyAsync(
                 connectionParams,
-                connectionParams.Host,
-                connectionParams.Port,
+                connectionParams.HostKeyVerificationHost,
+                connectionParams.HostKeyVerificationPort,
                 hostKeyStore,
                 verifier,
                 cancellationToken)

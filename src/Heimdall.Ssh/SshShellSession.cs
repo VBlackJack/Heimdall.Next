@@ -115,8 +115,7 @@ public sealed class SshShellSession : IDisposable
 
         SshConnectionFactory.AttachPinnedHostKeyVerification(
             _client,
-            connectionParams.Host,
-            connectionParams.Port,
+            connectionParams,
             pinnedVerifier);
 
         await using var connectReg = cancellationToken.Register(

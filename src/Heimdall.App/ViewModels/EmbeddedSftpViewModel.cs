@@ -855,8 +855,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
         SshConnectionFactory.AttachPinnedHostKeyVerification(
             ssh,
-            _sshParams.Host,
-            _sshParams.Port,
+            _sshParams,
             pinnedVerifier);
 
         try

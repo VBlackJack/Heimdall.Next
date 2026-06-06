@@ -32,6 +32,20 @@ public sealed class SshConnectionParams
     /// <summary>SSH server port (default 22).</summary>
     public int Port { get; init; } = 22;
 
+    /// <summary>
+    /// Logical SSH host used for host-key trust decisions when the transport
+    /// endpoint differs from the server identity, such as through a local tunnel.
+    /// Defaults to <see cref="Host"/>.
+    /// </summary>
+    public string? LogicalHost { get; init; }
+
+    /// <summary>
+    /// Logical SSH port used for host-key trust decisions when the transport
+    /// endpoint differs from the server identity, such as through a local tunnel.
+    /// Defaults to <see cref="Port"/>.
+    /// </summary>
+    public int? LogicalPort { get; init; }
+
     /// <summary>SSH username for authentication.</summary>
     public required string Username { get; init; }
 
@@ -68,4 +82,11 @@ public sealed class SshConnectionParams
 
     /// <summary>TCP connection timeout. Defaults to 15 seconds.</summary>
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>Host identity used for host-key verification and storage.</summary>
+    public string HostKeyVerificationHost =>
+        string.IsNullOrWhiteSpace(LogicalHost) ? Host : LogicalHost;
+
+    /// <summary>Port identity used for host-key verification and storage.</summary>
+    public int HostKeyVerificationPort => LogicalPort ?? Port;
 }

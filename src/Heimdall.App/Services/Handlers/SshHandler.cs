@@ -86,8 +86,9 @@ internal sealed class SshHandler : IProtocolHandler
             $"ConnectSshAsync: {server.DisplayName} ({server.RemoteServer}:{server.SshPort}) Gateway={server.SshGatewayId ?? "none"}");
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
+        int sshPort = server.SshPort > 0 ? server.SshPort : DefaultPorts.Ssh;
         (bool tunnelOk, bool usesTunnel, string targetHost, int targetPort, string? tunnelError) =
-            await _tunnelService.SetupTunnelIfNeededAsync(server, server.SshPort, settings, ct)
+            await _tunnelService.SetupTunnelIfNeededAsync(server, sshPort, settings, ct)
                 .ConfigureAwait(false);
 
         if (!tunnelOk)
@@ -119,6 +120,8 @@ internal sealed class SshHandler : IProtocolHandler
         {
             Host = targetHost,
             Port = targetPort,
+            LogicalHost = usesTunnel ? server.RemoteServer : null,
+            LogicalPort = usesTunnel ? sshPort : null,
             Username = server.SshUsername ?? string.Empty,
             Password = ConnectionHelpers.DecryptPassword(server.SshPasswordEncrypted),
             KeyPassphrase = ConnectionHelpers.DecryptPassword(server.SshKeyPassphraseEncrypted),

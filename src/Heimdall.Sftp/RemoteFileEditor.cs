@@ -170,8 +170,7 @@ public sealed class RemoteFileEditor : IDisposable
 
             SshConnectionFactory.AttachPinnedHostKeyVerification(
                 sshClient,
-                sshParams.Host,
-                sshParams.Port,
+                sshParams,
                 pinnedVerifier);
 
             await Task.Run(() =>
@@ -558,13 +557,11 @@ public sealed class RemoteFileEditor : IDisposable
 
         SshConnectionFactory.AttachPinnedHostKeyVerification(
             sftpClient,
-            session.SshParams.Host,
-            session.SshParams.Port,
+            session.SshParams,
             session.Verifier);
         SshConnectionFactory.AttachPinnedHostKeyVerification(
             sshClient,
-            session.SshParams.Host,
-            session.SshParams.Port,
+            session.SshParams,
             session.Verifier);
 
         await Task.Run(() =>
