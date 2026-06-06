@@ -46,6 +46,9 @@ internal sealed class SshHealthCommandRunner(SshClient client) : IHealthCommandR
         cancellationToken.ThrowIfCancellationRequested();
 
         using var sshCommand = client.CreateCommand(command);
+        // SSH.NET exposes this path through legacy APM. Cancellation calls CancelAsync,
+        // but command-channel cleanup remains owned by SSH.NET until this can move to
+        // a native RunCommandAsync flow in the target SSH.NET version.
         var asyncResult = sshCommand.BeginExecute();
         using var cancellationRegistration = cancellationToken.Register(static state =>
         {
