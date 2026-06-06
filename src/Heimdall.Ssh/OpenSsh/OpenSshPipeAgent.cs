@@ -70,6 +70,11 @@ public sealed class OpenSshPipeAgent : ISshAgent
             var response = SendRequest(OpenSshAgentProtocol.BuildRequestIdentitiesMessage());
             return OpenSshAgentProtocol.ParseIdentitiesResponse(response, this);
         }
+        catch (InvalidOperationException ex)
+        {
+            Core.Logging.FileLogger.Warn($"OpenSSH agent protocol/parse error: {ex.Message}");
+            return [];
+        }
         catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
         {
             Core.Logging.FileLogger.Warn($"OpenSSH agent identity request failed: {ex.Message}");
