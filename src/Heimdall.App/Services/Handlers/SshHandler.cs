@@ -42,6 +42,7 @@ internal sealed class SshHandler : IProtocolHandler
     private readonly X11ServerManager _x11ServerManager;
     private readonly IDialogService _dialogService;
     private readonly IPlinkHostKeyProbe _plinkHostKeyProbe;
+    private readonly PlinkPasswordFileJanitor _plinkPasswordFileJanitor;
 
     internal Action<string>? SetStatusText { get; set; }
 
@@ -54,7 +55,8 @@ internal sealed class SshHandler : IProtocolHandler
         IHostKeyVerifier hostKeyVerifier,
         X11ServerManager x11ServerManager,
         IDialogService dialogService,
-        IPlinkHostKeyProbe? plinkHostKeyProbe = null)
+        IPlinkHostKeyProbe? plinkHostKeyProbe = null,
+        PlinkPasswordFileJanitor? plinkPasswordFileJanitor = null)
     {
         _tunnelService = tunnelService;
         _connectionSm = connectionSm;
@@ -65,6 +67,8 @@ internal sealed class SshHandler : IProtocolHandler
         _x11ServerManager = x11ServerManager;
         _dialogService = dialogService;
         _plinkHostKeyProbe = plinkHostKeyProbe ?? new DefaultPlinkHostKeyProbe();
+        _plinkPasswordFileJanitor = plinkPasswordFileJanitor ?? new PlinkPasswordFileJanitor();
+        _ = Task.Run(SweepStalePlinkPasswordFiles);
     }
 
     public string Protocol => "SSH";
@@ -651,7 +655,9 @@ internal sealed class SshHandler : IProtocolHandler
             return null;
         }
 
-        var passwordFilePath = Path.Combine(Path.GetTempPath(), $"heimdall_ssh_pw_{Guid.NewGuid():N}");
+        var passwordFilePath = Path.Combine(
+            Path.GetTempPath(),
+            $"{PlinkPasswordFileJanitor.PasswordFilePrefix}{Guid.NewGuid():N}");
         if (OperatingSystem.IsWindows())
         {
             SecureFileWriter.WriteAndProtect(passwordFilePath, password);
@@ -693,6 +699,19 @@ internal sealed class SshHandler : IProtocolHandler
         catch (UnauthorizedAccessException ex)
         {
             Core.Logging.FileLogger.Warn($"[SshHandler] DeletePlinkPasswordFile: {ex.Message}");
+        }
+    }
+
+    private void SweepStalePlinkPasswordFiles()
+    {
+        try
+        {
+            _plinkPasswordFileJanitor.SweepStale();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"[SshHandler] Startup plink password-file sweep failed: {ex.Message}");
         }
     }
 

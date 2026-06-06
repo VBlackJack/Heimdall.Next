@@ -303,7 +303,13 @@ public sealed class SshHandlerConnectTests
             AutoAcceptHostKeyVerifier.Instance,
             new X11ServerManager(new InMemoryConfigManager(), localizer),
             new ThrowingDialogService(),
-            plinkHostKeyProbe: plinkHostKeyProbe);
+            plinkHostKeyProbe: plinkHostKeyProbe,
+            plinkPasswordFileJanitor: CreateNoOpPlinkPasswordFileJanitor());
+    }
+
+    private static PlinkPasswordFileJanitor CreateNoOpPlinkPasswordFileJanitor()
+    {
+        return new PlinkPasswordFileJanitor(enumerateFiles: _ => Array.Empty<string>());
     }
 
     private static ServerProfileDto CreateGatewayServer()
