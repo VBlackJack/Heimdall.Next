@@ -85,6 +85,16 @@ public class RdpRedirectionOptionsTests
         Assert.False(opts.Printers);
     }
 
+    [Fact]
+    public void MapAudioModeToRdpValue_MapsKnownValuesAndDefaultsToDisabled()
+    {
+        Assert.Equal(0, RdpRedirectionOptions.MapAudioModeToRdpValue(1));
+        Assert.Equal(1, RdpRedirectionOptions.MapAudioModeToRdpValue(2));
+        Assert.Equal(2, RdpRedirectionOptions.MapAudioModeToRdpValue(0));
+        Assert.Equal(2, RdpRedirectionOptions.MapAudioModeToRdpValue(3));
+        Assert.Equal(2, RdpRedirectionOptions.MapAudioModeToRdpValue(-1));
+    }
+
     // ── Performance flags bitmask ───────────────────────────────────
 
     [Fact]

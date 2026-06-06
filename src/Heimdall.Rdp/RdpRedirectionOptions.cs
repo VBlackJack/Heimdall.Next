@@ -48,6 +48,19 @@ public sealed class RdpRedirectionOptions
     /// <summary>Audio playback mode: 0 = disabled, 1 = play locally, 2 = play on remote.</summary>
     public int AudioMode { get; set; }
 
+    /// <summary>
+    /// Maps Heimdall audio playback options to mstsc/ActiveX audio redirection values.
+    /// </summary>
+    public static int MapAudioModeToRdpValue(int audioMode)
+    {
+        return audioMode switch
+        {
+            1 => 0,
+            2 => 1,
+            _ => 2
+        };
+    }
+
     /// <summary>Enable multi-monitor spanning.</summary>
     public bool MultiMonitor { get; set; }
 

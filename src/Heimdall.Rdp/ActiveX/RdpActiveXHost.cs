@@ -1791,14 +1791,8 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
         // Smart cards
         adv.RedirectSmartCards = _pendingRedirections.SmartCards;
 
-        // Audio mode: 0 = redirect to client, 1 = play at remote, 2 = disable
-        // Map our enum: 0 = disabled, 1 = local, 2 = remote
-        adv.AudioRedirectionMode = _pendingRedirections.AudioMode switch
-        {
-            1 => 0, // Local playback = redirect to client
-            2 => 1, // Remote playback = play at remote
-            _ => 2  // Disabled
-        };
+        // Audio mode: 0 = redirect to client, 1 = play at remote, 2 = disable.
+        adv.AudioRedirectionMode = RdpRedirectionOptions.MapAudioModeToRdpValue(_pendingRedirections.AudioMode);
 
         // Audio capture (COM property expects int: 0=disabled, 1=enabled)
         adv.AudioCaptureRedirectionMode = _pendingRedirections.AudioCapture ? 1 : 0;

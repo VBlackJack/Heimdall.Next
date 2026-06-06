@@ -93,12 +93,7 @@ public static class RdpFileGenerator
         sb.AppendLine($"redirectsmartcards:i:{BoolToInt(r.SmartCards)}");
 
         // Audio
-        sb.AppendLine($"audiomode:i:{r.AudioMode switch
-        {
-            1 => 0, // Local playback
-            2 => 1, // Remote playback
-            _ => 2  // Disabled
-        }}");
+        sb.AppendLine($"audiomode:i:{RdpRedirectionOptions.MapAudioModeToRdpValue(r.AudioMode)}");
         sb.AppendLine($"audiocapturemode:i:{BoolToInt(r.AudioCapture)}");
 
         // NLA - shared resolver keeps this in parity with the embedded ActiveX host
