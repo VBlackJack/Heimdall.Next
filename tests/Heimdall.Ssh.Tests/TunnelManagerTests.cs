@@ -43,11 +43,44 @@ public class TunnelManagerTests : IDisposable
 
     private sealed class FakeHandle : IDisposable
     {
-        public bool Disposed { get; private set; }
-        public void Dispose() => Disposed = true;
+        private int _disposeCount;
+
+        public bool Disposed => DisposeCount > 0;
+
+        public int DisposeCount => Volatile.Read(ref _disposeCount);
+
+        public void Dispose()
+        {
+            Interlocked.Increment(ref _disposeCount);
+        }
     }
 
-    private bool RegisterFake(int localPort, FakeHandle? handle = null, Func<bool>? isAlive = null)
+    private sealed class BlockingHandle : IDisposable
+    {
+        private readonly ManualResetEventSlim _disposeStarted = new(false);
+        private readonly ManualResetEventSlim _allowDispose = new(false);
+        private int _disposeCount;
+
+        public int DisposeCount => Volatile.Read(ref _disposeCount);
+
+        public bool WaitForDisposeStarted(TimeSpan timeout)
+            => _disposeStarted.Wait(timeout);
+
+        public void AllowDispose()
+            => _allowDispose.Set();
+
+        public void Dispose()
+        {
+            Interlocked.Increment(ref _disposeCount);
+            _disposeStarted.Set();
+            if (!_allowDispose.Wait(TimeSpan.FromSeconds(5)))
+            {
+                throw new TimeoutException("Timed out waiting for test to release tunnel dispose.");
+            }
+        }
+    }
+
+    private bool RegisterFake(int localPort, IDisposable? handle = null, Func<bool>? isAlive = null)
     {
         return _manager.TryRegisterExternalTunnel(
             MakeInfo(localPort),
@@ -265,6 +298,32 @@ public class TunnelManagerTests : IDisposable
         Assert.False(_manager.HasTunnel(10001));
     }
 
+    [Fact]
+    public void AddReference_OnUntrackedPort_DoesNotCreatePhantomReference()
+    {
+        _manager.AddReference(10001);
+        RegisterFake(10001);
+
+        Assert.True(_manager.ReleaseReference(10001));
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
+    [Fact]
+    public void ReleaseReference_CalledAfterLastReference_DisposesAndNotifiesOnce()
+    {
+        var handle = new FakeHandle();
+        var closedCount = 0;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        RegisterFake(10001, handle: handle);
+
+        Assert.True(_manager.ReleaseReference(10001));
+        Assert.True(_manager.ReleaseReference(10001));
+
+        Assert.Equal(1, handle.DisposeCount);
+        Assert.Equal(1, closedCount);
+        Assert.False(_manager.HasTunnel(10001));
+    }
+
     // ── CloseTunnel (with ref count) ──────────────────────────────────
 
     [Fact]
@@ -311,6 +370,82 @@ public class TunnelManagerTests : IDisposable
     {
         // Should not throw
         _manager.ForceCloseTunnel(99999);
+    }
+
+    [Fact]
+    public void ForceCloseTunnel_CalledTwice_DisposesAndNotifiesOnce()
+    {
+        var handle = new FakeHandle();
+        var closedCount = 0;
+        _manager.TunnelClosed += (_, _) => closedCount++;
+        RegisterFake(10001, handle: handle);
+
+        _manager.ForceCloseTunnel(10001);
+        _manager.ForceCloseTunnel(10001);
+
+        Assert.Equal(1, handle.DisposeCount);
+        Assert.Equal(1, closedCount);
+    }
+
+    [Fact]
+    public async Task ForceCloseTunnel_DoesNotHoldRegistryLockWhileDisposing()
+    {
+        var blockingHandle = new BlockingHandle();
+        RegisterFake(10001, handle: blockingHandle);
+
+        Task closeTask = Task.Run(() => _manager.ForceCloseTunnel(10001));
+        Assert.True(blockingHandle.WaitForDisposeStarted(TimeSpan.FromSeconds(2)));
+
+        Task<bool> registerTask = Task.Run(
+            () => _manager.TryRegisterExternalTunnel(MakeInfo(10002), new FakeHandle(), () => true));
+
+        Task completed = await Task.WhenAny(registerTask, Task.Delay(TimeSpan.FromSeconds(2)));
+        try
+        {
+            Assert.Same(registerTask, completed);
+            Assert.True(await registerTask);
+            Assert.True(_manager.HasTunnel(10002));
+        }
+        finally
+        {
+            blockingHandle.AllowDispose();
+            await closeTask;
+        }
+    }
+
+    [Fact]
+    public async Task ForceCloseTunnel_DoesNotHoldRegistryLockWhileRaisingTunnelClosed()
+    {
+        using var eventStarted = new ManualResetEventSlim(false);
+        using var allowEvent = new ManualResetEventSlim(false);
+        void Handler(int port, string? error)
+        {
+            eventStarted.Set();
+            Assert.True(allowEvent.Wait(TimeSpan.FromSeconds(5)));
+        }
+
+        _manager.TunnelClosed += Handler;
+        RegisterFake(10001);
+
+        Task closeTask = Task.Run(() => _manager.ForceCloseTunnel(10001));
+        Assert.True(eventStarted.Wait(TimeSpan.FromSeconds(2)));
+
+        Task<bool> registerTask = Task.Run(
+            () => _manager.TryRegisterExternalTunnel(MakeInfo(10002), new FakeHandle(), () => true));
+
+        Task completed = await Task.WhenAny(registerTask, Task.Delay(TimeSpan.FromSeconds(2)));
+        try
+        {
+            Assert.Same(registerTask, completed);
+            Assert.True(await registerTask);
+            Assert.True(_manager.HasTunnel(10002));
+        }
+        finally
+        {
+            allowEvent.Set();
+            await closeTask;
+            _manager.TunnelClosed -= Handler;
+        }
     }
 
     // ── CloseAllTunnels ───────────────────────────────────────────────

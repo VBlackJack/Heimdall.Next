@@ -54,7 +54,15 @@ public sealed partial class TunnelManager : IDisposable
     /// <param name="localPort">Local port of the tunnel to reference.</param>
     public void AddReference(int localPort)
     {
-        _refCounts.AddOrUpdate(localPort, 1, (_, current) => current + 1);
+        lock (_registryLock)
+        {
+            if (!IsPortTracked(localPort))
+            {
+                return;
+            }
+
+            AddReferenceUnderLock(localPort);
+        }
     }
 
     /// <summary>
@@ -67,22 +75,37 @@ public sealed partial class TunnelManager : IDisposable
     /// <returns>True if the tunnel should be closed; false if still in use.</returns>
     public bool ReleaseReference(int localPort)
     {
-        if (!_refCounts.ContainsKey(localPort))
+        IDisposable? detached = null;
+        bool shouldClose = false;
+
+        lock (_registryLock)
         {
-            CloseTunnel(localPort);
-            return true;
+            if (!_refCounts.TryGetValue(localPort, out int current))
+            {
+                shouldClose = true;
+                detached = DetachTunnelUnderLock(localPort);
+            }
+            else
+            {
+                int newCount = Math.Max(0, current - 1);
+                if (newCount <= 0)
+                {
+                    shouldClose = true;
+                    detached = DetachTunnelUnderLock(localPort);
+                }
+                else
+                {
+                    _refCounts[localPort] = newCount;
+                }
+            }
         }
 
-        int newCount = _refCounts.AddOrUpdate(localPort, 0, (_, current) => Math.Max(0, current - 1));
-
-        if (newCount <= 0)
+        if (detached is not null)
         {
-            _refCounts.TryRemove(localPort, out _);
-            CloseTunnel(localPort);
-            return true;
+            DisposeAndNotifyClosed(localPort, detached);
         }
 
-        return false;
+        return shouldClose;
     }
 
     /// <summary>
@@ -372,44 +395,21 @@ public sealed partial class TunnelManager : IDisposable
     /// <param name="localPort">Local port of the tunnel to close.</param>
     public void CloseTunnel(int localPort)
     {
-        // If there are still active references, do not tear down
-        if (_refCounts.TryGetValue(localPort, out var count) && count > 0)
+        IDisposable? detached = null;
+
+        lock (_registryLock)
         {
-            return;
+            if (_refCounts.TryGetValue(localPort, out var count) && count > 0)
+            {
+                return;
+            }
+
+            detached = DetachTunnelUnderLock(localPort);
         }
 
-        // No refs remaining — clean up the ref count entry
-        _refCounts.TryRemove(localPort, out _);
-
-        if (_activeTunnels.TryRemove(localPort, out var session))
+        if (detached is not null)
         {
-            string? error = null;
-            try
-            {
-                session.Dispose();
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-            }
-
-            TunnelClosed?.Invoke(localPort, error);
-            return;
-        }
-
-        if (_externalTunnels.TryRemove(localPort, out var externalSession))
-        {
-            string? error = null;
-            try
-            {
-                externalSession.Dispose();
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-            }
-
-            TunnelClosed?.Invoke(localPort, error);
+            DisposeAndNotifyClosed(localPort, detached);
         }
     }
 
@@ -419,23 +419,16 @@ public sealed partial class TunnelManager : IDisposable
     /// </summary>
     public void ForceCloseTunnel(int localPort)
     {
-        _refCounts.TryRemove(localPort, out _);
+        IDisposable? detached;
 
-        if (_activeTunnels.TryRemove(localPort, out var session))
+        lock (_registryLock)
         {
-            string? error = null;
-            try { session.Dispose(); }
-            catch (Exception ex) { error = ex.Message; }
-            TunnelClosed?.Invoke(localPort, error);
-            return;
+            detached = DetachTunnelUnderLock(localPort);
         }
 
-        if (_externalTunnels.TryRemove(localPort, out var externalSession))
+        if (detached is not null)
         {
-            string? error = null;
-            try { externalSession.Dispose(); }
-            catch (Exception ex) { error = ex.Message; }
-            TunnelClosed?.Invoke(localPort, error);
+            DisposeAndNotifyClosed(localPort, detached);
         }
     }
 
@@ -494,17 +487,23 @@ public sealed partial class TunnelManager : IDisposable
         ArgumentNullException.ThrowIfNull(isAlive);
 
         var session = new ExternalTunnelSession(info, tunnelHandle, isAlive);
+        bool registered = false;
 
         lock (_registryLock)
         {
-            if (IsPortTracked(info.LocalPort) || !_externalTunnels.TryAdd(info.LocalPort, session))
+            if (!IsPortTracked(info.LocalPort) && _externalTunnels.TryAdd(info.LocalPort, session))
             {
-                session.Dispose();
-                return false;
+                AddReferenceUnderLock(info.LocalPort);
+                registered = true;
             }
         }
 
-        AddReference(info.LocalPort);
+        if (!registered)
+        {
+            session.Dispose();
+            return false;
+        }
+
         TunnelOpened?.Invoke(info);
         return true;
     }
@@ -523,6 +522,43 @@ public sealed partial class TunnelManager : IDisposable
     private bool IsPortTracked(int localPort)
     {
         return _activeTunnels.ContainsKey(localPort) || _externalTunnels.ContainsKey(localPort);
+    }
+
+    private void AddReferenceUnderLock(int localPort)
+    {
+        _refCounts.AddOrUpdate(localPort, 1, (_, current) => current + 1);
+    }
+
+    private IDisposable? DetachTunnelUnderLock(int localPort)
+    {
+        _refCounts.TryRemove(localPort, out _);
+
+        if (_activeTunnels.TryRemove(localPort, out var session))
+        {
+            return session;
+        }
+
+        if (_externalTunnels.TryRemove(localPort, out var externalSession))
+        {
+            return externalSession;
+        }
+
+        return null;
+    }
+
+    private void DisposeAndNotifyClosed(int localPort, IDisposable session)
+    {
+        string? error = null;
+        try
+        {
+            session.Dispose();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+
+        TunnelClosed?.Invoke(localPort, error);
     }
 
     /// <summary>

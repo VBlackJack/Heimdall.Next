@@ -158,16 +158,23 @@ public sealed partial class TunnelManager
         int localPort,
         TunnelInfo info)
     {
+        bool registered = false;
+
         lock (_registryLock)
         {
-            if (IsPortTracked(localPort) || !_activeTunnels.TryAdd(localPort, session))
+            if (!IsPortTracked(localPort) && _activeTunnels.TryAdd(localPort, session))
             {
-                session.Dispose();
-                return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+                AddReferenceUnderLock(localPort);
+                registered = true;
             }
         }
 
-        AddReference(localPort);
+        if (!registered)
+        {
+            session.Dispose();
+            return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+        }
+
         TunnelOpened?.Invoke(info);
         return new TunnelResult(true, info, null, null);
     }
