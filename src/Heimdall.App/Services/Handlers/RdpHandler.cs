@@ -292,7 +292,10 @@ internal sealed class RdpHandler : IProtocolHandler
 
             if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
             {
-                var autofillPassword = rdpPassword;
+                // CredentialAutofill zeroes its char[] buffer after use, but this
+                // closure string and its transient UI strings remain heap-resident
+                // until GC; that is inherent to .NET immutable strings.
+                string autofillPassword = rdpPassword;
                 // Autofill must outlive ConnectAsync: the connect-scoped token is cancelled
                 // when ConnectAsync returns. WaitAndFillAsync self-bounds via its timeout.
                 _ = Task.Run(async () =>
