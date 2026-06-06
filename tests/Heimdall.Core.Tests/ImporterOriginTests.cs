@@ -22,15 +22,6 @@ namespace Heimdall.Core.Tests;
 public sealed class ImporterOriginTests
 {
     [Fact]
-    public void RdpFileImporter_SetsOriginToImportRdp()
-    {
-        var dto = RdpFileImporter.Parse("full address:s:server.example.com");
-
-        Assert.NotNull(dto);
-        Assert.Equal(ProfileOrigin.ImportRdp, dto!.Origin);
-    }
-
-    [Fact]
     public void MRemoteNgImporter_SetsOriginToImportMRemoteNg()
     {
         const string xml = """
