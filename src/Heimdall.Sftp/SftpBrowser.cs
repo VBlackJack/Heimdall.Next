@@ -342,11 +342,12 @@ public sealed class SftpBrowser : IRemoteBrowser
                         remotePath,
                         atomicRename: (temp, final) => client.RenameFile(temp, final, isPosix: true),
                         plainRename: (temp, final) => client.RenameFile(temp, final),
-                        deleteFinalIfExists: final =>
+                        remoteExists: client.Exists,
+                        deleteRemote: path =>
                         {
-                            if (client.Exists(final))
+                            if (client.Exists(path))
                             {
-                                client.DeleteFile(final);
+                                client.DeleteFile(path);
                             }
                         });
                 }, ct).ConfigureAwait(false);

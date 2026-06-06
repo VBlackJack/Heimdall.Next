@@ -39,13 +39,15 @@ public static class SftpAtomicUpload
         string finalRemotePath,
         Action<string, string> atomicRename,
         Action<string, string> plainRename,
-        Action<string> deleteFinalIfExists)
+        Func<string, bool> remoteExists,
+        Action<string> deleteRemote)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tempRemotePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(finalRemotePath);
         ArgumentNullException.ThrowIfNull(atomicRename);
         ArgumentNullException.ThrowIfNull(plainRename);
-        ArgumentNullException.ThrowIfNull(deleteFinalIfExists);
+        ArgumentNullException.ThrowIfNull(remoteExists);
+        ArgumentNullException.ThrowIfNull(deleteRemote);
 
         try
         {
@@ -58,8 +60,83 @@ public static class SftpAtomicUpload
                 $"SFTP atomic rename unavailable for '{finalRemotePath}', falling back to replace: {ex.Message}");
         }
 
-        deleteFinalIfExists(finalRemotePath);
-        plainRename(tempRemotePath, finalRemotePath);
+        string? backupRemotePath = null;
+        if (remoteExists(finalRemotePath))
+        {
+            backupRemotePath = CreateRemoteBackupPath(finalRemotePath);
+            plainRename(finalRemotePath, backupRemotePath);
+        }
+
+        try
+        {
+            plainRename(tempRemotePath, finalRemotePath);
+        }
+        catch (Exception renameEx)
+        {
+            RestoreBackup(finalRemotePath, backupRemotePath, plainRename, remoteExists, deleteRemote, renameEx);
+            throw;
+        }
+
+        CleanupBackup(backupRemotePath, remoteExists, deleteRemote);
+    }
+
+    private static string CreateRemoteBackupPath(string finalRemotePath)
+    {
+        return $"{finalRemotePath}.{Guid.NewGuid():N}.bak";
+    }
+
+    private static void RestoreBackup(
+        string finalRemotePath,
+        string? backupRemotePath,
+        Action<string, string> plainRename,
+        Func<string, bool> remoteExists,
+        Action<string> deleteRemote,
+        Exception renameException)
+    {
+        if (backupRemotePath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (remoteExists(finalRemotePath))
+            {
+                deleteRemote(finalRemotePath);
+            }
+
+            plainRename(backupRemotePath, finalRemotePath);
+        }
+        catch (Exception restoreEx)
+        {
+            throw new InvalidOperationException(
+                $"SFTP fallback rename failed and restoring backup '{backupRemotePath}' failed.",
+                new AggregateException(renameException, restoreEx));
+        }
+    }
+
+    private static void CleanupBackup(
+        string? backupRemotePath,
+        Func<string, bool> remoteExists,
+        Action<string> deleteRemote)
+    {
+        if (backupRemotePath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (remoteExists(backupRemotePath))
+            {
+                deleteRemote(backupRemotePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"SFTP upload backup cleanup failed for '{backupRemotePath}': {ex.Message}");
+        }
     }
 
     /// <summary>

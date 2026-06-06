@@ -26,38 +26,132 @@ public sealed class SftpAtomicUploadTests
         var atomicCalls = new List<(string Temp, string Final)>();
         var plainCalls = new List<(string Temp, string Final)>();
         var deleteCalls = new List<string>();
+        var existsCalls = new List<string>();
 
         SftpAtomicUpload.CommitRename(
             "/srv/app/config.txt.part",
             "/srv/app/config.txt",
             atomicRename: (temp, final) => atomicCalls.Add((temp, final)),
             plainRename: (temp, final) => plainCalls.Add((temp, final)),
-            deleteFinalIfExists: final => deleteCalls.Add(final));
+            remoteExists: path =>
+            {
+                existsCalls.Add(path);
+                return false;
+            },
+            deleteRemote: path => deleteCalls.Add(path));
 
         var atomicCall = Assert.Single(atomicCalls);
         Assert.Equal("/srv/app/config.txt.part", atomicCall.Temp);
         Assert.Equal("/srv/app/config.txt", atomicCall.Final);
         Assert.Empty(plainCalls);
+        Assert.Empty(existsCalls);
         Assert.Empty(deleteCalls);
     }
 
     [Fact]
-    public void CommitRename_FallsBackToDeleteAndPlainRename_WhenAtomicRenameThrows()
+    public void CommitRename_FallsBackWithBackupAndCleanup_WhenAtomicRenameThrows()
     {
-        var plainCalls = new List<(string Temp, string Final)>();
+        var remote = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "/srv/app/config.txt",
+            "/srv/app/config.txt.part"
+        };
+        var renameCalls = new List<(string Source, string Destination)>();
         var deleteCalls = new List<string>();
 
         SftpAtomicUpload.CommitRename(
             "/srv/app/config.txt.part",
             "/srv/app/config.txt",
             atomicRename: (_, _) => throw new InvalidOperationException("extension unavailable"),
-            plainRename: (temp, final) => plainCalls.Add((temp, final)),
-            deleteFinalIfExists: final => deleteCalls.Add(final));
+            plainRename: (source, destination) =>
+            {
+                renameCalls.Add((source, destination));
+                Assert.True(remote.Remove(source));
+                remote.Add(destination);
+            },
+            remoteExists: remote.Contains,
+            deleteRemote: path =>
+            {
+                deleteCalls.Add(path);
+                remote.Remove(path);
+            });
 
-        Assert.Equal("/srv/app/config.txt", Assert.Single(deleteCalls));
-        var plainCall = Assert.Single(plainCalls);
-        Assert.Equal("/srv/app/config.txt.part", plainCall.Temp);
-        Assert.Equal("/srv/app/config.txt", plainCall.Final);
+        Assert.Equal(2, renameCalls.Count);
+        Assert.Equal("/srv/app/config.txt", renameCalls[0].Source);
+        Assert.StartsWith("/srv/app/config.txt.", renameCalls[0].Destination, StringComparison.Ordinal);
+        Assert.EndsWith(".bak", renameCalls[0].Destination, StringComparison.Ordinal);
+        Assert.Equal(("/srv/app/config.txt.part", "/srv/app/config.txt"), renameCalls[1]);
+        Assert.Equal(renameCalls[0].Destination, Assert.Single(deleteCalls));
+        Assert.Contains("/srv/app/config.txt", remote);
+        Assert.DoesNotContain("/srv/app/config.txt.part", remote);
+        Assert.DoesNotContain(renameCalls[0].Destination, remote);
+    }
+
+    [Fact]
+    public void CommitRename_RestoresBackup_WhenFallbackRenameFails()
+    {
+        var remote = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "/srv/app/config.txt",
+            "/srv/app/config.txt.part"
+        };
+        var renameCalls = new List<(string Source, string Destination)>();
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SftpAtomicUpload.CommitRename(
+                "/srv/app/config.txt.part",
+                "/srv/app/config.txt",
+                atomicRename: (_, _) => throw new InvalidOperationException("extension unavailable"),
+                plainRename: (source, destination) =>
+                {
+                    renameCalls.Add((source, destination));
+                    if (source == "/srv/app/config.txt.part")
+                    {
+                        throw new InvalidOperationException("plain rename failed");
+                    }
+
+                    Assert.True(remote.Remove(source));
+                    remote.Add(destination);
+                },
+                remoteExists: remote.Contains,
+                deleteRemote: path => remote.Remove(path)));
+
+        Assert.Equal("plain rename failed", ex.Message);
+        Assert.Equal(3, renameCalls.Count);
+        string backupPath = renameCalls[0].Destination;
+        Assert.Equal(("/srv/app/config.txt", backupPath), renameCalls[0]);
+        Assert.Equal(("/srv/app/config.txt.part", "/srv/app/config.txt"), renameCalls[1]);
+        Assert.Equal((backupPath, "/srv/app/config.txt"), renameCalls[2]);
+        Assert.Contains("/srv/app/config.txt", remote);
+        Assert.Contains("/srv/app/config.txt.part", remote);
+        Assert.DoesNotContain(backupPath, remote);
+    }
+
+    [Fact]
+    public void CommitRename_FallbackWithoutExistingFinal_RenamesTempOnly()
+    {
+        var remote = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "/srv/app/config.txt.part"
+        };
+        var renameCalls = new List<(string Source, string Destination)>();
+
+        SftpAtomicUpload.CommitRename(
+            "/srv/app/config.txt.part",
+            "/srv/app/config.txt",
+            atomicRename: (_, _) => throw new InvalidOperationException("extension unavailable"),
+            plainRename: (source, destination) =>
+            {
+                renameCalls.Add((source, destination));
+                Assert.True(remote.Remove(source));
+                remote.Add(destination);
+            },
+            remoteExists: remote.Contains,
+            deleteRemote: path => remote.Remove(path));
+
+        Assert.Equal(("/srv/app/config.txt.part", "/srv/app/config.txt"), Assert.Single(renameCalls));
+        Assert.Contains("/srv/app/config.txt", remote);
+        Assert.DoesNotContain("/srv/app/config.txt.part", remote);
     }
 
     [Fact]
