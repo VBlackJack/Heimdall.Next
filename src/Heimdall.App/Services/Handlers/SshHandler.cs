@@ -343,22 +343,31 @@ internal sealed class SshHandler : IProtocolHandler
             }
 
             string? plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
-            string? storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
+            var hostKeyIdentity = ResolvePlinkHostKeyIdentity(server, targetHost, targetPort, usesTunnel);
+            string? storedFingerprint = _hostKeyTrustService
+                .GetEffectiveEntry(hostKeyIdentity.Host, hostKeyIdentity.Port)
+                ?.Fingerprint;
             PlinkHostKeyDecision hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
-                    targetHost,
-                    targetPort,
-                    server.SshUsername,
-                    plinkPath,
-                    settings.HostKeyProbeTimeoutMs,
-                    storedFingerprint,
-                    _plinkHostKeyProbe,
-                    _hostKeyVerifier,
-                    _hostKeyTrustService,
-                    ct)
+                    transportHost: targetHost,
+                    transportPort: targetPort,
+                    verificationHost: hostKeyIdentity.Host,
+                    verificationPort: hostKeyIdentity.Port,
+                    username: server.SshUsername,
+                    plinkPath: plinkPath,
+                    probeTimeoutMs: settings.HostKeyProbeTimeoutMs,
+                    storedFingerprint: storedFingerprint,
+                    probe: _plinkHostKeyProbe,
+                    verifier: _hostKeyVerifier,
+                    trustService: _hostKeyTrustService,
+                    ct: ct)
                 .ConfigureAwait(false);
             if (!hostKeyDecision.ShouldProceed)
             {
-                return BuildPlinkHostKeyRejectionResult(server.Id, targetHost, targetPort, hostKeyDecision);
+                return BuildPlinkHostKeyRejectionResult(
+                    server.Id,
+                    hostKeyIdentity.Host,
+                    hostKeyIdentity.Port,
+                    hostKeyDecision);
             }
 
             string? hostKeyArg = hostKeyDecision.Fingerprint;
@@ -503,26 +512,31 @@ internal sealed class SshHandler : IProtocolHandler
                 ? $"{server.SshUsername}@{targetHost}"
                 : targetHost;
 
-            string? storedFingerprint = _hostKeyTrustService.GetEffectiveEntry(targetHost, targetPort)?.Fingerprint;
+            var hostKeyIdentity = ResolvePlinkHostKeyIdentity(server, targetHost, targetPort, usesTunnel);
+            string? storedFingerprint = _hostKeyTrustService
+                .GetEffectiveEntry(hostKeyIdentity.Host, hostKeyIdentity.Port)
+                ?.Fingerprint;
             PlinkHostKeyDecision hostKeyDecision = await PlinkHostKeyDecider.DecideAsync(
-                    targetHost,
-                    targetPort,
-                    server.SshUsername,
-                    plinkPath,
-                    settings.HostKeyProbeTimeoutMs,
-                    storedFingerprint,
-                    _plinkHostKeyProbe,
-                    _hostKeyVerifier,
-                    _hostKeyTrustService,
-                    ct)
+                    transportHost: targetHost,
+                    transportPort: targetPort,
+                    verificationHost: hostKeyIdentity.Host,
+                    verificationPort: hostKeyIdentity.Port,
+                    username: server.SshUsername,
+                    plinkPath: plinkPath,
+                    probeTimeoutMs: settings.HostKeyProbeTimeoutMs,
+                    storedFingerprint: storedFingerprint,
+                    probe: _plinkHostKeyProbe,
+                    verifier: _hostKeyVerifier,
+                    trustService: _hostKeyTrustService,
+                    ct: ct)
                 .ConfigureAwait(false);
 
             if (!hostKeyDecision.ShouldProceed)
             {
                 return BuildPlinkHostKeyRejectionResult(
                     server.Id,
-                    targetHost,
-                    targetPort,
+                    hostKeyIdentity.Host,
+                    hostKeyIdentity.Port,
                     hostKeyDecision);
             }
 
@@ -617,6 +631,17 @@ internal sealed class SshHandler : IProtocolHandler
     internal static bool ShouldPromptForPlinkPassword(string? passwordFilePath, string? keyPath)
     {
         return string.IsNullOrEmpty(passwordFilePath) && string.IsNullOrWhiteSpace(keyPath);
+    }
+
+    private static (string Host, int Port) ResolvePlinkHostKeyIdentity(
+        ServerProfileDto server,
+        string transportHost,
+        int transportPort,
+        bool usesTunnel)
+    {
+        return usesTunnel
+            ? (server.RemoteServer, server.SshPort > 0 ? server.SshPort : DefaultPorts.Ssh)
+            : (transportHost, transportPort);
     }
 
     private static string? CreatePlinkPasswordFile(string? password)

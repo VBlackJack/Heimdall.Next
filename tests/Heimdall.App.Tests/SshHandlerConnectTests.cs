@@ -153,6 +153,49 @@ public sealed class SshHandlerConnectTests
     }
 
     [Fact]
+    public async Task ConnectAsync_ExternalModeWithTunnel_UsesLogicalHostKeyIdentity()
+    {
+        const int tunnelPort = 49152;
+        string puttyPath = Path.GetTempFileName();
+        try
+        {
+            FakeTunnelService tunnelService = new FakeTunnelService
+            {
+                UsesTunnel = true,
+                TargetHost = "127.0.0.1",
+                TargetPort = tunnelPort
+            };
+            var trust = new NoStoredHostKeyTrustService();
+            var probe = new FakePlinkHostKeyProbe(null);
+            SshHandler handler = CreateHandler(tunnelService, trust, probe);
+            ServerProfileDto server = CreateExternalGatewayServer();
+            server.SshUsername = "operator";
+            AppSettings settings = new AppSettings
+            {
+                PuttyPath = puttyPath,
+                PlinkPath = Path.Combine(
+                    Path.GetTempPath(),
+                    $"heimdall-missing-plink-{Guid.NewGuid():N}.exe")
+            };
+
+            ConnectionResult result = await handler.ConnectAsync(
+                server,
+                settings,
+                CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("server01.contoso.local", trust.LastGetEffectiveHost);
+            Assert.Equal(DefaultPorts.Ssh, trust.LastGetEffectivePort);
+            Assert.Equal(1, tunnelService.ReleaseCount);
+            Assert.Equal(tunnelPort, tunnelService.ReleasedLocalPort);
+        }
+        finally
+        {
+            File.Delete(puttyPath);
+        }
+    }
+
+    [Fact]
     public async Task ConnectSshViaPlinkAsync_EarlyFailureWithTunnel_ReleasesTunnelReference()
     {
         const int targetPort = 13389;
@@ -201,6 +244,46 @@ public sealed class SshHandlerConnectTests
 
         Assert.False(result.Success);
         Assert.Equal(0, tunnelService.ReleaseCount);
+    }
+
+    [Fact]
+    public async Task ConnectSshViaPlinkAsync_WithTunnel_UsesLogicalHostKeyIdentityAndTransportProbe()
+    {
+        const int tunnelPort = 49152;
+        string plinkPath = Path.GetTempFileName();
+        try
+        {
+            FakeTunnelService tunnelService = new FakeTunnelService();
+            var trust = new NoStoredHostKeyTrustService();
+            var probe = new FakePlinkHostKeyProbe(null);
+            SshHandler handler = CreateHandler(tunnelService, trust, probe);
+            ServerProfileDto server = CreateGatewayServer();
+            AppSettings settings = new AppSettings
+            {
+                PlinkPath = plinkPath
+            };
+
+            ConnectionResult result = await handler.ConnectSshViaPlinkAsync(
+                server,
+                settings,
+                "127.0.0.1",
+                tunnelPort,
+                usesTunnel: true,
+                originalFailure: null,
+                CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("server01.contoso.local", trust.LastGetEffectiveHost);
+            Assert.Equal(DefaultPorts.Ssh, trust.LastGetEffectivePort);
+            Assert.Equal("127.0.0.1", probe.LastHost);
+            Assert.Equal(tunnelPort, probe.LastPort);
+            Assert.Equal(1, tunnelService.ReleaseCount);
+            Assert.Equal(tunnelPort, tunnelService.ReleasedLocalPort);
+        }
+        finally
+        {
+            File.Delete(plinkPath);
+        }
     }
 
     private static SshHandler CreateHandler(
@@ -356,6 +439,8 @@ public sealed class SshHandlerConnectTests
         }
 
         public int CallCount { get; private set; }
+        public string? LastHost { get; private set; }
+        public int? LastPort { get; private set; }
 
         public Task<PlinkHostKeyPresentation?> ProbeAsync(
             string plinkPath,
@@ -366,6 +451,8 @@ public sealed class SshHandlerConnectTests
             CancellationToken ct)
         {
             CallCount++;
+            LastHost = host;
+            LastPort = port;
             return Task.FromResult(_presentation);
         }
     }
@@ -376,9 +463,17 @@ public sealed class SshHandlerConnectTests
         public event Action<string>? EntryRemoved { add { } remove { } }
         public event Action<string, HostKeyEntry, HostKeyEntry>? EntryReplaced { add { } remove { } }
 
+        public string? LastGetEffectiveHost { get; private set; }
+        public int? LastGetEffectivePort { get; private set; }
+
         public HostKeyEntry? GetEntry(string host, int port) => null;
 
-        public HostKeyEntry? GetEffectiveEntry(string host, int port) => null;
+        public HostKeyEntry? GetEffectiveEntry(string host, int port)
+        {
+            LastGetEffectiveHost = host;
+            LastGetEffectivePort = port;
+            return null;
+        }
 
         public IReadOnlyList<(string HostPort, HostKeyEntry Entry)> GetAllEntries() => [];
 

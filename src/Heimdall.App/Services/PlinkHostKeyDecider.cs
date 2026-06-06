@@ -48,7 +48,43 @@ internal static class PlinkHostKeyDecider
         IHostKeyTrustService trustService,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        return await DecideAsync(
+                transportHost: host,
+                transportPort: port,
+                verificationHost: host,
+                verificationPort: port,
+                username: username,
+                plinkPath: plinkPath,
+                probeTimeoutMs: probeTimeoutMs,
+                storedFingerprint: storedFingerprint,
+                probe: probe,
+                verifier: verifier,
+                trustService: trustService,
+                ct: ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves the host-key fingerprint Heimdall will pass to plink via
+    /// -hostkey, while separating the transport endpoint from the logical
+    /// host-key trust identity.
+    /// </summary>
+    internal static async Task<PlinkHostKeyDecision> DecideAsync(
+        string transportHost,
+        int transportPort,
+        string verificationHost,
+        int verificationPort,
+        string? username,
+        string? plinkPath,
+        int probeTimeoutMs,
+        string? storedFingerprint,
+        IPlinkHostKeyProbe probe,
+        IHostKeyVerifier verifier,
+        IHostKeyTrustService trustService,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(transportHost);
+        ArgumentException.ThrowIfNullOrWhiteSpace(verificationHost);
         ArgumentNullException.ThrowIfNull(probe);
         ArgumentNullException.ThrowIfNull(verifier);
         ArgumentNullException.ThrowIfNull(trustService);
@@ -61,8 +97,8 @@ internal static class PlinkHostKeyDecider
             ? null
             : await probe.ProbeAsync(
                     plinkPath,
-                    host,
-                    port,
+                    transportHost,
+                    transportPort,
                     username,
                     probeTimeoutMs,
                     ct)
@@ -71,8 +107,8 @@ internal static class PlinkHostKeyDecider
         if (normalizedStored is not null)
         {
             return await DecideWithStoredFingerprintAsync(
-                    host,
-                    port,
+                    verificationHost,
+                    verificationPort,
                     normalizedStored,
                     presentation,
                     verifier,
@@ -82,8 +118,8 @@ internal static class PlinkHostKeyDecider
         }
 
         return await DecideFirstUseAsync(
-                host,
-                port,
+                verificationHost,
+                verificationPort,
                 presentation,
                 verifier,
                 trustService,

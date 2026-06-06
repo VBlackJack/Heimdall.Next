@@ -61,6 +61,36 @@ public sealed class PlinkFailClosedTests
     }
 
     [Fact]
+    public async Task DecideAsync_WithSeparateTransportAndVerificationIdentity_ProbesTransportAndTrustsLogicalHost()
+    {
+        var probe = new FakeProbe(Presentation("SHA256:presented"));
+        var verifier = new FakeHostKeyVerifier(HostKeyDecision.Accept);
+        var trust = new FakeHostKeyTrustService();
+
+        PlinkHostKeyDecision decision = await PlinkHostKeyDecider.DecideAsync(
+            transportHost: "127.0.0.1",
+            transportPort: 49152,
+            verificationHost: "server01.contoso.local",
+            verificationPort: 22,
+            username: "operator",
+            plinkPath: "plink.exe",
+            probeTimeoutMs: 1000,
+            storedFingerprint: null,
+            probe: probe,
+            verifier: verifier,
+            trustService: trust,
+            ct: CancellationToken.None);
+
+        Assert.True(decision.ShouldProceed);
+        Assert.Equal("127.0.0.1", probe.LastHost);
+        Assert.Equal(49152, probe.LastPort);
+        Assert.Equal("server01.contoso.local", verifier.LastHost);
+        Assert.Equal(22, verifier.LastPort);
+        Assert.Equal("server01.contoso.local", trust.LastTrustedHost);
+        Assert.Equal(22, trust.LastTrustedPort);
+    }
+
+    [Fact]
     public async Task DecideAsync_NoStoredProbeKeyAndVerifierTrustOnce_TrustsForSessionAndProceeds()
     {
         var probe = new FakeProbe(Presentation("SHA256:presented"));
@@ -363,6 +393,8 @@ public sealed class PlinkFailClosedTests
         }
 
         public int CallCount { get; private set; }
+        public string? LastHost { get; private set; }
+        public int? LastPort { get; private set; }
 
         public Task<PlinkHostKeyPresentation?> ProbeAsync(
             string plinkPath,
@@ -373,6 +405,8 @@ public sealed class PlinkFailClosedTests
             CancellationToken ct)
         {
             CallCount++;
+            LastHost = host;
+            LastPort = port;
             return Task.FromResult(_presentation);
         }
     }
@@ -387,6 +421,8 @@ public sealed class PlinkFailClosedTests
         }
 
         public int CallCount { get; private set; }
+        public string? LastHost { get; private set; }
+        public int? LastPort { get; private set; }
         public string? LastStoredFingerprint { get; private set; }
 
         public Task<HostKeyDecision> VerifyAsync(
@@ -398,6 +434,8 @@ public sealed class PlinkFailClosedTests
             CancellationToken ct = default)
         {
             CallCount++;
+            LastHost = host;
+            LastPort = port;
             LastStoredFingerprint = storedFingerprint;
             return Task.FromResult(_decision);
         }
@@ -407,7 +445,11 @@ public sealed class PlinkFailClosedTests
     {
         public int TrustCallCount { get; private set; }
         public int TrustForSessionCallCount { get; private set; }
+        public string? LastTrustedHost { get; private set; }
+        public int? LastTrustedPort { get; private set; }
         public string? LastTrustedFingerprint { get; private set; }
+        public string? LastSessionHost { get; private set; }
+        public int? LastSessionPort { get; private set; }
         public string? LastSessionFingerprint { get; private set; }
 
         public event Action<string, HostKeyEntry>? EntryTrusted { add { } remove { } }
@@ -438,6 +480,8 @@ public sealed class PlinkFailClosedTests
             string? publicKeyBase64 = null)
         {
             TrustCallCount++;
+            LastTrustedHost = host;
+            LastTrustedPort = port;
             LastTrustedFingerprint = fingerprint;
         }
 
@@ -449,6 +493,8 @@ public sealed class PlinkFailClosedTests
             string? publicKeyBase64 = null)
         {
             TrustForSessionCallCount++;
+            LastSessionHost = host;
+            LastSessionPort = port;
             LastSessionFingerprint = fingerprint;
         }
 
