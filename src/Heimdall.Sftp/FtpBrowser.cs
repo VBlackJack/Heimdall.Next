@@ -189,22 +189,32 @@ public sealed class FtpBrowser : IRemoteBrowser
         AsyncFtpClient client = GetConnectedClient();
 
         string fileName = Path.GetFileName(remotePath);
+        string tempPath = AtomicLocalFile.CreateTempPath(localPath);
 
         await _opLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            long totalBytes = await client.GetFileSize(remotePath, 0, ct).ConfigureAwait(false);
-            totalBytes = Math.Max(0, totalBytes);
-            IProgress<FtpProgress> progress = CreateProgress(fileName, totalBytes, isUpload: false);
-            FtpStatus status = await client.DownloadFile(
-                localPath,
-                remotePath,
-                FtpLocalExists.Overwrite,
-                FtpVerify.None,
-                progress,
-                ct).ConfigureAwait(false);
+            try
+            {
+                long totalBytes = await client.GetFileSize(remotePath, 0, ct).ConfigureAwait(false);
+                totalBytes = Math.Max(0, totalBytes);
+                IProgress<FtpProgress> progress = CreateProgress(fileName, totalBytes, isUpload: false);
+                FtpStatus status = await client.DownloadFile(
+                    tempPath,
+                    remotePath,
+                    FtpLocalExists.Overwrite,
+                    FtpVerify.None,
+                    progress,
+                    ct).ConfigureAwait(false);
 
-            ThrowIfFailed(status, remotePath, "download");
+                ThrowIfFailed(status, remotePath, "download");
+                AtomicLocalFile.Commit(tempPath, localPath);
+            }
+            catch
+            {
+                AtomicLocalFile.Rollback(tempPath);
+                throw;
+            }
         }
         finally
         {
