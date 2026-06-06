@@ -121,13 +121,15 @@ public sealed class ServerDialogWinRmTests
             ConnectionType = "WINRM",
             WinRmPort = DefaultPorts.WinRmHttps,
             WinRmUseSsl = true,
+            WinRmSkipCertificateCheck = true,
             SshGatewayId = "gateway-01"
         });
 
         Assert.True(vm.UsesGateway);
         Assert.False(vm.CanUseWinRmSsl);
         Assert.False(vm.WinRmUseSsl);
-        Assert.Equal(DefaultPorts.WinRmHttps, vm.WinRmPort);
+        Assert.False(vm.WinRmSkipCertificateCheck);
+        Assert.Equal(DefaultPorts.WinRmHttp, vm.WinRmPort);
     }
 
     [Fact]
@@ -206,6 +208,65 @@ public sealed class ServerDialogWinRmTests
         Assert.False(roundTripped.DirectConnection);
         Assert.True(roundTripped.UsesGateway);
         Assert.Equal(DefaultPorts.WinRmTunnel, roundTripped.LocalPort);
+    }
+
+    [Fact]
+    public void ToDto_DirectConnection_DropsResidualGatewayId()
+    {
+        ServerDialogViewModel vm = new ServerDialogViewModel
+        {
+            ConnectionType = "WINRM",
+            DirectConnection = true,
+            SelectedGatewayId = "gateway-01"
+        };
+
+        ServerProfileDto dto = vm.ToDto();
+
+        Assert.True(dto.UseDirectConnection);
+        Assert.Null(dto.SshGatewayId);
+    }
+
+    [Fact]
+    public void FromDto_WinRmDirectWithResidualGateway_PreservesSsl()
+    {
+        ServerDialogViewModel vm = ServerDialogViewModel.FromDto(new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            WinRmPort = DefaultPorts.WinRmHttps,
+            WinRmUseSsl = true,
+            WinRmSkipCertificateCheck = true,
+            SshGatewayId = "gateway-01",
+            UseDirectConnection = true
+        });
+
+        Assert.True(vm.DirectConnection);
+        Assert.False(vm.UsesGateway);
+        Assert.True(vm.CanUseWinRmSsl);
+        Assert.True(vm.WinRmUseSsl);
+        Assert.True(vm.WinRmSkipCertificateCheck);
+        Assert.Equal(DefaultPorts.WinRmHttps, vm.WinRmPort);
+    }
+
+    [Fact]
+    public void ToDto_AfterDirectResidualGatewayRoundTrip_DropsGatewayAndPreservesSsl()
+    {
+        ServerDialogViewModel vm = ServerDialogViewModel.FromDto(new ServerProfileDto
+        {
+            ConnectionType = "WINRM",
+            WinRmPort = DefaultPorts.WinRmHttps,
+            WinRmUseSsl = true,
+            WinRmSkipCertificateCheck = true,
+            SshGatewayId = "gateway-01",
+            UseDirectConnection = true
+        });
+
+        ServerProfileDto dto = vm.ToDto();
+
+        Assert.True(dto.UseDirectConnection);
+        Assert.Null(dto.SshGatewayId);
+        Assert.True(dto.WinRmUseSsl);
+        Assert.True(dto.WinRmSkipCertificateCheck);
+        Assert.Equal(DefaultPorts.WinRmHttps, dto.WinRmPort);
     }
 
     [Fact]

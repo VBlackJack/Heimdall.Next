@@ -1780,7 +1780,9 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpPerformanceFlags = ComposePerformanceFlags(),
             RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
-            SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
+            SshGatewayId = DirectConnection || string.IsNullOrWhiteSpace(SelectedGatewayId)
+                ? null
+                : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
             ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
             Tags = string.IsNullOrWhiteSpace(Tags) ? null : Tags,
@@ -1905,14 +1907,16 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.DecomposePerformanceFlags(dto.RdpPerformanceFlags);
         vm.RdpDisableUdp = dto.RdpDisableUdp;
         vm.RdpGateway = dto.RdpGateway ?? "";
-        vm.SelectedGatewayId = dto.SshGatewayId ?? "";
         vm.DirectConnection = dto.UseDirectConnection;
+        vm.SelectedGatewayId = dto.SshGatewayId ?? "";
         vm.SelectedProjectId = dto.ProjectId ?? "";
         vm.Tags = dto.Tags ?? "";
         vm.MacAddress = dto.MacAddress ?? "";
         vm.Environment = dto.Environment ?? "None";
         vm.IsFavorite = dto.IsFavorite;
         vm._isInitializing = false;
+        vm.CoerceWinRmSslForGateway();
+        vm.RaiseDerivedStateChanged();
         return vm;
     }
 
@@ -2079,6 +2083,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnSelectedGatewayIdChanged(string value)
     {
+        if (_isInitializing) return;
         if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
         CoerceWinRmSslForGateway();
         RaiseDerivedStateChanged();
@@ -2086,6 +2091,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnDirectConnectionChanged(bool value)
     {
+        if (_isInitializing) return;
         if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
         CoerceWinRmSslForGateway();
         RaiseDerivedStateChanged();
