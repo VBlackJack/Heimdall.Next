@@ -93,7 +93,7 @@ public static class SshConnectionProbe
 
             return new ProbeResult(true, trimmed, null, null);
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
         {
             return new ProbeResult(
                 false,
