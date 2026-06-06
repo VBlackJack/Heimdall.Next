@@ -54,6 +54,10 @@ internal static class WinRmTransportProbes
         SslClientAuthenticationOptions options = new SslClientAuthenticationOptions
         {
             TargetHost = host,
+            // Intentional for this connectivity/TLS-handshake preflight only.
+            // The real WSMan transport enforces revocation independently; using
+            // Online here would risk false diagnostic failures when internal PKI
+            // CRL/OCSP endpoints are unreachable.
             CertificateRevocationCheckMode = X509RevocationMode.NoCheck
         };
 
