@@ -1848,6 +1848,7 @@
   "ErrorFtpConnectionFailed": "FTP connection failed: {0}",
   "WarnFtpCleartext": "FTP session to {0}:{1} is using a cleartext channel. Username and password are transmitted unencrypted. Prefer SFTP when available.",
   "WarnFtpCleartextBadge": "Credentials sent in clear text (no TLS)",
+  "WarnRdpFileAclFailed": "The temporary .rdp file could not be locked down with a restricted ACL. It contains the host and username, but no password; the session was still launched.",
   "ErrorTelnetConnectionFailed": "Telnet connection failed: {0}",
   "ErrorWinRmInvalidConfiguration": "The WinRM configuration is invalid.",
   "ErrorWinRmInvalidHost": "The WinRM host is invalid.",

@@ -91,6 +91,7 @@ internal sealed class RdpHandler : IProtocolHandler
 
         string? rdpPassword = null;
         bool releaseTunnel = usesTunnel;
+        string? warning = null;
         try
         {
             string rdpHost = targetHost;
@@ -184,6 +185,7 @@ internal sealed class RdpHandler : IProtocolHandler
                     {
                         Core.Logging.FileLogger.Error(
                             $"Failed to set ACL on .rdp file — file has inherited permissions: {aclEx.Message}");
+                        warning = _localizer["WarnRdpFileAclFailed"];
                     }
                 }
             }
@@ -335,7 +337,7 @@ internal sealed class RdpHandler : IProtocolHandler
                 }
             }, CancellationToken.None);
 
-            return new ConnectionResult(true, null, null);
+            return new ConnectionResult(true, null, null, Warning: warning);
         }
         catch (Exception ex)
         {
