@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Heimdall.App.Tests" />
+    <InternalsVisibleTo Include="Heimdall.Sftp.Tests" />
   </ItemGroup>
 
   <ItemGroup>

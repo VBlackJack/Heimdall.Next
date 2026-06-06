@@ -388,11 +388,8 @@ public sealed class RemoteFileEditor : IDisposable
             return;
         }
 
-        var upload = OnFileChangedAsync(session, ct);
-        if (session.CurrentUpload is null || session.CurrentUpload.IsCompleted)
-        {
-            session.CurrentUpload = upload;
-        }
+        Task upload = OnFileChangedAsync(session, ct);
+        session.TrackUploadIfReplaceable(upload);
 
         _ = upload.ContinueWith(
             static task =>
@@ -535,6 +532,9 @@ public sealed class RemoteFileEditor : IDisposable
 
         await File.WriteAllBytesAsync(localPath, bytes, ct).ConfigureAwait(false);
     }
+
+    internal static bool ShouldReplaceTrackedUpload(Task? current) =>
+        current is null || current.IsCompleted;
 
     internal static async Task UploadWithSudoAsync(EditSession session, CancellationToken ct = default)
     {
@@ -729,6 +729,9 @@ public sealed record HostKeyRotationEvent(
 /// </summary>
 internal sealed class EditSession : IDisposable
 {
+    private readonly object _currentUploadLock = new();
+    private Task? _currentUpload;
+
     /// <summary>Full remote path of the file being edited.</summary>
     public required string RemotePath { get; init; }
 
@@ -763,7 +766,16 @@ internal sealed class EditSession : IDisposable
     public CancellationTokenSource UploadCts { get; } = new();
 
     /// <summary>Most recent auto-upload task, retained so teardown can observe it.</summary>
-    public Task? CurrentUpload { get; set; }
+    public Task? CurrentUpload
+    {
+        get
+        {
+            lock (_currentUploadLock)
+            {
+                return _currentUpload;
+            }
+        }
+    }
 
     /// <summary>Timestamp of the last successful upload (UTC).</summary>
     public DateTime LastUploadTime { get; set; }
@@ -774,6 +786,23 @@ internal sealed class EditSession : IDisposable
     /// </summary>
     public bool ShouldUpload =>
         (DateTime.UtcNow - LastUploadTime) >= RemoteFileEditor.UploadDebounceInterval;
+
+    /// <summary>
+    /// Tracks an upload task only when no upload is tracked or the tracked one
+    /// is complete. The decision and assignment are atomic per edit session.
+    /// </summary>
+    public void TrackUploadIfReplaceable(Task upload)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+
+        lock (_currentUploadLock)
+        {
+            if (RemoteFileEditor.ShouldReplaceTrackedUpload(_currentUpload))
+            {
+                _currentUpload = upload;
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public void Dispose()
