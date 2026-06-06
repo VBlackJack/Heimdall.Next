@@ -41,6 +41,10 @@ public sealed class ToolsTabPopulationService
 {
     private readonly ToolRegistry _toolRegistry;
 
+    public sealed record ExternalToolProviderGroup(
+        string ProviderName,
+        IReadOnlyList<ToolDescriptor> Tools);
+
     /// <summary>
     /// Initialises a new <see cref="ToolsTabPopulationService"/>.
     /// </summary>
@@ -300,6 +304,8 @@ public sealed class ToolsTabPopulationService
 
         WrapPanel? currentWrap = null;
 
+        var externalDescriptors = new List<ToolDescriptor>();
+
         foreach (var descriptor in sorted)
         {
             if (hasFilter)
@@ -316,6 +322,12 @@ public sealed class ToolsTabPopulationService
             }
 
             matchingToolCount++;
+
+            if (descriptor.Category == ToolCategory.External)
+            {
+                externalDescriptors.Add(descriptor);
+                continue;
+            }
 
             if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
@@ -335,6 +347,11 @@ public sealed class ToolsTabPopulationService
         if (currentWrap is not null)
         {
             target.Children.Add(currentWrap);
+        }
+
+        if (externalDescriptors.Count > 0)
+        {
+            RenderToolsTabExternalCategory(target, vm, externalDescriptors, onCardClick, onPinClick);
         }
 
         if (hasFilter && matchingToolCount == 0)
@@ -370,6 +387,43 @@ public sealed class ToolsTabPopulationService
         }
 
         return hasFilter ? matchingToolCount : _toolRegistry.All.Count;
+    }
+
+    private void RenderToolsTabExternalCategory(
+        System.Windows.Controls.Panel target,
+        MainViewModel vm,
+        IReadOnlyList<ToolDescriptor> descriptors,
+        Action<ToolDescriptor> onCardClick,
+        Action<string> onPinClick)
+    {
+        AddToolsTabCategoryHeader(
+            target,
+            vm.Localize(descriptors[0].CategoryLabelKey),
+            GetCategoryBrushKey(ToolCategory.External));
+
+        var nativeTools = descriptors
+            .Where(descriptor => string.IsNullOrEmpty(descriptor.ExternalProviderName))
+            .ToList();
+        if (nativeTools.Count > 0)
+        {
+            var nativeWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+            foreach (var descriptor in nativeTools)
+            {
+                nativeWrap.Children.Add(CreateToolsTabCard(descriptor, vm, onCardClick, onPinClick));
+            }
+            target.Children.Add(nativeWrap);
+        }
+
+        foreach (var group in GroupExternalToolsByProvider(descriptors))
+        {
+            AddToolsTabProviderSubHeader(target, group.ProviderName);
+            var providerWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+            foreach (var descriptor in group.Tools)
+            {
+                providerWrap.Children.Add(CreateToolsTabCard(descriptor, vm, onCardClick, onPinClick));
+            }
+            target.Children.Add(providerWrap);
+        }
     }
 
     /// <summary>
@@ -421,6 +475,20 @@ public sealed class ToolsTabPopulationService
         label.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
         header.Children.Add(label);
         target.Children.Add(header);
+    }
+
+    public void AddToolsTabProviderSubHeader(System.Windows.Controls.Panel target, string text)
+    {
+        var label = new TextBlock
+        {
+            Text = text,
+            FontSize = (double)Application.Current.FindResource("FontSizeCaption"),
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(12, 6, 0, 6),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+        target.Children.Add(label);
     }
 
     /// <summary>
@@ -605,6 +673,19 @@ public sealed class ToolsTabPopulationService
     }
 
     // ── Pure helpers ────────────────────────────────────────────────────
+
+    public static IReadOnlyList<ExternalToolProviderGroup> GroupExternalToolsByProvider(
+        IEnumerable<ToolDescriptor> descriptors)
+    {
+        ArgumentNullException.ThrowIfNull(descriptors);
+
+        return descriptors
+            .Where(descriptor => descriptor.Category == ToolCategory.External)
+            .Where(descriptor => !string.IsNullOrEmpty(descriptor.ExternalProviderName))
+            .GroupBy(descriptor => descriptor.ExternalProviderName!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new ExternalToolProviderGroup(group.Key, group.ToList()))
+            .ToList();
+    }
 
     /// <summary>
     /// Maps a <see cref="ToolCategory"/> to the resource key of the brush

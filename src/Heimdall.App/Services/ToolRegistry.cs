@@ -149,7 +149,8 @@ public sealed class ToolRegistry
                     CommandPrefixes: [tool.Id.ToLowerInvariant(), tool.Name.ToLowerInvariant().Replace(" ", "")],
                     IsNetworkTool: false,
                     IconResourceKey: tool.IconResourceKey ?? "Geo.Tool.External",
-                    DescriptionKey: tool.DescriptionKey
+                    DescriptionKey: tool.DescriptionKey,
+                    ExternalProviderName: tool.ProviderName
                 );
 
                 var capturedTool = tool;
