@@ -163,6 +163,8 @@ internal sealed class WinRmCredentialBootstrap
             "    if ($encryptedBytes -ne $null) { [Array]::Clear($encryptedBytes, 0, $encryptedBytes.Length) }",
             "    if ($plainBytes -ne $null) { [Array]::Clear($plainBytes, 0, $plainBytes.Length) }",
             "    if ($plainChars -ne $null) { [Array]::Clear($plainChars, 0, $plainChars.Length) }",
+            "    # Best-effort: $blob holds user-scoped DPAPI ciphertext, not plaintext; minimize heap residency.",
+            "    $blob = $null",
             "    $securePassword = $null",
             "    $credential = $null",
             "}"

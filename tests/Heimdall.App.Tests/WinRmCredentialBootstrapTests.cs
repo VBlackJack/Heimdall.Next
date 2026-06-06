@@ -77,6 +77,22 @@ public sealed class WinRmCredentialBootstrapTests
     }
 
     [Fact]
+    public void BuildScript_ClearsDpapiBlobInFinallyBlock()
+    {
+        ServerProfileDto server = CreateCredentialServer();
+
+        string script = WinRmCredentialBootstrap.BuildScript(server, "dpapi-bootstrap-blob");
+
+        int finallyStart = script.IndexOf("finally {\r\n", StringComparison.Ordinal);
+        int blobClearIndex = script.IndexOf("    $blob = $null", StringComparison.Ordinal);
+        int finallyEnd = script.IndexOf("\r\n}", finallyStart, StringComparison.Ordinal);
+
+        Assert.True(finallyStart >= 0);
+        Assert.True(blobClearIndex > finallyStart);
+        Assert.True(finallyEnd > blobClearIndex);
+    }
+
+    [Fact]
     public void Write_WhenStoredPasswordCannotBeDecrypted_Throws()
     {
         WinRmCredentialBootstrap bootstrap = new WinRmCredentialBootstrap(
