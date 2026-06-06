@@ -202,6 +202,6 @@ internal sealed class WinRmCredentialBootstrap
                 "WinRM stored credential is missing.");
         }
 
-        _ = WinRmPowerShellLaunchBuilder.BuildEnterPSSessionCommand(server, "$credential");
+        WinRmPowerShellLaunchBuilder.ValidateProfile(server);
     }
 }
