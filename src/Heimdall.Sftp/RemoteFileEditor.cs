@@ -39,7 +39,6 @@ public sealed class RemoteFileEditor : IDisposable
     /// to change at runtime.
     /// </remarks>
     public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
-    private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private const short OwnerReadWritePermissions = 600;
     private static readonly TimeSpan UploadDrainTimeout = TimeSpan.FromSeconds(2);
 
@@ -550,7 +549,7 @@ public sealed class RemoteFileEditor : IDisposable
         }
 
         string escapedPath = PathEscaper.EscapeForShell(session.RemotePath);
-        string tempRemotePath = $"{RemoteTempPrefix}edit_{Guid.NewGuid():N}";
+        string tempRemotePath = $"{RemoteTempPaths.Prefix}edit_{Guid.NewGuid():N}";
 
         var connectionInfo = SshConnectionFactory.Create(session.SshParams);
         using var sftpClient = new SftpClient(connectionInfo);

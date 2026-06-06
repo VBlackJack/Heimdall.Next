@@ -48,7 +48,6 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         Empty
     }
 
-    private const string RemoteTempPrefix = "/tmp/.heimdall_";
     private const string SudoStderrTerminalRequired = "a terminal is required";
     private const string SudoStderrNoTtyPresent = "no tty present";
     private const string SudoStderrNoAskpass = "no askpass";
@@ -1016,7 +1015,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             throw new InvalidOperationException("Browser not available for sudo upload.");
         }
 
-        string tempRemote = $"{RemoteTempPrefix}upload_{Guid.NewGuid():N}";
+        string tempRemote = $"{RemoteTempPaths.Prefix}upload_{Guid.NewGuid():N}";
         (string write, string cleanup) = SudoUploadCommands.Build(tempRemote, remotePath);
 
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
