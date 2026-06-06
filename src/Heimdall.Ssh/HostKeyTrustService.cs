@@ -15,9 +15,10 @@
  */
 
 using Heimdall.Core.Logging;
+using Heimdall.Core.Ssh;
 using Heimdall.Ssh;
 
-namespace Heimdall.Core.Ssh;
+namespace Heimdall.Ssh;
 
 public sealed class HostKeyTrustService(HostKeyStore store) : IHostKeyTrustService
 {

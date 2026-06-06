@@ -23,6 +23,7 @@ using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Ssh;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.ViewModels.Settings;
 

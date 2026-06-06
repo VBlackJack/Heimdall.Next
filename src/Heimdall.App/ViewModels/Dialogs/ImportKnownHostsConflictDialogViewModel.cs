@@ -19,6 +19,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Ssh;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 

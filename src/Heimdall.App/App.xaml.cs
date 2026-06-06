@@ -36,9 +36,9 @@ using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
-using CoreKnownHostsExporter = Heimdall.Core.Ssh.KnownHostsExporter;
-using CoreKnownHostsImporter = Heimdall.Core.Ssh.KnownHostsImporter;
 using KnownHostsImporter = Heimdall.App.Services.Import.KnownHostsImporter;
+using SshKnownHostsExporter = Heimdall.Ssh.KnownHostsExporter;
+using SshKnownHostsImporter = Heimdall.Ssh.KnownHostsImporter;
 
 namespace Heimdall.App;
 
@@ -465,8 +465,8 @@ public partial class App : System.Windows.Application
         services.AddTransient<KnownHostsImporter>(sp => new KnownHostsImporter(
             sp.GetRequiredService<IConfigManager>(),
             sp.GetRequiredService<IHostKeyTrustService>()));
-        services.AddTransient<CoreKnownHostsImporter>();
-        services.AddTransient<CoreKnownHostsExporter>();
+        services.AddTransient<SshKnownHostsImporter>();
+        services.AddTransient<SshKnownHostsExporter>();
         services.AddSingleton<IPostConnectSequenceRunner, PostConnectSequenceRunner>();
         services.AddSingleton<IPostConnectStepResolver, CommandLibraryStepResolver>();
         services.AddSingleton<IClipboardService, WpfClipboardService>();

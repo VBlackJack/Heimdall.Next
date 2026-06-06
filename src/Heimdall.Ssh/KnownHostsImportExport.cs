@@ -16,8 +16,9 @@
 
 using System.Text;
 using Heimdall.Core.Logging;
+using Heimdall.Core.Ssh;
 
-namespace Heimdall.Core.Ssh;
+namespace Heimdall.Ssh;
 
 public sealed record KnownHostsImportConflict(
     string Host,

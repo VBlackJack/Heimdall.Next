@@ -17,7 +17,8 @@
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Ssh;
-using SshKnownHostsImporter = Heimdall.Core.Ssh.KnownHostsImporter;
+using Heimdall.Ssh;
+using SshKnownHostsImporter = Heimdall.Ssh.KnownHostsImporter;
 
 namespace Heimdall.App.Services;
 

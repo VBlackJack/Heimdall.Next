@@ -18,6 +18,7 @@ using System.IO;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Ssh;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
 
