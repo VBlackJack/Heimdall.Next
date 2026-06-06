@@ -58,6 +58,7 @@ internal sealed class WinRmHandler : IProtocolHandler
         _launchBuilder = launchBuilder ?? new WinRmPowerShellLaunchBuilder();
         _credentialBootstrapFactory = credentialBootstrapFactory ?? (() => new WinRmCredentialBootstrap());
         _bootstrapJanitor = bootstrapJanitor ?? new WinRmBootstrapJanitor();
+        // Best-effort startup cleanup; SweepStaleBootstrapScripts handles its own failures.
         _ = Task.Run(SweepStaleBootstrapScripts);
     }
 
