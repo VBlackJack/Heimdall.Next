@@ -26,7 +26,7 @@ namespace Heimdall.Ssh.Pageant;
 /// Supports SSH agent protocol operations: listing identities and signing data.
 /// Windows-only by construction (Pageant is a Windows GUI process).
 /// </summary>
-public class PageantClient
+public sealed class PageantClient : IPageantClient
 {
     private const byte SSH2_AGENTC_REQUEST_IDENTITIES = 11;
     private const byte SSH2_AGENT_IDENTITIES_ANSWER = 12;
@@ -75,7 +75,7 @@ public class PageantClient
     /// <param name="flags">Agent signature flags (0 for default behavior).</param>
     /// <returns>The full SSH signature blob from the agent (algorithm name + signature, each length-prefixed) — not raw signature bytes.</returns>
     /// <exception cref="InvalidOperationException">Pageant is not running or signing failed.</exception>
-    public virtual byte[] SignData(byte[] keyBlob, byte[] data, uint flags = 0)
+    public byte[] SignData(byte[] keyBlob, byte[] data, uint flags = 0)
     {
         ArgumentNullException.ThrowIfNull(keyBlob);
         ArgumentNullException.ThrowIfNull(data);

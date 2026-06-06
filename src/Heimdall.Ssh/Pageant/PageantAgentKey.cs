@@ -20,9 +20,9 @@ namespace Heimdall.Ssh.Pageant;
 
 internal sealed class PageantAgentKey : ISshAgentKey
 {
-    private readonly Func<PageantClient> _clientFactory;
+    private readonly Func<IPageantClient> _clientFactory;
 
-    public PageantAgentKey(PageantKey key, Func<PageantClient>? clientFactory = null)
+    public PageantAgentKey(PageantKey key, Func<IPageantClient>? clientFactory = null)
     {
         ArgumentNullException.ThrowIfNull(key);
 
@@ -38,7 +38,7 @@ internal sealed class PageantAgentKey : ISshAgentKey
 
     public byte[] Sign(byte[] data, SshAgentSignFlags flags)
     {
-        PageantClient client = _clientFactory();
+        IPageantClient client = _clientFactory();
         return client.SignData(PublicKeyBlob, data, (uint)flags);
     }
 }

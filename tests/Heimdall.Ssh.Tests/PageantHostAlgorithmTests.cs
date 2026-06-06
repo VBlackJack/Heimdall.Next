@@ -46,7 +46,7 @@ public sealed class PageantHostAlgorithmTests
         Assert.Equal(0u, fakeClient.LastFlags);
     }
 
-    private sealed class FakePageantClient(byte[] response) : PageantClient
+    private sealed class FakePageantClient(byte[] response) : IPageantClient
     {
         public byte[]? LastKeyBlob { get; private set; }
 
@@ -54,7 +54,7 @@ public sealed class PageantHostAlgorithmTests
 
         public uint LastFlags { get; private set; }
 
-        public override byte[] SignData(byte[] keyBlob, byte[] data, uint flags = 0)
+        public byte[] SignData(byte[] keyBlob, byte[] data, uint flags = 0)
         {
             LastKeyBlob = keyBlob;
             LastData = data;

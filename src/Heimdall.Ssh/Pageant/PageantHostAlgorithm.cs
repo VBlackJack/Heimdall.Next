@@ -33,7 +33,7 @@ internal sealed class PageantHostAlgorithm : HostAlgorithm
     internal const uint AgentRsaSha2_512 = 0x04;
 
     private readonly byte[] _publicKeyBlob;
-    private readonly PageantClient _pageantClient;
+    private readonly IPageantClient _pageantClient;
     private readonly uint _signFlags;
 
     /// <summary>
@@ -54,7 +54,7 @@ internal sealed class PageantHostAlgorithm : HostAlgorithm
     public PageantHostAlgorithm(
         string algorithmName,
         byte[] publicKeyBlob,
-        PageantClient pageantClient,
+        IPageantClient pageantClient,
         uint signFlags = 0)
         : base(algorithmName)
     {
