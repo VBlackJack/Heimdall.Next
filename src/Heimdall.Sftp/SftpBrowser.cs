@@ -405,6 +405,7 @@ public sealed class SftpBrowser : IRemoteBrowser
     public async Task DeleteAsync(string path, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        SftpPathGuard.ThrowIfProtectedRoot(path, "delete");
         var client = GetConnectedClient();
 
         await _clientLock.WaitAsync(ct).ConfigureAwait(false);

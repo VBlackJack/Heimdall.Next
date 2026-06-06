@@ -16,7 +16,13 @@
 
 using System.IO;
 using System.Reflection;
+using Heimdall.App.Services;
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.PostConnect;
 using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Import;
+using Heimdall.Core.Ssh;
 using Heimdall.Sftp;
 
 namespace Heimdall.App.Tests;
@@ -433,6 +439,22 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public async Task DeleteEntriesAsync_ProtectedRoot_DoesNotCallBrowserDelete()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+        viewModel.SetDialogService(new ConfirmingDialogService());
+
+        await viewModel.DeleteEntriesAsync([CreateRemoteEntry("/", "/", isDirectory: true)]);
+
+        Assert.Equal(0, browser.DeleteCallCount);
+        Assert.True(viewModel.IsErrorStatus);
+        Assert.Contains("protected remote root", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CancelTransferCommand_NoTransferRunning_DoesNotThrow()
     {
         FakeUiDispatcher dispatcher = new();
@@ -535,6 +557,8 @@ public sealed class EmbeddedSftpViewModelTests
 
         public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
 
+        public int DeleteCallCount => Volatile.Read(ref _deleteCallCount);
+
         public Func<string?, CancellationToken, Task<IReadOnlyList<SftpFileInfo>>>? ListDirectoryHandler { get; set; }
 
         public Task<IReadOnlyList<SftpFileInfo>> ListDirectoryAsync(
@@ -584,6 +608,7 @@ public sealed class EmbeddedSftpViewModelTests
 
         public Task DeleteAsync(string path, CancellationToken ct = default)
         {
+            Interlocked.Increment(ref _deleteCallCount);
             return Task.CompletedTask;
         }
 
@@ -602,6 +627,94 @@ public sealed class EmbeddedSftpViewModelTests
         }
 
         public void Dispose()
+        {
+        }
+
+        private int _deleteCallCount;
+    }
+
+    private sealed class ConfirmingDialogService : IDialogService
+    {
+        public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
+            => Task.FromResult(true);
+
+        public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message)
+            => throw new NotSupportedException();
+
+        public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null)
+            => throw new NotSupportedException();
+
+        public Task<string?> ShowPasswordInputAsync(
+            string title,
+            string prompt,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
+            => throw new NotSupportedException();
+
+        public Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null)
+            => throw new NotSupportedException();
+
+        public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null)
+            => throw new NotSupportedException();
+
+        public Task<ScheduledTaskDialogResult?> ShowScheduledTaskDialogAsync(ScheduledTaskDialogViewModel? editVm = null)
+            => throw new NotSupportedException();
+
+        public Task ShowPinDialogAsync(PinDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<PinSetupResult?> ShowPinSetupDialogAsync(PinSetupDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<RdpImportSelection?> ShowRdpImportDialogAsync(RdpImportDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<ImportOutcome?> ShowImportOpenSshConfigAsync(OpenSshParseResult parseResult)
+            => throw new NotSupportedException();
+
+        public Task<ImportOutcome?> ShowImportPuttySessionsAsync(PuttySessionParseResult parseResult)
+            => throw new NotSupportedException();
+
+        public Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview)
+            => throw new NotSupportedException();
+
+        public Task ShowTrustedHostKeyDetailsAsync(TrustedHostKeyDetailsDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<ImportKnownHostsConflictResolution?> ShowImportKnownHostsConflictAsync(
+            ImportKnownHostsConflictDialogViewModel viewModel)
+            => throw new NotSupportedException();
+
+        public Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
+            CommandLibraryPickerDialogViewModel viewModel,
+            AutoPrefillContext? prefillContext = null,
+            string? existingActionId = null,
+            IReadOnlyDictionary<string, string>? existingValues = null)
+            => throw new NotSupportedException();
+
+        public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<string?> ShowBulkEditPasswordAsync(int count, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public void ShowError(string title, string message)
+        {
+        }
+
+        public void ShowInfo(string title, string message)
+        {
+        }
+
+        public void ShowWarning(string title, string message)
         {
         }
     }

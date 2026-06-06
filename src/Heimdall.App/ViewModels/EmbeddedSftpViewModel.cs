@@ -1213,12 +1213,14 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             foreach (var file in entries)
             {
+                SftpPathGuard.ThrowIfProtectedRoot(file.FullPath, "delete");
                 try
                 {
                     await _browser.DeleteAsync(file.FullPath);
                 }
                 catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
                 {
+                    SftpPathGuard.ThrowIfProtectedRoot(file.FullPath, "sudo delete");
                     Core.Logging.FileLogger.Info(
                         $"EmbeddedSFTP delete permission denied, falling back to sudo for {file.Name}");
                     string flag = file.IsDirectory ? "-rf" : "-f";
