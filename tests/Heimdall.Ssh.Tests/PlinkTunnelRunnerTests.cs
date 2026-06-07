@@ -45,9 +45,36 @@ public class PlinkTunnelRunnerTests : IDisposable
         Assert.Contains("-N", args);
         Assert.Contains("-L", args);
         Assert.Contains("13389:target.internal:3389", args);
+        Assert.DoesNotContain($"{LoopbackBinding.DefaultHost}:13389:target.internal:3389", args);
         Assert.Contains("-P", args);
         Assert.Contains("22", args);
         Assert.Contains("admin@gateway.example.com", args);
+    }
+
+    [Fact]
+    public void BuildArguments_CustomLocalBindHost_PrefixesForwardSpec()
+    {
+        string alias = LoopbackBinding.FormatAlias(2);
+
+        var args = _runner.BuildArguments(
+            "gateway.example.com", 22, "admin", null, null,
+            "target.internal", 3389, 13389,
+            localBindHost: alias);
+
+        Assert.Contains("-L", args);
+        Assert.Contains($"{alias}:13389:target.internal:3389", args);
+        Assert.DoesNotContain("13389:target.internal:3389", args);
+    }
+
+    [Fact]
+    public void BuildArguments_InvalidLocalBindHost_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => _runner.BuildArguments(
+            "gateway.example.com", 22, "admin", null, null,
+            "target.internal", 3389, 13389,
+            localBindHost: "10.0.0.1"));
+
+        Assert.Contains("Local bind host", ex.Message);
     }
 
     [Fact]

@@ -83,12 +83,14 @@ public sealed partial class TunnelManager
         int socksProxyPort,
         int remoteBindPort,
         int remoteLocalPort,
-        bool isChained)
+        bool isChained,
+        string localBindHost)
     {
         var finalClient = context.FinalClient
             ?? throw new InvalidOperationException("Final SSH client must be connected before wiring forwarded ports.");
 
-        context.FinalPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
+        context.FinalPort = new ForwardedPortLocal(localBindHost, (uint)localPort, remoteHost, (uint)remotePort);
         context.FinalPort.Exception += (_, args) =>
         {
             Core.Logging.FileLogger.Error(
@@ -108,19 +110,19 @@ public sealed partial class TunnelManager
         var logSuffix = isChained ? " (chained tunnel)" : string.Empty;
         if (socksProxyPort > 0)
         {
-            context.DynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
+            context.DynamicPort = new ForwardedPortDynamic(LoopbackBinding.DefaultHost, (uint)socksProxyPort);
             finalClient.AddForwardedPort(context.DynamicPort);
             StartForwardedPortWithRetry(context.DynamicPort, $"SOCKS5 port {socksProxyPort}");
             Core.Logging.FileLogger.Info(
-                $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort}{logSuffix}");
+                $"SOCKS5 proxy started on {LoopbackBinding.DefaultHost}:{socksProxyPort}{logSuffix}");
         }
 
         if (remoteBindPort > 0)
         {
             int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
             context.RemotePortForward = new ForwardedPortRemote(
-                "127.0.0.1", (uint)remoteBindPort,
-                "127.0.0.1", (uint)localFwd);
+                LoopbackBinding.DefaultHost, (uint)remoteBindPort,
+                LoopbackBinding.DefaultHost, (uint)localFwd);
             finalClient.AddForwardedPort(context.RemotePortForward);
             context.RemotePortForward.Start();
             Core.Logging.FileLogger.Info(
@@ -136,7 +138,8 @@ public sealed partial class TunnelManager
         int socksProxyPort,
         int remoteBindPort,
         string? label = null,
-        string? gatewayChainKey = null)
+        string? gatewayChainKey = null,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         return new TunnelInfo(
             gatewayHost,
@@ -148,6 +151,7 @@ public sealed partial class TunnelManager
         {
             SocksProxyPort = socksProxyPort,
             RemoteBindPort = remoteBindPort,
+            LocalBindHost = LoopbackBinding.NormalizeHost(localBindHost),
             Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim(),
             GatewayChainKey = gatewayChainKey ?? string.Empty
         };
@@ -166,6 +170,10 @@ public sealed partial class TunnelManager
             {
                 AddReferenceUnderLock(localPort);
                 registered = true;
+            }
+            else
+            {
+                ReleaseLoopbackAliasReservationIfUnboundUnderLock(info.LocalBindHost);
             }
         }
 
@@ -228,7 +236,7 @@ public sealed partial class TunnelManager
     {
         return new SshConnectionParams
         {
-            Host = "127.0.0.1",
+            Host = LoopbackBinding.DefaultHost,
             Port = intermediateLocalPort,
             Username = nextGateway.Username,
             KeyPath = nextGateway.KeyPath,
