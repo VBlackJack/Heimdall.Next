@@ -16,12 +16,70 @@
 
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Ssh;
+using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Tests;
 
 public sealed class TunnelReuseIdentityTests
 {
+    [Fact]
+    public async Task SetupTunnelIfNeededAsync_ReusedTunnelReturnsExistingLocalBindHost()
+    {
+        using var tunnelManager = new TunnelManager();
+        const string gatewayId = "gw-A";
+        const string remoteHost = "10.0.0.5";
+        const int remotePort = 3389;
+        const int localPort = 50123;
+        string localBindHost = LoopbackBinding.FormatAlias(2);
+        var gateway = new SshGatewayDto
+        {
+            Id = gatewayId,
+            Host = "gateway.example.test",
+            User = "ssh-user"
+        };
+        TunnelInfo existing = MakeTunnel(
+            TunnelService.BuildGatewayChainKey([gateway]),
+            remoteHost,
+            remotePort) with
+        {
+            LocalPort = localPort,
+            LocalBindHost = localBindHost
+        };
+
+        Assert.True(tunnelManager.TryRegisterExternalTunnel(existing, new TestDisposable(), () => true));
+        var service = new TunnelService(
+            tunnelManager,
+            new HostKeyStore(),
+            new HostKeyTrustService(new HostKeyStore()),
+            new ConnectionStateMachine(),
+            new LocalizationManager(),
+            RejectingHostKeyVerifier.Instance);
+        var server = new ServerProfileDto
+        {
+            Id = "server-1",
+            RemoteServer = remoteHost,
+            RemotePort = remotePort,
+            SshGatewayId = gatewayId,
+            UseDirectConnection = false
+        };
+        var settings = new AppSettings { SshGateways = [gateway] };
+
+        var result = await service.SetupTunnelIfNeededAsync(
+            server,
+            remotePort,
+            settings,
+            CancellationToken.None,
+            preferDistinctLoopback: true);
+
+        Assert.True(result.Success);
+        Assert.True(result.UsesTunnel);
+        Assert.Equal(localBindHost, result.Host);
+        Assert.Equal(localPort, result.Port);
+    }
+
     [Fact]
     public void FindReusableTunnel_SameChainAndTarget_ReturnsExistingTunnel()
     {
@@ -238,5 +296,12 @@ public sealed class TunnelReuseIdentityTests
             SocksProxyPort = socksProxyPort,
             RemoteBindPort = remoteBindPort
         };
+    }
+
+    private sealed class TestDisposable : IDisposable
+    {
+        public void Dispose()
+        {
+        }
     }
 }

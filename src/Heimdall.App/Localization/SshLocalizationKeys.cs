@@ -42,6 +42,7 @@ internal static class SshLocalizationKeys
     public const string ErrorSshKeyPathInvalid = "ErrorSshKeyPathInvalid";
     public const string ErrorSshKeyPathNotAbsolute = "ErrorSshKeyPathNotAbsolute";
     public const string ErrorTunnelFailed = "ErrorTunnelFailed";
+    public const string ErrorTunnelNoLoopbackAlias = "ErrorTunnelNoLoopbackAlias";
     public const string ErrorTunnelPortConcurrent = "ErrorTunnelPortConcurrent";
     public const string StatusSshRetryingViaPlink = "StatusSshRetryingViaPlink";
 }

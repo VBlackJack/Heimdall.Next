@@ -68,6 +68,7 @@
   "ErrorInvalidPort": "Erreur : Port invalide pour {0}. Doit \u00eatre entre 1 et 65535.",
   "ErrorToolLaunchFailed": "\u00c9chec du lancement de l'outil : {0} \u2014 {1}",
   "ErrorTunnelFailed": "Le tunnel SSH s'est ferm\u00e9 de mani\u00e8re inattendue. V\u00e9rifiez les identifiants, la cl\u00e9 d'h\u00f4te et les r\u00e8gles de pare-feu.",
+  "ErrorTunnelNoLoopbackAlias": "Aucune adresse loopback n'est disponible pour isoler ce tunnel. Fermez une autre session RDP tunnelis\u00e9e puis r\u00e9essayez.",
   "ErrorHostKeyMismatch": "Empreinte de cl\u00e9 SSH diff\u00e9rente \u2014 possible MITM. L'empreinte stock\u00e9e diff\u00e8re de celle pr\u00e9sent\u00e9e par le serveur.",
   "ErrorHostKeyMismatchDetail": "Stock\u00e9e : {0}. Pr\u00e9sent\u00e9e : {1}.",
   "HostKeyFirstUseTitle": "H\u00f4te SSH inconnu",

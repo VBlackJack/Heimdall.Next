@@ -33,7 +33,8 @@ public interface ITunnelService
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct);
+            CancellationToken ct,
+            bool preferDistinctLoopback = false);
 
     /// <summary>
     /// Updates the cached settings used for tunnel keepalive and Plink tuning.

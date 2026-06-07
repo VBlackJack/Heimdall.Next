@@ -196,7 +196,8 @@ public sealed class SftpHandlerConnectTests
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
         {
             SetupCallCount++;
             string host = UsesTunnel ? TargetHost : server.RemoteServer;

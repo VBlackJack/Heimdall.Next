@@ -75,6 +75,53 @@ public sealed class RdpHandlerTests
     }
 
     [Fact]
+    public async Task ConnectAsync_ExternalModeRequestsDistinctLoopbackTunnel()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        var launcher = new TrackingRdpExternalClientLauncher
+        {
+            ProcessToReturn = new FakeLaunchedRdpClientProcess(4242)
+        };
+        var handler = CreateHandler(tunnelService, launcher);
+        var server = CreateServer("Embedded");
+        var settings = new AppSettings
+        {
+            RdpArtifactCleanupDelayMs = 1,
+            RdpCredentialAutofillTimeoutMs = 1
+        };
+
+        var result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceExternal);
+
+        Assert.True(result.Success);
+        Assert.Equal(true, tunnelService.LastPreferDistinctLoopback);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_EmbeddedModeDoesNotRequestDistinctLoopbackTunnel()
+    {
+        FakeTunnelService tunnelService = new FakeTunnelService();
+        var launcher = new TrackingRdpExternalClientLauncher();
+        var handler = CreateHandler(tunnelService, launcher);
+        var server = CreateServer("External");
+        var settings = new AppSettings();
+
+        var result = await handler.ConnectAsync(
+            server,
+            settings,
+            CancellationToken.None,
+            RdpModeOverride.ForceEmbedded);
+
+        Assert.True(result.Success);
+        Assert.IsType<RdpSessionResult>(result.Session);
+        Assert.Equal(false, tunnelService.LastPreferDistinctLoopback);
+        Assert.Equal(0, launcher.LaunchCalls);
+    }
+
+    [Fact]
     public async Task ConnectAsync_ForceExternalLaunchExceptionReturnsLocalizedMstscError()
     {
         const string rawExceptionMessage = "raw mstsc launch exception";
@@ -294,7 +341,8 @@ public sealed class RdpHandlerTests
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
         {
             return Task.FromResult((true, false, server.RemoteServer, remotePort, (string?)null));
         }
@@ -317,13 +365,16 @@ public sealed class RdpHandlerTests
         public int TargetPort { get; init; }
         public int ReleaseCount { get; private set; }
         public int ReleasedLocalPort { get; private set; }
+        public bool? LastPreferDistinctLoopback { get; private set; }
 
         public Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)> SetupTunnelIfNeededAsync(
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
         {
+            LastPreferDistinctLoopback = preferDistinctLoopback;
             string host = UsesTunnel ? TargetHost : server.RemoteServer;
             int port = UsesTunnel ? TargetPort : remotePort;
             return Task.FromResult((true, UsesTunnel, host, port, (string?)null));

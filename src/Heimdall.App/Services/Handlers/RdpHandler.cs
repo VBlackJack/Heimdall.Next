@@ -65,8 +65,17 @@ internal sealed class RdpHandler : IProtocolHandler
             $"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"}");
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
+        var rdpMode = ResolveEffectiveMode(server, rdpModeOverride);
+        var isEmbedded = string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase);
+        Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
+
         var (tunnelOk, usesTunnel, targetHost, targetPort, tunnelError) =
-            await _tunnelService.SetupTunnelIfNeededAsync(server, server.RemotePort, settings, ct)
+            await _tunnelService.SetupTunnelIfNeededAsync(
+                    server,
+                    server.RemotePort,
+                    settings,
+                    ct,
+                    preferDistinctLoopback: !isEmbedded)
                 .ConfigureAwait(false);
 
         if (!tunnelOk)
@@ -80,10 +89,7 @@ internal sealed class RdpHandler : IProtocolHandler
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp);
 
-        var rdpMode = ResolveEffectiveMode(server, rdpModeOverride);
-        Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
-
-        if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
+        if (isEmbedded)
         {
             int? effectiveTunnelPort = usesTunnel ? targetPort : null;
             return new ConnectionResult(true, null, new RdpSessionResult(server, effectiveTunnelPort));

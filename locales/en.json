@@ -68,6 +68,7 @@
   "ErrorInvalidPort": "Error: Invalid port for {0}. Must be between 1 and 65535.",
   "ErrorToolLaunchFailed": "Tool launch failed: {0} — {1}",
   "ErrorTunnelFailed": "SSH tunnel closed unexpectedly. Check gateway credentials, host key, and firewall rules.",
+  "ErrorTunnelNoLoopbackAlias": "No loopback address is available for a distinct tunnel binding. Close another tunneled RDP session and try again.",
   "ErrorHostKeyMismatch": "SSH host key mismatch \u2014 possible MITM. Stored fingerprint differs from server-presented fingerprint.",
   "ErrorHostKeyMismatchDetail": "Stored: {0}. Presented: {1}.",
   "HostKeyFirstUseTitle": "Unknown SSH host",
