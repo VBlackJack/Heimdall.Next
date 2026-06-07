@@ -506,6 +506,8 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
     internal Func<string?>? ImportFilePathProvider { get; set; }
 
+    internal Func<GatewayOverviewMutationRequest, CancellationToken, Task<int>>? GatewayReferenceMutationHandler { get; set; }
+
     /// <summary>
     /// Applies the current <see cref="SshDefaultMode"/> to every server in the inventory.
     /// </summary>
@@ -1426,11 +1428,23 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
         try
         {
+            AppSettings persistedSettings = await _configManager.LoadSettingsAsync();
+            cancellationToken.ThrowIfCancellationRequested();
             List<ServerProfileDto> servers = await _configManager.LoadServersAsync();
             cancellationToken.ThrowIfCancellationRequested();
 
-            GatewayOverview overview = GatewayOverviewBuilder.Build(_pendingGateways, servers);
-            var viewModel = new GatewayOverviewDialogViewModel(overview, _localizer);
+            IReadOnlyList<SshGatewayDto> persistedGateways = persistedSettings.SshGateways;
+            GatewayOverview overview = GatewayOverviewBuilder.Build(persistedGateways, servers);
+            string? warningMessage = HaveSameGatewayIds(persistedGateways, _pendingGateways)
+                ? null
+                : _localizer["GatewayOverviewUnsavedGatewayChangesWarning"];
+            var viewModel = new GatewayOverviewDialogViewModel(
+                overview,
+                _localizer,
+                BuildGatewayOverviewOptions(persistedGateways),
+                GatewayReferenceMutationHandler,
+                ReloadGatewayOverviewAsync,
+                warningMessage);
             await _dialogService.ShowGatewayOverviewAsync(viewModel);
         }
         catch (OperationCanceledException)
@@ -1444,6 +1458,58 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
                 _localizer["GatewayOverviewTitle"],
                 _localizer.Format("GatewayOverviewLoadFailed", ex.Message));
         }
+
+        async Task<GatewayOverview> ReloadGatewayOverviewAsync(CancellationToken reloadCancellationToken)
+        {
+            AppSettings refreshedSettings = await _configManager.LoadSettingsAsync();
+            reloadCancellationToken.ThrowIfCancellationRequested();
+            List<ServerProfileDto> refreshedServers = await _configManager.LoadServersAsync();
+            reloadCancellationToken.ThrowIfCancellationRequested();
+            return GatewayOverviewBuilder.Build(refreshedSettings.SshGateways, refreshedServers);
+        }
+    }
+
+    internal static bool HaveSameGatewayIds(
+        IEnumerable<SshGatewayDto> first,
+        IEnumerable<SshGatewayDto> second)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+
+        string[] firstIds = NormalizeGatewayIds(first);
+        string[] secondIds = NormalizeGatewayIds(second);
+        return firstIds.SequenceEqual(secondIds, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string[] NormalizeGatewayIds(IEnumerable<SshGatewayDto> gateways)
+    {
+        return gateways
+            .Select(gateway => gateway.Id)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<GatewayOption> BuildGatewayOverviewOptions(IEnumerable<SshGatewayDto> gateways)
+    {
+        return gateways
+            .Where(gateway => !string.IsNullOrWhiteSpace(gateway.Id))
+            .Select(gateway => new GatewayOption(
+                gateway.Id,
+                FormatGatewayOverviewOption(gateway),
+                gateway.Name,
+                gateway.Host,
+                gateway.Port))
+            .ToList();
+    }
+
+    private static string FormatGatewayOverviewOption(SshGatewayDto gateway)
+    {
+        string name = string.IsNullOrWhiteSpace(gateway.Name) ? gateway.Id : gateway.Name;
+        string endpoint = gateway.Port > 0 ? $"{gateway.Host}:{gateway.Port}" : gateway.Host;
+        return string.IsNullOrWhiteSpace(endpoint) ? name : $"{name} ({endpoint})";
     }
 
     [RelayCommand]

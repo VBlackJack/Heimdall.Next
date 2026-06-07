@@ -354,6 +354,11 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         _onConfigurationChanged = async () =>
             await ReloadConfigurationAsync(await _configManager.LoadSettingsAsync());
         Settings.ConfigurationChanged += _onConfigurationChanged;
+        Settings.GatewayReferenceMutationHandler = async (request, cancellationToken) =>
+            await ServerList.UpdateGatewayReferencesAsync(
+                request.ServerIds,
+                request.TargetGatewayId,
+                cancellationToken);
 
         // Wire cross-tool navigation so tools can open other tool tabs
         _embeddedSessionManager.OpenToolCallback = (toolId, title, ctx) =>
@@ -589,6 +594,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         Session.Dispose();
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
+        Settings.GatewayReferenceMutationHandler = null;
         Settings.ThemeChanged -= OnSettingsThemePreview;
         Settings.AccentTintChanged -= OnSettingsAccentTintPreview;
         Settings.Dispose();

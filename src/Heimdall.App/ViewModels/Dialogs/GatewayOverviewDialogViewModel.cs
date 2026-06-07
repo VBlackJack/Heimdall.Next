@@ -15,34 +15,55 @@
  */
 
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
-public sealed class GatewayOverviewDialogViewModel
+public sealed record GatewayOverviewMutationRequest(
+    IReadOnlyList<string> ServerIds,
+    string? TargetGatewayId);
+
+public sealed partial class GatewayOverviewDialogViewModel : ObservableObject
 {
+    private readonly LocalizationManager _localizer;
+    private readonly IReadOnlyList<GatewayOption> _availableGateways;
+    private readonly Func<GatewayOverviewMutationRequest, CancellationToken, Task<int>>? _updateGatewayReferencesAsync;
+    private readonly Func<CancellationToken, Task<GatewayOverview>>? _reloadOverviewAsync;
+
     public GatewayOverviewDialogViewModel(GatewayOverview overview, LocalizationManager localizer)
+        : this(overview, localizer, [], null, null, null)
+    {
+    }
+
+    public GatewayOverviewDialogViewModel(
+        GatewayOverview overview,
+        LocalizationManager localizer,
+        IEnumerable<GatewayOption>? availableGateways,
+        Func<GatewayOverviewMutationRequest, CancellationToken, Task<int>>? updateGatewayReferencesAsync,
+        Func<CancellationToken, Task<GatewayOverview>>? reloadOverviewAsync,
+        string? warningMessage = null)
     {
         ArgumentNullException.ThrowIfNull(overview);
         ArgumentNullException.ThrowIfNull(localizer);
 
+        _localizer = localizer;
+        _availableGateways = (availableGateways ?? [])
+            .Where(gateway => !string.IsNullOrWhiteSpace(gateway.Id))
+            .ToList();
+        _updateGatewayReferencesAsync = updateGatewayReferencesAsync;
+        _reloadOverviewAsync = reloadOverviewAsync;
+
         DialogTitle = localizer["GatewayOverviewTitle"];
         Description = localizer["GatewayOverviewDescription"];
         CloseLabel = localizer["BtnClose"];
-        GatewaySummary = localizer.Format("GatewayOverviewSummaryGateways", overview.GatewayCount);
-        RoutedSessionSummary = localizer.Format("GatewayOverviewSummaryRoutedSessions", overview.RoutedSessionCount);
-        MissingReferenceSummary = localizer.Format(
-            "GatewayOverviewSummaryMissingReferences",
-            overview.MissingReferenceCount);
         EmptyGatewaysText = localizer["GatewayOverviewEmpty"];
         MissingReferencesDescription = localizer["GatewayOverviewMissingDescription"];
+        WarningMessage = warningMessage ?? "";
 
-        Gateways = new ObservableCollection<GatewayOverviewGatewayItemViewModel>(
-            overview.Gateways.Select(gateway => new GatewayOverviewGatewayItemViewModel(gateway, localizer)));
-        MissingReferences = new ObservableCollection<GatewayOverviewMissingReferenceItemViewModel>(
-            overview.MissingReferences.Select(reference =>
-                new GatewayOverviewMissingReferenceItemViewModel(reference, localizer)));
+        ApplyOverview(overview);
     }
 
     public string DialogTitle { get; }
@@ -51,23 +72,135 @@ public sealed class GatewayOverviewDialogViewModel
 
     public string CloseLabel { get; }
 
-    public string GatewaySummary { get; }
+    [ObservableProperty]
+    private string _gatewaySummary = "";
 
-    public string RoutedSessionSummary { get; }
+    [ObservableProperty]
+    private string _routedSessionSummary = "";
 
-    public string MissingReferenceSummary { get; }
+    [ObservableProperty]
+    private string _missingReferenceSummary = "";
 
     public string EmptyGatewaysText { get; }
 
     public string MissingReferencesDescription { get; }
 
-    public ObservableCollection<GatewayOverviewGatewayItemViewModel> Gateways { get; }
+    public ObservableCollection<GatewayOverviewGatewayItemViewModel> Gateways { get; } = [];
 
-    public ObservableCollection<GatewayOverviewMissingReferenceItemViewModel> MissingReferences { get; }
+    public ObservableCollection<GatewayOverviewMissingReferenceItemViewModel> MissingReferences { get; } = [];
+
+    public string WarningMessage { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+    private string _statusMessage = "";
+
+    [ObservableProperty]
+    private bool _isBusy;
 
     public bool HasGateways => Gateways.Count > 0;
 
     public bool HasMissingReferences => MissingReferences.Count > 0;
+
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public bool HasWarningMessage => !string.IsNullOrWhiteSpace(WarningMessage);
+
+    private bool CanMutate => _updateGatewayReferencesAsync is not null;
+
+    internal async Task ResolveMissingReferenceAsync(
+        GatewayOverviewMissingReferenceItemViewModel missingReference,
+        string? targetGatewayId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(missingReference);
+        if (_updateGatewayReferencesAsync is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        missingReference.IsBusy = true;
+        RefreshMissingReferenceCommands();
+        StatusMessage = "";
+
+        try
+        {
+            var request = new GatewayOverviewMutationRequest(
+                missingReference.SessionIds,
+                string.IsNullOrWhiteSpace(targetGatewayId) ? null : targetGatewayId);
+            int updatedCount = await _updateGatewayReferencesAsync(request, cancellationToken);
+
+            if (_reloadOverviewAsync is not null)
+            {
+                GatewayOverview refreshed = await _reloadOverviewAsync(cancellationToken);
+                ApplyOverview(refreshed);
+            }
+            else if (updatedCount > 0)
+            {
+                MissingReferences.Remove(missingReference);
+                OnPropertyChanged(nameof(HasMissingReferences));
+            }
+
+            StatusMessage = updatedCount <= 0
+                ? _localizer["GatewayOverviewActionNoOp"]
+                : request.TargetGatewayId is null
+                    ? _localizer.Format("GatewayOverviewClearSuccess", updatedCount)
+                    : _localizer.Format("GatewayOverviewReassignSuccess", updatedCount);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = _localizer.Format("GatewayOverviewActionFailed", ex.Message);
+        }
+        finally
+        {
+            missingReference.IsBusy = false;
+            IsBusy = false;
+            RefreshMissingReferenceCommands();
+        }
+    }
+
+    private void ApplyOverview(GatewayOverview overview)
+    {
+        GatewaySummary = _localizer.Format("GatewayOverviewSummaryGateways", overview.GatewayCount);
+        RoutedSessionSummary = _localizer.Format("GatewayOverviewSummaryRoutedSessions", overview.RoutedSessionCount);
+        MissingReferenceSummary = _localizer.Format(
+            "GatewayOverviewSummaryMissingReferences",
+            overview.MissingReferenceCount);
+
+        Gateways.Clear();
+        foreach (GatewayOverviewGatewayGroup gateway in overview.Gateways)
+        {
+            Gateways.Add(new GatewayOverviewGatewayItemViewModel(gateway, _localizer));
+        }
+
+        MissingReferences.Clear();
+        foreach (GatewayOverviewMissingReferenceGroup reference in overview.MissingReferences)
+        {
+            MissingReferences.Add(new GatewayOverviewMissingReferenceItemViewModel(
+                reference,
+                _localizer,
+                _availableGateways,
+                CanMutate,
+                () => IsBusy,
+                ResolveMissingReferenceAsync));
+        }
+
+        OnPropertyChanged(nameof(HasGateways));
+        OnPropertyChanged(nameof(HasMissingReferences));
+    }
+
+    private void RefreshMissingReferenceCommands()
+    {
+        foreach (GatewayOverviewMissingReferenceItemViewModel reference in MissingReferences)
+        {
+            reference.RefreshCanExecute();
+        }
+    }
 }
 
 public sealed class GatewayOverviewGatewayItemViewModel
@@ -105,20 +238,43 @@ public sealed class GatewayOverviewGatewayItemViewModel
     public bool HasSessions => Sessions.Count > 0;
 }
 
-public sealed class GatewayOverviewMissingReferenceItemViewModel
+public sealed partial class GatewayOverviewMissingReferenceItemViewModel : ObservableObject
 {
+    private readonly Func<bool> _isParentBusy;
+    private readonly Func<GatewayOverviewMissingReferenceItemViewModel, string?, CancellationToken, Task> _resolveAsync;
+
     public GatewayOverviewMissingReferenceItemViewModel(
         GatewayOverviewMissingReferenceGroup group,
         LocalizationManager localizer)
+        : this(group, localizer, [], false, static () => false, static (_, _, _) => Task.CompletedTask)
+    {
+    }
+
+    public GatewayOverviewMissingReferenceItemViewModel(
+        GatewayOverviewMissingReferenceGroup group,
+        LocalizationManager localizer,
+        IReadOnlyList<GatewayOption> availableGateways,
+        bool isActionEnabled,
+        Func<bool> isParentBusy,
+        Func<GatewayOverviewMissingReferenceItemViewModel, string?, CancellationToken, Task> resolveAsync)
     {
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(localizer);
+        ArgumentNullException.ThrowIfNull(availableGateways);
+        ArgumentNullException.ThrowIfNull(isParentBusy);
+        ArgumentNullException.ThrowIfNull(resolveAsync);
 
+        _isParentBusy = isParentBusy;
+        _resolveAsync = resolveAsync;
         GatewayId = group.GatewayId;
         HeaderText = localizer.Format("GatewayOverviewMissingHeader", group.GatewayId);
         SessionCountText = localizer.Format("GatewayOverviewSessionCount", group.Sessions.Count);
+        SessionIds = group.Sessions.Select(session => session.Id).ToArray();
         Sessions = new ObservableCollection<GatewayOverviewSessionItemViewModel>(
             group.Sessions.Select(session => new GatewayOverviewSessionItemViewModel(session)));
+        AvailableGateways = new ObservableCollection<GatewayOption>(availableGateways);
+        IsActionEnabled = isActionEnabled;
+        SelectedGatewayId = AvailableGateways.FirstOrDefault()?.Id ?? "";
     }
 
     public string GatewayId { get; }
@@ -127,7 +283,56 @@ public sealed class GatewayOverviewMissingReferenceItemViewModel
 
     public string SessionCountText { get; }
 
+    public IReadOnlyList<string> SessionIds { get; }
+
     public ObservableCollection<GatewayOverviewSessionItemViewModel> Sessions { get; }
+
+    public ObservableCollection<GatewayOption> AvailableGateways { get; }
+
+    public bool HasAvailableGateways => AvailableGateways.Count > 0;
+
+    public bool IsActionEnabled { get; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ReassignCommand))]
+    private string _selectedGatewayId = "";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ReassignCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ClearCommand))]
+    private bool _isBusy;
+
+    [RelayCommand(CanExecute = nameof(CanReassign))]
+    private async Task ReassignAsync(CancellationToken cancellationToken)
+    {
+        await _resolveAsync(this, SelectedGatewayId, cancellationToken);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanClear))]
+    private async Task ClearAsync(CancellationToken cancellationToken)
+    {
+        await _resolveAsync(this, null, cancellationToken);
+    }
+
+    private bool CanReassign() =>
+        IsActionEnabled
+        && !_isParentBusy()
+        && !IsBusy
+        && HasAvailableGateways
+        && !string.IsNullOrWhiteSpace(SelectedGatewayId)
+        && SessionIds.Count > 0;
+
+    private bool CanClear() =>
+        IsActionEnabled
+        && !_isParentBusy()
+        && !IsBusy
+        && SessionIds.Count > 0;
+
+    internal void RefreshCanExecute()
+    {
+        ReassignCommand.NotifyCanExecuteChanged();
+        ClearCommand.NotifyCanExecuteChanged();
+    }
 }
 
 public sealed class GatewayOverviewSessionItemViewModel
@@ -136,6 +341,7 @@ public sealed class GatewayOverviewSessionItemViewModel
     {
         ArgumentNullException.ThrowIfNull(session);
 
+        Id = session.Id;
         DisplayName = session.DisplayName;
         Metadata = string.Join(
             " | ",
@@ -146,6 +352,8 @@ public sealed class GatewayOverviewSessionItemViewModel
                 session.GroupPath
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
+
+    public string Id { get; }
 
     public string DisplayName { get; }
 

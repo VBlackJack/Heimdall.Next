@@ -162,6 +162,99 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void HaveSameGatewayIds_IgnoresOrderAndCase()
+    {
+        Assert.True(SettingsViewModel.HaveSameGatewayIds(
+            [CreateGateway("GW-A", "Gateway A"), CreateGateway("gw-b", "Gateway B")],
+            [CreateGateway("gw-B", "Gateway B"), CreateGateway("gw-a", "Gateway A")]));
+    }
+
+    [Fact]
+    public void HaveSameGatewayIds_DetectsAddedOrRemovedIds()
+    {
+        Assert.False(SettingsViewModel.HaveSameGatewayIds(
+            [CreateGateway("gw-a", "Gateway A")],
+            [CreateGateway("gw-a", "Gateway A"), CreateGateway("gw-b", "Gateway B")]));
+    }
+
+    [Fact]
+    public async Task ShowGatewayOverviewCommand_UsesPersistedGatewaysAndWarnsWhenPendingGatewaysDiffer()
+    {
+        LocalizationManager localizer = await CreateLocalizerAsync();
+        FakeConfigManager config = new()
+        {
+            Settings = new AppSettings
+            {
+                SshGateways = [CreateGateway("gw-persisted", "Persisted")]
+            },
+            Servers =
+            [
+                CreateServer("alpha", "Alpha", "gw-draft"),
+                CreateServer("beta", "Beta", "gw-persisted")
+            ]
+        };
+        FakeDialogService dialog = new()
+        {
+            GatewayDialogResultToReturn = new GatewayDialogResult(CreateGateway("gw-draft", "Draft"), true)
+        };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog, localizer: localizer);
+        viewModel.LoadFromSettings(config.Settings);
+
+        await viewModel.AddGatewayCommand.ExecuteAsync(null);
+        await viewModel.ShowGatewayOverviewCommand.ExecuteAsync(null);
+
+        GatewayOverviewDialogViewModel overview = Assert.IsType<GatewayOverviewDialogViewModel>(
+            dialog.LastGatewayOverviewViewModel);
+        Assert.True(overview.HasWarningMessage);
+        Assert.Contains("Unsaved gateway changes", overview.WarningMessage, StringComparison.Ordinal);
+        GatewayOverviewMissingReferenceItemViewModel missing = Assert.Single(overview.MissingReferences);
+        Assert.Equal("gw-draft", missing.GatewayId);
+        Assert.Equal(["alpha"], missing.SessionIds);
+        GatewayOverviewGatewayItemViewModel gateway = Assert.Single(overview.Gateways);
+        Assert.Equal("Persisted", gateway.GatewayName);
+        GatewayOption option = Assert.Single(missing.AvailableGateways);
+        Assert.Equal("gw-persisted", option.Id);
+    }
+
+    [Fact]
+    public async Task GatewayOverviewReload_UsesPersistedGatewaysAfterAction()
+    {
+        LocalizationManager localizer = await CreateLocalizerAsync();
+        FakeConfigManager config = new()
+        {
+            Settings = new AppSettings
+            {
+                SshGateways = [CreateGateway("gw-persisted", "Persisted")]
+            },
+            Servers = [CreateServer("alpha", "Alpha", "gw-missing")]
+        };
+        FakeDialogService dialog = new()
+        {
+            GatewayDialogResultToReturn = new GatewayDialogResult(CreateGateway("gw-draft", "Draft"), true)
+        };
+        SettingsViewModel viewModel = CreateViewModel(config, dialog, localizer: localizer);
+        viewModel.LoadFromSettings(config.Settings);
+        viewModel.GatewayReferenceMutationHandler = (_, _) =>
+        {
+            config.Servers = [CreateServer("alpha", "Alpha", "gw-draft")];
+            return Task.FromResult(1);
+        };
+
+        await viewModel.AddGatewayCommand.ExecuteAsync(null);
+        await viewModel.ShowGatewayOverviewCommand.ExecuteAsync(null);
+
+        GatewayOverviewDialogViewModel overview = Assert.IsType<GatewayOverviewDialogViewModel>(
+            dialog.LastGatewayOverviewViewModel);
+        GatewayOverviewMissingReferenceItemViewModel missing = Assert.Single(overview.MissingReferences);
+        Assert.Equal("gw-missing", missing.GatewayId);
+
+        await missing.ClearCommand.ExecuteAsync(null);
+
+        GatewayOverviewMissingReferenceItemViewModel refreshedMissing = Assert.Single(overview.MissingReferences);
+        Assert.Equal("gw-draft", refreshedMissing.GatewayId);
+    }
+
+    [Fact]
     public async Task SaveThenLoad_PreservesNewRdpRedirectionDefaults()
     {
         var config = new FakeConfigManager();
@@ -993,6 +1086,33 @@ public sealed class SettingsViewModelTests
         return Assert.IsType<JsonSerializerOptions>(field!.GetValue(null));
     }
 
+    private static async Task<LocalizationManager> CreateLocalizerAsync()
+    {
+        var localizer = new LocalizationManager();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        return localizer;
+    }
+
+    private static SshGatewayDto CreateGateway(string id, string name) =>
+        new()
+        {
+            Id = id,
+            Name = name,
+            Host = $"{id}.example.test",
+            Port = 22,
+            User = "ops"
+        };
+
+    private static ServerProfileDto CreateServer(string id, string displayName, string? gatewayId) =>
+        new()
+        {
+            Id = id,
+            DisplayName = displayName,
+            RemoteServer = $"{id}.example.test",
+            ConnectionType = "SSH",
+            SshGatewayId = gatewayId
+        };
+
     private static async Task<AppSettings> LoadExpectedFactoryDefaultsAsync()
     {
         var defaultsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.default.json");
@@ -1149,6 +1269,10 @@ public sealed class SettingsViewModelTests
 
         public PinSetupDialogViewModel? LastPinSetupViewModel { get; private set; }
 
+        public GatewayDialogResult? GatewayDialogResultToReturn { get; set; }
+
+        public GatewayOverviewDialogViewModel? LastGatewayOverviewViewModel { get; private set; }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
         {
             ConfirmCalls.Add((title, message, severity));
@@ -1168,7 +1292,13 @@ public sealed class SettingsViewModelTests
             => Task.FromResult<ServerDialogResult?>(null);
 
         public Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null)
-            => Task.FromResult<GatewayDialogResult?>(null);
+            => Task.FromResult(GatewayDialogResultToReturn);
+
+        public Task ShowGatewayOverviewAsync(GatewayOverviewDialogViewModel viewModel)
+        {
+            LastGatewayOverviewViewModel = viewModel;
+            return Task.CompletedTask;
+        }
 
         public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null)
             => Task.FromResult<ProjectDialogResult?>(null);
