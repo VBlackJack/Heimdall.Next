@@ -688,6 +688,111 @@ public partial class ServerListViewModel
             bulletList);
     }
 
+    public async Task<int> UpdateGatewayReferencesAsync(
+        IReadOnlyCollection<string> serverIds,
+        string? targetGatewayId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(serverIds);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        string[] ids = serverIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (ids.Length == 0)
+        {
+            return 0;
+        }
+
+        var vmMap = _allServers
+            .Where(server => ids.Contains(server.Id, StringComparer.Ordinal))
+            .ToDictionary(server => server.Id, StringComparer.Ordinal);
+        if (vmMap.Count != ids.Length)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"UpdateGatewayReferencesAsync aborted because {ids.Length - vmMap.Count} selected VM(s) were missing.");
+            return 0;
+        }
+
+        string? normalizedTargetGatewayId = string.IsNullOrWhiteSpace(targetGatewayId)
+            ? null
+            : targetGatewayId;
+        string[] finalSelectionIds = SelectedItems
+            .Select(server => server.Id)
+            .ToArray();
+        string? primarySelectionId = SelectedServer?.Id;
+        var updatedCount = 0;
+
+        await ExecutePersistedBulkMutationAsync(BuildPlanAsync, cancellationToken);
+
+        if (updatedCount > 0)
+        {
+            string targetLabel = normalizedTargetGatewayId ?? "<direct>";
+            Core.Logging.FileLogger.Info(
+                $"UpdateGatewayReferencesAsync updated gateway reference to '{targetLabel}' for {updatedCount} item(s) in a single transaction.");
+        }
+
+        return updatedCount;
+
+        Task<BulkMutationPlan?> BuildPlanAsync(List<ServerProfileDto> serverDtos)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var dtoMap = serverDtos
+                .Where(dto => ids.Contains(dto.Id, StringComparer.Ordinal))
+                .ToDictionary(dto => dto.Id, StringComparer.Ordinal);
+
+            if (dtoMap.Count != ids.Length)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"UpdateGatewayReferencesAsync aborted because {ids.Length - dtoMap.Count} selected DTO(s) were missing.");
+                return Task.FromResult<BulkMutationPlan?>(null);
+            }
+
+            var updates = new List<(ServerItemViewModel OldVm, ServerProfileDto NewDto)>(ids.Length);
+            foreach (string id in ids)
+            {
+                ServerProfileDto dto = dtoMap[id];
+                bool changed;
+                if (normalizedTargetGatewayId is null)
+                {
+                    changed = dto.SshGatewayId is not null || !dto.UseDirectConnection;
+                    dto.SshGatewayId = null;
+                    dto.UseDirectConnection = true;
+                }
+                else
+                {
+                    changed = !string.Equals(dto.SshGatewayId, normalizedTargetGatewayId, StringComparison.Ordinal)
+                              || dto.UseDirectConnection;
+                    dto.SshGatewayId = normalizedTargetGatewayId;
+                    dto.UseDirectConnection = false;
+                }
+
+                if (changed)
+                {
+                    updates.Add((vmMap[id], dto));
+                }
+            }
+
+            updatedCount = updates.Count;
+            if (updatedCount == 0)
+            {
+                return Task.FromResult<BulkMutationPlan?>(null);
+            }
+
+            return Task.FromResult<BulkMutationPlan?>(new BulkMutationPlan(
+                Array.Empty<ServerItemViewModel>(),
+                updates,
+                Array.Empty<ServerProfileDto>(),
+                finalSelectionIds,
+                primarySelectionId,
+                null,
+                null,
+                null));
+        }
+    }
+
     private async Task<bool> DeleteServersCoreAsync(
         IReadOnlyList<ServerItemViewModel> serversToDelete,
         CancellationToken cancellationToken)

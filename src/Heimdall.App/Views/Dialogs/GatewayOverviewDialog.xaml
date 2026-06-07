@@ -93,6 +93,26 @@
                       Margin="0,16,0,0"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <Border Padding="10,8"
+                        Margin="0,0,0,10"
+                        CornerRadius="6"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource WarningBrush}"
+                        BorderThickness="1"
+                        Visibility="{Binding HasWarningMessage, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding WarningMessage}"
+                               Foreground="{DynamicResource WarningTextBrush}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <TextBlock Text="{Binding StatusMessage}"
+                           Margin="0,0,0,10"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
                 <TextBlock Text="{loc:Translate GatewayOverviewConfiguredTitle}"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -243,6 +263,39 @@
                                                        FontWeight="SemiBold"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </DockPanel>
+
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox Grid.Column="0"
+                                                      ItemsSource="{Binding AvailableGateways}"
+                                                      SelectedValue="{Binding SelectedGatewayId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectedValuePath="Id"
+                                                      DisplayMemberPath="DisplayText"
+                                                      MinWidth="220"
+                                                      MaxWidth="340"
+                                                      HorizontalAlignment="Left"
+                                                      Style="{DynamicResource DialogFormComboBoxStyle}"
+                                                      AutomationProperties.Name="{loc:Translate AccessGatewayOverviewTarget}"
+                                                      Visibility="{Binding HasAvailableGateways, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            <Button Grid.Column="1"
+                                                    Content="{loc:Translate GatewayOverviewReassignButton}"
+                                                    Command="{Binding ReassignCommand}"
+                                                    Margin="8,0,0,0"
+                                                    Padding="8,3"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    AutomationProperties.Name="{loc:Translate AccessGatewayOverviewReassign}"/>
+                                            <Button Grid.Column="2"
+                                                    Content="{loc:Translate GatewayOverviewClearButton}"
+                                                    Command="{Binding ClearCommand}"
+                                                    Margin="8,0,0,0"
+                                                    Padding="8,3"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    AutomationProperties.Name="{loc:Translate AccessGatewayOverviewClear}"/>
+                                        </Grid>
 
                                         <ItemsControl ItemsSource="{Binding Sessions}" Margin="0,10,0,0">
                                             <ItemsControl.ItemTemplate>

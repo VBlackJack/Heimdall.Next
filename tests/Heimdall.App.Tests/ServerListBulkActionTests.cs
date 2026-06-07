@@ -1534,6 +1534,87 @@ public sealed class ServerListBulkActionTests
         Assert.All(storedServers, AssertNoStoredPasswords);
     }
 
+    [Fact]
+    public async Task UpdateGatewayReferencesAsync_ReassignsGatewayAndRefreshesBadges()
+    {
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        AppSettings settings = fixture.ExpandGroups("ops");
+        settings.SshGateways.Add(CreateGateway("gw-target", "Bastion"));
+        ServerProfileDto alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshGatewayId = "gw-missing";
+        ServerProfileDto beta = CreateServer("beta", "Beta", "ops");
+        beta.SshGatewayId = "gw-missing";
+        ServerProfileDto gamma = CreateServer("gamma", "Gamma", "ops");
+        await fixture.LoadServersAsync(settings, alpha, beta, gamma);
+        fixture.ViewModel.SelectSingle(fixture.ServerById("gamma"));
+
+        int updatedCount = await fixture.ViewModel.UpdateGatewayReferencesAsync(
+            ["alpha", "beta"],
+            "gw-target");
+
+        Assert.Equal(2, updatedCount);
+        ServerProfileDto[] storedServers = (await fixture.ConfigManager.LoadServersAsync())
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.All(
+            storedServers.Where(server => server.Id is "alpha" or "beta"),
+            server =>
+            {
+                Assert.Equal("gw-target", server.SshGatewayId);
+                Assert.False(server.UseDirectConnection);
+            });
+        ServerItemViewModel alphaVm = fixture.ServerById("alpha");
+        Assert.Equal("via Bastion", alphaVm.GatewayBadgeText);
+        Assert.False(alphaVm.IsGatewayMissing);
+        AssertSelection(fixture.ViewModel, "gamma");
+    }
+
+    [Fact]
+    public async Task UpdateGatewayReferencesAsync_ClearSetsDirectStateAndRefreshesBadges()
+    {
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        AppSettings settings = fixture.ExpandGroups("ops");
+        ServerProfileDto alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshGatewayId = "gw-missing";
+        alpha.UseDirectConnection = false;
+        await fixture.LoadServersAsync(settings, alpha);
+
+        int updatedCount = await fixture.ViewModel.UpdateGatewayReferencesAsync(["alpha"], targetGatewayId: null);
+
+        Assert.Equal(1, updatedCount);
+        ServerProfileDto storedServer = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Null(storedServer.SshGatewayId);
+        Assert.True(storedServer.UseDirectConnection);
+        ServerItemViewModel alphaVm = fixture.ServerById("alpha");
+        Assert.False(alphaVm.IsGatewayBadgeVisible);
+        Assert.False(alphaVm.IsGatewayMissing);
+    }
+
+    [Fact]
+    public async Task UpdateGatewayReferencesAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        FailingSaveConfigManager configManager = new();
+        await using ServerListBulkFixture fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            configManager: configManager);
+        AppSettings settings = fixture.ExpandGroups("ops");
+        settings.SshGateways.Add(CreateGateway("gw-target", "Bastion"));
+        ServerProfileDto alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshGatewayId = "gw-missing";
+        await fixture.LoadServersAsync(settings, alpha);
+        configManager.FailOnSaveServers = true;
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            fixture.ViewModel.UpdateGatewayReferencesAsync(["alpha"], "gw-target"));
+
+        ServerProfileDto storedServer = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal("gw-missing", storedServer.SshGatewayId);
+        Assert.False(storedServer.UseDirectConnection);
+        ServerItemViewModel alphaVm = fixture.ServerById("alpha");
+        Assert.True(alphaVm.IsGatewayMissing);
+        Assert.Equal("gateway missing", alphaVm.GatewayBadgeText);
+    }
+
     private static ServerProfileDto CreateServer(
         string id,
         string displayName,
@@ -1548,6 +1629,16 @@ public sealed class ServerListBulkActionTests
             Group = group,
             ProjectId = projectId,
             Origin = ProfileOrigin.Manual
+        };
+
+    private static SshGatewayDto CreateGateway(string id, string name) =>
+        new()
+        {
+            Id = id,
+            Name = name,
+            Host = $"{id}.example.com",
+            Port = 22,
+            User = "ops"
         };
 
     private static int GetStoredEditablePort(ServerProfileDto server) =>
@@ -2076,7 +2167,23 @@ public sealed class ServerListBulkActionTests
         return new AppSettings
         {
             TreeExpandedNodes = [.. settings.TreeExpandedNodes],
-            TrustedHostKeys = new Dictionary<string, string>(settings.TrustedHostKeys, StringComparer.Ordinal)
+            TrustedHostKeys = new Dictionary<string, string>(settings.TrustedHostKeys, StringComparer.Ordinal),
+            SshGateways = settings.SshGateways
+                .Select(gateway => new SshGatewayDto
+                {
+                    Id = gateway.Id,
+                    Name = gateway.Name,
+                    Host = gateway.Host,
+                    Port = gateway.Port,
+                    User = gateway.User,
+                    KeyPath = gateway.KeyPath,
+                    SshPasswordEncrypted = gateway.SshPasswordEncrypted,
+                    SshKeyPassphraseEncrypted = gateway.SshKeyPassphraseEncrypted,
+                    IsDefault = gateway.IsDefault,
+                    ParentGatewayId = gateway.ParentGatewayId,
+                    HostKeyFingerprint = gateway.HostKeyFingerprint
+                })
+                .ToList()
         };
     }
 
@@ -2095,6 +2202,7 @@ public sealed class ServerListBulkActionTests
             Environment = server.Environment,
             MacAddress = server.MacAddress,
             SshGatewayId = server.SshGatewayId,
+            UseDirectConnection = server.UseDirectConnection,
             SshPort = server.SshPort,
             RdpPasswordEncrypted = server.RdpPasswordEncrypted,
             SshPasswordEncrypted = server.SshPasswordEncrypted,
