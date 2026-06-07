@@ -44,6 +44,32 @@ public sealed class SftpPathGuardTests
     }
 
     [Theory]
+    [InlineData("file")]
+    [InlineData("file.txt")]
+    [InlineData("my dir")]
+    [InlineData("my..file")]
+    [InlineData(" release ")]
+    public void IsValidChildName_AllowsSinglePathSegments(string name)
+    {
+        Assert.True(SftpPathGuard.IsValidChildName(name));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("a/b")]
+    [InlineData("../etc")]
+    [InlineData("x\0y")]
+    [InlineData(@"a\b")]
+    public void IsValidChildName_RejectsEmptyDotAndPathLikeNames(string? name)
+    {
+        Assert.False(SftpPathGuard.IsValidChildName(name));
+    }
+
+    [Theory]
     [InlineData("/")]
     [InlineData("///")]
     public async Task SftpBrowserDeleteAsync_RejectsProtectedRootBeforeConnectionCheck(string path)

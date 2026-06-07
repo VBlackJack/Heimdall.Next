@@ -22,6 +22,7 @@ using Heimdall.App.Services.PostConnect;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Import;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Ssh;
 using Heimdall.Sftp;
 
@@ -525,6 +526,101 @@ public sealed class EmbeddedSftpViewModelTests
         Assert.False(browser.LastDeleteCancellationToken.CanBeCanceled);
     }
 
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("/absolute")]
+    [InlineData("nested/folder")]
+    [InlineData(@"nested\folder")]
+    [InlineData(".")]
+    [InlineData("..")]
+    public async Task CreateFolderAsync_InvalidChildName_DoesNotCreateRemoteDirectory(string folderName)
+    {
+        FakeUiDispatcher dispatcher = new();
+        LocalizationManager localizer = await CreateLocalizerAsync("en");
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            CurrentPath = "/var/www"
+        };
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+        SetLocalizer(viewModel, localizer);
+        viewModel.SetDialogService(new ConfirmingDialogService(folderName));
+
+        await viewModel.CreateFolderAsync();
+
+        Assert.Equal(0, browser.CreateDirectoryCallCount);
+        Assert.True(viewModel.IsErrorStatus);
+        Assert.Equal(localizer["ErrorInvalidFileName"], viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task CreateFolderAsync_ValidChildName_TrimsAndCreatesUnderCurrentPath()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            CurrentPath = "/var/www"
+        };
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+        viewModel.SetDialogService(new ConfirmingDialogService(" reports "));
+
+        await viewModel.CreateFolderAsync();
+
+        Assert.Equal(1, browser.CreateDirectoryCallCount);
+        Assert.Equal("/var/www/reports", browser.LastCreatedDirectoryPath);
+        Assert.False(viewModel.IsErrorStatus);
+    }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("/absolute")]
+    [InlineData("nested/file")]
+    [InlineData(@"nested\file")]
+    [InlineData(".")]
+    [InlineData("..")]
+    public async Task RenameEntryAsync_InvalidChildName_DoesNotRenameRemoteEntry(string newName)
+    {
+        FakeUiDispatcher dispatcher = new();
+        LocalizationManager localizer = await CreateLocalizerAsync("en");
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            CurrentPath = "/var/www"
+        };
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+        SetLocalizer(viewModel, localizer);
+        viewModel.SetDialogService(new ConfirmingDialogService(newName));
+        SftpFileInfo entry = CreateRemoteEntry("app.log", "/var/www/app.log", isDirectory: false);
+
+        await viewModel.RenameEntryAsync(entry);
+
+        Assert.Equal(0, browser.RenameCallCount);
+        Assert.True(viewModel.IsErrorStatus);
+        Assert.Equal(localizer["ErrorInvalidFileName"], viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task RenameEntryAsync_ValidChildName_TrimsAndRenamesUnderCurrentPath()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher)
+        {
+            CurrentPath = "/var/www"
+        };
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+        viewModel.SetDialogService(new ConfirmingDialogService(" app.new "));
+        SftpFileInfo entry = CreateRemoteEntry("app.log", "/var/www/app.log", isDirectory: false);
+
+        await viewModel.RenameEntryAsync(entry);
+
+        Assert.Equal(1, browser.RenameCallCount);
+        Assert.Equal("/var/www/app.log", browser.LastRenamedOldPath);
+        Assert.Equal("/var/www/app.new", browser.LastRenamedNewPath);
+        Assert.False(viewModel.IsErrorStatus);
+    }
+
     [Fact]
     public async Task DeleteEntriesAsync_ProtectedRoot_DoesNotCallBrowserDelete()
     {
@@ -613,12 +709,30 @@ public sealed class EmbeddedSftpViewModelTests
         field!.SetValue(viewModel, browser);
     }
 
+    private static void SetLocalizer(EmbeddedSftpViewModel viewModel, LocalizationManager localizer)
+    {
+        FieldInfo? field = typeof(EmbeddedSftpViewModel).GetField(
+            "_localizer",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field!.SetValue(viewModel, localizer);
+    }
+
+    private static async Task<LocalizationManager> CreateLocalizerAsync(string locale)
+    {
+        LocalizationManager manager = new();
+        await manager.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), locale);
+        return manager;
+    }
+
     private sealed class FakeRemoteBrowser : IRemoteBrowser
     {
         private int _downloadCallCount;
         private int _uploadCallCount;
+        private int _createDirectoryCallCount;
         private int _chmodCallCount;
         private int _deleteCallCount;
+        private int _renameCallCount;
 
         public event Action<string>? DirectoryChanged
         {
@@ -646,11 +760,17 @@ public sealed class EmbeddedSftpViewModelTests
 
         public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
 
+        public int CreateDirectoryCallCount => Volatile.Read(ref _createDirectoryCallCount);
+
         public int ChmodCallCount => Volatile.Read(ref _chmodCallCount);
 
         public int DeleteCallCount => Volatile.Read(ref _deleteCallCount);
 
+        public int RenameCallCount => Volatile.Read(ref _renameCallCount);
+
         public string? LastUploadedRemotePath { get; private set; }
+
+        public string? LastCreatedDirectoryPath { get; private set; }
 
         public string? LastChmodPath { get; private set; }
 
@@ -659,6 +779,10 @@ public sealed class EmbeddedSftpViewModelTests
         public string? LastDeletedPath { get; private set; }
 
         public CancellationToken LastDeleteCancellationToken { get; private set; }
+
+        public string? LastRenamedOldPath { get; private set; }
+
+        public string? LastRenamedNewPath { get; private set; }
 
         public Func<string?, CancellationToken, Task<IReadOnlyList<SftpFileInfo>>>? ListDirectoryHandler { get; set; }
 
@@ -705,6 +829,8 @@ public sealed class EmbeddedSftpViewModelTests
 
         public Task CreateDirectoryAsync(string path, CancellationToken ct = default)
         {
+            LastCreatedDirectoryPath = path;
+            Interlocked.Increment(ref _createDirectoryCallCount);
             return Task.CompletedTask;
         }
 
@@ -726,6 +852,9 @@ public sealed class EmbeddedSftpViewModelTests
 
         public Task RenameAsync(string oldPath, string newPath, CancellationToken ct = default)
         {
+            LastRenamedOldPath = oldPath;
+            LastRenamedNewPath = newPath;
+            Interlocked.Increment(ref _renameCallCount);
             return Task.CompletedTask;
         }
 
@@ -740,6 +869,19 @@ public sealed class EmbeddedSftpViewModelTests
 
     private sealed class ConfirmingDialogService : IDialogService
     {
+        private readonly string? _input;
+        private readonly bool _hasInput;
+
+        public ConfirmingDialogService()
+        {
+        }
+
+        public ConfirmingDialogService(string? input)
+        {
+            _input = input;
+            _hasInput = true;
+        }
+
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
             => Task.FromResult(true);
 
@@ -747,7 +889,7 @@ public sealed class EmbeddedSftpViewModelTests
             => throw new NotSupportedException();
 
         public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null)
-            => throw new NotSupportedException();
+            => _hasInput ? Task.FromResult(_input) : throw new NotSupportedException();
 
         public Task<string?> ShowPasswordInputAsync(
             string title,
