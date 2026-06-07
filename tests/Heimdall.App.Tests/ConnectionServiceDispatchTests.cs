@@ -26,6 +26,49 @@ namespace Heimdall.App.Tests;
 public sealed class ConnectionServiceDispatchTests
 {
     [Fact]
+    public async Task RunPreflight_MissingGateway_ReturnsActionableFailure()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-preflight-missing-gateway",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                []);
+            ServerProfileDto server = new()
+            {
+                Id = "missing-gateway-test",
+                DisplayName = "Missing Gateway Test",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                SshGatewayId = "missing-gateway"
+            };
+
+            Heimdall.Ssh.PreflightResult result = service.RunPreflight(server, new AppSettings());
+
+            Assert.False(result.Success);
+            Assert.Equal(Heimdall.Ssh.SshFailureCode.Unknown, result.FailureCode);
+            Assert.Contains("missing-gateway", result.Message, StringComparison.Ordinal);
+            Assert.Contains("Missing Gateway Test", result.Message, StringComparison.Ordinal);
+            Assert.Contains("Settings", result.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task ConnectWinRmAsync_DispatchesToWinRmHandler()
     {
         string rootPath = Path.Combine(

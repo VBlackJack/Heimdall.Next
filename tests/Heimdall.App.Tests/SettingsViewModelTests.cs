@@ -76,6 +76,31 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void ExportJsonOptions_StripsCredentialFieldsFromSshGateways()
+    {
+        SshGatewayDto gateway = new()
+        {
+            Id = "gateway-export-test",
+            Name = "Gateway Export Test",
+            Host = "bastion.example.test",
+            Port = 22,
+            User = "ops",
+            SshPasswordEncrypted = "gateway-password",
+            SshKeyPassphraseEncrypted = "gateway-key-secret"
+        };
+        JsonSerializerOptions options = GetExportJsonOptions();
+
+        string json = JsonSerializer.Serialize(gateway, options);
+        JsonObject? exported = JsonNode.Parse(json)?.AsObject();
+
+        Assert.NotNull(exported);
+        Assert.Equal("gateway-export-test", exported!["id"]?.GetValue<string>());
+        Assert.Equal("bastion.example.test", exported["host"]?.GetValue<string>());
+        Assert.False(exported.ContainsKey("sshPasswordEncrypted"));
+        Assert.False(exported.ContainsKey("sshKeyPassphraseEncrypted"));
+    }
+
+    [Fact]
     public void ExportJsonOptions_StripsCitrixLaunchCommandLine()
     {
         ServerProfileDto server = new()
@@ -96,6 +121,44 @@ public sealed class SettingsViewModelTests
         Assert.Equal("Citrix Export Test", exported["displayName"]?.GetValue<string>());
         Assert.Equal("citrix.example.test", exported["remoteServer"]?.GetValue<string>());
         Assert.False(exported.ContainsKey("citrixLaunchCommandLine"));
+    }
+
+    [Fact]
+    public void BuildExportConfigDocument_UsesVersionedEnvelopeWithServersAndGateways()
+    {
+        ServerProfileDto server = new()
+        {
+            Id = "server-1",
+            DisplayName = "Server One",
+            RemoteServer = "server.example.test",
+            SshGatewayId = "gateway-1"
+        };
+        AppSettings settings = new()
+        {
+            SshGateways =
+            [
+                new SshGatewayDto
+                {
+                    Id = "gateway-1",
+                    Name = "Bastion",
+                    Host = "bastion.example.test",
+                    Port = 22,
+                    User = "ops"
+                }
+            ]
+        };
+        JsonSerializerOptions options = GetExportJsonOptions();
+
+        ProfileConfigDocument document = SettingsViewModel.BuildExportConfigDocument([server], settings);
+        string json = JsonSerializer.Serialize(document, options);
+        JsonObject? exported = JsonNode.Parse(json)?.AsObject();
+
+        Assert.NotNull(exported);
+        Assert.Equal(ProfileConfigDocument.CurrentSchemaVersion, exported!["schemaVersion"]?.GetValue<int>());
+        JsonArray servers = Assert.IsType<JsonArray>(exported["servers"]);
+        JsonArray gateways = Assert.IsType<JsonArray>(exported["gateways"]);
+        Assert.Equal("server-1", servers[0]?["id"]?.GetValue<string>());
+        Assert.Equal("gateway-1", gateways[0]?["id"]?.GetValue<string>());
     }
 
     [Fact]

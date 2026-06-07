@@ -55,37 +55,31 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             {
                 static typeInfo =>
                 {
-                    if (typeInfo.Type != typeof(ServerProfileDto))
+                    if (typeInfo.Type == typeof(ServerProfileDto))
                     {
+                        RemoveJsonProperties(
+                            typeInfo,
+                            [
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.RdpPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.WinRmPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.FtpPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.TelnetPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshKeyPassphraseEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.VncPassword)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.CitrixLaunchCommandLine))
+                            ]);
                         return;
                     }
 
-                    string[] credentialPropertyNames =
-                    [
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.RdpPasswordEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshPasswordEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.WinRmPasswordEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.FtpPasswordEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.TelnetPasswordEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshKeyPassphraseEncrypted)),
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.VncPassword))
-                    ];
-
-                    // Locally-scanned, machine-local launch data is non-portable; mirror
-                    // ImportedProfileSanitizer import behavior for export hygiene.
-                    string[] nonPortableScannerPropertyNames =
-                    [
-                        JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.CitrixLaunchCommandLine))
-                    ];
-
-                    for (int index = typeInfo.Properties.Count - 1; index >= 0; index--)
+                    if (typeInfo.Type == typeof(SshGatewayDto))
                     {
-                        JsonPropertyInfo property = typeInfo.Properties[index];
-                        if (credentialPropertyNames.Contains(property.Name, StringComparer.Ordinal)
-                            || nonPortableScannerPropertyNames.Contains(property.Name, StringComparer.Ordinal))
-                        {
-                            typeInfo.Properties.RemoveAt(index);
-                        }
+                        RemoveJsonProperties(
+                            typeInfo,
+                            [
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(SshGatewayDto.SshPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(SshGatewayDto.SshKeyPassphraseEncrypted))
+                            ]);
                     }
                 }
             }
@@ -993,7 +987,9 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             }
 
             var servers = await _configManager.LoadServersAsync();
-            var json = JsonSerializer.Serialize(servers, ExportJsonOptions);
+            var settings = await _configManager.LoadSettingsAsync();
+            var exportDocument = BuildExportConfigDocument(servers, settings);
+            var json = JsonSerializer.Serialize(exportDocument, ExportJsonOptions);
             await File.WriteAllTextAsync(dialog.FileName, json, new System.Text.UTF8Encoding(false), cancellationToken);
 
             var count = servers.Count;
@@ -1010,6 +1006,33 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             _dialogService.ShowError(
                 _localizer["ExportDialogTitle"],
                 _localizer.Format("StatusExportFailed", ex.Message));
+        }
+    }
+
+    internal static ProfileConfigDocument BuildExportConfigDocument(
+        IReadOnlyList<ServerProfileDto> servers,
+        AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(servers);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        return new ProfileConfigDocument
+        {
+            SchemaVersion = ProfileConfigDocument.CurrentSchemaVersion,
+            Servers = servers.ToList(),
+            Gateways = settings.SshGateways.ToList()
+        };
+    }
+
+    private static void RemoveJsonProperties(JsonTypeInfo typeInfo, IReadOnlyCollection<string> propertyNames)
+    {
+        for (int index = typeInfo.Properties.Count - 1; index >= 0; index--)
+        {
+            JsonPropertyInfo property = typeInfo.Properties[index];
+            if (propertyNames.Contains(property.Name))
+            {
+                typeInfo.Properties.RemoveAt(index);
+            }
         }
     }
 
@@ -1394,6 +1417,33 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         Gateways.Remove(gateway);
         SelectedGateway = null;
         IsDirty = true;
+    }
+
+    [RelayCommand]
+    private async Task ShowGatewayOverviewAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            List<ServerProfileDto> servers = await _configManager.LoadServersAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            GatewayOverview overview = GatewayOverviewBuilder.Build(_pendingGateways, servers);
+            var viewModel = new GatewayOverviewDialogViewModel(overview, _localizer);
+            await _dialogService.ShowGatewayOverviewAsync(viewModel);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("Gateway overview failed", ex);
+            _dialogService.ShowError(
+                _localizer["GatewayOverviewTitle"],
+                _localizer.Format("GatewayOverviewLoadFailed", ex.Message));
+        }
     }
 
     [RelayCommand]

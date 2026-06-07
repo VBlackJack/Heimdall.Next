@@ -199,6 +199,21 @@ public sealed class WpfDialogService(
     }
 
     /// <inheritdoc/>
+    public Task ShowGatewayOverviewAsync(GatewayOverviewDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        var dialog = new GatewayOverviewDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        dialog.ShowDialog();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
     public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new ProjectDialogViewModel();

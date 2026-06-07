@@ -160,7 +160,7 @@ public sealed class ProfileImportService(
 
     private async Task<ProfileImportResult> ImportJsonProfilesAsync(string path, CancellationToken ct)
     {
-        List<ServerProfileDto> candidates;
+        ProfileConfigDocument importDocument;
         try
         {
             FileInfo fileInfo = new(path);
@@ -171,13 +171,14 @@ public sealed class ProfileImportService(
             }
 
             string json = await File.ReadAllTextAsync(path, ct);
-            candidates = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ProfileJsonOptions) ?? [];
+            importDocument = ReadJsonConfigDocument(json);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return ProfileImportResult.Failure(_localizer.Format("StatusImportFailed", ex.Message));
         }
 
+        List<ServerProfileDto> candidates = importDocument.Servers;
         if (candidates.Count == 0)
         {
             _dialogService.ShowInfo(_localizer["ImportDialogTitle"], _localizer["ImportNoSessionsFound"]);
@@ -197,31 +198,35 @@ public sealed class ProfileImportService(
             return ProfileImportResult.Cancelled();
         }
 
-        var result = await ApplyJsonSelectionAsync(preview, selection, ct);
+        var result = await ApplyJsonSelectionAsync(preview, selection, importDocument.Gateways, ct);
         var summary = _localizer.Format(
             "StatusImportProfileSummary",
             result.ImportedCount,
             result.ReplacedCount,
             result.RenamedCount,
             result.SkippedCount);
+        var fullSummary = BuildJsonImportSummary(summary, result);
 
-        if (result.ImportedCount > 0 || result.ReplacedCount > 0)
+        if ((result.ImportedCount > 0 || result.ReplacedCount > 0) && result.GatewayOrphanCount == 0)
         {
-            _dialogService.ShowInfo(_localizer["ImportDialogTitle"], summary);
+            _dialogService.ShowInfo(_localizer["ImportDialogTitle"], fullSummary);
         }
         else
         {
-            _dialogService.ShowWarning(_localizer["ImportDialogTitle"], summary);
+            _dialogService.ShowWarning(_localizer["ImportDialogTitle"], fullSummary);
         }
 
         return new ProfileImportResult
         {
             HasChanges = result.ImportedCount > 0 || result.ReplacedCount > 0,
-            UserMessage = summary,
+            UserMessage = fullSummary,
             ImportedCount = result.ImportedCount,
             ReplacedCount = result.ReplacedCount,
             RenamedCount = result.RenamedCount,
-            SkippedCount = result.SkippedCount
+            SkippedCount = result.SkippedCount,
+            GatewayCreatedCount = result.GatewayCreatedCount,
+            GatewayMergedCount = result.GatewayMergedCount,
+            GatewayOrphanCount = result.GatewayOrphanCount
         };
     }
 
@@ -319,10 +324,12 @@ public sealed class ProfileImportService(
     private async Task<ProfileImportResult> ApplyJsonSelectionAsync(
         RdpImportPreview preview,
         RdpImportSelection selection,
+        IReadOnlyList<SshGatewayDto> importedGateways,
         CancellationToken ct)
     {
         var inventory = await _configManager.LoadServersAsync();
         var previewMap = preview.Entries.ToDictionary(entry => entry.SourceFilePath, StringComparer.OrdinalIgnoreCase);
+        List<ServerProfileDto> appliedServers = [];
         var importedCount = 0;
         var replacedCount = 0;
         var renamedCount = 0;
@@ -357,6 +364,7 @@ public sealed class ProfileImportService(
                     case RdpConflictResolution.Replace:
                         candidate.Id = inventory[existingIndex].Id;
                         inventory[existingIndex] = candidate;
+                        appliedServers.Add(candidate);
                         replacedCount++;
                         continue;
 
@@ -364,6 +372,7 @@ public sealed class ProfileImportService(
                         candidate.Id = BuildUniqueId(candidate.Id, inventory);
                         candidate.DisplayName = BuildAutoRename(candidate.DisplayName, inventory);
                         inventory.Add(candidate);
+                        appliedServers.Add(candidate);
                         importedCount++;
                         renamedCount++;
                         continue;
@@ -372,11 +381,27 @@ public sealed class ProfileImportService(
 
             candidate.Id = BuildUniqueId(candidate.Id, inventory);
             inventory.Add(candidate);
+            appliedServers.Add(candidate);
             importedCount++;
         }
 
+        GatewayImportReconciliationResult gatewayReconciliation =
+            new([], new Dictionary<string, string>(), [], 0);
         if (importedCount > 0 || replacedCount > 0)
         {
+            AppSettings settings = await _configManager.LoadSettingsAsync();
+            gatewayReconciliation = GatewayImportReconciler.Reconcile(
+                settings.SshGateways,
+                importedGateways,
+                appliedServers);
+            ApplyGatewayIdMap(appliedServers, gatewayReconciliation.GatewayIdMap);
+
+            if (gatewayReconciliation.GatewaysToAdd.Count > 0)
+            {
+                settings.SshGateways.AddRange(gatewayReconciliation.GatewaysToAdd);
+                await _configManager.SaveSettingsAsync(settings);
+            }
+
             await _configManager.SaveServersAsync(inventory);
         }
 
@@ -386,8 +411,57 @@ public sealed class ProfileImportService(
             ImportedCount = importedCount,
             ReplacedCount = replacedCount,
             RenamedCount = renamedCount,
-            SkippedCount = skippedCount
+            SkippedCount = skippedCount,
+            GatewayCreatedCount = gatewayReconciliation.CreatedCount,
+            GatewayMergedCount = gatewayReconciliation.MergedCount,
+            GatewayOrphanCount = gatewayReconciliation.OrphanReferences.Count
         };
+    }
+
+    private static void ApplyGatewayIdMap(
+        IEnumerable<ServerProfileDto> servers,
+        IReadOnlyDictionary<string, string> gatewayIdMap)
+    {
+        foreach (ServerProfileDto server in servers)
+        {
+            if (!string.IsNullOrWhiteSpace(server.SshGatewayId) &&
+                gatewayIdMap.TryGetValue(server.SshGatewayId, out string? mappedGatewayId))
+            {
+                server.SshGatewayId = mappedGatewayId;
+            }
+        }
+    }
+
+    private string BuildJsonImportSummary(string profileSummary, ProfileImportResult result)
+    {
+        if (result.GatewayCreatedCount == 0 &&
+            result.GatewayMergedCount == 0 &&
+            result.GatewayOrphanCount == 0)
+        {
+            return profileSummary;
+        }
+
+        List<string> lines =
+        [
+            profileSummary,
+            _localizer.Format(
+                "StatusImportProfileGatewaySummary",
+                result.GatewayCreatedCount,
+                result.GatewayMergedCount,
+                result.GatewayOrphanCount)
+        ];
+
+        if (result.GatewayCreatedCount > 0)
+        {
+            lines.Add(_localizer["StatusImportProfileGatewaySecretsExcluded"]);
+        }
+
+        if (result.GatewayOrphanCount > 0)
+        {
+            lines.Add(_localizer["StatusImportProfileGatewayOrphansAction"]);
+        }
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static int FindExistingProfileIndex(IReadOnlyList<ServerProfileDto> inventory, ServerProfileDto candidate)
@@ -436,6 +510,37 @@ public sealed class ProfileImportService(
         }
 
         return candidate;
+    }
+
+    internal static ProfileConfigDocument ReadJsonConfigDocument(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        return document.RootElement.ValueKind switch
+        {
+            JsonValueKind.Array => new ProfileConfigDocument
+            {
+                SchemaVersion = 1,
+                Servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ProfileJsonOptions) ?? [],
+                Gateways = []
+            },
+            JsonValueKind.Object => SanitizeGatewaySecrets(
+                JsonSerializer.Deserialize<ProfileConfigDocument>(json, ProfileJsonOptions) ?? new ProfileConfigDocument()),
+            _ => throw new JsonException("Expected a profile array or config object.")
+        };
+    }
+
+    private static ProfileConfigDocument SanitizeGatewaySecrets(ProfileConfigDocument document)
+    {
+        document.Servers ??= [];
+        document.Gateways ??= [];
+
+        foreach (SshGatewayDto gateway in document.Gateways)
+        {
+            gateway.SshPasswordEncrypted = null;
+            gateway.SshKeyPassphraseEncrypted = null;
+        }
+
+        return document;
     }
 
     private static ServerProfileDto CloneProfile(ServerProfileDto source)
