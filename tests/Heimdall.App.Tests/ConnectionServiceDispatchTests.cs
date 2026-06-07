@@ -376,7 +376,8 @@ public sealed class ConnectionServiceDispatchTests
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
             => Task.FromResult((true, false, server.RemoteServer ?? string.Empty, remotePort, (string?)null));
 
         public void UpdateSettings(AppSettings settings)

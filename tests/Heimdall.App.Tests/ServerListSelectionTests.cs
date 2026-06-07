@@ -437,7 +437,8 @@ public sealed class ServerListSelectionTests
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
         {
             return Task.FromResult((true, false, server.RemoteServer, remotePort, (string?)null));
         }

@@ -30,7 +30,10 @@ public class TunnelManagerTests : IDisposable
 
     // ── Helpers ────────────────────────────────────────────────────────
 
-    private static TunnelInfo MakeInfo(int localPort, string server = "gw.example.com")
+    private static TunnelInfo MakeInfo(
+        int localPort,
+        string server = "gw.example.com",
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         return new TunnelInfo(
             ServerName: server,
@@ -38,7 +41,10 @@ public class TunnelManagerTests : IDisposable
             RemoteHost: "target.internal",
             RemotePort: 3389,
             StartedAt: DateTime.UtcNow,
-            IsAlive: true);
+            IsAlive: true)
+        {
+            LocalBindHost = localBindHost
+        };
     }
 
     private sealed class FakeHandle : IDisposable
@@ -236,6 +242,21 @@ public class TunnelManagerTests : IDisposable
         Assert.NotNull(info);
         Assert.Equal(10001, info.LocalPort);
         Assert.Equal("target.internal", info.RemoteHost);
+        Assert.Equal(LoopbackBinding.DefaultHost, info.LocalBindHost);
+    }
+
+    [Fact]
+    public void TunnelInfo_LocalBindHost_DefaultsToDefaultLoopback()
+    {
+        var info = new TunnelInfo(
+            "gw.example.com",
+            10001,
+            "target.internal",
+            3389,
+            DateTime.UtcNow,
+            true);
+
+        Assert.Equal(LoopbackBinding.DefaultHost, info.LocalBindHost);
     }
 
     // ── AddReference / ReleaseReference ───────────────────────────────
@@ -638,6 +659,84 @@ public class TunnelManagerTests : IDisposable
         {
             blocker.Stop();
         }
+    }
+
+    // ── Loopback alias reservations ─────────────────────────────────
+
+    [Fact]
+    public void AllocateLoopbackAlias_StartsAtFirstAliasAndSkipsReservations()
+    {
+        string first = _manager.AllocateLoopbackAlias();
+        string second = _manager.AllocateLoopbackAlias();
+
+        Assert.Equal(LoopbackBinding.FormatAlias(LoopbackBinding.FirstAliasOctet), first);
+        Assert.Equal(LoopbackBinding.FormatAlias(LoopbackBinding.FirstAliasOctet + 1), second);
+    }
+
+    [Fact]
+    public void ReleaseLoopbackAliasReservation_AllowsAliasReuse()
+    {
+        string alias = _manager.AllocateLoopbackAlias();
+
+        _manager.ReleaseLoopbackAliasReservation(alias);
+
+        Assert.Equal(alias, _manager.AllocateLoopbackAlias());
+    }
+
+    [Fact]
+    public void AllocateLoopbackAlias_SkipsAliasBoundByActiveExternalTunnel()
+    {
+        string alias = _manager.AllocateLoopbackAlias();
+        Assert.True(_manager.TryRegisterExternalTunnel(
+            MakeInfo(10001, localBindHost: alias),
+            new FakeHandle(),
+            () => true));
+
+        string nextAlias = _manager.AllocateLoopbackAlias();
+
+        Assert.NotEqual(alias, nextAlias);
+    }
+
+    [Fact]
+    public void ReleaseReference_LastRefReleasesLoopbackAliasReservation()
+    {
+        string alias = _manager.AllocateLoopbackAlias();
+        Assert.True(_manager.TryRegisterExternalTunnel(
+            MakeInfo(10001, localBindHost: alias),
+            new FakeHandle(),
+            () => true));
+
+        Assert.True(_manager.ReleaseReference(10001));
+
+        Assert.Equal(alias, _manager.AllocateLoopbackAlias());
+    }
+
+    [Fact]
+    public void ForceCloseTunnel_ReleasesLoopbackAliasReservation()
+    {
+        string alias = _manager.AllocateLoopbackAlias();
+        Assert.True(_manager.TryRegisterExternalTunnel(
+            MakeInfo(10001, localBindHost: alias),
+            new FakeHandle(),
+            () => true));
+
+        _manager.ForceCloseTunnel(10001);
+
+        Assert.Equal(alias, _manager.AllocateLoopbackAlias());
+    }
+
+    [Fact]
+    public void TryRegisterExternalTunnel_NormalizesLocalBindHost()
+    {
+        Assert.True(_manager.TryRegisterExternalTunnel(
+            MakeInfo(10001, localBindHost: "127.000.000.002"),
+            new FakeHandle(),
+            () => true));
+
+        TunnelInfo? info = _manager.GetTunnel(10001);
+
+        Assert.NotNull(info);
+        Assert.Equal(LoopbackBinding.FormatAlias(2), info.LocalBindHost);
     }
 
     // ── Multiple tunnels on different ports ────────────────────────────

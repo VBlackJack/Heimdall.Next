@@ -32,6 +32,7 @@ public sealed partial class TunnelManager : IDisposable
     private readonly ConcurrentDictionary<int, TunnelSession> _activeTunnels = new();
     private readonly ConcurrentDictionary<int, ExternalTunnelSession> _externalTunnels = new();
     private readonly ConcurrentDictionary<int, int> _refCounts = new();
+    private readonly HashSet<string> _reservedLoopbackAliases = new(StringComparer.Ordinal);
     private readonly object _registryLock = new();
     private bool _disposed;
 
@@ -134,15 +135,18 @@ public sealed partial class TunnelManager : IDisposable
         int remoteBindPort = 0,
         int remoteLocalPort = 0,
         string? label = null,
-        string? gatewayChainKey = null)
+        string? gatewayChainKey = null,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
         ArgumentNullException.ThrowIfNull(hostKeyStore);
         ArgumentNullException.ThrowIfNull(verifier);
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
 
         if (IsPortTracked(localPort))
         {
+            ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
 
@@ -187,7 +191,8 @@ public sealed partial class TunnelManager : IDisposable
                 socksProxyPort,
                 remoteBindPort,
                 remoteLocalPort,
-                isChained: false);
+                isChained: false,
+                localBindHost);
 
             var info = BuildTunnelInfo(
                 gatewayParams.Host,
@@ -197,7 +202,8 @@ public sealed partial class TunnelManager : IDisposable
                 socksProxyPort,
                 remoteBindPort,
                 label,
-                gatewayChainKey);
+                gatewayChainKey,
+                localBindHost);
 
             var session = context.CreateSession(info);
 
@@ -205,6 +211,7 @@ public sealed partial class TunnelManager : IDisposable
         }
         catch (Exception ex)
         {
+            ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return ClassifyAndBuildFailureResult(ex, context.Cleanup, isChained: false);
         }
     }
@@ -234,12 +241,14 @@ public sealed partial class TunnelManager : IDisposable
         int remoteBindPort = 0,
         int remoteLocalPort = 0,
         string? label = null,
-        string? gatewayChainKey = null)
+        string? gatewayChainKey = null,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayChain);
         ArgumentNullException.ThrowIfNull(hostKeyStore);
         ArgumentNullException.ThrowIfNull(verifier);
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
 
         if (gatewayChain.Count == 0)
         {
@@ -253,12 +262,14 @@ public sealed partial class TunnelManager : IDisposable
                     cancellationToken,
                     socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort,
                     label: label,
-                    gatewayChainKey: gatewayChainKey)
+                    gatewayChainKey: gatewayChainKey,
+                    localBindHost: localBindHost)
                 .ConfigureAwait(false);
         }
 
         if (IsPortTracked(localPort))
         {
+            ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
 
@@ -314,7 +325,7 @@ public sealed partial class TunnelManager : IDisposable
                 // through the final port/client; per-hop mid-chain attribution
                 // is intentionally out of scope.
                 var intermediatePort = new ForwardedPortLocal(
-                    "127.0.0.1",
+                    LoopbackBinding.DefaultHost,
                     (uint)intermediateLocalPort,
                     nextGateway.Host,
                     (uint)nextGateway.Port);
@@ -367,7 +378,8 @@ public sealed partial class TunnelManager : IDisposable
                 socksProxyPort,
                 remoteBindPort,
                 remoteLocalPort,
-                isChained: true);
+                isChained: true,
+                localBindHost);
 
             var tunnelInfo = BuildTunnelInfo(
                 gatewayChain[^1].Host,
@@ -377,12 +389,14 @@ public sealed partial class TunnelManager : IDisposable
                 socksProxyPort,
                 remoteBindPort,
                 label,
-                gatewayChainKey);
+                gatewayChainKey,
+                localBindHost);
 
             return RegisterTunnelSession(context.CreateSession(tunnelInfo), localPort, tunnelInfo);
         }
         catch (Exception ex)
         {
+            ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return ClassifyAndBuildFailureResult(ex, context.Cleanup, isChained: true);
         }
     }
@@ -485,6 +499,7 @@ public sealed partial class TunnelManager : IDisposable
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(tunnelHandle);
         ArgumentNullException.ThrowIfNull(isAlive);
+        info = info with { LocalBindHost = LoopbackBinding.NormalizeHost(info.LocalBindHost) };
 
         var session = new ExternalTunnelSession(info, tunnelHandle, isAlive);
         bool registered = false;
@@ -500,12 +515,55 @@ public sealed partial class TunnelManager : IDisposable
 
         if (!registered)
         {
+            ReleaseLoopbackAliasReservationIfUnbound(info.LocalBindHost);
             session.Dispose();
             return false;
         }
 
         TunnelOpened?.Invoke(info);
         return true;
+    }
+
+    /// <summary>
+    /// Reserves a distinct 127.0.0.x loopback alias for a future local forward.
+    /// The reservation is released when the registered tunnel is torn down, or
+    /// by calling <see cref="ReleaseLoopbackAliasReservation"/> after a failed open.
+    /// </summary>
+    public string AllocateLoopbackAlias()
+    {
+        lock (_registryLock)
+        {
+            for (int octet = LoopbackBinding.FirstAliasOctet; octet <= LoopbackBinding.LastAliasOctet; octet++)
+            {
+                string candidate = LoopbackBinding.FormatAlias(octet);
+                if (IsLoopbackAliasInUseUnderLock(candidate))
+                {
+                    continue;
+                }
+
+                _reservedLoopbackAliases.Add(candidate);
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("No loopback alias is available for tunnel binding.");
+    }
+
+    /// <summary>
+    /// Releases a previously reserved loopback alias when no tunnel was registered.
+    /// </summary>
+    public void ReleaseLoopbackAliasReservation(string localBindHost)
+    {
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
+        if (LoopbackBinding.IsDefaultHost(localBindHost))
+        {
+            return;
+        }
+
+        lock (_registryLock)
+        {
+            _reservedLoopbackAliases.Remove(localBindHost);
+        }
     }
 
     public void Dispose()
@@ -535,15 +593,66 @@ public sealed partial class TunnelManager : IDisposable
 
         if (_activeTunnels.TryRemove(localPort, out var session))
         {
+            ReleaseLoopbackAliasReservationUnderLock(session.Info.LocalBindHost);
             return session;
         }
 
         if (_externalTunnels.TryRemove(localPort, out var externalSession))
         {
+            ReleaseLoopbackAliasReservationUnderLock(externalSession.Info.LocalBindHost);
             return externalSession;
         }
 
         return null;
+    }
+
+    private bool IsLoopbackAliasInUseUnderLock(string localBindHost)
+    {
+        if (_reservedLoopbackAliases.Contains(localBindHost))
+        {
+            return true;
+        }
+
+        return IsLoopbackAliasBoundByTunnelUnderLock(localBindHost);
+    }
+
+    private bool IsLoopbackAliasBoundByTunnelUnderLock(string localBindHost)
+        => _activeTunnels.Values.Any(session =>
+               string.Equals(session.Info.LocalBindHost, localBindHost, StringComparison.Ordinal))
+           || _externalTunnels.Values.Any(session =>
+               string.Equals(session.Info.LocalBindHost, localBindHost, StringComparison.Ordinal));
+
+    private void ReleaseLoopbackAliasReservationIfUnbound(string localBindHost)
+    {
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
+        if (LoopbackBinding.IsDefaultHost(localBindHost))
+        {
+            return;
+        }
+
+        lock (_registryLock)
+        {
+            ReleaseLoopbackAliasReservationIfUnboundUnderLock(localBindHost);
+        }
+    }
+
+    private void ReleaseLoopbackAliasReservationIfUnboundUnderLock(string localBindHost)
+    {
+        if (IsLoopbackAliasBoundByTunnelUnderLock(localBindHost))
+        {
+            return;
+        }
+
+        _reservedLoopbackAliases.Remove(localBindHost);
+    }
+
+    private void ReleaseLoopbackAliasReservationUnderLock(string localBindHost)
+    {
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
+        if (!LoopbackBinding.IsDefaultHost(localBindHost))
+        {
+            _reservedLoopbackAliases.Remove(localBindHost);
+        }
     }
 
     private void DisposeAndNotifyClosed(int localPort, IDisposable session)

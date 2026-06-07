@@ -109,9 +109,11 @@ public sealed class PlinkTunnelRunner : IDisposable
         string? hostKeyFingerprint = null,
         CancellationToken cancellationToken = default,
         string? keyPassphrase = null,
-        string? passphraseUnsupportedMessage = null)
+        string? passphraseUnsupportedMessage = null,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
 
         if (_process is not null)
         {
@@ -138,7 +140,7 @@ public sealed class PlinkTunnelRunner : IDisposable
         {
             // Build argument list
             args = BuildArguments(gatewayHost, gatewayPort, username, keyPath, password,
-                remoteHost, remotePort, localPort, hostKeyFingerprint);
+                remoteHost, remotePort, localPort, hostKeyFingerprint, localBindHost);
             startInfo = CreateStartInfo(plinkPath, args);
         }
         catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or ArgumentOutOfRangeException)
@@ -188,7 +190,7 @@ public sealed class PlinkTunnelRunner : IDisposable
         try
         {
             // Wait for the local port to become reachable (tunnel established)
-            bool portReady = await WaitForPortBindAsync(localPort, cancellationToken).ConfigureAwait(false);
+            bool portReady = await WaitForPortBindAsync(localPort, localBindHost, cancellationToken).ConfigureAwait(false);
 
             if (!portReady)
             {
@@ -324,16 +326,18 @@ public sealed class PlinkTunnelRunner : IDisposable
         string remoteHost,
         int remotePort,
         int localPort,
-        string? hostKeyFingerprint = null)
+        string? hostKeyFingerprint = null,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
-        ValidateConnectionInputs(gatewayHost, gatewayPort, username, keyPath, remoteHost, remotePort, localPort);
+        ValidateConnectionInputs(gatewayHost, gatewayPort, username, keyPath, remoteHost, remotePort, localPort, localBindHost);
+        localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
 
         var args = new List<string>
         {
             "-ssh",
             "-batch", // non-interactive: fail instead of prompting
             "-N", // no shell, tunnel only
-            "-L", $"{localPort}:{remoteHost}:{remotePort}",
+            "-L", BuildLocalForwardArgument(localBindHost, localPort, remoteHost, remotePort),
             "-P", gatewayPort.ToString()
         };
 
@@ -394,6 +398,17 @@ public sealed class PlinkTunnelRunner : IDisposable
         return args;
     }
 
+    private static string BuildLocalForwardArgument(
+        string localBindHost,
+        int localPort,
+        string remoteHost,
+        int remotePort)
+    {
+        return LoopbackBinding.IsDefaultHost(localBindHost)
+            ? $"{localPort}:{remoteHost}:{remotePort}"
+            : $"{localBindHost}:{localPort}:{remoteHost}:{remotePort}";
+    }
+
     internal static void ValidateConnectionInputs(
         string gatewayHost,
         int gatewayPort,
@@ -401,7 +416,8 @@ public sealed class PlinkTunnelRunner : IDisposable
         string? keyPath,
         string remoteHost,
         int remotePort,
-        int localPort)
+        int localPort,
+        string localBindHost = LoopbackBinding.DefaultHost)
     {
         if (!IsValidHost(gatewayHost))
         {
@@ -433,6 +449,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             throw new ArgumentOutOfRangeException(nameof(localPort));
         }
 
+        LoopbackBinding.NormalizeHost(localBindHost);
         ValidateKeyPath(keyPath);
     }
 
@@ -553,7 +570,10 @@ public sealed class PlinkTunnelRunner : IDisposable
     /// the tunnel is established and forwarding traffic.
     /// Uses a retry loop with configurable attempts and interval.
     /// </summary>
-    private async Task<bool> WaitForPortBindAsync(int localPort, CancellationToken cancellationToken)
+    private async Task<bool> WaitForPortBindAsync(
+        int localPort,
+        string localBindHost,
+        CancellationToken cancellationToken)
     {
         for (int attempt = 0; attempt < PortCheckMaxAttempts; attempt++)
         {
@@ -561,7 +581,7 @@ public sealed class PlinkTunnelRunner : IDisposable
 
             await Task.Delay(_portCheckInterval, cancellationToken).ConfigureAwait(false);
 
-            if (await IsPortListeningAsync(localPort).ConfigureAwait(false))
+            if (await IsPortListeningAsync(localBindHost, localPort).ConfigureAwait(false))
             {
                 return true;
             }
@@ -573,12 +593,12 @@ public sealed class PlinkTunnelRunner : IDisposable
     /// <summary>
     /// Checks if a TCP port is listening on localhost by attempting a brief connection.
     /// </summary>
-    private static async Task<bool> IsPortListeningAsync(int port)
+    private static async Task<bool> IsPortListeningAsync(string localBindHost, int port)
     {
         try
         {
             using var client = new TcpClient();
-            var connectTask = client.ConnectAsync("127.0.0.1", port);
+            var connectTask = client.ConnectAsync(localBindHost, port);
             var completed = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(1)))
                 .ConfigureAwait(false);
             return completed == connectTask && client.Connected;

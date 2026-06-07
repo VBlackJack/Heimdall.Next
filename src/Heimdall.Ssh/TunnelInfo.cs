@@ -44,6 +44,11 @@ public sealed record TunnelInfo(
     public int RemoteBindPort { get; init; }
 
     /// <summary>
+    /// Local IPv4 loopback address bound by the final local forward.
+    /// </summary>
+    public string LocalBindHost { get; init; } = LoopbackBinding.DefaultHost;
+
+    /// <summary>
     /// Optional user-facing label for manually created tunnels.
     /// </summary>
     public string? Label { get; init; }

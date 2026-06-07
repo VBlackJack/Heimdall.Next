@@ -225,7 +225,8 @@ public sealed class WinRmHandlerBootstrapCleanupTests
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
         {
             string host = UsesTunnel ? TargetHost : server.RemoteServer;
             int port = UsesTunnel ? TargetPort : remotePort;

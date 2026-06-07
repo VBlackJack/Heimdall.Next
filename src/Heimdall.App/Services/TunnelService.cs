@@ -110,7 +110,8 @@ public sealed class TunnelService : ITunnelService
             ServerProfileDto server,
             int remotePort,
             AppSettings settings,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool preferDistinctLoopback = false)
     {
         if (server.UseDirectConnection || string.IsNullOrEmpty(server.SshGatewayId))
         {
@@ -127,7 +128,8 @@ public sealed class TunnelService : ITunnelService
                 ct,
                 server.SocksProxyPort,
                 server.RemoteBindPort,
-                server.RemoteLocalPort)
+                server.RemoteLocalPort,
+                preferDistinctLoopback)
             .ConfigureAwait(false);
 
         if (!tunnelResult.Success)
@@ -140,7 +142,8 @@ public sealed class TunnelService : ITunnelService
         // A fresh tunnel is live on this port; drop any stale failure recorded
         // for it so it cannot mislabel a later, unrelated disconnect.
         _forwardedPortFailures.Clear(localPort);
-        return (true, true, "127.0.0.1", localPort, null);
+        var localBindHost = tunnelResult.Tunnel?.LocalBindHost ?? LoopbackBinding.DefaultHost;
+        return (true, true, localBindHost, localPort, null);
     }
 
     /// <summary>
@@ -156,7 +159,8 @@ public sealed class TunnelService : ITunnelService
         CancellationToken ct,
         int socksProxyPort = 0,
         int remoteBindPort = 0,
-        int remoteLocalPort = 0)
+        int remoteLocalPort = 0,
+        bool preferDistinctLoopback = false)
     {
         Core.Logging.FileLogger.Info(
             $"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
@@ -224,6 +228,21 @@ public sealed class TunnelService : ITunnelService
         }
 
         TunnelResult result;
+        string localBindHost;
+        try
+        {
+            localBindHost = preferDistinctLoopback
+                ? _tunnelManager.AllocateLoopbackAlias()
+                : LoopbackBinding.DefaultHost;
+        }
+        catch (InvalidOperationException ex)
+        {
+            string message = _localizer[SshLocalizationKeys.ErrorTunnelNoLoopbackAlias];
+            Core.Logging.FileLogger.Warn($"Loopback alias allocation failed for {serverId}: {ex.Message}");
+            _connectionSm.SetError(serverId, message);
+            return new TunnelResult(false, null, message, SshFailureCode.PortInUse);
+        }
+
         if (chain.Count == 1)
         {
             int keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? AppSettings.DefaultSshKeepAliveIntervalSeconds;
@@ -239,7 +258,8 @@ public sealed class TunnelService : ITunnelService
                     socksProxyPort: socksProxyPort,
                     remoteBindPort: remoteBindPort,
                     remoteLocalPort: remoteLocalPort,
-                    gatewayChainKey: gatewayChainKey)
+                    gatewayChainKey: gatewayChainKey,
+                    localBindHost: localBindHost)
                 .ConfigureAwait(false);
         }
         else
@@ -255,7 +275,8 @@ public sealed class TunnelService : ITunnelService
                     socksProxyPort: socksProxyPort,
                     remoteBindPort: remoteBindPort,
                     remoteLocalPort: remoteLocalPort,
-                    gatewayChainKey: gatewayChainKey)
+                    gatewayChainKey: gatewayChainKey,
+                    localBindHost: localBindHost)
                 .ConfigureAwait(false);
         }
 
@@ -277,7 +298,8 @@ public sealed class TunnelService : ITunnelService
                     localPort,
                     settings,
                     gatewayChainKey,
-                    ct)
+                    ct,
+                    preferDistinctLoopback)
                 .ConfigureAwait(false);
         }
 
@@ -319,7 +341,8 @@ public sealed class TunnelService : ITunnelService
         int localPort,
         AppSettings settings,
         string gatewayChainKey,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool preferDistinctLoopback = false)
     {
         string? plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
@@ -355,6 +378,20 @@ public sealed class TunnelService : ITunnelService
         }
 
         string? fingerprint = hostKeyDecision.Fingerprint;
+        string localBindHost;
+        try
+        {
+            localBindHost = preferDistinctLoopback
+                ? _tunnelManager.AllocateLoopbackAlias()
+                : LoopbackBinding.DefaultHost;
+        }
+        catch (InvalidOperationException ex)
+        {
+            string message = _localizer[SshLocalizationKeys.ErrorTunnelNoLoopbackAlias];
+            Core.Logging.FileLogger.Warn($"Loopback alias allocation failed for Plink tunnel {serverId}: {ex.Message}");
+            _connectionSm.SetError(serverId, message);
+            return new TunnelResult(false, null, message, SshFailureCode.PortInUse);
+        }
 
         PlinkTunnelRunner runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? AppSettings.DefaultPlinkPortCheckIntervalMs,
@@ -372,11 +409,13 @@ public sealed class TunnelService : ITunnelService
                 fingerprint,
                 ct,
                 gatewayParams.KeyPassphrase,
-                _localizer[SshLocalizationKeys.ErrorPlinkPassphraseUnsupported])
+                _localizer[SshLocalizationKeys.ErrorPlinkPassphraseUnsupported],
+                localBindHost)
             .ConfigureAwait(false);
 
         if (!result.Success)
         {
+            _tunnelManager.ReleaseLoopbackAliasReservation(localBindHost);
             string errorMsg = result.ErrorMessage ?? _localizer[SshLocalizationKeys.ErrorTunnelFailed];
             Core.Logging.FileLogger.Error(
                 $"Plink tunnel failed for {serverId} via {gatewayParams.Host}:{gatewayParams.Port}: {errorMsg}");
@@ -393,6 +432,7 @@ public sealed class TunnelService : ITunnelService
             DateTime.UtcNow,
             IsAlive: true)
         {
+            LocalBindHost = localBindHost,
             GatewayChainKey = gatewayChainKey
         };
 
