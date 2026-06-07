@@ -83,6 +83,21 @@ public partial class ServerItemViewModel : ObservableObject
     private string _gatewayName = "";
 
     [ObservableProperty]
+    private bool _isGatewayBadgeVisible;
+
+    [ObservableProperty]
+    private bool _isGatewayMissing;
+
+    [ObservableProperty]
+    private string _gatewayBadgeText = "";
+
+    [ObservableProperty]
+    private string _gatewayBadgeTooltip = "";
+
+    [ObservableProperty]
+    private string _gatewayDetailText = "";
+
+    [ObservableProperty]
     private string _authSummary = "";
 
     /// <summary>
@@ -175,7 +190,7 @@ public partial class ServerItemViewModel : ObservableObject
         IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null,
         LocalizationManager? localizer = null)
     {
-        return new ServerItemViewModel
+        var viewModel = new ServerItemViewModel
         {
             _sourceDto = dto,
             _localizer = localizer,
@@ -197,9 +212,10 @@ public partial class ServerItemViewModel : ObservableObject
             IsFavorite = dto.IsFavorite,
             SortOrder = dto.SortOrder,
             MacAddress = dto.MacAddress ?? "",
-            GatewayName = ResolveGatewayName(dto.SshGatewayId, gatewayMap),
             AuthSummary = BuildAuthSummary(dto),
         };
+        viewModel.ApplyGatewayState(dto.SshGatewayId, gatewayMap);
+        return viewModel;
     }
 
     /// <summary>
@@ -229,7 +245,7 @@ public partial class ServerItemViewModel : ObservableObject
         IsFavorite = dto.IsFavorite;
         SortOrder = dto.SortOrder;
         MacAddress = dto.MacAddress ?? "";
-        GatewayName = ResolveGatewayName(dto.SshGatewayId, gatewayMap);
+        ApplyGatewayState(dto.SshGatewayId, gatewayMap);
         AuthSummary = BuildAuthSummary(dto);
         OnPropertyChanged(nameof(OriginDisplayName));
     }
@@ -289,17 +305,62 @@ public partial class ServerItemViewModel : ObservableObject
         return "";
     }
 
-    private static string ResolveGatewayName(
+    private void ApplyGatewayState(
         string? gatewayId,
         IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap)
     {
         if (string.IsNullOrWhiteSpace(gatewayId) || gatewayMap is null)
         {
-            return "";
+            GatewayName = "";
+            IsGatewayBadgeVisible = false;
+            IsGatewayMissing = false;
+            GatewayBadgeText = "";
+            GatewayBadgeTooltip = "";
+            GatewayDetailText = "";
+            return;
         }
 
-        return gatewayMap.TryGetValue(gatewayId, out var gw) ? gw.Name : "";
+        IsGatewayBadgeVisible = true;
+        if (gatewayMap.TryGetValue(gatewayId, out var gateway))
+        {
+            var gatewayName = gateway.Name ?? "";
+            GatewayName = gatewayName;
+            IsGatewayMissing = false;
+            GatewayBadgeText = Format("SessionGatewayBadgeVia", gatewayName);
+            GatewayBadgeTooltip = Format("SessionGatewayBadgeTooltipVia", gatewayName);
+            GatewayDetailText = gatewayName;
+            return;
+        }
+
+        GatewayName = "";
+        IsGatewayMissing = true;
+        GatewayBadgeText = T("SessionGatewayBadgeMissing");
+        GatewayBadgeTooltip = Format("SessionGatewayBadgeTooltipMissing", gatewayId);
+        GatewayDetailText = Format("SessionGatewayMissingDetail", gatewayId);
     }
+
+    private string T(string key) => _localizer?.HasKey(key) == true ? _localizer[key] : Fallback(key);
+
+    private string Format(string key, params object[] args)
+    {
+        if (_localizer?.HasKey(key) == true)
+        {
+            return _localizer.Format(key, args);
+        }
+
+        var template = Fallback(key);
+        return string.Format(System.Globalization.CultureInfo.InvariantCulture, template, args);
+    }
+
+    private static string Fallback(string key) => key switch
+    {
+        "SessionGatewayBadgeVia" => "via {0}",
+        "SessionGatewayBadgeMissing" => "gateway missing",
+        "SessionGatewayBadgeTooltipVia" => "Routes through SSH gateway {0}.",
+        "SessionGatewayBadgeTooltipMissing" => "This session references missing SSH gateway id {0}.",
+        "SessionGatewayMissingDetail" => "Missing gateway ({0})",
+        _ => key
+    };
 
     private static string BuildAuthSummary(ServerProfileDto dto)
     {

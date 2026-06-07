@@ -543,22 +543,62 @@
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <Border Grid.Column="3"
-                                                    Background="{DynamicResource CardBrush}"
-                                                    BorderBrush="{DynamicResource BorderBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="3"
-                                                    Padding="4,0"
-                                                    Margin="6,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    ToolTip="{Binding OriginDisplayName}"
-                                                    Visibility="{Binding IsOriginBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="{Binding OriginBadgeCode}"
-                                                           FontSize="{StaticResource FontSizeSmallCaption}"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           VerticalAlignment="Center"/>
-                                            </Border>
+                                            <StackPanel Grid.Column="3"
+                                                        Orientation="Horizontal"
+                                                        VerticalAlignment="Center">
+                                                <Border BorderThickness="1"
+                                                        CornerRadius="3"
+                                                        Padding="4,0"
+                                                        Margin="6,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        ToolTip="{Binding GatewayBadgeTooltip}"
+                                                        AutomationProperties.Name="{Binding GatewayBadgeTooltip}"
+                                                        Visibility="{Binding IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource InfoBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsGatewayMissing}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="{DynamicResource WarningTextBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding GatewayBadgeText}"
+                                                               FontSize="{StaticResource FontSizeSmallCaption}"
+                                                               FontWeight="SemiBold"
+                                                               MaxWidth="140"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsGatewayMissing}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                                <Border Background="{DynamicResource CardBrush}"
+                                                        BorderBrush="{DynamicResource BorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="3"
+                                                        Padding="4,0"
+                                                        Margin="6,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        ToolTip="{Binding OriginDisplayName}"
+                                                        Visibility="{Binding IsOriginBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding OriginBadgeCode}"
+                                                               FontSize="{StaticResource FontSizeSmallCaption}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                     <DataTemplate.Triggers>
@@ -1241,13 +1281,22 @@
                                                    Text="{loc:Translate DetailLabelGateway}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.GatewayName, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                   Visibility="{Binding ServerList.SelectedServer.IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         <TextBlock Grid.Row="2" Grid.Column="1"
                                                    FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                    Margin="0,2,0,2"
-                                                   Visibility="{Binding ServerList.SelectedServer.GatewayName, Converter={StaticResource NullToVisibilityConverter}}">
-                                            <Run Text="{Binding ServerList.SelectedServer.GatewayName, Mode=OneWay}"/>
+                                                   Visibility="{Binding ServerList.SelectedServer.IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ServerList.SelectedServer.IsGatewayMissing}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                            <Run Text="{Binding ServerList.SelectedServer.GatewayDetailText, Mode=OneWay}"/>
                                         </TextBlock>
 
                                         <!-- Authentication -->
