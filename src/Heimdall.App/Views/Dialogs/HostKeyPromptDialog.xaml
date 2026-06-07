@@ -8,10 +8,10 @@
         d:DataContext="{d:DesignInstance Type=vm:HostKeyPromptDialogViewModel, IsDesignTimeCreatable=False}"
         mc:Ignorable="d"
         Title="{Binding HeaderText}"
-        Width="640"
+        Width="720"
         SizeToContent="Height"
         MaxHeight="760"
-        MinWidth="560"
+        MinWidth="640"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="NoResize"
@@ -194,13 +194,13 @@
                        Style="{StaticResource WarningTextStyle}"/>
         </Border>
 
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,16,0,0">
+        <WrapPanel Grid.Row="3"
+                   Orientation="Horizontal"
+                   HorizontalAlignment="Right"
+                   Margin="0,16,0,0">
             <Button x:Name="RejectButton"
                     Margin="0,0,8,0"
-                    MinWidth="132"
+                    MinWidth="104"
                     IsCancel="True"
                     Content="{Binding RejectButtonText}"
                     Command="{Binding RejectCommand}"
@@ -208,20 +208,27 @@
                     AutomationProperties.Name="{loc:Translate HostKeyRejectButton}"/>
             <Button x:Name="TrustOnceButton"
                     Margin="0,0,8,0"
-                    MinWidth="172"
+                    MinWidth="212"
+                    MaxWidth="260"
                     IsDefault="{Binding TrustOnceIsDefault}"
-                    Content="{Binding TrustOnceButtonText}"
                     Command="{Binding TrustOnceCommand}"
                     Style="{StaticResource TrustOnceButtonStyle}"
-                    AutomationProperties.Name="{Binding TrustOnceButtonText}"/>
+                    AutomationProperties.Name="{Binding TrustOnceButtonText}">
+                <TextBlock Text="{Binding TrustOnceButtonText}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+            </Button>
             <Button x:Name="AcceptButton"
-                    MinWidth="184"
+                    MinWidth="280"
+                    MaxWidth="320"
                     IsDefault="{Binding AcceptIsDefault}"
-                    Content="{Binding AcceptButtonText}"
                     Command="{Binding AcceptCommand}"
                     Style="{StaticResource AcceptButtonStyle}"
                     AutomationProperties.Name="{Binding AcceptButtonText}">
+                <TextBlock Text="{Binding AcceptButtonText}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
             </Button>
-        </StackPanel>
+        </WrapPanel>
     </Grid>
 </Window>
