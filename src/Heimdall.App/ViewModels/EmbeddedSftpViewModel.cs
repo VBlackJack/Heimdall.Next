@@ -55,6 +55,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     private const string SudoStderrIncorrectPasswordAttempt = "incorrect password attempt";
     private const string SudoStderrSorryTryAgain = "sorry, try again";
     private const string SudoStderrNoPasswordProvided = "no password was provided";
+    private const short SudoUploadTempPermissions = 0x180;
     private static readonly TimeSpan ErrorHighlightDuration = TimeSpan.FromSeconds(5);
 
     private readonly Stack<string> _navigationHistory = new();
@@ -1017,27 +1018,40 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
 
         string tempRemote = $"{RemoteTempPaths.Prefix}upload_{Guid.NewGuid():N}";
         (string write, string cleanup) = SudoUploadCommands.Build(tempRemote, remotePath);
+        bool sudoCleanupAttempted = false;
 
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
-
-        using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
         try
         {
+            await _browser.ChmodAsync(tempRemote, SudoUploadTempPermissions, ct).ConfigureAwait(false);
+
+            using Renci.SshNet.SshClient ssh = await CreateSudoSshClientAsync(ct).ConfigureAwait(false);
             try
             {
-                using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, write, ct)
-                    .ConfigureAwait(false);
+                try
+                {
+                    using Renci.SshNet.SshCommand cmd = await ExecuteSudoBodyAsync(ssh, write, ct)
+                        .ConfigureAwait(false);
 
-                EnsureSudoSucceeded(cmd, "cp");
+                    EnsureSudoSucceeded(cmd, "cp");
+                }
+                finally
+                {
+                    sudoCleanupAttempted = true;
+                    await TryRemoveSudoTempAsync(ssh, cleanup, tempRemote).ConfigureAwait(false);
+                }
             }
             finally
             {
-                await TryRemoveSudoTempAsync(ssh, cleanup, tempRemote).ConfigureAwait(false);
+                SafeDisconnect(ssh);
             }
         }
         finally
         {
-            SafeDisconnect(ssh);
+            if (!sudoCleanupAttempted)
+            {
+                await TryRemoveUploadedSudoTempViaBrowserAsync(tempRemote).ConfigureAwait(false);
+            }
         }
     }
 
@@ -1096,6 +1110,19 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"EmbeddedSftpViewModel: exception while removing sudo upload temp file '{tempPathForLog}': {ex.Message}");
+        }
+    }
+
+    private async Task TryRemoveUploadedSudoTempViaBrowserAsync(string tempRemote)
+    {
+        try
+        {
+            await _browser!.DeleteAsync(tempRemote, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"EmbeddedSftpViewModel: failed to remove uploaded sudo temp file '{tempRemote}': {ex.Message}");
         }
     }
 

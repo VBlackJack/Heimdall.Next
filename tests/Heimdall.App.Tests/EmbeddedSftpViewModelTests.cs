@@ -499,6 +499,33 @@ public sealed class EmbeddedSftpViewModelTests
     }
 
     [Fact]
+    public async Task UploadViaSudoAsync_SetsPrivateTempPermissionsAndDeletesTempWhenSshSetupFails()
+    {
+        FakeUiDispatcher dispatcher = new();
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        FakeRemoteBrowser browser = new();
+        SetBrowser(viewModel, browser);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => viewModel.UploadViaSudoAsync(
+                Path.Combine(Path.GetTempPath(), "app.conf"),
+                "/etc/app.conf",
+                CancellationToken.None));
+
+        Assert.Equal(1, browser.UploadCallCount);
+        Assert.Equal(1, browser.ChmodCallCount);
+        Assert.Equal((short)0x180, browser.LastChmodMode);
+        string chmodPath = browser.LastChmodPath ?? throw new InvalidOperationException("Chmod path was not captured.");
+        string uploadedPath = browser.LastUploadedRemotePath ?? throw new InvalidOperationException("Upload path was not captured.");
+        string deletedPath = browser.LastDeletedPath ?? throw new InvalidOperationException("Delete path was not captured.");
+        Assert.StartsWith($"{RemoteTempPaths.Prefix}upload_", chmodPath, StringComparison.Ordinal);
+        Assert.Equal(uploadedPath, chmodPath);
+        Assert.Equal(1, browser.DeleteCallCount);
+        Assert.Equal(chmodPath, deletedPath);
+        Assert.False(browser.LastDeleteCancellationToken.CanBeCanceled);
+    }
+
+    [Fact]
     public async Task DeleteEntriesAsync_ProtectedRoot_DoesNotCallBrowserDelete()
     {
         FakeUiDispatcher dispatcher = new();
@@ -590,6 +617,8 @@ public sealed class EmbeddedSftpViewModelTests
     {
         private int _downloadCallCount;
         private int _uploadCallCount;
+        private int _chmodCallCount;
+        private int _deleteCallCount;
 
         public event Action<string>? DirectoryChanged
         {
@@ -617,7 +646,19 @@ public sealed class EmbeddedSftpViewModelTests
 
         public int UploadCallCount => Volatile.Read(ref _uploadCallCount);
 
+        public int ChmodCallCount => Volatile.Read(ref _chmodCallCount);
+
         public int DeleteCallCount => Volatile.Read(ref _deleteCallCount);
+
+        public string? LastUploadedRemotePath { get; private set; }
+
+        public string? LastChmodPath { get; private set; }
+
+        public short LastChmodMode { get; private set; }
+
+        public string? LastDeletedPath { get; private set; }
+
+        public CancellationToken LastDeleteCancellationToken { get; private set; }
 
         public Func<string?, CancellationToken, Task<IReadOnlyList<SftpFileInfo>>>? ListDirectoryHandler { get; set; }
 
@@ -657,6 +698,7 @@ public sealed class EmbeddedSftpViewModelTests
             string remotePath,
             CancellationToken ct = default)
         {
+            LastUploadedRemotePath = remotePath;
             Interlocked.Increment(ref _uploadCallCount);
             return Task.CompletedTask;
         }
@@ -668,12 +710,17 @@ public sealed class EmbeddedSftpViewModelTests
 
         public Task DeleteAsync(string path, CancellationToken ct = default)
         {
+            LastDeletedPath = path;
+            LastDeleteCancellationToken = ct;
             Interlocked.Increment(ref _deleteCallCount);
             return Task.CompletedTask;
         }
 
         public Task ChmodAsync(string path, short mode, CancellationToken ct = default)
         {
+            LastChmodPath = path;
+            LastChmodMode = mode;
+            Interlocked.Increment(ref _chmodCallCount);
             return Task.CompletedTask;
         }
 
@@ -689,8 +736,6 @@ public sealed class EmbeddedSftpViewModelTests
         public void Dispose()
         {
         }
-
-        private int _deleteCallCount;
     }
 
     private sealed class ConfirmingDialogService : IDialogService

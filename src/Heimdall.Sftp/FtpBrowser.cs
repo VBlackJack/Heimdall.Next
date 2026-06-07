@@ -83,7 +83,7 @@ public sealed class FtpBrowser : IRemoteBrowser
         if (!useSsl && !string.IsNullOrEmpty(username))
         {
             FileLogger.Warn(
-                $"FtpBrowser: connecting to ftp://{host}:{_port} without TLS — username and password will be transmitted in clear text. Prefer SFTP when available.");
+                "FtpBrowser: FTP session is using a cleartext channel. Prefer SFTP or FTPS when available.");
         }
 
         string effectiveUsername = string.IsNullOrEmpty(username) ? "anonymous" : username;
