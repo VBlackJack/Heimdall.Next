@@ -93,6 +93,65 @@ public sealed class ConPtySessionTests
     }
 
     [Fact]
+    public async Task ProcessExited_ProcessEndsWithoutConsoleOutput_RaisesExitCode()
+    {
+        if (!ConPtySession.IsAvailable)
+        {
+            return;
+        }
+
+        ConPtySession session = new();
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+
+        try
+        {
+            await session.StartAsync(
+                TerminalTestHelpers.ResolvePowerShellExecutable(),
+                BuildEncodedPowerShellArguments("exit 17"));
+
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(17, exitCode);
+        }
+        finally
+        {
+            session.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task ProcessExited_SubscriberAddedAfterFastExit_ReplaysExitCode()
+    {
+        if (!ConPtySession.IsAvailable)
+        {
+            return;
+        }
+
+        ConPtySession session = new();
+
+        try
+        {
+            await session.StartAsync(
+                TerminalTestHelpers.ResolvePowerShellExecutable(),
+                BuildEncodedPowerShellArguments("exit 23"));
+
+            await WaitUntilStoppedAsync(session, TimeSpan.FromSeconds(10));
+
+            TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Equal(23, exitCode);
+        }
+        finally
+        {
+            session.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task Resize_AfterStart_DoesNotThrow()
     {
         if (!ConPtySession.IsAvailable)
@@ -155,5 +214,21 @@ public sealed class ConPtySessionTests
     {
         string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
         return $"-NoLogo -NoProfile -NonInteractive -EncodedCommand {encodedCommand}";
+    }
+
+    private static async Task WaitUntilStoppedAsync(ConPtySession session, TimeSpan timeout)
+    {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow + timeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (!session.IsRunning)
+            {
+                return;
+            }
+
+            await Task.Delay(50);
+        }
+
+        Assert.False(session.IsRunning);
     }
 }

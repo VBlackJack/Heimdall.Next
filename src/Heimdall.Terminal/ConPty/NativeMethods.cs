@@ -92,6 +92,20 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool CloseHandle(IntPtr hObject);
 
+    [LibraryImport("kernel32.dll")]
+    internal static partial IntPtr GetCurrentProcess();
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DuplicateHandle(
+        IntPtr hSourceProcessHandle,
+        IntPtr hSourceHandle,
+        IntPtr hTargetProcessHandle,
+        out IntPtr lpTargetHandle,
+        uint dwDesiredAccess,
+        [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle,
+        uint dwOptions);
+
     // ========================================================================
     // Thread attribute list (pseudo console assignment)
     // ========================================================================
@@ -136,6 +150,8 @@ internal static partial class NativeMethods
     internal const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     internal const uint STILL_ACTIVE = 259;
     internal const uint INFINITE = 0xFFFFFFFF;
+    internal const uint WAIT_FAILED = 0xFFFFFFFF;
+    internal const uint DUPLICATE_SAME_ACCESS = 0x00000002;
 
     internal static readonly nuint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
 

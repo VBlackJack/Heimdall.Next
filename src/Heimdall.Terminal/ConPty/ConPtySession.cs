@@ -48,16 +48,59 @@ public sealed class ConPtySession : ITerminalSession
     private FileStream? _inputWriter;
 
     private Task? _readLoop;
+    private Task? _exitWatchLoop;
     private CancellationTokenSource? _cts;
 
     private volatile bool _disposed;
     private readonly object _disposeLock = new();
+    private readonly object _processExitedLock = new();
+    private Action<int>? _processExited;
+    private bool _processExitedRaised;
+    private int _processExitCode;
 
     /// <inheritdoc />
     public event Action<ReadOnlyMemory<byte>>? DataReceived;
 
     /// <inheritdoc />
-    public event Action<int>? ProcessExited;
+    public event Action<int>? ProcessExited
+    {
+        add
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            bool invokeImmediately;
+            int exitCode;
+            lock (_processExitedLock)
+            {
+                invokeImmediately = _processExitedRaised;
+                exitCode = _processExitCode;
+                if (!invokeImmediately)
+                {
+                    _processExited += value;
+                }
+            }
+
+            if (invokeImmediately)
+            {
+                SafeInvokeProcessExitedHandler(value, exitCode);
+            }
+        }
+        remove
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            lock (_processExitedLock)
+            {
+                _processExited -= value;
+            }
+        }
+    }
 
     /// <inheritdoc />
     public bool IsRunning
@@ -141,6 +184,7 @@ public sealed class ConPtySession : ITerminalSession
             _pipeOutputRead = null;
 
             LaunchProcess(executable, arguments, workingDirectory);
+            StartExitWatchLoop();
             StartReadLoop();
         }
         catch
@@ -254,11 +298,17 @@ public sealed class ConPtySession : ITerminalSession
         // Free the attribute list.
         FreeAttributeList();
 
-        // Wait briefly for the read loop task to complete.
+        // Wait briefly for lifecycle tasks to complete.
         if (_readLoop is not null)
         {
             try { _readLoop.Wait(TimeSpan.FromMilliseconds(500)); }
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] Dispose read loop wait: {ex.Message}"); }
+        }
+
+        if (_exitWatchLoop is not null)
+        {
+            try { _exitWatchLoop.Wait(TimeSpan.FromMilliseconds(500)); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] Dispose exit watch wait: {ex.Message}"); }
         }
 
         _cts?.Dispose();
@@ -454,9 +504,67 @@ public sealed class ConPtySession : ITerminalSession
                     if (NativeMethods.GetExitCodeProcess(_processHandle, out uint ec))
                         exitCode = (int)ec;
                 }
-                SafeInvokeProcessExited(exitCode);
+                SafeInvokeProcessExitedOnce(exitCode);
             }
         }, token);
+    }
+
+    private void StartExitWatchLoop()
+    {
+        IntPtr processHandle = _processHandle;
+        if (processHandle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        IntPtr currentProcess = NativeMethods.GetCurrentProcess();
+        if (!NativeMethods.DuplicateHandle(
+            currentProcess,
+            processHandle,
+            currentProcess,
+            out IntPtr watchHandle,
+            0,
+            false,
+            NativeMethods.DUPLICATE_SAME_ACCESS))
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"[ConPtySession] Duplicate process handle failed: {Marshal.GetLastWin32Error()}");
+            return;
+        }
+
+        _exitWatchLoop = Task.Run(() =>
+        {
+            try
+            {
+                uint waitResult = NativeMethods.WaitForSingleObject(watchHandle, NativeMethods.INFINITE);
+                if (waitResult == NativeMethods.WAIT_FAILED)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"[ConPtySession] Process wait failed: {Marshal.GetLastWin32Error()}");
+                    return;
+                }
+
+                int exitCode = -1;
+                if (NativeMethods.GetExitCodeProcess(watchHandle, out uint ec))
+                {
+                    exitCode = (int)ec;
+                }
+
+                if (!_disposed)
+                {
+                    SafeInvokeProcessExitedOnce(exitCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] Exit watch: {ex.Message}");
+            }
+            finally
+            {
+                try { NativeMethods.CloseHandle(watchHandle); }
+                catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] Close watch handle: {ex.Message}"); }
+            }
+        });
     }
 
     private void SafeInvokeDataReceived(ReadOnlyMemory<byte> data)
@@ -471,11 +579,42 @@ public sealed class ConPtySession : ITerminalSession
         }
     }
 
-    private void SafeInvokeProcessExited(int exitCode)
+    private void SafeInvokeProcessExitedOnce(int exitCode)
+    {
+        Action<int>? handlers;
+        lock (_processExitedLock)
+        {
+            if (_processExitedRaised)
+            {
+                return;
+            }
+
+            _processExitedRaised = true;
+            _processExitCode = exitCode;
+            handlers = _processExited;
+        }
+
+        SafeInvokeProcessExitedHandlers(handlers, exitCode);
+    }
+
+    private static void SafeInvokeProcessExitedHandlers(Action<int>? handlers, int exitCode)
+    {
+        if (handlers is null)
+        {
+            return;
+        }
+
+        foreach (Action<int> handler in handlers.GetInvocationList())
+        {
+            SafeInvokeProcessExitedHandler(handler, exitCode);
+        }
+    }
+
+    private static void SafeInvokeProcessExitedHandler(Action<int> handler, int exitCode)
     {
         try
         {
-            ProcessExited?.Invoke(exitCode);
+            handler(exitCode);
         }
         catch (Exception ex)
         {

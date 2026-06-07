@@ -59,6 +59,7 @@ public sealed class TelnetSession : ITerminalSession
     private byte _sbOption;
     private bool _disposed;
     private bool _isRunning;
+    private volatile bool _intentionalClose;
     private bool _nawsNegotiated;
     private int _columns;
     private int _rows;
@@ -96,6 +97,7 @@ public sealed class TelnetSession : ITerminalSession
 
         _columns = columns;
         _rows = rows;
+        _intentionalClose = false;
         ResetParser();
         _cts = new CancellationTokenSource();
 
@@ -160,6 +162,7 @@ public sealed class TelnetSession : ITerminalSession
     public void Kill()
     {
         if (_disposed) return;
+        _intentionalClose = true;
         CloseConnection();
     }
 
@@ -167,6 +170,7 @@ public sealed class TelnetSession : ITerminalSession
     {
         if (_disposed) return;
         _disposed = true;
+        _intentionalClose = true;
 
         _cts?.Cancel();
         CloseConnection();
@@ -229,7 +233,8 @@ public sealed class TelnetSession : ITerminalSession
         catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[TelnetSession] ReadLoop: {ex.Message}"); }
 
         _isRunning = false;
-        SafeInvokeProcessExited(0);
+        int exitCode = _intentionalClose || ct.IsCancellationRequested ? 0 : 1;
+        SafeInvokeProcessExited(exitCode);
     }
 
     /// <summary>
