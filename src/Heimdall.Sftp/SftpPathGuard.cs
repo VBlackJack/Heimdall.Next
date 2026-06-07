@@ -17,7 +17,7 @@
 namespace Heimdall.Sftp;
 
 /// <summary>
-/// Guards remote SFTP paths before destructive operations.
+/// Guards remote SFTP paths and child names before file operations.
 /// </summary>
 public static class SftpPathGuard
 {
@@ -41,5 +41,19 @@ public static class SftpPathGuard
 
         throw new InvalidOperationException(
             $"Refused to {operation} protected remote root path.");
+    }
+
+    public static bool IsValidChildName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        string trimmed = name.Trim();
+        return trimmed is not "." and not ".."
+            && trimmed.IndexOf('/') < 0
+            && trimmed.IndexOf('\\') < 0
+            && trimmed.IndexOf('\0') < 0;
     }
 }

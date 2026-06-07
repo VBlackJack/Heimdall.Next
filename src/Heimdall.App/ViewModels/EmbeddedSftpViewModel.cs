@@ -1146,6 +1146,13 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
             return;
         }
 
+        folderName = folderName.Trim();
+        if (!SftpPathGuard.IsValidChildName(folderName))
+        {
+            await RunOnUiAsync(() => SetErrorStatus(L10n("ErrorInvalidFileName"))).ConfigureAwait(false);
+            return;
+        }
+
         try
         {
             string remotePath = CombineRemotePath(CurrentPath, folderName);
@@ -1187,6 +1194,18 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(newName)
             || string.Equals(newName, file.Name, StringComparison.Ordinal))
         {
+            return;
+        }
+
+        newName = newName.Trim();
+        if (string.Equals(newName, file.Name, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (!SftpPathGuard.IsValidChildName(newName))
+        {
+            await RunOnUiAsync(() => SetErrorStatus(L10n("ErrorInvalidFileName"))).ConfigureAwait(false);
             return;
         }
 
