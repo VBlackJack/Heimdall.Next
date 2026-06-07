@@ -1420,6 +1420,33 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
     }
 
     [RelayCommand]
+    private async Task ShowGatewayOverviewAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            List<ServerProfileDto> servers = await _configManager.LoadServersAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            GatewayOverview overview = GatewayOverviewBuilder.Build(_pendingGateways, servers);
+            var viewModel = new GatewayOverviewDialogViewModel(overview, _localizer);
+            await _dialogService.ShowGatewayOverviewAsync(viewModel);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("Gateway overview failed", ex);
+            _dialogService.ShowError(
+                _localizer["GatewayOverviewTitle"],
+                _localizer.Format("GatewayOverviewLoadFailed", ex.Message));
+        }
+    }
+
+    [RelayCommand]
     private async Task AddProjectAsync(CancellationToken cancellationToken)
     {
         var vm = new ProjectDialogViewModel

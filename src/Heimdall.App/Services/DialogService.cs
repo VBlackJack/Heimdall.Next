@@ -80,6 +80,15 @@ public interface IDialogService
     Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null);
 
     /// <summary>
+    /// Shows the read-only gateway overview dialog.
+    /// </summary>
+    Task ShowGatewayOverviewAsync(GatewayOverviewDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Shows the project add/edit dialog.
     /// </summary>
     /// <param name="editVm">Pre-populated ViewModel for edit mode, or null for add mode.</param>
