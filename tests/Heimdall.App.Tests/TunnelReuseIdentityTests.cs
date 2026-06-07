@@ -17,6 +17,7 @@
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
@@ -78,6 +79,59 @@ public sealed class TunnelReuseIdentityTests
         Assert.True(result.UsesTunnel);
         Assert.Equal(localBindHost, result.Host);
         Assert.Equal(localPort, result.Port);
+    }
+
+    [Fact]
+    public void ShouldUseOsAssignedLocalPort_ReturnsTrue_WhenLocalPortMatchesSuggestedDefault()
+    {
+        var settings = new AppSettings
+        {
+            DefaultRdpTunnelPort = 45000,
+            DefaultSshTunnelPort = 46000
+        };
+
+        Assert.True(TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "RDP", LocalPort = 45000 },
+            settings));
+        Assert.True(TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "SSH", LocalPort = 46000 },
+            settings));
+        Assert.True(TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "WINRM", LocalPort = DefaultPorts.WinRmTunnel },
+            settings));
+    }
+
+    [Fact]
+    public void ShouldUseOsAssignedLocalPort_ReturnsTrue_WhenLocalPortIsUnset()
+    {
+        var result = TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "SSH", LocalPort = 0 },
+            new AppSettings());
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ShouldUseOsAssignedLocalPort_ReturnsFalse_WhenLocalPortIsManual()
+    {
+        var result = TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "SSH", LocalPort = 47000 },
+            new AppSettings { DefaultSshTunnelPort = 46000 });
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ShouldUseOsAssignedLocalPort_ReturnsFalse_ForSocksOrRemoteForward()
+    {
+        var settings = new AppSettings { DefaultSshTunnelPort = 46000 };
+
+        Assert.False(TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "SSH", LocalPort = 46000, SocksProxyPort = 1080 },
+            settings));
+        Assert.False(TunnelService.ShouldUseOsAssignedLocalPort(
+            new ServerProfileDto { ConnectionType = "SSH", LocalPort = 46000, RemoteBindPort = 2222 },
+            settings));
     }
 
     [Fact]

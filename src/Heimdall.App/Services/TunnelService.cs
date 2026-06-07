@@ -118,6 +118,7 @@ public sealed class TunnelService : ITunnelService
             return (true, false, server.RemoteServer, remotePort, null);
         }
 
+        bool useOsAssignedLocalPort = ShouldUseOsAssignedLocalPort(server, settings);
         TunnelResult tunnelResult = await EstablishTunnelAsync(
                 server.Id,
                 server.SshGatewayId,
@@ -129,7 +130,8 @@ public sealed class TunnelService : ITunnelService
                 server.SocksProxyPort,
                 server.RemoteBindPort,
                 server.RemoteLocalPort,
-                preferDistinctLoopback)
+                preferDistinctLoopback,
+                useOsAssignedLocalPort)
             .ConfigureAwait(false);
 
         if (!tunnelResult.Success)
@@ -160,7 +162,8 @@ public sealed class TunnelService : ITunnelService
         int socksProxyPort = 0,
         int remoteBindPort = 0,
         int remoteLocalPort = 0,
-        bool preferDistinctLoopback = false)
+        bool preferDistinctLoopback = false,
+        bool useOsAssignedLocalPort = false)
     {
         Core.Logging.FileLogger.Info(
             $"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
@@ -206,8 +209,13 @@ public sealed class TunnelService : ITunnelService
 
         _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.EstablishingTunnel);
 
-        localPort = _tunnelManager.AllocatePort(localPort);
-        Core.Logging.FileLogger.Info($"Allocated tunnel port: {localPort}");
+        localPort = useOsAssignedLocalPort
+            ? 0
+            : _tunnelManager.AllocatePort(localPort);
+        Core.Logging.FileLogger.Info(
+            localPort == 0
+                ? "Using OS-assigned tunnel port."
+                : $"Allocated tunnel port: {localPort}");
 
         SshAgentRegistry agentRegistry = SshAgentRegistry.CreateDefault(settings.SshAgentPreference);
         if (chain.Any(hop => hop.AgentForwarding)
@@ -290,12 +298,17 @@ public sealed class TunnelService : ITunnelService
             Core.Logging.FileLogger.Info(
                 $"SSH.NET auth failed, falling back to Plink: {result.ErrorMessage}");
 
+            int plinkLocalPort = useOsAssignedLocalPort
+                ? _tunnelManager.AllocatePort(0)
+                : localPort;
+            Core.Logging.FileLogger.Info($"Allocated Plink fallback tunnel port: {plinkLocalPort}");
+
             return await EstablishPlinkTunnelAsync(
                     serverId,
                     chain[0],
                     remoteHost,
                     remotePort,
-                    localPort,
+                    plinkLocalPort,
                     settings,
                     gatewayChainKey,
                     ct,
@@ -320,8 +333,9 @@ public sealed class TunnelService : ITunnelService
 
         if (result.Success)
         {
-            Core.Logging.FileLogger.Info($"Tunnel established for {serverId} on port {localPort}");
-            _connectionSm.SetTunnelInfo(serverId, localPort, 0);
+            int establishedLocalPort = result.Tunnel?.LocalPort ?? localPort;
+            Core.Logging.FileLogger.Info($"Tunnel established for {serverId} on port {establishedLocalPort}");
+            _connectionSm.SetTunnelInfo(serverId, establishedLocalPort, 0);
             _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.TunnelEstablished);
         }
         else
@@ -450,6 +464,39 @@ public sealed class TunnelService : ITunnelService
             $"Plink tunnel established for {serverId} on port {localPort} (pid={runner.ProcessId?.ToString() ?? "unknown"})");
 
         return new TunnelResult(true, tunnelInfo, null, null);
+    }
+
+    internal static bool ShouldUseOsAssignedLocalPort(ServerProfileDto server, AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (server.SocksProxyPort > 0 || server.RemoteBindPort > 0)
+        {
+            return false;
+        }
+
+        if (server.LocalPort <= 0)
+        {
+            return true;
+        }
+
+        return server.LocalPort == GetSuggestedTunnelPort(server.ConnectionType, settings);
+    }
+
+    private static int GetSuggestedTunnelPort(string? connectionType, AppSettings settings)
+    {
+        if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+        {
+            return settings.DefaultRdpTunnelPort;
+        }
+
+        if (string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultPorts.WinRmTunnel;
+        }
+
+        return settings.DefaultSshTunnelPort;
     }
 
     internal static TunnelInfo? FindReusableTunnel(

@@ -75,7 +75,7 @@ public sealed partial class TunnelManager
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private void WireFinalForwardedPorts(
+    private int WireFinalForwardedPorts(
         TunnelBuildContext context,
         string remoteHost,
         int remotePort,
@@ -93,11 +93,12 @@ public sealed partial class TunnelManager
         context.FinalPort = new ForwardedPortLocal(localBindHost, (uint)localPort, remoteHost, (uint)remotePort);
         context.FinalPort.Exception += (_, args) =>
         {
+            int reportedLocalPort = ResolveStartedLocalPortOrDefault(context.FinalPort, localPort);
             Core.Logging.FileLogger.Error(
-                $"SSH forwarded port {localPort} -> {remoteHost}:{remotePort} "
+                $"SSH forwarded port {reportedLocalPort} -> {remoteHost}:{remotePort} "
                 + $"exception: {args.Exception.Message}");
             ForwardedPortFailed?.Invoke(new TunnelForwardedPortFailure(
-                localPort,
+                reportedLocalPort,
                 remoteHost,
                 remotePort,
                 args.Exception.Message,
@@ -105,7 +106,8 @@ public sealed partial class TunnelManager
         };
 
         finalClient.AddForwardedPort(context.FinalPort);
-        StartForwardedPortWithRetry(context.FinalPort, $"local port {localPort}");
+        StartForwardedPortWithRetry(context.FinalPort, DescribeLocalPort(localPort));
+        int boundLocalPort = ResolveStartedLocalPort(context.FinalPort, localPort);
 
         var logSuffix = isChained ? " (chained tunnel)" : string.Empty;
         if (socksProxyPort > 0)
@@ -127,6 +129,39 @@ public sealed partial class TunnelManager
             context.RemotePortForward.Start();
             Core.Logging.FileLogger.Info(
                 $"Remote forward started: server:{remoteBindPort} \u2192 local:{localFwd}{logSuffix}");
+        }
+
+        return boundLocalPort;
+    }
+
+    private static string DescribeLocalPort(int localPort)
+        => localPort > 0 ? $"local port {localPort}" : "OS-assigned local port";
+
+    private static int ResolveStartedLocalPort(ForwardedPortLocal port, int requestedLocalPort)
+    {
+        uint boundPort = port.BoundPort;
+        if (boundPort > 0)
+        {
+            return checked((int)boundPort);
+        }
+
+        if (requestedLocalPort > 0)
+        {
+            return requestedLocalPort;
+        }
+
+        throw new InvalidOperationException("SSH.NET did not report a bound local port after starting the forward.");
+    }
+
+    private static int ResolveStartedLocalPortOrDefault(ForwardedPortLocal port, int requestedLocalPort)
+    {
+        try
+        {
+            return ResolveStartedLocalPort(port, requestedLocalPort);
+        }
+        catch (InvalidOperationException)
+        {
+            return requestedLocalPort;
         }
     }
 
