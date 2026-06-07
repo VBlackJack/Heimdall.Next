@@ -515,7 +515,7 @@ public static class SshConnectionFactory
         catch (Exception ex) when (CanFallBackToPasswordAfterKeyLoadFailure(ex, connectionParams))
         {
             Core.Logging.FileLogger.Warn(
-                $"SSH key file could not be loaded for {connectionParams.Username}@{connectionParams.Host}:{connectionParams.Port}; trying password fallback. {ex.GetType().Name}: {ex.Message}");
+                $"SSH key file could not be loaded for {connectionParams.Host}:{connectionParams.Port}; trying password fallback. {ex.GetType().Name}: {ex.Message}");
         }
     }
 
@@ -579,7 +579,7 @@ public static class SshConnectionFactory
                 }
 
                 Heimdall.Core.Logging.FileLogger.Info(
-                    $"SSH agent {agent.Name}: using {keys.Count} key(s): {string.Join(", ", keys.Select(k => $"{k.KeyType} ({k.Comment})"))}");
+                    $"SSH agent {agent.Name}: using {keys.Count} key(s): {string.Join(", ", keys.Select(k => k.KeyType))}");
 
                 var keyWrappers = keys
                     .Select(k => new SshAgentKeyWrapper(k))
