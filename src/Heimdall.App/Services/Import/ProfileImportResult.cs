@@ -41,6 +41,12 @@ public sealed class ProfileImportResult
 
     public int PasswordsIgnoredCount { get; init; }
 
+    public int GatewayCreatedCount { get; init; }
+
+    public int GatewayMergedCount { get; init; }
+
+    public int GatewayOrphanCount { get; init; }
+
     public static ProfileImportResult NoChanges() => new();
 
     public static ProfileImportResult Cancelled() => new()

@@ -74,6 +74,208 @@ public sealed class ProfileImportServiceTests
     }
 
     [Fact]
+    public async Task ImportFromPathAsync_JsonV2Envelope_PersistsGatewayAndKeepsReference()
+    {
+        using var fixture = new ProfileImportFixture();
+        ProfileConfigDocument document = new()
+        {
+            Servers =
+            [
+                new ServerProfileDto
+                {
+                    Id = "json-v2-import",
+                    DisplayName = "Json V2 SSH",
+                    ConnectionType = "SSH",
+                    RemoteServer = "ssh.example.com",
+                    SshPort = 22,
+                    SshGatewayId = "gateway-v2"
+                }
+            ],
+            Gateways =
+            [
+                new SshGatewayDto
+                {
+                    Id = "gateway-v2",
+                    Name = "Bastion",
+                    Host = "bastion.example.com",
+                    Port = 22,
+                    User = "ops"
+                }
+            ]
+        };
+        var path = await fixture.WriteTextAsync(
+            "servers-v2.json",
+            JsonSerializer.Serialize(document, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            }));
+
+        var result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        var servers = await fixture.ConfigManager.LoadServersAsync();
+        var settings = await fixture.ConfigManager.LoadSettingsAsync();
+        Assert.True(result.HasChanges);
+        Assert.Equal(1, result.ImportedCount);
+        Assert.Equal(1, result.GatewayCreatedCount);
+        Assert.Equal(0, result.GatewayMergedCount);
+        Assert.Equal(0, result.GatewayOrphanCount);
+        ServerProfileDto server = Assert.Single(servers);
+        Assert.Equal("Json V2 SSH", server.DisplayName);
+        Assert.Equal("gateway-v2", server.SshGatewayId);
+        SshGatewayDto gateway = Assert.Single(settings.SshGateways);
+        Assert.Equal("gateway-v2", gateway.Id);
+        Assert.Equal("bastion.example.com", gateway.Host);
+        Assert.Contains("SSH gateways: 1 created, 0 merged, 0 orphan reference(s).", Assert.Single(fixture.Dialog.InfoCalls).Message, StringComparison.Ordinal);
+        Assert.Contains("Gateway passwords and key passphrases are not included", result.UserMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportFromPathAsync_JsonV2Envelope_ReusesExistingGatewayByIdentityAndRemapsServer()
+    {
+        using var fixture = new ProfileImportFixture();
+        AppSettings settings = await fixture.ConfigManager.LoadSettingsAsync();
+        settings.SshGateways.Add(new SshGatewayDto
+        {
+            Id = "existing-gateway",
+            Name = "Existing Bastion",
+            Host = "bastion.example.com",
+            Port = 22,
+            User = "ops",
+            KeyPath = @"C:\existing\id_ed25519"
+        });
+        await fixture.ConfigManager.SaveSettingsAsync(settings);
+        ProfileConfigDocument document = new()
+        {
+            Servers =
+            [
+                new ServerProfileDto
+                {
+                    Id = "json-v2-merge",
+                    DisplayName = "Json V2 Merge",
+                    ConnectionType = "SSH",
+                    RemoteServer = "ssh.example.com",
+                    SshPort = 22,
+                    SshGatewayId = "imported-gateway"
+                }
+            ],
+            Gateways =
+            [
+                new SshGatewayDto
+                {
+                    Id = "imported-gateway",
+                    Name = "Imported Bastion",
+                    Host = "BASTION.example.com",
+                    Port = 22,
+                    User = "OPS",
+                    KeyPath = @"C:\imported\id_ed25519"
+                }
+            ]
+        };
+        string path = await fixture.WriteConfigDocumentAsync("servers-v2-merge.json", document);
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        AppSettings reloadedSettings = await fixture.ConfigManager.LoadSettingsAsync();
+        Assert.True(result.HasChanges);
+        Assert.Equal(0, result.GatewayCreatedCount);
+        Assert.Equal(1, result.GatewayMergedCount);
+        Assert.Equal(0, result.GatewayOrphanCount);
+        Assert.Equal("existing-gateway", Assert.Single(servers).SshGatewayId);
+        SshGatewayDto gateway = Assert.Single(reloadedSettings.SshGateways);
+        Assert.Equal("existing-gateway", gateway.Id);
+        Assert.Equal(@"C:\existing\id_ed25519", gateway.KeyPath);
+        Assert.Contains("SSH gateways: 0 created, 1 merged, 0 orphan reference(s).", result.UserMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportFromPathAsync_JsonLegacyGatewayReference_WarnsAboutOrphan()
+    {
+        using var fixture = new ProfileImportFixture();
+        string path = await fixture.WriteJsonAsync("servers-v1-orphan.json",
+        [
+            new ServerProfileDto
+            {
+                Id = "json-v1-orphan",
+                DisplayName = "Json V1 Orphan",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                SshPort = 22,
+                SshGatewayId = "missing-gateway"
+            }
+        ]);
+
+        ProfileImportResult result = await fixture.Service.ImportFromPathAsync(path, CancellationToken.None);
+
+        List<ServerProfileDto> servers = await fixture.ConfigManager.LoadServersAsync();
+        Assert.True(result.HasChanges);
+        Assert.Equal(1, result.GatewayOrphanCount);
+        Assert.Equal("missing-gateway", Assert.Single(servers).SshGatewayId);
+        string warning = Assert.Single(fixture.Dialog.WarningCalls).Message;
+        Assert.Contains("1 orphan reference", warning, StringComparison.Ordinal);
+        Assert.Contains("recreate/reassign", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadJsonConfigDocument_V1Array_ReturnsSchemaOneServers()
+    {
+        string json = JsonSerializer.Serialize(new[]
+        {
+            new ServerProfileDto
+            {
+                Id = "v1-server",
+                DisplayName = "V1 Server",
+                RemoteServer = "v1.example.com"
+            }
+        });
+
+        ProfileConfigDocument document = ProfileImportService.ReadJsonConfigDocument(json);
+
+        Assert.Equal(1, document.SchemaVersion);
+        Assert.Empty(document.Gateways);
+        Assert.Equal("v1-server", Assert.Single(document.Servers).Id);
+    }
+
+    [Fact]
+    public void ReadJsonConfigDocument_V2Envelope_ReturnsGatewaysWithoutSecrets()
+    {
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "servers": [
+                {
+                  "id": "v2-server",
+                  "displayName": "V2 Server",
+                  "remoteServer": "v2.example.com",
+                  "sshGatewayId": "v2-gateway"
+                }
+              ],
+              "gateways": [
+                {
+                  "id": "v2-gateway",
+                  "name": "V2 Gateway",
+                  "host": "bastion.example.com",
+                  "port": 22,
+                  "user": "ops",
+                  "sshPasswordEncrypted": "secret",
+                  "sshKeyPassphraseEncrypted": "key-secret"
+                }
+              ]
+            }
+            """;
+
+        ProfileConfigDocument document = ProfileImportService.ReadJsonConfigDocument(json);
+
+        Assert.Equal(ProfileConfigDocument.CurrentSchemaVersion, document.SchemaVersion);
+        Assert.Equal("v2-server", Assert.Single(document.Servers).Id);
+        SshGatewayDto gateway = Assert.Single(document.Gateways);
+        Assert.Equal("v2-gateway", gateway.Id);
+        Assert.Null(gateway.SshPasswordEncrypted);
+        Assert.Null(gateway.SshKeyPassphraseEncrypted);
+    }
+
+    [Fact]
     public async Task ImportFromPathAsync_JsonOversized_ReturnsFailureBeforePreviewOrPersistence()
     {
         using ProfileImportFixture fixture = new(maxImportFileSizeBytes: 10);
@@ -241,6 +443,17 @@ public sealed class ProfileImportServiceTests
             return path;
         }
 
+        public Task<string> WriteConfigDocumentAsync(string fileName, ProfileConfigDocument document)
+        {
+            return WriteTextAsync(
+                fileName,
+                JsonSerializer.Serialize(document, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                }));
+        }
+
         public void Dispose()
         {
             try
@@ -268,6 +481,10 @@ public sealed class ProfileImportServiceTests
         public RdpImportDialogViewModel? LastRdpImportViewModel { get; private set; }
 
         public bool SelectParseErrorRows { get; set; }
+
+        public List<(string Title, string Message)> InfoCalls { get; } = [];
+
+        public List<(string Title, string Message)> WarningCalls { get; } = [];
 
         public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
             => Task.FromResult(true);
@@ -359,10 +576,12 @@ public sealed class ProfileImportServiceTests
 
         public void ShowInfo(string title, string message)
         {
+            InfoCalls.Add((title, message));
         }
 
         public void ShowWarning(string title, string message)
         {
+            WarningCalls.Add((title, message));
         }
     }
 }

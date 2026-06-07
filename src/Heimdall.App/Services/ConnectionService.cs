@@ -121,7 +121,7 @@ public sealed class ConnectionService : IConnectionService
         {
             return PreflightResult.Fail(
                 SshFailureCode.Unknown,
-                _localizer.Format("ErrorGatewayNotFound", server.SshGatewayId));
+                _localizer.Format("ErrorGatewayNotFound", server.SshGatewayId, server.DisplayName));
         }
 
         var connParams = ConnectionHelpers.CreateGatewayConnectionParams(
