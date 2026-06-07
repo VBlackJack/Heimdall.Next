@@ -144,7 +144,7 @@ public sealed partial class TunnelManager : IDisposable
         ArgumentNullException.ThrowIfNull(verifier);
         localBindHost = LoopbackBinding.NormalizeHost(localBindHost);
 
-        if (IsPortTracked(localPort))
+        if (localPort > 0 && IsPortTracked(localPort))
         {
             ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
@@ -169,8 +169,9 @@ public sealed partial class TunnelManager : IDisposable
                 KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds)
             };
 
+            int reportedLocalPort = localPort;
             context.FinalClient.ErrorOccurred += (_, args) =>
-                Core.Logging.FileLogger.Error($"SSH tunnel error on port {localPort}: {args.Exception.Message}");
+                Core.Logging.FileLogger.Error($"SSH tunnel error on port {reportedLocalPort}: {args.Exception.Message}");
 
             await ConnectSshClientWithCancellationAsync(
                     context.FinalClient,
@@ -183,7 +184,7 @@ public sealed partial class TunnelManager : IDisposable
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            WireFinalForwardedPorts(
+            int boundLocalPort = WireFinalForwardedPorts(
                 context,
                 remoteHost,
                 remotePort,
@@ -193,10 +194,11 @@ public sealed partial class TunnelManager : IDisposable
                 remoteLocalPort,
                 isChained: false,
                 localBindHost);
+            reportedLocalPort = boundLocalPort;
 
             var info = BuildTunnelInfo(
                 gatewayParams.Host,
-                localPort,
+                boundLocalPort,
                 remoteHost,
                 remotePort,
                 socksProxyPort,
@@ -207,7 +209,7 @@ public sealed partial class TunnelManager : IDisposable
 
             var session = context.CreateSession(info);
 
-            return RegisterTunnelSession(session, localPort, info);
+            return RegisterTunnelSession(session, boundLocalPort, info);
         }
         catch (Exception ex)
         {
@@ -267,7 +269,7 @@ public sealed partial class TunnelManager : IDisposable
                 .ConfigureAwait(false);
         }
 
-        if (IsPortTracked(localPort))
+        if (localPort > 0 && IsPortTracked(localPort))
         {
             ReleaseLoopbackAliasReservationIfUnbound(localBindHost);
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
@@ -282,8 +284,6 @@ public sealed partial class TunnelManager : IDisposable
             // Hop 1: forward through gateway[0] to gateway[1], connect to gateway[1] via local forward
             // ...
             // Final: forward through last intermediate to remoteHost:remotePort
-
-            int nextLocalPort = GetEphemeralPort();
 
             var rootPinnedVerifier = await ResolvePinnedVerifierAsync(
                     gatewayChain[0],
@@ -315,9 +315,6 @@ public sealed partial class TunnelManager : IDisposable
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var nextGateway = gatewayChain[i];
-                int intermediateLocalPort = nextLocalPort;
-                nextLocalPort = (i < gatewayChain.Count - 1) ? GetEphemeralPort() : localPort;
-
                 // Forward through current client to the next gateway's SSH port.
                 // Only the final forwarded port gets an Exception handler that
                 // raises ForwardedPortFailed. A runtime failure in an
@@ -326,12 +323,13 @@ public sealed partial class TunnelManager : IDisposable
                 // is intentionally out of scope.
                 var intermediatePort = new ForwardedPortLocal(
                     LoopbackBinding.DefaultHost,
-                    (uint)intermediateLocalPort,
+                    0,
                     nextGateway.Host,
                     (uint)nextGateway.Port);
                 context.IntermediatePorts.Add(intermediatePort);
                 currentClient.AddForwardedPort(intermediatePort);
-                StartForwardedPortWithRetry(intermediatePort, $"intermediate chain port {intermediateLocalPort}");
+                StartForwardedPortWithRetry(intermediatePort, "OS-assigned intermediate chain port");
+                int intermediateLocalPort = ResolveStartedLocalPort(intermediatePort, 0);
 
                 // Connect to the next gateway through the forwarded port
                 var hopParams = CreateLoopbackHopParams(nextGateway, intermediateLocalPort);
@@ -370,7 +368,7 @@ public sealed partial class TunnelManager : IDisposable
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            WireFinalForwardedPorts(
+            int boundLocalPort = WireFinalForwardedPorts(
                 context,
                 remoteHost,
                 remotePort,
@@ -383,7 +381,7 @@ public sealed partial class TunnelManager : IDisposable
 
             var tunnelInfo = BuildTunnelInfo(
                 gatewayChain[^1].Host,
-                localPort,
+                boundLocalPort,
                 remoteHost,
                 remotePort,
                 socksProxyPort,
@@ -392,7 +390,7 @@ public sealed partial class TunnelManager : IDisposable
                 gatewayChainKey,
                 localBindHost);
 
-            return RegisterTunnelSession(context.CreateSession(tunnelInfo), localPort, tunnelInfo);
+            return RegisterTunnelSession(context.CreateSession(tunnelInfo), boundLocalPort, tunnelInfo);
         }
         catch (Exception ex)
         {
