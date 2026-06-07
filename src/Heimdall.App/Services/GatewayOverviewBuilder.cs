@@ -34,22 +34,22 @@ public static class GatewayOverviewBuilder
 
         List<SshGatewayDto> canonicalGateways = gatewayList
             .Select((Gateway, Index) => new IndexedGateway(Gateway, Index))
-            .GroupBy(item => item.Gateway.Id, StringComparer.Ordinal)
+            .GroupBy(item => item.Gateway.Id, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.Last())
             .OrderBy(item => item.Index)
             .Select(item => item.Gateway)
             .ToList();
 
         Dictionary<string, SshGatewayDto> gatewayMap = canonicalGateways
-            .ToDictionary(gateway => gateway.Id, StringComparer.Ordinal);
+            .ToDictionary(gateway => gateway.Id, StringComparer.OrdinalIgnoreCase);
 
         Dictionary<string, List<GatewayOverviewSession>> sessionsByGateway = canonicalGateways
             .ToDictionary(
                 gateway => gateway.Id,
                 _ => new List<GatewayOverviewSession>(),
-                StringComparer.Ordinal);
+                StringComparer.OrdinalIgnoreCase);
 
-        Dictionary<string, List<GatewayOverviewSession>> missingReferences = new(StringComparer.Ordinal);
+        Dictionary<string, List<GatewayOverviewSession>> missingReferences = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (ServerProfileDto server in servers ?? [])
         {
@@ -85,7 +85,7 @@ public static class GatewayOverviewBuilder
             .ToList();
 
         List<GatewayOverviewMissingReferenceGroup> missingGroups = missingReferences
-            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
             .Select(pair => new GatewayOverviewMissingReferenceGroup(
                 pair.Key,
                 SortSessions(pair.Value)))

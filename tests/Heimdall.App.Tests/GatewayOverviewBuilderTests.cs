@@ -42,6 +42,23 @@ public sealed class GatewayOverviewBuilderTests
     }
 
     [Fact]
+    public void Build_ResolvesGatewayReferencesIgnoringCase()
+    {
+        SshGatewayDto gateway = CreateGateway("ABC123", "Bastion", "bastion.example.test", 2222, "ops");
+        ServerProfileDto server = CreateServer("server-1", "App", "abc123", sortOrder: 1);
+
+        GatewayOverview overview = GatewayOverviewBuilder.Build([gateway], [server]);
+
+        GatewayOverviewGatewayGroup group = Assert.Single(overview.Gateways);
+        Assert.Equal("ABC123", group.GatewayId);
+        GatewayOverviewSession session = Assert.Single(group.Sessions);
+        Assert.Equal("server-1", session.Id);
+        Assert.Empty(overview.MissingReferences);
+        Assert.Equal(1, overview.RoutedSessionCount);
+        Assert.Equal(0, overview.MissingReferenceCount);
+    }
+
+    [Fact]
     public void Build_IncludesConfiguredGatewaysWithoutSessions()
     {
         SshGatewayDto gateway = CreateGateway("gw-unused", "Unused", "unused.example.test", 22, "ops");

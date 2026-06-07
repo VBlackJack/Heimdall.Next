@@ -1726,7 +1726,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             && string.IsNullOrWhiteSpace(dialogVm.SelectedGatewayId)
             && !string.IsNullOrWhiteSpace(settings.LastUsedGatewayId)
             && dialogVm.AvailableGateways.Any(gw =>
-                string.Equals(gw.Id, settings.LastUsedGatewayId, StringComparison.Ordinal)))
+                string.Equals(gw.Id, settings.LastUsedGatewayId, StringComparison.OrdinalIgnoreCase)))
         {
             dialogVm.SelectedGatewayId = settings.LastUsedGatewayId;
         }
@@ -1778,8 +1778,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     {
         return settings.SshGateways
             .Where(gw => !string.IsNullOrWhiteSpace(gw.Id))
-            .GroupBy(gw => gw.Id, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
+            .GroupBy(gw => gw.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<GatewayOption> BuildGatewayOptions(IEnumerable<SshGatewayDto> gateways)
@@ -1787,7 +1787,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         var gatewayList = gateways.ToList();
         var gatewayMap = gatewayList
             .Where(gateway => !string.IsNullOrWhiteSpace(gateway.Id))
-            .ToDictionary(gateway => gateway.Id, gateway => gateway, StringComparer.Ordinal);
+            .GroupBy(gateway => gateway.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
 
         return gatewayList.Select(gateway => new GatewayOption(
             gateway.Id,
@@ -1803,7 +1804,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         IReadOnlyDictionary<string, SshGatewayDto> gatewayMap)
     {
         var route = new List<string>();
-        var visited = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<string> visited = new(StringComparer.OrdinalIgnoreCase);
         var current = gateway;
 
         while (current is not null && !string.IsNullOrWhiteSpace(current.Id) && visited.Add(current.Id))
