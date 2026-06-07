@@ -50,6 +50,64 @@ public sealed class TelnetSessionTests
         }
     }
 
+    [Fact]
+    public async Task ServerClose_RaisesNonZeroProcessExit()
+    {
+        TcpListener listener = new(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+        Task<TcpClient> acceptTask = listener.AcceptTcpClientAsync();
+
+        try
+        {
+            await session.StartAsync(string.Empty, string.Empty);
+            using TcpClient client = await acceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+            client.Close();
+
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.NotEqual(0, exitCode);
+        }
+        finally
+        {
+            session.Dispose();
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task Kill_RaisesZeroProcessExit()
+    {
+        TcpListener listener = new(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        TelnetSession session = new(IPAddress.Loopback.ToString(), port, connectTimeoutMs: 1000);
+        TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.ProcessExited += exitCode => exited.TrySetResult(exitCode);
+        Task<TcpClient> acceptTask = listener.AcceptTcpClientAsync();
+
+        try
+        {
+            await session.StartAsync(string.Empty, string.Empty);
+            using TcpClient client = await acceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+            session.Kill();
+
+            int exitCode = await exited.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Equal(0, exitCode);
+        }
+        finally
+        {
+            session.Dispose();
+            listener.Stop();
+        }
+    }
+
     private static async Task<byte[]> ReadExactlyAsync(NetworkStream stream, int length)
     {
         byte[] buffer = new byte[length];
