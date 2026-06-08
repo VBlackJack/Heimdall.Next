@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Security;
 using FluentFTP;
 using Heimdall.Core.Logging;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Sftp;
 
@@ -77,7 +78,7 @@ public sealed class FtpBrowser : IRemoteBrowser
         }
 
         _host = host;
-        _port = port > 0 ? port : 21;
+        _port = port > 0 ? port : DefaultPorts.Ftp;
         _useSsl = useSsl;
 
         if (!useSsl && !string.IsNullOrEmpty(username))
