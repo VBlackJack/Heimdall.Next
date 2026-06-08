@@ -1870,6 +1870,8 @@
   "ErrorWinRmPreflightDnsFailure": "Cannot resolve WinRM host '{0}'.",
   "ErrorWinRmPreflightUnreachable": "WinRM host '{0}' is unreachable on port {1} (connection refused or timed out).",
   "ErrorWinRmPreflightTlsFailed": "The WinRM TLS connection to '{0}' on port {1} failed (untrusted certificate or handshake error).",
+  "ErrorWinRmNtlmLoopback": "WinRM authentication failed for the current Windows identity. Use stored credentials for localhost or off-domain hosts.",
+  "ErrorWinRmWsmanInvalidResponse": "WinRM received an invalid WSMan response. If this session uses a gateway, verify that WinRM uses HTTP through the tunnel.",
   "WarnWinRmGatewayKerberos": "WinRM over a gateway: Kerberos is unavailable, authentication falls back to NTLM.",
   "WarnWinRmSkipCertificateCheck": "WinRM TLS certificate validation was skipped for this session.",
 

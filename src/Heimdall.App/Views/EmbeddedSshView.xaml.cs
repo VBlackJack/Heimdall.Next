@@ -25,6 +25,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Heimdall.App.Services;
+using Heimdall.App.Services.WinRm;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
@@ -195,6 +196,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private Action<int>? _terminalExitHandler;
     private Core.Localization.LocalizationManager? _localizer;
     private ServerHealthMonitor? _healthMonitor;
+    private WinRmEarlyOutputDiagnostic? _winRmEarlyOutputDiagnostic;
     private readonly List<MacroEntry> _macroEntries = [];
     private readonly Stopwatch _macroStopwatch = new();
     private readonly StreamingUtf8Decoder _transcriptDecoder = new StreamingUtf8Decoder();
@@ -373,6 +375,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         _session = session;
+        _winRmEarlyOutputDiagnostic = null;
 
         _session.DataReceived += OnDataReceived;
         _session.Disconnected += OnDisconnected;
@@ -416,6 +419,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         _autoReconnectOnProcessExit = autoReconnectOnProcessExit;
         _terminalSessionHasInput = false;
         _terminalSessionAttachedAtUtc = DateTimeOffset.UtcNow;
+        _winRmEarlyOutputDiagnostic = IsWinRmSessionTab() ? new WinRmEarlyOutputDiagnostic() : null;
         _terminalDataHandler = OnTerminalDataReceived;
         _terminalExitHandler = OnTerminalProcessExited;
 
@@ -521,6 +525,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _terminalSession = null;
         }
 
+        _winRmEarlyOutputDiagnostic = null;
         _terminalDataHandler = null;
         _terminalExitHandler = null;
 
@@ -1211,9 +1216,43 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         WriteToTranscript(data);
+        ObserveWinRmEarlyOutput(data);
 
         var message = "data:" + Convert.ToBase64String(data);
         PostTerminalMessage(message);
+    }
+
+    private void ObserveWinRmEarlyOutput(ReadOnlySpan<byte> data)
+    {
+        WinRmEarlyOutputDiagnostic? diagnostic = _winRmEarlyOutputDiagnostic;
+        if (diagnostic is null || !diagnostic.IsActive)
+        {
+            return;
+        }
+
+        string? localizationKey = diagnostic.Observe(data);
+        if (!diagnostic.IsActive)
+        {
+            _winRmEarlyOutputDiagnostic = null;
+        }
+
+        if (string.IsNullOrWhiteSpace(localizationKey))
+        {
+            return;
+        }
+
+        BeginInvokeIfAvailable(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            UpdateStatus(
+                "RemoteSessionHandedOff",
+                displayTextOverride: L(localizationKey),
+                forceErrorBrush: true);
+        });
     }
 
     private void OnDisconnected(SshSessionDisconnectInfo disconnectInfo)
@@ -1968,7 +2007,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
-    private void UpdateStatus(string status)
+    private bool IsWinRmSessionTab()
+    {
+        return string.Equals(_sessionTab?.ConnectionType, "WINRM", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void UpdateStatus(
+        string status,
+        string? displayTextOverride = null,
+        bool forceErrorBrush = false)
     {
         if (_sessionTab is not null)
         {
@@ -1976,7 +2023,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         // Display localized status text while keeping internal state identifier
-        var displayText = status switch
+        var displayText = displayTextOverride ?? status switch
         {
             "Connected" => L("SshSessionStatusConnected"),
             "Disconnected" => L("SshSessionStatusDisconnected"),
@@ -1994,7 +2041,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         DisconnectButton.Visibility = isDisconnected ? Visibility.Collapsed : Visibility.Visible;
         ReconnectButton.Visibility = isDisconnected ? Visibility.Visible : Visibility.Collapsed;
 
-        StatusTextBlock.Foreground = string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
+        StatusTextBlock.Foreground = forceErrorBrush
+            || string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
             ? GetBrush("ErrorBrush", Brushes.IndianRed)
             : GetBrush("TextPrimaryBrush", Brushes.White);
     }
