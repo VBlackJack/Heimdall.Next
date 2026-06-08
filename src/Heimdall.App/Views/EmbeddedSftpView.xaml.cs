@@ -627,8 +627,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message)
-                ?? ex.Message);
+            ShowError(_viewModel.DescribeTransferError(ex));
         }
     }
 
@@ -706,8 +705,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                         }
                         catch (Exception localWriteEx)
                         {
-                            ShowError(_localizer?.Format("SftpStatusTransferFailed", localWriteEx.Message)
-                                ?? localWriteEx.Message);
+                            ShowError(_viewModel.DescribeTransferError(localWriteEx));
                             return;
                         }
 
@@ -733,14 +731,12 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                             }
                             catch (Exception sudoEx)
                             {
-                                ShowError(_localizer?.Format("SftpStatusTransferFailed", sudoEx.Message)
-                                    ?? sudoEx.Message);
+                                ShowError(_viewModel.DescribeTransferError(sudoEx));
                             }
                         }
                         catch (Exception uploadEx)
                         {
-                            ShowError(_localizer?.Format("SftpStatusTransferFailed", uploadEx.Message)
-                                ?? uploadEx.Message);
+                            ShowError(_viewModel.DescribeTransferError(uploadEx));
                         }
                     }
                     finally

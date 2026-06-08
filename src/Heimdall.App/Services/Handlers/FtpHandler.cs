@@ -103,7 +103,7 @@ internal sealed class FtpHandler : IProtocolHandler
         {
             browser.Dispose();
             Core.Logging.FileLogger.Warn($"FTP connect failed: {ex.Message}");
-            var userMsg = _localizer.Format("ErrorFtpConnectionFailed", ex.Message);
+            var userMsg = _localizer["ErrorFtpConnectionFailed"];
             _connectionSm.SetError(server.Id, userMsg);
             return new ConnectionResult(false, userMsg, null);
         }
