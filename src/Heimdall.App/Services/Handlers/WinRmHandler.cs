@@ -51,8 +51,8 @@ internal sealed class WinRmHandler : IProtocolHandler
         WinRmBootstrapJanitor? bootstrapJanitor = null)
     {
         _tunnelService = tunnelService ?? throw new ArgumentNullException(nameof(tunnelService));
-        _connectionSm = connectionSm;
-        _localizer = localizer;
+        _connectionSm = connectionSm ?? throw new ArgumentNullException(nameof(connectionSm));
+        _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
         _preflight = preflight ?? new WinRmPreflight();
         _terminalSessionFactory = terminalSessionFactory ?? CreateDefaultTerminalSession;
         _launchBuilder = launchBuilder ?? new WinRmPowerShellLaunchBuilder();

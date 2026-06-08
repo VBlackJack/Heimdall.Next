@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+
 namespace Heimdall.Core.Ssh;
 
 /// <summary>
@@ -37,7 +40,19 @@ public sealed class PinnedFingerprintVerifier(
 
         return Port == port
             && string.Equals(Host, host, StringComparison.Ordinal)
-            && string.Equals(Fingerprint, fingerprint, StringComparison.Ordinal);
+            && FingerprintMatches(fingerprint);
+    }
+
+    private bool FingerprintMatches(string fingerprint)
+    {
+        if (Fingerprint.Length != fingerprint.Length)
+        {
+            return false;
+        }
+
+        ReadOnlySpan<byte> expected = MemoryMarshal.AsBytes(Fingerprint.AsSpan());
+        ReadOnlySpan<byte> presented = MemoryMarshal.AsBytes(fingerprint.AsSpan());
+        return CryptographicOperations.FixedTimeEquals(expected, presented);
     }
 
     public Task<HostKeyDecision> VerifyAsync(

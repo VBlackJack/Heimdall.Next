@@ -253,7 +253,7 @@
                                         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SudoMode}" Value="True">
-                                                <Setter Property="Foreground" Value="OrangeRed"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

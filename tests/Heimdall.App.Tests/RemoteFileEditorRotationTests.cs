@@ -34,6 +34,14 @@ public sealed class RemoteFileEditorRotationTests
     }
 
     [Fact]
+    public void PinnedFingerprintVerifier_Matches_RejectsDifferentLengthFingerprint()
+    {
+        var verifier = new PinnedFingerprintVerifier("gw.example.com", 22, "SHA256:AAA");
+
+        Assert.False(verifier.Matches("gw.example.com", 22, "SHA256:AAAA"));
+    }
+
+    [Fact]
     public async Task PinnedFingerprintVerifier_VerifyAsync_RejectsRotation()
     {
         var verifier = new PinnedFingerprintVerifier("gw.example.com", 22, "SHA256:AAA");

@@ -444,7 +444,8 @@ public sealed class SftpBrowser : IRemoteBrowser
     /// <param name="ct">Cancellation token.</param>
     /// <remarks>
     /// Only the nine standard rwx permission bits are applied; setuid, setgid
-    /// and sticky bits are not modified by this method.
+    /// and sticky bits are not modified by this method. The mode value is a
+    /// permissions bitmask (for example 0x1FF for 777), not decimal digits.
     /// </remarks>
     public async Task ChmodAsync(string path, short mode, CancellationToken ct = default)
     {
@@ -715,6 +716,7 @@ public sealed class SftpBrowser : IRemoteBrowser
 /// <summary>
 /// Extension helpers to safely read SSH.NET <see cref="SftpFileAttributes"/> fields
 /// that may not be present in all SFTP server implementations.
+/// These fields are listing metadata only; missing values must not fail the browser.
 /// </summary>
 internal static class SftpFileAttributesExtensions
 {
@@ -734,8 +736,8 @@ internal static class SftpFileAttributesExtensions
     {
         try
         {
-            // SftpFileAttributes exposes permissions as individual bool properties
-            // but we need the raw octal. Calculate from the bool flags.
+            // SftpFileAttributes exposes permissions as bools. Compose the raw
+            // Unix bitmask here; the display layer converts it back to octal digits.
             int mode = 0;
             if (attrs.OwnerCanRead) mode |= 0x100;
             if (attrs.OwnerCanWrite) mode |= 0x080;
@@ -750,6 +752,7 @@ internal static class SftpFileAttributesExtensions
         }
         catch (Exception ex)
         {
+            // These attributes are display-only; some servers omit or reject them.
             Heimdall.Core.Logging.FileLogger.Warn($"[SftpBrowser] read permissions: {ex.Message}");
             return 0;
         }
