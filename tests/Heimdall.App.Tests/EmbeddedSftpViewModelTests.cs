@@ -625,16 +625,18 @@ public sealed class EmbeddedSftpViewModelTests
     public async Task DeleteEntriesAsync_ProtectedRoot_DoesNotCallBrowserDelete()
     {
         FakeUiDispatcher dispatcher = new();
+        LocalizationManager localizer = await CreateLocalizerAsync("en");
         EmbeddedSftpViewModel viewModel = new(dispatcher);
         FakeRemoteBrowser browser = new();
         SetBrowser(viewModel, browser);
+        SetLocalizer(viewModel, localizer);
         viewModel.SetDialogService(new ConfirmingDialogService());
 
         await viewModel.DeleteEntriesAsync([CreateRemoteEntry("/", "/", isDirectory: true)]);
 
         Assert.Equal(0, browser.DeleteCallCount);
         Assert.True(viewModel.IsErrorStatus);
-        Assert.Contains("protected remote root", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(localizer["SftpErrorProtectedRoot"], viewModel.StatusText);
     }
 
     [Fact]
@@ -661,6 +663,42 @@ public sealed class EmbeddedSftpViewModelTests
         string transferred = EmbeddedSftpViewModel.FormatSize(512);
         string total = EmbeddedSftpViewModel.FormatSize(1024);
         Assert.Equal($"\u2191 app.log \u2014 {transferred} / {total} (50%)", viewModel.TransferStatusText);
+    }
+
+    [Fact]
+    public async Task DescribeTransferError_GenericException_ReturnsLocalizedMessageWithoutRawText()
+    {
+        FakeUiDispatcher dispatcher = new();
+        LocalizationManager localizer = await CreateLocalizerAsync("en");
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetLocalizer(viewModel, localizer);
+        const string rawMessage = "SSH.NET permission denied: subsystem request failed";
+
+        string message = viewModel.DescribeTransferError(new InvalidOperationException(rawMessage));
+
+        Assert.Equal(localizer["SftpStatusTransferFailed"], message);
+        Assert.DoesNotContain(rawMessage, message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(nameof(SudoFailureKind.PasswordUnavailable), "ErrorSudoPasswordUnavailable")]
+    [InlineData(nameof(SudoFailureKind.PasswordRejected), "ErrorSudoPasswordRejected")]
+    [InlineData(nameof(SudoFailureKind.None), "ErrorSudoAuthenticationFailed")]
+    public async Task DescribeTransferError_SudoAuthenticationException_ReturnsLocalizedSudoMessage(
+        string kindName,
+        string expectedKey)
+    {
+        FakeUiDispatcher dispatcher = new();
+        LocalizationManager localizer = await CreateLocalizerAsync("en");
+        EmbeddedSftpViewModel viewModel = new(dispatcher);
+        SetLocalizer(viewModel, localizer);
+        var kind = Enum.Parse<SudoFailureKind>(kindName);
+        const string rawStderr = "sudo raw stderr that must stay out of the UI";
+
+        string message = viewModel.DescribeTransferError(new SudoAuthenticationException(kind, rawStderr));
+
+        Assert.Equal(localizer[expectedKey], message);
+        Assert.DoesNotContain(rawStderr, message, StringComparison.Ordinal);
     }
 
     [Fact]

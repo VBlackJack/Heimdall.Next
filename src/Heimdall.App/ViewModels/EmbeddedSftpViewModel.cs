@@ -602,17 +602,28 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Returns a localized transfer error message while keeping raw exception details in logs.
+    /// </summary>
+    public string DescribeTransferError(Exception ex)
+    {
+        ArgumentNullException.ThrowIfNull(ex);
+
+        if (ex is SudoAuthenticationException sudoException)
+        {
+            return GetSudoAuthenticationErrorMessage(sudoException.Kind);
+        }
+
+        Core.Logging.FileLogger.Warn(
+            $"EmbeddedSFTP transfer failed [{ex.GetType().Name}]: {ex.Message}");
+        return L10n("SftpStatusTransferFailed");
+    }
+
+    /// <summary>
     /// Sets a localized transfer error status, including typed sudo authentication failures.
     /// </summary>
     public string SetTransferError(Exception ex)
     {
-        ArgumentNullException.ThrowIfNull(ex);
-
-        string message = ex is SudoAuthenticationException sudoException
-            ? GetSudoAuthenticationErrorMessage(sudoException.Kind)
-            : _localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message;
-
-        return SetErrorStatus(message);
+        return SetErrorStatus(DescribeTransferError(ex));
     }
 
     /// <summary>
@@ -1263,7 +1274,12 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             foreach (var file in entries)
             {
-                SftpPathGuard.ThrowIfProtectedRoot(file.FullPath, "delete");
+                if (SftpPathGuard.IsProtectedRoot(file.FullPath))
+                {
+                    await RunOnUiAsync(() => SetErrorStatus(L10n("SftpErrorProtectedRoot"))).ConfigureAwait(false);
+                    return;
+                }
+
                 try
                 {
                     await _browser.DeleteAsync(file.FullPath);
@@ -1709,8 +1725,7 @@ public sealed partial class EmbeddedSftpViewModel : ObservableObject
         {
             SudoFailureKind.PasswordUnavailable => L10n("ErrorSudoPasswordUnavailable"),
             SudoFailureKind.PasswordRejected => L10n("ErrorSudoPasswordRejected"),
-            _ => _localizer?.Format("SftpStatusTransferFailed", "sudo authentication failed")
-                ?? "sudo authentication failed",
+            _ => L10n("ErrorSudoAuthenticationFailed"),
         };
     }
 }
