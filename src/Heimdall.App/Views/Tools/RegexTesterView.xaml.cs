@@ -77,17 +77,26 @@ public partial class RegexTesterView : UserControl, IToolView
             return;
         }
 
-        var accent = FindResource("AccentBrush") as SolidColorBrush;
-        var accentColor = accent?.Color ?? System.Windows.Media.Colors.DodgerBlue;
-        var matchBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(80, accentColor.R, accentColor.G, accentColor.B));
-        var groupBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 255, 165, 0));
-        var foreground = FindResource("TextPrimaryBrush") as Brush ?? System.Windows.SystemColors.ControlTextBrush;
+        // Match/group highlights derive from themed brushes (accent for matches,
+        // warning for named groups) with a translucent overlay opacity.
+        var matchBrush = TryFindResource("AccentBrush") is SolidColorBrush accent
+            ? new SolidColorBrush(accent.Color) { Opacity = 80.0 / 255.0 }
+            : null;
+        var groupBrush = TryFindResource("WarningBrush") is SolidColorBrush warning
+            ? new SolidColorBrush(warning.Color) { Opacity = 100.0 / 255.0 }
+            : null;
+        var foreground = TryFindResource("TextPrimaryBrush") as Brush;
         var document = new FlowDocument { FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"), FontSize = (double)FindResource("FontSizeBody"), PagePadding = new Thickness(0) };
         var paragraph = new Paragraph { Margin = new Thickness(0) };
 
         foreach (var segment in _vm.HighlightSegments)
         {
-            var run = new Run(segment.Text) { Foreground = foreground };
+            var run = new Run(segment.Text);
+            if (foreground is not null)
+            {
+                run.Foreground = foreground;
+            }
+
             run.Background = segment.Kind switch
             {
                 RegexHighlightKind.Match => matchBrush,

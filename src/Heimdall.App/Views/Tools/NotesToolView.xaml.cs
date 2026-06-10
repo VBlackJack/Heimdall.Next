@@ -648,10 +648,12 @@ public partial class NotesToolView : UserControl, IToolView
 
         var delete = new MenuItem
         {
-            Header = L("ToolNotesBtnDelete"),
-            Foreground = Application.Current.TryFindResource("ErrorBrush") as System.Windows.Media.Brush
-                ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red)
+            Header = L("ToolNotesBtnDelete")
         };
+        if (Application.Current.TryFindResource("ErrorBrush") is System.Windows.Media.Brush deleteBrush)
+        {
+            delete.Foreground = deleteBrush;
+        }
         delete.Click += async (_, _) => await DeleteCurrentNoteAsync().ConfigureAwait(true);
         menu.Items.Add(delete);
 
@@ -818,10 +820,12 @@ public partial class NotesToolView : UserControl, IToolView
 
             var delete = new MenuItem
             {
-                Header = L("ToolNotesBtnDelete"),
-                Foreground = Application.Current.TryFindResource("ErrorBrush") as System.Windows.Media.Brush
-                    ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red)
+                Header = L("ToolNotesBtnDelete")
             };
+            if (Application.Current.TryFindResource("ErrorBrush") is System.Windows.Media.Brush treeDeleteBrush)
+            {
+                delete.Foreground = treeDeleteBrush;
+            }
             delete.Click += async (_, _) => await DeleteCurrentNoteAsync().ConfigureAwait(true);
             TreeContextMenu.Items.Add(delete);
         }

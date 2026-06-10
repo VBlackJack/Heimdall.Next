@@ -150,8 +150,7 @@ public sealed class ContextMenuFactory
             vm.ServerList.DeleteServerCommand,
             server,
             inputGestureText: "Ctrl+Del");
-        deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-            ?? new SolidColorBrush(Colors.Red);
+        ApplyDestructiveForeground(deleteItem);
         menu.Items.Add(deleteItem);
 
         return menu;
@@ -194,8 +193,7 @@ public sealed class ContextMenuFactory
             string.Format(vm.Localize("TreeCtxDeleteSelected"), selectionCount),
             vm.ServerList.DeleteSelectedCommand,
             inputGestureText: "Del");
-        deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-            ?? new SolidColorBrush(Colors.Red);
+        ApplyDestructiveForeground(deleteItem);
         menu.Items.Add(deleteItem);
 
         return menu;
@@ -299,8 +297,7 @@ public sealed class ContextMenuFactory
             vm.Localize("TreeCtxRemoveTool"),
             vm.ServerList.DeleteServerCommand,
             tool);
-        removeItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-            ?? new SolidColorBrush(Colors.Red);
+        ApplyDestructiveForeground(removeItem);
         menu.Items.Add(removeItem);
 
         return menu;
@@ -516,10 +513,9 @@ public sealed class ContextMenuFactory
             // Delete folder (move servers to root)
             var deleteItem = new MenuItem
             {
-                Header = vm.Localize("TreeCtxDeleteGroup"),
-                Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-                    ?? new SolidColorBrush(Colors.Red)
+                Header = vm.Localize("TreeCtxDeleteGroup")
             };
+            ApplyDestructiveForeground(deleteItem);
             deleteItem.Click += async (_, _) =>
             {
                 var confirmed = await vm.DialogService.ShowConfirmAsync(
@@ -782,6 +778,19 @@ public sealed class ContextMenuFactory
     private static ContextMenu CreateContextMenu()
     {
         return new ContextMenu();
+    }
+
+    /// <summary>
+    /// Colors a destructive menu item with the themed error brush. When the
+    /// theme bridge is not merged (theoretical swap window), the item keeps
+    /// its inherited foreground instead of falling back to a hardcoded color.
+    /// </summary>
+    private static void ApplyDestructiveForeground(MenuItem item)
+    {
+        if (Application.Current.TryFindResource("ErrorBrush") is Brush errorBrush)
+        {
+            item.Foreground = errorBrush;
+        }
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ using System.Windows.Media;
 namespace Heimdall.App.Converters;
 
 /// <summary>
-/// Converts a hex color string (e.g., "#3B82F6") to a <see cref="SolidColorBrush"/>.
+/// Converts a hex color string (e.g., "#RRGGBB") to a <see cref="SolidColorBrush"/>.
 /// Returns the fallback value when the input is null, empty, or not a valid color.
 /// </summary>
 public sealed class StringToBrushConverter : IValueConverter
