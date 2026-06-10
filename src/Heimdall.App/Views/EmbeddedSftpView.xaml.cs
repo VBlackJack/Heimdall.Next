@@ -99,6 +99,11 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     /// </summary>
     public event Action? ReconnectRequested;
 
+    /// <summary>
+    /// Raised when the user asks the shared pane lifecycle to close this session tab.
+    /// </summary>
+    public event Action? CloseRequested;
+
     public EmbeddedSftpView()
     {
         InitializeComponent();
@@ -957,6 +962,17 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         Core.Logging.FileLogger.Info("EmbeddedSFTP reconnect requested by user");
         UpdateStatus(_localizer?["SftpStatusReconnecting"] ?? "Reconnecting...");
         ReconnectRequested?.Invoke();
+    }
+
+    private void OnCloseTabClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info("EmbeddedSFTP close requested by user");
+        CloseRequested?.Invoke();
     }
 
     private void OnBrowserDisconnected(string? errorMessage)

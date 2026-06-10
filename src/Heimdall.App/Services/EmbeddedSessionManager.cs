@@ -815,6 +815,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 tab,
                 tab.ProfileLookupServerId,
                 tab.ConnectionType);
+        view.CloseRequested += () => CloseRequestedCallback?.Invoke(tab);
     }
 
     private void WireSplitRequested(EmbeddedSshView view, SessionTabViewModel tab)
