@@ -1172,17 +1172,14 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private bool ConfirmPaste(string text, AppDialogViewModels.PasteRisk risk)
     {
-        var owner = Window.GetWindow(this);
         if (_localizer is null)
         {
-            return System.Windows.MessageBox.Show(
-                owner,
-                text,
-                risk == AppDialogViewModels.PasteRisk.Dangerous
-                    ? "Dangerous paste"
-                    : "Multi-line paste",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning) == MessageBoxResult.Yes;
+            // Themed PasteConfirmDialog needs a localizer; if the field is not set
+            // (DI not wired for this instance), fall back to the generic confirm
+            // dialog routed through IDialogService. Use locale keys via the
+            // application-level LocalizationManager when accessible, otherwise
+            // refuse the paste to avoid an unthemed native dialog.
+            return ConfirmPasteViaDialogService(text, risk);
         }
 
         var viewModel = new AppDialogViewModels.PasteConfirmDialogViewModel(
@@ -1191,11 +1188,40 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _localizer);
         var dialog = new AppDialogs.PasteConfirmDialog
         {
-            Owner = owner,
+            Owner = Window.GetWindow(this),
             DataContext = viewModel,
         };
 
         return dialog.ShowDialog() == true;
+    }
+
+    private static bool ConfirmPasteViaDialogService(
+        string text,
+        AppDialogViewModels.PasteRisk risk)
+    {
+        var services = (Application.Current as App)?.Services;
+        var dialogService = services?.GetService(typeof(IDialogService)) as IDialogService;
+
+        if (dialogService is null)
+        {
+            Core.Logging.FileLogger.Warn(
+                "EmbeddedSSH paste blocked: no dialog service available.");
+            return false;
+        }
+
+        string titleKey = risk == AppDialogViewModels.PasteRisk.Dangerous
+            ? "PasteConfirmDangerousTitle"
+            : "PasteConfirmMultiLineTitle";
+
+        var localizer = services?.GetService(typeof(Core.Localization.LocalizationManager))
+            as Core.Localization.LocalizationManager;
+        string title = localizer is not null ? localizer[titleKey] : titleKey;
+
+        // ShowConfirmAsync runs synchronously to completion inside WpfDialogService
+        // (the dialog is modal); GetResult is therefore non-blocking on a real Task.
+        return dialogService.ShowConfirmAsync(title, text, "warning")
+            .GetAwaiter()
+            .GetResult();
     }
 
     private void OnDataReceived(byte[] data)

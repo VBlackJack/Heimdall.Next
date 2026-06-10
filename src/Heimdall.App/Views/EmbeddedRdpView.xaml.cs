@@ -898,16 +898,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable, IRdpDisconnectT
             localizer,
             FormatShortcutForDisplay(RdpShortcutParser.DefaultShortcut),
             FormatShortcutForDisplay(RdpShortcutParser.DefaultFullscreenShortcut));
-        var owner = Window.GetWindow(this);
         var title = localizer["RdpShortcutsHelpTitle"];
 
-        if (owner is null)
-        {
-            MessageBox.Show(body, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        MessageBox.Show(owner, body, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialogService = (Application.Current as App)?.Services
+            ?.GetService(typeof(IDialogService)) as IDialogService;
+        dialogService?.ShowInfo(title, body);
     }
 
     private static string BuildShortcutsHelpContent(

@@ -224,13 +224,10 @@ public partial class PortScannerView : UserControl, IToolView
         if (ports.Count > PortScanEngine.LargePortCountWarningThreshold)
         {
             var message = string.Format(L("ToolPortScanLargeRangeWarning"), ports.Count);
-            var result = MessageBox.Show(
-                message,
-                L("ToolPortScanTitle"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
+            var dialogService = (Application.Current as App)?.Services
+                ?.GetService(typeof(IDialogService)) as IDialogService;
+            if (dialogService is null
+                || !await dialogService.ShowConfirmAsync(L("ToolPortScanTitle"), message, "warning"))
             {
                 return;
             }

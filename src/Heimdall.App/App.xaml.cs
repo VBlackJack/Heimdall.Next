@@ -216,7 +216,10 @@ public partial class App : System.Windows.Application
             themeService.ApplyAccentTint(settings.AccentTint);
 
             // Check for legacy Heimdall installation and offer migration on first run
-            await TryMigrateLegacyAsync(configManager, localization);
+            await TryMigrateLegacyAsync(
+                configManager,
+                localization,
+                _serviceProvider.GetRequiredService<IDialogService>());
 
             // Scan for external tools (NirSoft, Sysinternals) on a background thread.
             // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
@@ -280,6 +283,8 @@ public partial class App : System.Windows.Application
         }
         catch (Exception ex)
         {
+            Heimdall.Core.Logging.FileLogger.Error("Startup failure", ex);
+
             try
             {
                 splash.Close();
@@ -653,7 +658,9 @@ public partial class App : System.Windows.Application
     /// Only prompts on first run (when servers.json does not yet contain data).
     /// </summary>
     private static async Task TryMigrateLegacyAsync(
-        IConfigManager configManager, LocalizationManager localization)
+        IConfigManager configManager,
+        LocalizationManager localization,
+        IDialogService dialogService)
     {
         // Only offer migration when servers.json is empty or missing (first run)
         var existingServers = await configManager.LoadServersAsync();
@@ -690,13 +697,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var prompt = MessageBox.Show(
-            localization["MigrationDetectedPrompt"],
+        var confirmed = await dialogService.ShowConfirmAsync(
             localization["MigrationTitle"],
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            localization["MigrationDetectedPrompt"],
+            "info");
 
-        if (prompt != MessageBoxResult.Yes)
+        if (!confirmed)
         {
             return;
         }
@@ -706,19 +712,15 @@ public partial class App : System.Windows.Application
 
         if (result.Success)
         {
-            MessageBox.Show(
-                localization.Format("MigrationSuccess", result.ServersImported),
+            dialogService.ShowInfo(
                 localization["MigrationTitle"],
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                localization.Format("MigrationSuccess", result.ServersImported));
         }
         else
         {
-            MessageBox.Show(
-                localization.Format("MigrationFailed", result.Error ?? ""),
+            dialogService.ShowWarning(
                 localization["MigrationTitle"],
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                localization.Format("MigrationFailed", result.Error ?? ""));
         }
     }
 
@@ -754,8 +756,13 @@ public partial class App : System.Windows.Application
 
     private void ShowUnhandledException(Exception exception)
     {
-        var errorTitle = "Heimdall Error";
-        var errorBody = $"{exception.Message}\n\n{exception.StackTrace}";
+        // Hardcoded last-resort copy for the case where localization itself is broken.
+        // English-only by design — this path runs when DI / locale loading failed.
+        const string LastResortTitle = "Heimdall Error";
+        const string LastResortBody = "An unexpected error occurred. Full details have been written to the log file.";
+
+        string errorTitle = LastResortTitle;
+        string errorBody = $"{LastResortBody}\n\n{exception.Message}";
 
         try
         {
@@ -763,10 +770,7 @@ public partial class App : System.Windows.Application
             if (loc is not null)
             {
                 errorTitle = loc["ErrorUnhandledTitle"];
-                errorBody = loc.Format(
-                    "ErrorUnhandledMessage",
-                    exception.Message,
-                    exception.StackTrace ?? "");
+                errorBody = loc.Format("ErrorUnhandledBody", exception.Message);
             }
         }
         catch (Exception ex)
@@ -774,6 +778,24 @@ public partial class App : System.Windows.Application
             Core.Logging.FileLogger.Warn($"[App] localization lookup: {ex.Message}");
         }
 
+        try
+        {
+            // Themed dialog path. Never includes the stack trace — that goes to the log only.
+            var dialogService = _serviceProvider?.GetService<IDialogService>();
+            if (dialogService is not null)
+            {
+                dialogService.ShowError(errorTitle, errorBody);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[App] themed error dialog failed: {ex.Message}");
+        }
+
+        // Last-resort fallback: the themed path is unreachable (DI broken, dispatcher
+        // shutting down, theme resources missing). This is the ONLY MessageBox.Show
+        // call allowed in the codebase — see audit-UX-A and codex/ux-a1-dialog-service.
         MessageBox.Show(
             errorBody,
             errorTitle,

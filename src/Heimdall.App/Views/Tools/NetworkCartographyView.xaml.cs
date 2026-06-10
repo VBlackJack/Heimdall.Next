@@ -322,12 +322,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (_vm.LargeSubnetHostCount > LargeSubnetThreshold)
         {
             var warning = string.Format(L("ToolNetMapWarningLargeSubnet"), _vm.LargeSubnetHostCount);
-            var result = MessageBox.Show(
-                warning,
-                L("ToolNetMapTitle"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (result != MessageBoxResult.Yes)
+            var dialogService = (Application.Current as App)?.Services
+                ?.GetService(typeof(IDialogService)) as IDialogService;
+            if (dialogService is null
+                || !await dialogService.ShowConfirmAsync(L("ToolNetMapTitle"), warning, "warning"))
             {
                 return;
             }
@@ -791,13 +789,18 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private async void OnClearKbClick(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            L("ToolNetMapKbClearConfirm"),
-            L("ToolNetMapTitle"),
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+        var dialogService = (Application.Current as App)?.Services
+            ?.GetService(typeof(IDialogService)) as IDialogService;
+        if (dialogService is null)
+        {
+            return;
+        }
 
-        if (result != MessageBoxResult.Yes)
+        var confirmed = await dialogService.ShowConfirmAsync(
+            L("ToolNetMapTitle"),
+            L("ToolNetMapKbClearConfirm"),
+            "info");
+        if (!confirmed)
         {
             return;
         }

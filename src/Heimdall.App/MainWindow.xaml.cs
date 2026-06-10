@@ -75,6 +75,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly CommandLibrarySettingsService _commandLibrarySettingsService;
     private readonly ExternalToolSettingsService _externalToolSettingsService;
     private readonly ExternalToolLaunchService _externalToolLaunchService;
+    private readonly IDialogService _dialogService;
     private readonly NetworkScannerService _networkScannerService;
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
@@ -139,7 +140,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         CommandLibrarySettingsService commandLibrarySettingsService,
         ExternalToolSettingsService externalToolSettingsService,
         ExternalToolLaunchService externalToolLaunchService,
-        NetworkScannerService networkScannerService)
+        NetworkScannerService networkScannerService,
+        IDialogService dialogService)
     {
         _fileShareService = fileShareService;
         _foregroundWatchService = foregroundWatchService;
@@ -149,6 +151,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _externalToolSettingsService = externalToolSettingsService;
         _externalToolLaunchService = externalToolLaunchService;
         _networkScannerService = networkScannerService;
+        _dialogService = dialogService;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
@@ -1413,9 +1416,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         if (DataContext is not MainViewModel vm) return;
 
-        var shortcuts = vm.Localize("HelpShortcutsContent");
-        MessageBox.Show(shortcuts, vm.Localize("HelpShortcutsTitle"),
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        _dialogService.ShowInfo(
+            vm.Localize("HelpShortcutsTitle"),
+            vm.Localize("HelpShortcutsContent"));
     }
 
     /// <summary>
@@ -2691,10 +2694,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         if (!_suppressFileShareStartDialog)
         {
-            MessageBox.Show(helpMessage,
-                vm.Localize("ToolsSharingHelpTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            _dialogService.ShowInfo(vm.Localize("ToolsSharingHelpTitle"), helpMessage);
         }
     }
 
