@@ -1595,6 +1595,8 @@
   "ConnectionTypeLocal": "Local Shell",
   "StatusLaunchingLocal": "Launching local shell...",
   "LogLocalShellLaunching": "Launching local shell session",
+  "StatusLaunchingWinRm": "Launching WinRM session...",
+  "LogWinRmLaunching": "Launching WinRM remoting session",
   "LogLocalShellStarted": "Local shell started: {0}",
   "ErrorLocalShellNotFound": "Shell executable not found: {0}",
   "StateLaunchingLocal": "Launching local shell",

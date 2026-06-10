@@ -336,6 +336,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingRdp, "StatusConnecting", "LogRdpLaunching", false, false, true)]
     [InlineData(ConnectionState.LaunchingSsh, "StatusLaunchingSsh", "LogSshLaunching", false, false, true)]
     [InlineData(ConnectionState.LaunchingSftp, "StatusLaunchingSftp", "LogSftpLaunching", false, false, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, "StatusLaunchingWinRm", "LogWinRmLaunching", false, false, true)]
     [InlineData(ConnectionState.Connected, "StatusConnected", "LogRdpConnection", false, true, false)]
     [InlineData(ConnectionState.RemoteSessionHandedOff, "StatusRemoteSessionHandedOff", "LogRemoteSessionHandedOff", false, true, false)]
     [InlineData(ConnectionState.Disconnecting, "StatusDisconnecting", "LogDisconnecting", false, false, true)]
@@ -600,6 +601,50 @@ public class ConnectionStateMachineTests
         Assert.True(metadata.IsProgress);
     }
 
+    // ── LaunchingWinRm: WinRM's explicit state (WinRmHandler.cs transition) ──
+    // WinRM hands the REPL off to the local PowerShell host, so its row mirrors
+    // LaunchingLocal including the RemoteSessionHandedOff target.
+
+    [Theory]
+    [InlineData(ConnectionState.ValidatingConfig, ConnectionState.LaunchingWinRm, true)]
+    [InlineData(ConnectionState.TunnelEstablished, ConnectionState.LaunchingWinRm, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.RemoteSessionHandedOff, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.Disconnected, false)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.LaunchingSsh, false)]
+    [InlineData(ConnectionState.LaunchingWinRm, ConnectionState.Initializing, false)]
+    public void LaunchingWinRm_TransitionTable(ConnectionState from, ConnectionState to, bool expected)
+    {
+        Assert.Equal(expected, ConnectionStateMachine.IsValidTransition(from, to));
+    }
+
+    [Fact]
+    public void LaunchingWinRm_Metadata_IsProgressState()
+    {
+        StateMetadata metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchingWinRm);
+
+        Assert.Equal("StatusLaunchingWinRm", metadata.DisplayKey);
+        Assert.Equal("LogWinRmLaunching", metadata.LogKey);
+        Assert.False(metadata.IsTerminal);
+        Assert.False(metadata.AllowsUserAction);
+        Assert.True(metadata.IsProgress);
+    }
+
+    [Fact]
+    public void FullWinRmWorkflow_HandsOffToLocalHost()
+    {
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Initializing));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.ValidatingConfig));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.LaunchingWinRm));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.RemoteSessionHandedOff));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnecting));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnected));
+
+        Assert.Equal(ConnectionState.Disconnected, _sm.GetState("srv"));
+    }
+
     // ── All protocol launch states: full transition coverage ────────────
 
     [Theory]
@@ -611,6 +656,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingSsh)]
     [InlineData(ConnectionState.LaunchingSftp)]
     [InlineData(ConnectionState.LaunchingLocal)]
+    [InlineData(ConnectionState.LaunchingWinRm)]
     public void LaunchState_ToConnected_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Connected));
@@ -625,6 +671,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingSsh)]
     [InlineData(ConnectionState.LaunchingSftp)]
     [InlineData(ConnectionState.LaunchingLocal)]
+    [InlineData(ConnectionState.LaunchingWinRm)]
     public void LaunchState_ToError_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Error));
@@ -639,6 +686,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingSsh)]
     [InlineData(ConnectionState.LaunchingSftp)]
     [InlineData(ConnectionState.LaunchingLocal)]
+    [InlineData(ConnectionState.LaunchingWinRm)]
     public void LaunchState_ToDisconnecting_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Disconnecting));
@@ -655,6 +703,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingTelnet)]
     [InlineData(ConnectionState.LaunchingCitrix)]
     [InlineData(ConnectionState.LaunchingLocal)]
+    [InlineData(ConnectionState.LaunchingWinRm)]
     public void TunnelEstablished_ToLaunchState_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(ConnectionState.TunnelEstablished, launchState));
@@ -671,6 +720,7 @@ public class ConnectionStateMachineTests
     [InlineData(ConnectionState.LaunchingTelnet)]
     [InlineData(ConnectionState.LaunchingCitrix)]
     [InlineData(ConnectionState.LaunchingLocal)]
+    [InlineData(ConnectionState.LaunchingWinRm)]
     public void ValidatingConfig_ToLaunchState_IsValid(ConnectionState launchState)
     {
         Assert.True(ConnectionStateMachine.IsValidTransition(ConnectionState.ValidatingConfig, launchState));
