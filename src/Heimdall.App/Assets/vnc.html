@@ -151,10 +151,43 @@
         Vendored from https://github.com/novnc/noVNC v1.5.0
     -->
     <script type="module">
+        // Forward console output to the host so noVNC's real failure reasons
+        // (RFB errors, decoder exceptions) reach the application log instead of
+        // dying in the JS console. Installed before noVNC's logging is initialized
+        // so its bound console references route through this hook.
+        (function () {
+            var hookedLevels = ['log', 'info', 'debug', 'warn', 'error'];
+            var posting = false;
+            hookedLevels.forEach(function (level) {
+                var original = console[level].bind(console);
+                console[level] = function () {
+                    original.apply(null, arguments);
+                    if (posting) return;
+                    posting = true;
+                    try {
+                        if (window.chrome && window.chrome.webview) {
+                            var parts = Array.prototype.map.call(arguments, function (arg) {
+                                if (typeof arg === 'string') return arg;
+                                if (arg instanceof Error) return arg.stack || arg.message;
+                                try { return JSON.stringify(arg); } catch (jsonError) { return String(arg); }
+                            });
+                            window.chrome.webview.postMessage('console:' + level + ':' + parts.join(' '));
+                        }
+                    } catch (postError) {
+                        // Diagnostics must never break the page.
+                    } finally {
+                        posting = false;
+                    }
+                };
+            });
+        }());
+
         var RFB;
         try {
             var module = await import('./vnc/core/rfb.js');
             RFB = module.default;
+            var logging = await import('./vnc/core/util/logging.js');
+            logging.initLogging('debug');
         } catch (importError) {
             document.getElementById('loading').style.display = 'none';
             var ep = document.getElementById('error-panel');
@@ -213,6 +246,17 @@
                     });
 
                     rfb.addEventListener('disconnect', function (event) {
+                        // Surface any extra detail beyond the bare `clean` flag —
+                        // noVNC may attach the underlying failure reason here.
+                        var detail = event.detail || {};
+                        var detailKeys = Object.keys(detail);
+                        if (detailKeys.length > 1 || (detailKeys.length === 1 && detailKeys[0] !== 'clean')) {
+                            try {
+                                postMessage('disconnect-detail:' + JSON.stringify(detail));
+                            } catch (jsonError) {
+                                // Non-serializable detail; console hook still captures it.
+                            }
+                        }
                         if (event.detail.clean) {
                             postMessage('disconnected:clean');
                         } else {
