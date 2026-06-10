@@ -845,6 +845,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
                 tab,
                 tab.ProfileLookupServerId,
                 tab.ConnectionType);
+        view.RequestClose += (_) => CloseRequestedCallback?.Invoke(tab);
     }
 
     /// <summary>

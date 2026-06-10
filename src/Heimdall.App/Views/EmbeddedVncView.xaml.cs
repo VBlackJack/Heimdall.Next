@@ -352,8 +352,20 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
     private void OnDisconnectClick(object sender, RoutedEventArgs e)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info("EmbeddedVNC Disconnect requested by user");
         PostWebMessage("disconnect:");
-        Dispose();
+
+        // Mirror the SSH disconnect contract: the view stays alive in the
+        // Disconnected state so the overlay's Reconnect/Close actions keep
+        // working. The noVNC "disconnected:" round-trip also shows the overlay,
+        // but set it directly so a wedged WebView cannot leave the user stuck.
+        StatusTextBlock.Text = _localizer?["StatusVncDisconnected"] ?? "Disconnected";
+        ShowReconnectOverlay();
     }
 
     private void OnReconnectClick(object sender, RoutedEventArgs e)
@@ -373,7 +385,9 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
     {
         ReconnectOverlay.Visibility = Visibility.Collapsed;
-        Dispose();
+        // Route through the shared pane lifecycle so the tab closes via the
+        // normal teardown path instead of disposing the view under a live tab.
+        RequestClose?.Invoke(_session?.ServerId ?? "");
     }
 
     private void OnSplitClick(object sender, RoutedEventArgs e)
@@ -401,6 +415,9 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
     /// <summary>Raised to request a split pane. Parameter: SessionTab.</summary>
     public event Action<SessionTabViewModel?>? RequestSplit;
+
+    /// <summary>Raised to request closing the session tab. Parameter: ServerId.</summary>
+    public event Action<string>? RequestClose;
 
     public void Dispose()
     {
