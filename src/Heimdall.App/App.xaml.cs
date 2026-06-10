@@ -280,6 +280,8 @@ public partial class App : System.Windows.Application
         }
         catch (Exception ex)
         {
+            Heimdall.Core.Logging.FileLogger.Error("Startup failure", ex);
+
             try
             {
                 splash.Close();
@@ -754,8 +756,13 @@ public partial class App : System.Windows.Application
 
     private void ShowUnhandledException(Exception exception)
     {
-        var errorTitle = "Heimdall Error";
-        var errorBody = $"{exception.Message}\n\n{exception.StackTrace}";
+        // Hardcoded last-resort copy for the case where localization itself is broken.
+        // English-only by design — this path runs when DI / locale loading failed.
+        const string LastResortTitle = "Heimdall Error";
+        const string LastResortBody = "An unexpected error occurred. Full details have been written to the log file.";
+
+        string errorTitle = LastResortTitle;
+        string errorBody = $"{LastResortBody}\n\n{exception.Message}";
 
         try
         {
@@ -763,10 +770,7 @@ public partial class App : System.Windows.Application
             if (loc is not null)
             {
                 errorTitle = loc["ErrorUnhandledTitle"];
-                errorBody = loc.Format(
-                    "ErrorUnhandledMessage",
-                    exception.Message,
-                    exception.StackTrace ?? "");
+                errorBody = loc.Format("ErrorUnhandledBody", exception.Message);
             }
         }
         catch (Exception ex)
@@ -774,6 +778,24 @@ public partial class App : System.Windows.Application
             Core.Logging.FileLogger.Warn($"[App] localization lookup: {ex.Message}");
         }
 
+        try
+        {
+            // Themed dialog path. Never includes the stack trace — that goes to the log only.
+            var dialogService = _serviceProvider?.GetService<IDialogService>();
+            if (dialogService is not null)
+            {
+                dialogService.ShowError(errorTitle, errorBody);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[App] themed error dialog failed: {ex.Message}");
+        }
+
+        // Last-resort fallback: the themed path is unreachable (DI broken, dispatcher
+        // shutting down, theme resources missing). This is the ONLY MessageBox.Show
+        // call allowed in the codebase — see audit-UX-A and codex/ux-a1-dialog-service.
         MessageBox.Show(
             errorBody,
             errorTitle,
