@@ -30,6 +30,15 @@
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"/>
+                <Button x:Name="CloseTabButton"
+                        DockPanel.Dock="Right"
+                        Click="OnCloseTabClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="{StaticResource FontSizeCaption}"
+                        Margin="8,0,0,0"
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"/>
                 <Button x:Name="BringToFrontButton"
                         DockPanel.Dock="Right"
                         Click="OnBringToFrontClick"

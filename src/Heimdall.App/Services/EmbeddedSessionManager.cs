@@ -364,6 +364,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
             var view = new EmbeddedCitrixView();
             view.InitializeSession(citrix, sessionTab, displayName, _localizer, _dialogService);
             view.SetConnectionInfo(citrix.StoreFrontUrl, citrix.AppName, citrix.Mode);
+            view.CloseRequested += () => CloseRequestedCallback?.Invoke(sessionTab);
             return view;
         }
 
