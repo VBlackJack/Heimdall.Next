@@ -49,6 +49,11 @@ public partial class MessageDialog : Window
         dialog.BtnPrimary.Content = primaryLabel;
         System.Windows.Automation.AutomationProperties.SetName(dialog.BtnPrimary, primaryLabel);
 
+        // Single-button dialog: Escape must close like OK. The XAML IsCancel sits on
+        // BtnTertiary, which is collapsed here and never receives the Escape invocation.
+        dialog.BtnPrimary.IsCancel = true;
+        dialog.BtnTertiary.IsCancel = false;
+
         ApplySeverityStyle(dialog, severity);
 
         dialog.ShowDialog();
@@ -74,6 +79,12 @@ public partial class MessageDialog : Window
         dialog.BtnSecondary.Visibility = Visibility.Visible;
         System.Windows.Automation.AutomationProperties.SetName(dialog.BtnPrimary, primaryLabel);
         System.Windows.Automation.AutomationProperties.SetName(dialog.BtnSecondary, secondaryLabel);
+
+        // Escape maps to the non-destructive outcome: BtnSecondary's handler sets
+        // Result = false ("No"). The XAML IsCancel on the collapsed BtnTertiary is
+        // neutralized so Escape cannot land on an invisible button.
+        dialog.BtnSecondary.IsCancel = true;
+        dialog.BtnTertiary.IsCancel = false;
 
         ApplySeverityStyle(dialog, severity);
 

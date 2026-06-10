@@ -136,6 +136,7 @@
                     Command="{Binding CancelCommand}"
                     MinWidth="120"
                     Margin="0,0,8,0"
+                    IsCancel="True"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     AutomationProperties.Name="{Binding DialogCancelLabel, Mode=OneWay}"/>
             <Button x:Name="ConfirmImportButton"

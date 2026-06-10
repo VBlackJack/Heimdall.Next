@@ -1412,13 +1412,29 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
     }
 
+    private bool _shortcutHelpDialogOpen;
+
     private void ShowKeyboardShortcutHelp()
     {
         if (DataContext is not MainViewModel vm) return;
 
-        _dialogService.ShowInfo(
-            vm.Localize("HelpShortcutsTitle"),
-            vm.Localize("HelpShortcutsContent"));
+        // Reentrancy guard: ShowInfo is modal and runs a nested message loop.
+        // F1 KeyDown messages already queued (fast taps, auto-repeat) are still
+        // dispatched to this window by that loop, re-entering this handler and
+        // stacking identical help dialogs.
+        if (_shortcutHelpDialogOpen) return;
+
+        _shortcutHelpDialogOpen = true;
+        try
+        {
+            _dialogService.ShowInfo(
+                vm.Localize("HelpShortcutsTitle"),
+                vm.Localize("HelpShortcutsContent"));
+        }
+        finally
+        {
+            _shortcutHelpDialogOpen = false;
+        }
     }
 
     /// <summary>

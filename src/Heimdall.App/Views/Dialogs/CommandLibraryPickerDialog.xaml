@@ -181,6 +181,7 @@
                     Command="{Binding CancelCommand}"
                     MinWidth="100"
                     Margin="0,0,8,0"
+                    IsCancel="True"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="ConfirmButton"
                     Content="{loc:Translate BtnOk}"
