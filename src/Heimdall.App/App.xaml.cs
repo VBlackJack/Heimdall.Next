@@ -216,7 +216,10 @@ public partial class App : System.Windows.Application
             themeService.ApplyAccentTint(settings.AccentTint);
 
             // Check for legacy Heimdall installation and offer migration on first run
-            await TryMigrateLegacyAsync(configManager, localization);
+            await TryMigrateLegacyAsync(
+                configManager,
+                localization,
+                _serviceProvider.GetRequiredService<IDialogService>());
 
             // Scan for external tools (NirSoft, Sysinternals) on a background thread.
             // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
@@ -655,7 +658,9 @@ public partial class App : System.Windows.Application
     /// Only prompts on first run (when servers.json does not yet contain data).
     /// </summary>
     private static async Task TryMigrateLegacyAsync(
-        IConfigManager configManager, LocalizationManager localization)
+        IConfigManager configManager,
+        LocalizationManager localization,
+        IDialogService dialogService)
     {
         // Only offer migration when servers.json is empty or missing (first run)
         var existingServers = await configManager.LoadServersAsync();
@@ -692,13 +697,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var prompt = MessageBox.Show(
-            localization["MigrationDetectedPrompt"],
+        var confirmed = await dialogService.ShowConfirmAsync(
             localization["MigrationTitle"],
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            localization["MigrationDetectedPrompt"],
+            "info");
 
-        if (prompt != MessageBoxResult.Yes)
+        if (!confirmed)
         {
             return;
         }
@@ -708,19 +712,15 @@ public partial class App : System.Windows.Application
 
         if (result.Success)
         {
-            MessageBox.Show(
-                localization.Format("MigrationSuccess", result.ServersImported),
+            dialogService.ShowInfo(
                 localization["MigrationTitle"],
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                localization.Format("MigrationSuccess", result.ServersImported));
         }
         else
         {
-            MessageBox.Show(
-                localization.Format("MigrationFailed", result.Error ?? ""),
+            dialogService.ShowWarning(
                 localization["MigrationTitle"],
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                localization.Format("MigrationFailed", result.Error ?? ""));
         }
     }
 

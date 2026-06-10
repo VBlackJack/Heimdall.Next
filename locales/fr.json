@@ -3129,6 +3129,8 @@
   "MigrationSuccess": "{0} serveur(s) import\u00e9(s) avec succ\u00e8s.",
   "MigrationFailed": "\u00c9chec de la migration : {0}",
   "ErrorUnhandledBody": "Une erreur inattendue est survenue :\n\n{0}\n\nLes d\u00e9tails complets ont \u00e9t\u00e9 enregistr\u00e9s dans le fichier journal.",
+  "PasteConfirmDangerousTitle": "Collage dangereux",
+  "PasteConfirmMultiLineTitle": "Collage multilignes",
   "ConfirmDeleteGatewayDetailMessage": "Supprimer la passerelle \u00ab {0} \u00bb ? Les sessions utilisant cette passerelle perdront leur configuration de tunnel.",
   "AuthBadgeKey": "KEY",
   "AuthBadgePwd": "PWD",

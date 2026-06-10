@@ -296,13 +296,18 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        var confirm = MessageBox.Show(
-            string.Format(L("ToolNotesDeleteConfirm"), SelectedNoteTitleText.Text),
-            L("ConfirmTitle"),
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+        var dialogService = (Application.Current as App)?.Services
+            ?.GetService(typeof(IDialogService)) as IDialogService;
+        if (dialogService is null)
+        {
+            return;
+        }
 
-        if (confirm != MessageBoxResult.Yes)
+        var confirmed = await dialogService.ShowConfirmAsync(
+            L("ConfirmTitle"),
+            string.Format(L("ToolNotesDeleteConfirm"), SelectedNoteTitleText.Text),
+            "warning");
+        if (!confirmed)
         {
             return;
         }

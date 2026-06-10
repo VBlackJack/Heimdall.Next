@@ -3130,6 +3130,8 @@
   "MigrationSuccess": "{0} server(s) imported successfully.",
   "MigrationFailed": "Migration failed: {0}",
   "ErrorUnhandledBody": "An unexpected error occurred:\n\n{0}\n\nFull details have been written to the log file.",
+  "PasteConfirmDangerousTitle": "Dangerous paste",
+  "PasteConfirmMultiLineTitle": "Multi-line paste",
   "ConfirmDeleteGatewayDetailMessage": "Delete gateway \"{0}\"? Sessions using this gateway will lose their tunnel configuration.",
   "AuthBadgeKey": "KEY",
   "AuthBadgePwd": "PWD",
