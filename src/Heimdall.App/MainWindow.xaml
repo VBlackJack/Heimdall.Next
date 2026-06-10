@@ -1337,7 +1337,7 @@
                                                    Foreground="{DynamicResource WarningTextBrush}"
                                                    Margin="0,2,0,2"
                                                    Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                   AutomationProperties.Name="Favorite"/>
+                                                   AutomationProperties.Name="{loc:Translate A11yFavoriteIndicator}"/>
                                     </Grid>
                                 </Border>
 
@@ -3449,7 +3449,7 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource BorderBrush}"
-                AutomationProperties.Name="Status">
+                AutomationProperties.Name="{loc:Translate A11yStatusBar}">
             <DockPanel Margin="8,0">
                 <TextBlock Text="{Binding StatusText}"
                            Foreground="{DynamicResource TextSecondaryBrush}"

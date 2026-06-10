@@ -79,6 +79,8 @@ public sealed partial class PasteConfirmDialogViewModel : ObservableObject
 
     public string TruncationNotice => _localizer["PasteConfirmTruncationNotice"];
 
+    public string PreviewAccessibleName => _localizer["A11yPastePreview"];
+
     public bool? Decision { get; private set; }
 
     public event EventHandler? CloseRequested;

@@ -104,7 +104,8 @@
         <TextBox x:Name="PreviewTextBox"
                  Grid.Row="2"
                  Text="{Binding PreviewText, Mode=OneWay}"
-                 Style="{StaticResource PreviewBoxStyle}"/>
+                 Style="{StaticResource PreviewBoxStyle}"
+                 AutomationProperties.Name="{Binding PreviewAccessibleName}"/>
 
         <TextBlock Grid.Row="3"
                    Margin="0,8,0,0"
