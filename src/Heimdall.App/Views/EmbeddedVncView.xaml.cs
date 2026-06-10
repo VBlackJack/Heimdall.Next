@@ -219,6 +219,35 @@ public partial class EmbeddedVncView : UserControl, IDisposable
             return;
         }
 
+        if (message.StartsWith("console:", StringComparison.Ordinal))
+        {
+            var payload = message["console:".Length..];
+            var separator = payload.IndexOf(':', StringComparison.Ordinal);
+            var level = separator > 0 ? payload[..separator] : string.Empty;
+            var text = separator >= 0 ? payload[(separator + 1)..] : payload;
+            var line = $"VNC console [{level}]: {text}";
+            switch (level)
+            {
+                case "error":
+                    Core.Logging.FileLogger.Error(line);
+                    break;
+                case "warn":
+                    Core.Logging.FileLogger.Warn(line);
+                    break;
+                default:
+                    Core.Logging.FileLogger.Info(line);
+                    break;
+            }
+            return;
+        }
+
+        if (message.StartsWith("disconnect-detail:", StringComparison.Ordinal))
+        {
+            Core.Logging.FileLogger.Warn(
+                $"VNC disconnect detail: {message["disconnect-detail:".Length..]}");
+            return;
+        }
+
         if (message.StartsWith("disconnected:", StringComparison.Ordinal))
         {
             Dispatcher.Invoke(() =>
@@ -372,6 +401,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     {
         ReconnectOverlay.Visibility = Visibility.Collapsed;
         ReconnectButton.Visibility = Visibility.Collapsed;
+        VncWebView.Visibility = Visibility.Visible;
         RequestReconnect?.Invoke(_session?.ServerId ?? "");
     }
 
@@ -379,6 +409,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     {
         ReconnectOverlay.Visibility = Visibility.Collapsed;
         ReconnectButton.Visibility = Visibility.Collapsed;
+        VncWebView.Visibility = Visibility.Visible;
         RequestReconnect?.Invoke(_session?.ServerId ?? "");
     }
 
@@ -407,6 +438,10 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
             ReconnectOverlay.Visibility = Visibility.Visible;
             ReconnectButton.Visibility = Visibility.Visible;
+            // Airspace rule: the WebView2 HWND occludes WPF siblings regardless
+            // of ZIndex, so the surface must be collapsed for the overlay to
+            // render. Mirrors ShowFallback().
+            VncWebView.Visibility = Visibility.Collapsed;
         });
     }
 
