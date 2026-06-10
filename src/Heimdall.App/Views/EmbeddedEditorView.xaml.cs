@@ -177,13 +177,16 @@ public partial class EmbeddedEditorView : UserControl
     /// </summary>
     public void ApplyTheme()
     {
-        // DraculaPro fallbacks — used if the theme resource is missing (e.g. during
-        // XAML designer preview) so the editor never renders with unset brushes.
-        var background = ResolveColor("BackgroundBrush", System.Windows.Media.Color.FromRgb(0x28, 0x2A, 0x36));
-        var foreground = ResolveColor("TextPrimaryBrush", System.Windows.Media.Color.FromRgb(0xF8, 0xF8, 0xF2));
-        var lineNumber = ResolveColor("TextSecondaryBrush", System.Windows.Media.Color.FromRgb(0x62, 0x72, 0xA4));
-        var selection = ResolveColor("HighlightBrush", System.Windows.Media.Color.FromRgb(0x44, 0x47, 0x5A));
-        var border = ResolveColor("BorderBrush", System.Windows.Media.Color.FromRgb(0x44, 0x47, 0x5A));
+        // Theme bridge unavailable (e.g. XAML designer preview): keep AvalonEdit's
+        // built-in defaults instead of painting hardcoded colors.
+        if (TryResolveColor("BackgroundBrush") is not { } background
+            || TryResolveColor("TextPrimaryBrush") is not { } foreground
+            || TryResolveColor("TextSecondaryBrush") is not { } lineNumber
+            || TryResolveColor("HighlightBrush") is not { } selection
+            || TryResolveColor("BorderBrush") is not { } border)
+        {
+            return;
+        }
 
         Editor.Background = new SolidColorBrush(background);
         Editor.Foreground = new SolidColorBrush(foreground);
@@ -202,12 +205,11 @@ public partial class EmbeddedEditorView : UserControl
         DraculaSyntaxPalette.Apply(Editor.SyntaxHighlighting);
     }
 
-    private static System.Windows.Media.Color ResolveColor(
-        string brushKey, System.Windows.Media.Color fallback)
+    private static System.Windows.Media.Color? TryResolveColor(string brushKey)
     {
         return Application.Current?.TryFindResource(brushKey) is SolidColorBrush brush
             ? brush.Color
-            : fallback;
+            : null;
     }
 
     private void ApplySyntaxHighlighting()
