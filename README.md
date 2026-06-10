@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5879%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-6808%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-59%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -244,7 +244,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~5,578 i18n keys)
+- Bilingual interface: English and French (~5,749 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -405,7 +405,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit (5,879 passing tests across 6 projects) |
+| Testing | xUnit (6,808 passing tests across 8 projects) |
 | Built-in Tools | 59 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
@@ -425,7 +425,7 @@ Heimdall.App          WPF application (MVVM, views, themes, services)
   +-- TwinShell.*        Terminal emulator core, persistence, and infrastructure components
 ```
 
-Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Terminal.Tests`, `Heimdall.App.Tests`, `Heimdall.App.UiTests`.
+Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`, `Heimdall.Rdp.Tests`, `Heimdall.Sftp.Tests`, `Heimdall.Terminal.Tests`, `Heimdall.App.Tests`, `Heimdall.App.UiTests`, `TwinShell.Infrastructure.Tests`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design decisions and data flow diagrams.
 
