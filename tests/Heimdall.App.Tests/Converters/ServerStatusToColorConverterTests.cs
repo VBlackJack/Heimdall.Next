@@ -199,4 +199,50 @@ public sealed class ServerStatusToColorConverterTests
         Assert.Equal("InfoBrush", requestedKey);
         Assert.Same(infoBrush, result);
     }
+
+    // Producer: ConnectionStateToBrushConverter.ResolveBrush amber arm — every
+    // Launching* state carries IsProgress metadata and must render the warning
+    // (amber) brush, not the gray fallback.
+    [Theory]
+    [InlineData("LaunchingRdp")]
+    [InlineData("LaunchingSsh")]
+    [InlineData("LaunchingSftp")]
+    [InlineData("LaunchingLocal")]
+    [InlineData("LaunchingVnc")]
+    [InlineData("LaunchingFtp")]
+    [InlineData("LaunchingTelnet")]
+    [InlineData("LaunchingCitrix")]
+    [InlineData("LaunchingWinRm")]
+    public void ConnectionState_AnyLaunchingState_UsesWarningBrushKey(string state)
+    {
+        string? requestedKey = null;
+        var converter = new ConnectionStateToBrushConverter(key =>
+        {
+            requestedKey = key;
+            return Brushes.Orange;
+        });
+
+        converter.Convert(state, typeof(Brush), parameter: null!, CultureInfo.InvariantCulture);
+
+        Assert.Equal("WarningBrush", requestedKey);
+    }
+
+    [Theory]
+    [InlineData("Connected", "SuccessBrush")]
+    [InlineData("Error", "ErrorBrush")]
+    [InlineData("Disconnected", "TextSecondaryBrush")]
+    [InlineData("SomethingUnknown", "TextSecondaryBrush")]
+    public void ConnectionState_AnchorStates_UseExpectedBrushKeys(string state, string expectedKey)
+    {
+        string? requestedKey = null;
+        var converter = new ConnectionStateToBrushConverter(key =>
+        {
+            requestedKey = key;
+            return Brushes.Gray;
+        });
+
+        converter.Convert(state, typeof(Brush), parameter: null!, CultureInfo.InvariantCulture);
+
+        Assert.Equal(expectedKey, requestedKey);
+    }
 }

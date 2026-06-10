@@ -47,6 +47,17 @@
                         Margin="8,0,0,0"
                         Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.Name="{loc:Translate A11yDisconnectSession}"/>
+                <Button x:Name="CloseTabButton"
+                        DockPanel.Dock="Right"
+                        Content="{loc:Translate SftpBtnClose}"
+                        ToolTip="{loc:Translate TooltipCloseSessionTab}"
+                        Click="OnCloseTabClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="{StaticResource FontSizeCaption}"
+                        Margin="8,0,0,0"
+                        Visibility="{Binding IsDisconnected, Converter={StaticResource BoolToVisibilityConverter}}"
+                        AutomationProperties.Name="{loc:Translate A11yCloseSessionTab}"/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
                         Content="{loc:Translate SftpBtnReconnect}"

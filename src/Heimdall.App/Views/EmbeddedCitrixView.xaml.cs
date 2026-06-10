@@ -134,14 +134,17 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         TerminateButton.Content = localizer?["BtnTerminateSession"] ?? "Terminate";
         BringToFrontButton.Content = localizer?["BtnBringToFront"] ?? "Bring to Front";
         CancelCaptureButton.Content = localizer?["CitrixCancelCapture"] ?? "Cancel";
+        CloseTabButton.Content = localizer?["BtnClose"] ?? "Close";
 
         // Tooltips
         TerminateButton.ToolTip = localizer?["TooltipDisconnectSession"] ?? "Disconnect session";
         BringToFrontButton.ToolTip = localizer?["TooltipBringToFront"] ?? "Bring to front";
+        CloseTabButton.ToolTip = localizer?["TooltipCloseSessionTab"] ?? "Close tab";
 
         // Accessibility
         System.Windows.Automation.AutomationProperties.SetName(TerminateButton, localizer?["A11yDisconnectSession"] ?? "Disconnect session");
         System.Windows.Automation.AutomationProperties.SetName(BringToFrontButton, localizer?["A11yBringToFront"] ?? "Bring to front");
+        System.Windows.Automation.AutomationProperties.SetName(CloseTabButton, localizer?["A11yCloseSessionTab"] ?? "Close session tab");
 
         SessionTitleText.Text = displayName;
         TitleText.Text = displayName;
@@ -624,6 +627,22 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         catch (InvalidOperationException ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] bring to front: {ex.Message}"); }
     }
 
+    /// <summary>
+    /// Raised when the user asks the shared pane lifecycle to close this session tab.
+    /// </summary>
+    public event Action? CloseRequested;
+
+    private void OnCloseTabClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info("[EmbeddedCitrixView] close requested by user");
+        CloseRequested?.Invoke();
+    }
+
     private async void OnTerminateClick(object sender, RoutedEventArgs e)
     {
         if (_session?.Process is null || _session.Process.HasExited) return;
@@ -692,6 +711,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 : string.Empty;
             TerminateButton.IsEnabled = true;
             BringToFrontButton.IsEnabled = !_embedded;
+            CloseTabButton.Visibility = Visibility.Collapsed;
         }
         else
         {
@@ -701,6 +721,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
             SessionInfoText.Text = string.Empty;
             BringToFrontButton.IsEnabled = false;
             TerminateButton.IsEnabled = false;
+            CloseTabButton.Visibility = Visibility.Visible;
         }
     }
 
