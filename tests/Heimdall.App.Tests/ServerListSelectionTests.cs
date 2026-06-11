@@ -157,6 +157,7 @@ public sealed class ServerListSelectionTests
         fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
 
         fixture.ViewModel.SearchText = "Beta";
+        await WaitForVisibleServerIdsAsync(fixture.ViewModel, "beta");
 
         AssertSelection(fixture.ViewModel, "beta");
         Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
@@ -173,10 +174,48 @@ public sealed class ServerListSelectionTests
         fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
 
         fixture.ViewModel.SearchText = "does-not-exist";
+        await WaitForVisibleServerIdsAsync(fixture.ViewModel);
 
         Assert.Empty(fixture.ViewModel.SelectedItems);
         Assert.Null(fixture.ViewModel.SelectedServer);
         Assert.False(fixture.ViewModel.HasSelection);
+    }
+
+    [Fact]
+    public async Task SearchFilter_DebouncesNonEmptyTextAndAppliesLatestTerm()
+    {
+        await using var fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha Node", "ops"),
+            CreateServer("beta", "Beta Node", "ops"),
+            CreateServer("gamma", "Gamma Node", "ops"));
+
+        fixture.ViewModel.SearchText = "Alpha";
+        fixture.ViewModel.SearchText = "Gamma";
+
+        await Task.Delay(150);
+
+        Assert.Equal(3, fixture.ViewModel.Servers.Count);
+
+        await WaitForVisibleServerIdsAsync(fixture.ViewModel, "gamma");
+    }
+
+    [Fact]
+    public async Task SearchFilter_ClearingTextAppliesImmediately()
+    {
+        await using var fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha Node", "ops"),
+            CreateServer("beta", "Beta Node", "ops"));
+
+        fixture.ViewModel.SearchText = "Beta";
+        await WaitForVisibleServerIdsAsync(fixture.ViewModel, "beta");
+
+        fixture.ViewModel.SearchText = "";
+
+        AssertVisibleServerIds(fixture.ViewModel, "alpha", "beta");
     }
 
     [Fact]
@@ -306,6 +345,30 @@ public sealed class ServerListSelectionTests
             Assert.True(selected.IsSelected);
         }
     }
+
+    private static async Task WaitForVisibleServerIdsAsync(ServerListViewModel viewModel, params string[] expectedIds)
+    {
+        var sortedExpected = SortIds(expectedIds);
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            if (SortIds(viewModel.Servers.Select(server => server.Id)).SequenceEqual(sortedExpected))
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        AssertVisibleServerIds(viewModel, expectedIds);
+    }
+
+    private static void AssertVisibleServerIds(ServerListViewModel viewModel, params string[] expectedIds)
+    {
+        Assert.Equal(SortIds(expectedIds), SortIds(viewModel.Servers.Select(server => server.Id)));
+    }
+
+    private static string[] SortIds(IEnumerable<string> ids) =>
+        ids.OrderBy(id => id, StringComparer.Ordinal).ToArray();
 
     private sealed class ServerListSelectionFixture : IAsyncDisposable
     {
