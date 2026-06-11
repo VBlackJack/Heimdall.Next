@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using Renci.SshNet;
 using Heimdall.Core.Logging;
+using Renci.SshNet;
 
 namespace Heimdall.Ssh;
 
