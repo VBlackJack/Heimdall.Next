@@ -12,6 +12,220 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## 2026-06-11 — Quality audit fix pass (v2026.061101)
+
+Audit-fix release following the June 10, 2026 quality pass.
+
+- **Network scanner** — added a reentrancy guard so repeated `Ctrl+Shift+N`
+  cannot start two scans and two prompts at the same time.
+- **Server list search** — added a roughly 300 ms debounce for large
+  inventories while keeping clear/reset immediate.
+- **Notes export** — moved file writing off the UI path so exporting notes no
+  longer freezes the interface.
+- **Accessibility and localization** — command-library example copy buttons now
+  expose accessible names/tooltips, and the About window's Author label is
+  localized.
+- **Internal hygiene** — best-effort cleanup failures are logged, tunnel import
+  order was normalized, the test baseline is documented at 6,810 passing tests,
+  and internal audit artifacts were removed from the public tree.
+
+## 2026-06-10 — Embedded VNC connection fix (v2026.061006)
+
+Restored embedded VNC sessions and tightened their diagnostics.
+
+- **VNC connection** — the internal WebSocket proxy now advertises the
+  subprotocol expected by the WebView2/Chromium viewer, so embedded VNC
+  connects normally both direct and through SSH gateways.
+- **Reconnect UI** — the VNC display surface is cleared after disconnect so the
+  reconnection panel is visible instead of hidden behind the viewer.
+- **Diagnostics** — detailed VNC connection failures are now written to the
+  application log.
+- **Tests** — baseline moved to 6,808 passing tests with coverage for WebSocket
+  subprotocol negotiation.
+
+## 2026-06-10 — Cross-application UX pass (v2026.061002)
+
+Grouped six UX-audit PRs covering dialogs, localization, theming and session
+states.
+
+- **Dialogs and keyboard** — dialogs now use the themed dialog service, global
+  error dialogs hide stack traces, Escape maps to the non-destructive action,
+  and repeated F1 no longer stacks duplicate help dialogs.
+- **Localization** — corrected double-encoded strings across English/French and
+  made the French UI consistently use formal address.
+- **Theme and accessibility** — hardcoded colors were migrated to theme
+  resources, with localized accessible names for status, favorite and paste
+  preview surfaces.
+- **Sessions** — WinRM has its own connection state, progress indicators cover
+  all protocols, and SFTP/FTP/VNC/Citrix disconnected states expose clear close
+  or reconnect actions.
+- **Quality gates** — added static guards for locale encoding, dialog keyboard
+  contracts and themed colors; baseline 6,802 passing tests.
+
+## 2026-06-08 — SFTP and WinRM fundamentals hardening (v2026.060801)
+
+Security and clarity pass for file transfer and remote shell basics.
+
+- **SFTP safety** — elevated uploads create owner-restricted temporary files and
+  always clean them up, while create/rename rejects empty, dot and path-traversal
+  names.
+- **Connection logs** — SSH/SFTP connection logs no longer include usernames or
+  identity details.
+- **Error clarity** — SFTP/FTP failures and protected-root deletion now surface
+  localized, actionable messages.
+- **WinRM diagnostics** — common NTLM loop and WS-Man 12152 failures show
+  localized status hints without altering terminal output.
+- **Internal hardening** — host-key fingerprints are compared in constant time,
+  sudo indicators follow theme resources, and protocol constants/guards were
+  tightened.
+
+## 2026-06-07 — Terminal reconnection lifecycle fixes (v2026.060704)
+
+Improved reconnection behavior and process-exit detection for terminal-backed
+sessions.
+
+- **Telnet reconnect** — network interruptions now trigger automatic
+  reconnection, while voluntary disconnects still close cleanly.
+- **Local Shell and WinRM** — process exit detection no longer depends on output
+  flow, so fast or silent exits show the manual reconnect overlay reliably.
+- **Host-key dialog** — French host-key verification buttons no longer truncate.
+- **Tests** — added protocol-category reconnect coverage and ConPTY exit replay
+  coverage.
+
+## 2026-06-07 — Tunneled RDP and SSH robustness (v2026.060703)
+
+Security and reliability fixes for tunneled RDP/SSH sessions plus gateway
+display cleanup.
+
+- **RDP credentials** — simultaneous external RDP sessions through the same SSH
+  gateway now use distinct loopback aliases, isolating Windows Credential
+  Manager entries per target.
+- **Gateway references** — gateway IDs are compared case-insensitively in the UI
+  so valid references are no longer shown as orphaned.
+- **Tunnel ports** — local tunnel ports are allocated by the OS at open time,
+  removing a rare race where an ephemeral port could be claimed before use.
+- **Tests** — expanded coverage for tunnel port allocation, loopback aliases and
+  RDP credential isolation.
+
+## 2026-06-07 — SSH gateway import/export and repair (v2026.060702)
+
+Completed first-class handling for SSH gateways across configuration workflows.
+
+- **Import/export** — exports now include gateway definitions and imports
+  reconcile them by identity, preserving session-to-gateway links between
+  machines.
+- **Inventory visibility** — routed sessions show a gateway badge, missing
+  gateway references show a warning, and Settings now includes a gateway
+  overview panel.
+- **Repair workflow** — orphaned gateway references can be cleared or reassigned
+  to an existing gateway for a whole group of sessions.
+- **Security and internals** — gateway secrets remain excluded from exports, and
+  the import reconciler plus grouped gateway mutations are covered by tests.
+
+## 2026-06-06 — SSH/SFTP tunnel security and data safety (v2026.060602)
+
+Security and reliability release for tunneled SSH/SFTP, remote editing and
+WinRM/RDP cleanup.
+
+- **Host-key verification** — tunneled SSH/SFTP connections now pin and verify
+  the real target identity for SSH.NET, Plink and external PuTTY.
+- **Remote file safety** — elevated edit uploads restrict temporary files,
+  upload fallback preserves originals, and editor upload tracking is atomic.
+- **Downloads and deletion** — remote filenames are constrained to the
+  destination folder, FTP downloads are atomic, and root deletion is blocked
+  including sudo paths.
+- **Protocol fixes** — WinRM SSL/certificate options persist correctly, missing
+  PowerShell hosts show a clear error, RDP ACL failures are non-blocking, and SSH
+  agent protocol/time-out diagnostics are clearer.
+- **Cleanup** — orphaned Plink password files are swept at startup, WinRM
+  bootstrap secrets are zeroed, dead code was removed, and tunnel reference
+  counting is atomic.
+
+## 2026-06-06 — SSH reconnect and tools polish (v2026.060601)
+
+Small release focused on SSH connection behavior and tools readability.
+
+- **Plink reconnect** — failures during the initial Plink connection phase no
+  longer trigger automatic reconnect loops.
+- **Localization** — SSH probe messages and embedded-session labels are now
+  localized in English and French.
+- **Tools tab** — externally detected tools are grouped by provider for easier
+  scanning.
+- **Configuration** — SSH reconnect, keep-alive, tunnel and Plink timings were
+  centralized in settings and schema validation.
+
+## 2026-06-05 — External SSH and RDP trust options (v2026.060502)
+
+Security and usability improvements for external PuTTY, RDP and reconnect
+surfaces.
+
+- **PuTTY host keys** — external PuTTY launches now honor Heimdall's host-key
+  policy by passing known fingerprints through `-hostkey`.
+- **RDP server authentication** — added optional per-profile/global strict server
+  authentication when NLA is enabled.
+- **Session tabs** — right-clicking a session tab exposes profile actions such
+  as edit, copy host and copy username.
+- **Reconnect accessibility** — SSH reconnect overlays move keyboard focus to
+  their primary action when shown.
+
+## 2026-06-05 — WinRM HTTPS and session shortcuts (v2026.060501)
+
+WinRM HTTPS support plus session keyboard and lifecycle fixes.
+
+- **WinRM certificates** — profiles can opt into ignoring certificate
+  validation for trusted internal HTTPS hosts with self-signed certificates.
+- **Command palette** — `Ctrl+K` opens quick access even while focus is inside
+  SSH, VNC or RDP sessions.
+- **RDP credentials** — NetBIOS-domain usernames such as `DOMAIN\user`
+  auto-connect without prompting again.
+- **Reconnect policy** — Local Shell and WinRM no longer auto-reconnect in loops
+  when their process exits; network sessions keep recoverable reconnects.
+- **Cleanup** — WinRM temporary bootstrap scripts are cleaned at session end and
+  startup, including best-effort fallback paths.
+
+## 2026-06-04 — SSH, SFTP and WinRM quality pass (v2026.060403)
+
+Fundamentals release for safer transfers, clearer remote-shell status and
+reconnectable diagnostics.
+
+- **SFTP transfers** — downloads and uploads are atomic, sudo saves can recover
+  from permission denial, sudo listings are cancellable, reconnect returns to
+  the previous folder, and skipped folder downloads are reported honestly.
+- **SSH sessions** — automatic reconnect avoids fatal credential errors, `exit`
+  closes cleanly, and validation messages are localized.
+- **WinRM sessions** — status no longer claims "connected" before handoff, and
+  configuration failures are localized instead of exposing raw exceptions.
+- **Diagnostics** — failed SFTP/RDP/WinRM connections open a structured
+  reconnectable failure panel, and failed reconnect diagnostics remain visible.
+
+## 2026-06-03 — RDP resilience and diagnostics (v2026.060301)
+
+RDP-focused release after runtime validation of connection, fullscreen and
+shutdown edge cases.
+
+- **Connection diagnostics** — RDP authentication and extended disconnect
+  reasons are classified more accurately, avoiding pointless reconnect loops for
+  server-side refusals.
+- **Handshake watchdog** — frozen RDP handshakes are cut off cleanly with an
+  explicit reconnect/close overlay.
+- **Fullscreen and focus** — F11, toolbar and context-menu fullscreen now share
+  one implementation, and focus returns to the RDP surface only when appropriate.
+- **Reconnect UI** — disconnect code 1800 and administrator-initiated
+  disconnects are surfaced, and cancelled auto-reconnect keeps an accessible
+  overlay visible.
+- **Stability** — fixed two shutdown crash paths, wired `rdpKeepAliveIntervalMs`
+  end to end, restored legacy split-layout loading and documented the 6,441-test
+  baseline.
+
+## 2026-06-02 — Release packaging baseline (v2026.060201)
+
+Packaging-only release with no functional notes attached to the GitHub release.
+
+- **Standard portable** — published the standard zip for systems with
+  Edge/WebView2 already available.
+- **Self-contained portable** — published the bundled WebView2 zip.
+- **Installers** — published both Standard and SelfContained setup executables.
+
 ## 2026-05-30 — FTP FluentFTP migration
 
 Replaced the FTP browser's deprecated `FtpWebRequest` backend and home-grown
