@@ -15,6 +15,7 @@
  */
 
 using Renci.SshNet;
+using Heimdall.Core.Logging;
 
 namespace Heimdall.Ssh;
 
@@ -82,12 +83,48 @@ public sealed class TunnelSession : IDisposable
 
         // Stop and dispose the optional SOCKS5 dynamic proxy
         // Bare catch: Dispose() must never throw (IDisposable contract)
-        try { if (DynamicPort is { IsStarted: true }) DynamicPort.Stop(); } catch { }
-        try { DynamicPort?.Dispose(); } catch { }
+        try
+        {
+            if (DynamicPort is { IsStarted: true })
+            {
+                DynamicPort.Stop();
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Debug("TunnelSession dynamic port stop suppressed", ex);
+        }
+
+        try
+        {
+            DynamicPort?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Debug("TunnelSession dynamic port dispose suppressed", ex);
+        }
 
         // Stop and dispose the optional remote (reverse) port forward
-        try { if (RemotePort is { IsStarted: true }) RemotePort.Stop(); } catch { }
-        try { RemotePort?.Dispose(); } catch { }
+        try
+        {
+            if (RemotePort is { IsStarted: true })
+            {
+                RemotePort.Stop();
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Debug("TunnelSession remote port stop suppressed", ex);
+        }
+
+        try
+        {
+            RemotePort?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Debug("TunnelSession remote port dispose suppressed", ex);
+        }
 
         // Disconnect and dispose the final client
         DisconnectClientSafe(Client);

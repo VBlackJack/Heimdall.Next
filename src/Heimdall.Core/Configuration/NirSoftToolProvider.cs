@@ -125,8 +125,14 @@ public sealed class NirSoftToolProvider : IExternalToolProvider
                     if (File.Exists(candidate)) return candidate;
                 }
             }
-            catch (UnauthorizedAccessException) { }
-            catch (DirectoryNotFoundException) { }
+            catch (UnauthorizedAccessException ex)
+            {
+                Logging.FileLogger.Debug($"NirSoft scan skipped inaccessible directory '{dir}'", ex);
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                Logging.FileLogger.Debug($"NirSoft scan skipped missing directory '{dir}'", ex);
+            }
         }
 
         return null;

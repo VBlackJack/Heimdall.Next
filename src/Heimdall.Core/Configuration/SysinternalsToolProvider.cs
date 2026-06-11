@@ -132,8 +132,14 @@ public sealed class SysinternalsToolProvider : IExternalToolProvider
                         if (File.Exists(candidate)) return candidate;
                     }
                 }
-                catch (UnauthorizedAccessException) { }
-                catch (DirectoryNotFoundException) { }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Logging.FileLogger.Debug($"Sysinternals scan skipped inaccessible directory '{dir}'", ex);
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    Logging.FileLogger.Debug($"Sysinternals scan skipped missing directory '{dir}'", ex);
+                }
             }
         }
 
