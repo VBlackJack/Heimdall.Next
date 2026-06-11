@@ -1607,7 +1607,7 @@ public partial class NotesToolView : UserControl, IToolView
         CopyFeedbackHelper.ShowCopyFeedback(BtnCopyConfluence);
     }
 
-    private void OnExportConfluenceRequested(object? sender, string payload)
+    private async void OnExportConfluenceRequested(object? sender, string payload)
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
@@ -1620,11 +1620,18 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        File.WriteAllText(dialog.FileName, payload);
-        CopyFeedbackHelper.ShowCopyFeedback(BtnExportConfluence);
+        try
+        {
+            await File.WriteAllTextAsync(dialog.FileName, payload).ConfigureAwait(true);
+            CopyFeedbackHelper.ShowCopyFeedback(BtnExportConfluence);
+        }
+        catch (Exception ex)
+        {
+            _vm.SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
+        }
     }
 
-    private void OnExportHtmlRequested(object? sender, string payload)
+    private async void OnExportHtmlRequested(object? sender, string payload)
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
@@ -1637,8 +1644,15 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        File.WriteAllText(dialog.FileName, payload);
-        CopyFeedbackHelper.ShowCopyFeedback(BtnExportHtml);
+        try
+        {
+            await File.WriteAllTextAsync(dialog.FileName, payload).ConfigureAwait(true);
+            CopyFeedbackHelper.ShowCopyFeedback(BtnExportHtml);
+        }
+        catch (Exception ex)
+        {
+            _vm.SetStatus(string.Format(L("ToolNotesStatusError"), ex.Message), isError: true);
+        }
     }
 
     public void Dispose()
