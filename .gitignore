@@ -45,6 +45,8 @@ logs/
 ## Temporary/diagnostic files
 *.log
 audit_report_detailed.*
+docs/audit/
+docs/archive/
 audit-screenshots/
 .dotnet-home/
 .dotnet-home-audit/
