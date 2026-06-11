@@ -42,6 +42,8 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class ServerListViewModel : ObservableObject, IDisposable
 {
+    private static readonly TimeSpan SearchFilterDebounceDelay = TimeSpan.FromMilliseconds(300);
+
     private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IUiDispatcher _uiDispatcher;
@@ -59,7 +61,9 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     private List<ProjectTarget> _projectTargets = [];
     private AppSettings? _currentSettings;
     private readonly HashSet<string> _expandedNodes = new(StringComparer.OrdinalIgnoreCase);
+    private System.Threading.Timer? _searchFilterTimer;
     private System.Threading.Timer? _expandSaveTimer;
+    private int _searchFilterVersion;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -204,6 +208,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         UnsubscribeFolderEvents(GroupedServers);
+        _searchFilterTimer?.Dispose();
         _expandSaveTimer?.Dispose();
         _connectionSm.StateChanged -= OnConnectionStateChanged;
         if (_healthMonitor is not null)
@@ -1463,12 +1468,51 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
     partial void OnSearchTextChanged(string value)
     {
-        ApplyFilter();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            CancelSearchFilterDebounce();
+            ApplyFilter();
+            return;
+        }
+
+        ScheduleSearchFilter();
     }
 
     partial void OnSelectedProjectChanged(string value)
     {
+        CancelSearchFilterDebounce();
         ApplyFilter();
+    }
+
+    private void ScheduleSearchFilter()
+    {
+        var version = System.Threading.Interlocked.Increment(ref _searchFilterVersion);
+        _searchFilterTimer?.Dispose();
+        _searchFilterTimer = new System.Threading.Timer(
+            _ => ApplySearchFilterFromTimer(version),
+            null,
+            SearchFilterDebounceDelay,
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private void CancelSearchFilterDebounce()
+    {
+        System.Threading.Interlocked.Increment(ref _searchFilterVersion);
+        _searchFilterTimer?.Dispose();
+        _searchFilterTimer = null;
+    }
+
+    private void ApplySearchFilterFromTimer(int version)
+    {
+        _ = _uiDispatcher.InvokeAsync(() =>
+        {
+            if (_disposed || version != System.Threading.Volatile.Read(ref _searchFilterVersion))
+            {
+                return;
+            }
+
+            ApplyFilter();
+        });
     }
 
     private void ApplyFilter(string? preferredSelectedServerId = null)

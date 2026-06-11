@@ -1413,6 +1413,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     private bool _shortcutHelpDialogOpen;
+    private bool _networkScannerRunning;
 
     private void ShowKeyboardShortcutHelp()
     {
@@ -1476,23 +1477,33 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private async Task LaunchNetworkScannerAsync(MainViewModel vm)
     {
-        var progress = new Progress<(int Done, int Total, string Cidr)>(p =>
-            vm.StatusText = string.Format(
-                vm.Localize("NetworkScannerScanning"),
-                p.Cidr,
-                p.Done,
-                p.Total));
+        if (_networkScannerRunning) return;
 
-        var result = await _networkScannerService.ScanAndPromptAsync(vm.Localize, progress);
-
-        if (!string.IsNullOrWhiteSpace(result.StatusMessage))
+        _networkScannerRunning = true;
+        try
         {
-            vm.StatusText = result.StatusMessage;
+            var progress = new Progress<(int Done, int Total, string Cidr)>(p =>
+                vm.StatusText = string.Format(
+                    vm.Localize("NetworkScannerScanning"),
+                    p.Cidr,
+                    p.Done,
+                    p.Total));
+
+            var result = await _networkScannerService.ScanAndPromptAsync(vm.Localize, progress);
+
+            if (!string.IsNullOrWhiteSpace(result.StatusMessage))
+            {
+                vm.StatusText = result.StatusMessage;
+            }
+
+            if (result.AddedToInventory)
+            {
+                await vm.ReloadConfigurationAsync(await vm.ConfigManager.LoadSettingsAsync());
+            }
         }
-
-        if (result.AddedToInventory)
+        finally
         {
-            await vm.ReloadConfigurationAsync(await vm.ConfigManager.LoadSettingsAsync());
+            _networkScannerRunning = false;
         }
     }
 
