@@ -454,6 +454,8 @@
                                                         Command="{Binding DataContext.CopyExampleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding Command}"
                                                         Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                        ToolTip="{loc:Translate ToolCmdLibBtnCopyExample}"
+                                                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnCopyExample}"
                                                         FontSize="11" Width="22" Height="22"
                                                         Padding="2" VerticalAlignment="Top"
                                                         Focusable="False"/>

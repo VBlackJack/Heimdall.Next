@@ -3233,7 +3233,7 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock x:Name="Mw_AboutAuthorLabel" Grid.Row="0" Grid.Column="0" Text="{loc:Translate AboutLabelAuthor}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Julien Bombled"
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Translate AboutAuthor}"
                                            FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock x:Name="Mw_AboutLicenseLabel" Grid.Row="1" Grid.Column="0" Text="{loc:Translate AboutLabelLicense}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
